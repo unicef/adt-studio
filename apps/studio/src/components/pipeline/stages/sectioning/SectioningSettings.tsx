@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react"
+import { useSectioningModeConfirmation } from "@/hooks/use-sectioning-mode-confirmation"
+import type { SectioningModeState } from "@adt/types"
 import { useQueryClient } from "@tanstack/react-query"
 import { Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -97,6 +99,7 @@ function SectioningSettingsSession({ bookLabel, tab }: { bookLabel: string; tab:
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig({ withReceipt: true })
+  const modeConfirmation = useSectioningModeConfirmation(bookLabel, updateConfig.isPending || !bookConfigData || !activeConfigData)
   const queryClient = useQueryClient()
 
   // Section Types state
@@ -168,9 +171,9 @@ function SectioningSettingsSession({ bookLabel, tab }: { bookLabel: string; tab:
     ) as Record<string, { render_type?: string; config?: Record<string, unknown> }>
     setAllStrategyNames(listSelectableRenderStrategies(strategies))
 
-    if (m.page_sectioning && typeof m.page_sectioning === "object") {
-      const ps = m.page_sectioning as Record<string, unknown>
-      if (!dirty.sectioning_mode && ps.mode) setSectioningMode(String(ps.mode))
+    {
+      const ps = m.page_sectioning && typeof m.page_sectioning === "object" ? m.page_sectioning as Record<string, unknown> : {}
+      if (!dirty.sectioning_mode) setSectioningMode(ps.mode === "page" ? "page" : "dynamic")
       if (!dirty.max_refinements) setMaxRefinements(ps.max_refinements != null ? String(ps.max_refinements) : "")
     }
     if (!dirty.generate_activities) setGenerateActivities(m.generate_activities !== false)
@@ -378,6 +381,10 @@ function SectioningSettingsSession({ bookLabel, tab }: { bookLabel: string; tab:
       setSectioningPromptDraft(null)
       setRefinementPromptDraft(null)
       resetMarkedTabs()
+    } catch (error) {
+      const persisted = queryClient.getQueryData<SectioningModeState>(["books", bookLabel, "sectioning-mode-state"])
+      setSectioningMode(persisted?.effectiveMode ?? modeConfirmation.state?.effectiveMode ?? "dynamic")
+      throw error
     } finally { setSaving(false) }
   }
 
@@ -428,6 +435,7 @@ function SectioningSettingsSession({ bookLabel, tab }: { bookLabel: string; tab:
 
   return (
     <div className={tab === "sectioning-prompt" || tab === "refinement-prompt" ? "h-full" : "p-4 space-y-6"}>
+      {modeConfirmation.dialog}
       {runConfirmation.content}
       <fieldset disabled={runConfirmation.busy} inert={runConfirmation.busy || undefined} className="contents">
       {tab === "section-types" && (
@@ -464,10 +472,11 @@ function SectioningSettingsSession({ bookLabel, tab }: { bookLabel: string; tab:
                     type="button"
                     role="radio"
                     aria-checked={selected}
-                    onClick={() => {
+                    disabled={modeConfirmation.busy}
+                    onClick={() => modeConfirmation.request(value as "page" | "dynamic", () => {
                       setSectioningMode(value)
                       markDirty("sectioning_mode")
-                    }}
+                    })}
                     className={cn(
                       "flex items-start gap-3 rounded-md border p-3 text-left transition",
                       selected

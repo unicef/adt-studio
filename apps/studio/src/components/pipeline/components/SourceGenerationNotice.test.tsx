@@ -3,6 +3,7 @@ import React, { type ReactNode } from "react"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { AuthoredReplacement } from "@adt/types"
 const state = vi.hoisted(() => ({ stages: ["toc"], running: false, cancelling: false, dirty: false, provider: true, queue: vi.fn(), keep: vi.fn(), status: vi.fn() }))
 vi.mock("@lingui/react/macro", () => ({ Trans: ({ children }: { children: ReactNode }) => <>{children}</>, useLingui: () => ({ t: (parts: TemplateStringsArray) => parts.join("") }) }))
 vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({ sourceUpdateStages: state.stages, isRunning: state.running, isCancelling: state.cancelling, queueRun: state.queue }) }))
@@ -62,7 +63,7 @@ it("does not show a source generator warning on another stage", () => {
 })
 
 it("requires explicit confirmation of the protected TOC version and retains that scope across refetch", async () => {
-  state.status.mockResolvedValue({ protectedWork: [{ node: "toc-generation", itemId: "book", version: 2, source: "manual" }] })
+  state.status.mockResolvedValue({ protectedWork: [{ node: "toc-generation", itemId: "book", version: 2 }] })
   render(notice("toc"))
   const rerun = screen.getByRole("button", { name: "Re-run" }) as HTMLButtonElement
   await waitFor(() => expect(rerun.disabled).toBe(false))
@@ -75,10 +76,11 @@ it("requires explicit confirmation of the protected TOC version and retains that
   await waitFor(() => expect(rerun.disabled).toBe(false))
   fireEvent.click(rerun)
   dialog = await screen.findByRole("dialog")
-  state.status.mockResolvedValue({ protectedWork: [{ node: "toc-generation", itemId: "book", version: 3, source: "manual" }] })
+  state.status.mockResolvedValue({ protectedWork: [{ node: "toc-generation", itemId: "book", version: 3 }] })
   await act(async () => client.refetchQueries({ queryKey: ["books", "book", "step-status"] }))
   fireEvent.click(within(dialog).getByRole("button", { name: "Re-run" }))
   await waitFor(() => expect(state.queue).toHaveBeenCalledExactlyOnceWith({ fromStage: "toc", toStage: "toc", apiKey: "test-key", viewAfter: true, replaceManual: true, protectedReplacements: [{ node: "toc-generation", itemId: "book", version: 2 }] }))
+  expect(AuthoredReplacement.safeParse(state.queue.mock.calls[0][0].protectedReplacements[0]).success).toBe(true)
 })
 
 it.each(["running", "cancelling", "dirty", "provider"] as const)("does not confirm replacement after %s availability changes", async condition => {

@@ -2,11 +2,13 @@ import fs from "node:fs"
 import path from "node:path"
 import { randomUUID } from "node:crypto"
 import { HTTPException } from "hono/http-exception"
-import { parseBookLabel } from "@adt/types"
+import { parseBookLabel, PackageOwnershipReceipt } from "@adt/types"
 import type { PackagingWarning } from "@adt/types"
-import { createBookStorage } from "@adt/storage"
-import { packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
-import { createZipStream } from "./zip-util.js"
+import { createBookStorage, withBookWriter, recoverSectioningTransition, resolveBookPaths, isBookWriterArtifact } from "@adt/storage"
+import type { Storage } from "@adt/storage"
+import { readRetainedPackageOwnership } from "./retained-package-reader.js"
+import { publishedAdtDirectory, requiredPartRange, resolveReadingOrder, assertDerivedPackageFilesAvailable, SectioningSafetyError, assertPackageFilesAvailable, packageFilesAvailable, packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook, PACKAGE_OWNERS_FILE } from "@adt/pipeline"
+import { createZipStream, type ZipStreamOptions } from "./zip-util.js"
 import { readPartInfo } from "./book-service.js"
 import { ensureProjectIdentity } from "./project-identity.js"
 import {
@@ -78,6 +80,26 @@ export interface PrepareExportResult {
  * a spinner during the rebuild.
  */
 export async function prepareExport(
+  label: string,
+  format: "project" | "webpub" | "scorm" | "adt" | "epub" | "pnld",
+  booksDir: string,
+  webAssetsDir: string,
+  configPath?: string,
+  features?: ExportFeatures,
+  defaultSettingsOverride?: ExportDefaultSettings,
+  promptsDir = path.resolve("prompts"),
+): Promise<PrepareExportResult> {
+  const { bookDir } = resolveBookPaths(label, booksDir)
+  if (!fs.existsSync(bookDir)) throwBookNotFound(label)
+  // A project archive preserves source data and excludes generated bundles.
+  // It must remain available even when regeneration is safely blocked.
+  if (format === "project") return { warnings: [] }
+  return withBookWriter(bookDir, () => {
+    return prepareAdmittedExport(label, format, booksDir, webAssetsDir, configPath, features, defaultSettingsOverride, promptsDir)
+  })
+}
+
+async function prepareAdmittedExport(
   label: string,
   format: "project" | "webpub" | "scorm" | "adt" | "epub" | "pnld",
   booksDir: string,
@@ -171,6 +193,7 @@ export async function prepareExport(
     })()
 
     const opts = {
+      finalizePresentation: (adtDir: string) => { restoreImportedAdtPresentation(safeLabel, resolvedDir, adtDir) },
       promptsDir, configDir: configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config"),
       bookDir,
       label: safeLabel,
@@ -199,12 +222,12 @@ export async function prepareExport(
     }
 
     const { warnings } = await packageAdtWeb(storage, opts)
-    restoreImportedAdtPresentation(safeLabel, resolvedDir)
+    if (format === "adt" || format === "scorm") warmDownloadProofs(storage, bookDir, format === "scorm" ? "scorm" : "web")
 
     if (format === "webpub") {
       packageWebpub(storage, opts)
     } else if (format === "epub") {
-      packageEpub(storage, opts)
+      warnings.push(...packageEpub(storage, opts))
     } else if (format === "pnld") {
       packagePnld(storage, opts)
     }
@@ -215,6 +238,52 @@ export async function prepareExport(
   }
 }
 
+/** The build just staged and verified this bundle. Record the download's
+ * ownership and required-file proofs for this process now, while the user is
+ * already waiting on the build, so the download that follows starts warm.
+ * Warming only: the download still checks both and refuses on failure. */
+function warmDownloadProofs(storage: Storage, bookDir: string, format: "scorm" | "web") {
+  const directory = publishedAdtDirectory(bookDir)
+  try {
+    readRetainedPackageOwnership(storage, path.join(bookDir, `${path.basename(bookDir)}.db`), directory)
+    packageFilesAvailable(directory, { format, allowMissingAssets: true })
+  } catch { /* The download re-checks and reports any refusal. */ }
+}
+
+/** Keep YAML, lifecycle and SQLite from different transitions out of one ZIP.
+ * The existing ZIP producer yields while reading larger books, so admission
+ * must last until it has finished reading, not merely until it returns a stream. */
+function createProjectZipStream(bookDir: string) {
+  const artifacts = fs.readdirSync(bookDir).filter(name => isBookWriterArtifact(bookDir, name))
+  return createAdmittedZipStream(bookDir, bookDir, {
+    excludeDirs: new Set([...PROJECT_BACKUP_EXCLUDED_DIRS, ".adt-package-work", ".book-writer.json.recovery", ...artifacts]),
+    excludeFiles: new Set([".book-writer.json", ".book-writer.json.recovery", ...artifacts]),
+  })
+}
+
+function createAdmittedZipStream(bookDir: string, directory: string, options?: ZipStreamOptions): ReadableStream<Uint8Array> {
+  let cancelled = false
+  return new ReadableStream({
+    start(controller) {
+      return withBookWriter(bookDir, async () => {
+        recoverSectioningTransition(bookDir)
+        const reader = createZipStream(directory, options).getReader()
+        try {
+          for (;;) {
+            const { done, value } = await reader.read()
+            if (done) { if (!cancelled) controller.close(); break }
+            if (!cancelled) {
+              // A cancelled consumer must not release admission while the
+              // eager ZIP producer is still reading later source files.
+              try { controller.enqueue(value) } catch { cancelled = true }
+            }
+          }
+        } finally { reader.releaseLock() }
+      })
+    },
+    cancel() { cancelled = true },
+  })
+}
 /**
  * Top-level folders left out of project backups: export outputs (rebuilt by
  * packaging) and the section screenshot cache (rebuilt on demand). The LLM
@@ -243,7 +312,7 @@ export async function exportProject(
 
   // Project archives carry the stable identity too, so moving a project to a
   // different machine does not sever future exported-ADT lineage matches.
-  ensureProjectIdentity(bookDir)
+  withBookWriter(bookDir, () => ensureProjectIdentity(bookDir))
   const title = readBookTitle(safeLabel, resolvedDir)
 
   // When this book is an imported page-range part, name the returned archive
@@ -257,14 +326,14 @@ export async function exportProject(
     const { startPage, endPage } = part.range
     const pad3 = (n: number) => String(n).padStart(3, "0")
     return {
-      stream: createZipStream(bookDir, { excludeDirs: PROJECT_BACKUP_EXCLUDED_DIRS }),
+      stream: createProjectZipStream(bookDir),
       filename: `${title}-part-${startPage}-${endPage}-processed.zip`,
       safeFilename: `${part.sourceLabel}-p${pad3(startPage)}-${pad3(endPage)}-processed.zip`,
     }
   }
 
   return {
-    stream: createZipStream(bookDir, { excludeDirs: PROJECT_BACKUP_EXCLUDED_DIRS }),
+    stream: createProjectZipStream(bookDir),
     filename: `${title}-project.zip`,
     safeFilename: `${safeLabel}-project.zip`,
   }
@@ -286,10 +355,52 @@ export async function exportWebpub(
   const webpubDir = path.join(bookDir, "webpub")
 
   return {
-    stream: createZipStream(webpubDir),
+    stream: readableDerivedPackageZip(bookDir, webpubDir, "webpub"),
     filename: `${title}.webpub`,
     safeFilename: `${safeLabel}.webpub`,
   }
+}
+
+/** Derived reader formats keep the source package's owner membership even
+ * after relocating/rewriting HTML. An old export cannot broaden a saved part. */
+function readableDerivedPackageZip(bookDir: string, directory: string, format: "webpub" | "epub" | "pnld", contentRoot = directory) {
+  return withBookWriter(bookDir, () => {
+    requiredPartRange(bookDir)
+    const storage = createBookStorage(path.basename(bookDir), path.dirname(bookDir))
+    try {
+      const allowed = new Map(resolveReadingOrder(storage).items.map(item => [item.id, item.kind === "quiz" ? null : item.pageId]))
+      let receipt: ReturnType<typeof PackageOwnershipReceipt.parse> | undefined
+      try { receipt = PackageOwnershipReceipt.parse(JSON.parse(fs.readFileSync(path.join(contentRoot, ".build-owners"), "utf8"))) }
+      catch { /* Unproven retained membership/origin requires explicit preparation. */ }
+      if (!receipt || receipt.bookId !== (storage.getBookIdentity?.() ?? null) || !receipt.entries.length || new Set(receipt.entries.map(row => row[0])).size !== receipt.entries.length ||
+          receipt.entries.some(([id, pageOwner]) => !allowed.has(id) || allowed.get(id) !== pageOwner)) {
+        throw new SectioningSafetyError("PACKAGE_FILES_INCOMPLETE", "Prepare the export again from this book's current owned content.")
+      }
+      assertDerivedPackageFilesAvailable(directory, format, receipt.entries.map(row => row[0]))
+    } finally { storage.close() }
+    return createAdmittedZipStream(bookDir, directory, {
+      excludeFiles: new Set([path.relative(directory, path.join(contentRoot, PACKAGE_OWNERS_FILE)).split(path.sep).join("/")]),
+    })
+  })
+}
+
+function readablePackageZip(bookDir: string, directory: string, format: "scorm" | "web") {
+  return withBookWriter(bookDir, () => {
+    requiredPartRange(bookDir)
+    const storage = createBookStorage(path.basename(bookDir), path.dirname(bookDir))
+    try {
+      // Older bundles can still name an owner rejected by today's resolver.
+      // Downloads may be partial but cannot distribute retired or unowned pages.
+      if (!readRetainedPackageOwnership(storage, path.join(bookDir, `${path.basename(bookDir)}.db`), directory).allOwned) {
+        throw new SectioningSafetyError("PACKAGE_FILES_INCOMPLETE", "Prepare the export again from the current saved content.")
+      }
+      // The bundle must open. A resource missing from book content was
+      // reported when the export was prepared and does not stop the download.
+      assertPackageFilesAvailable(directory, { format, allowMissingAssets: true })
+    } finally { storage.close() }
+    // The ZIP producer may yield between files; keep shared admission until it finishes.
+    return createAdmittedZipStream(bookDir, directory, { excludeFiles: new Set([PACKAGE_OWNERS_FILE]) })
+  })
 }
 
 export async function exportScorm(
@@ -305,13 +416,13 @@ export async function exportScorm(
   }
 
   const title = readBookTitle(safeLabel, resolvedDir)
-  const adtDir = path.join(bookDir, "adt")
+  const adtDir = publishedAdtDirectory(bookDir)
   if (!fs.existsSync(adtDir)) {
     throwAdtDirMissing()
   }
 
   return {
-    stream: createZipStream(adtDir),
+    stream: readablePackageZip(bookDir, adtDir, "scorm"),
     filename: `${title}-scorm.zip`,
     safeFilename: `${safeLabel}-scorm.zip`,
   }
@@ -330,13 +441,13 @@ export async function exportAdt(
   }
 
   const title = readBookTitle(safeLabel, resolvedDir)
-  const adtDir = path.join(bookDir, "adt")
+  const adtDir = publishedAdtDirectory(bookDir)
   if (!fs.existsSync(adtDir)) {
     throwAdtDirMissing()
   }
 
   return {
-    stream: createZipStream(adtDir),
+    stream: readablePackageZip(bookDir, adtDir, "web"),
     filename: `${title}-adt.zip`,
     safeFilename: `${safeLabel}-adt.zip`,
   }
@@ -376,7 +487,7 @@ export async function exportEpub(
   }
 
   return {
-    stream: createZipStream(epubDir),
+    stream: readableDerivedPackageZip(bookDir, epubDir, "epub", path.join(epubDir, "OEBPS")),
     filename: `${title}.epub`,
     safeFilename: `${safeLabel}.epub`,
   }
@@ -401,7 +512,7 @@ export async function exportPnld(
   }
 
   return {
-    stream: createZipStream(pnldDir),
+    stream: readableDerivedPackageZip(bookDir, pnldDir, "pnld", path.join(pnldDir, "resources/data")),
     filename: `${title}.zip`,
     safeFilename: `${safeLabel}-pnld.zip`,
   }

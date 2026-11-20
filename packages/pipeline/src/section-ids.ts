@@ -2,6 +2,7 @@ import { collectSpentContentIds } from "./content-ids.js"
 import type { Storage } from "@adt/storage"
 import {
   formatSectionId,
+  type IdentityHistoryRecord,
   parseAnySectionId,
   MAX_SECTION_SEQ,
   TocGenerationOutput,
@@ -53,19 +54,17 @@ export function collectSpentSectionIds(
   pageId: string,
   nodes: readonly string[] = [PAGE_SECTIONING_NODE, FIXED_LAYOUT_SECTIONING_NODE]
 ): Set<string> {
-  const spent = new Set<string>()
+  if (storage.readIdentityHistoryIds) return new Set(storage.readIdentityHistoryIds(nodes, historySectionIds, pageId))
+  const rows = storage.readIdentityHistory?.(nodes, pageId) ?? nodes.flatMap(node => storage.getAllNodeVersions(node, pageId))
+  return new Set(rows.flatMap(row => historySectionIds({ itemId: pageId, data: row.data })))
+}
+
+function historySectionIds(row: Pick<IdentityHistoryRecord, "itemId" | "data">): string[] {
   const pattern = new RegExp(
-    `${pageId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}_s(?:ec)?\\d+`,
+    `${row.itemId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}_s(?:ec)?\\d+`,
     "g"
   )
-  for (const node of nodes) {
-    for (const row of storage.getAllNodeVersions(node, pageId)) {
-      for (const match of JSON.stringify(row.data).matchAll(pattern)) {
-        spent.add(match[0])
-      }
-    }
-  }
-  return spent
+  return Array.from(JSON.stringify(row.data).matchAll(pattern), match => match[0])
 }
 
 /**
@@ -101,9 +100,28 @@ function spentSeq(pageId: string, id: string): number | null {
  * leaves a gap, the next append reuses a length that is already taken.
  */
 export function createSectionIdFactory(storage: Storage, pageId: string): () => string {
+  return sectionIdFactory(storage, pageId, collectSpentContentIds(storage))
+}
+
+/** Both allocators belong to one synchronous reconciliation. Validate history
+ * once here; never accept a caller-supplied or cross-publication reservation set. */
+export function createSectioningIdFactories(storage: Storage, pageId: string) {
+  const spent = collectSpentContentIds(storage)
+  const allocateSection = sectionIdFactory(storage, pageId, spent)
+  let next = 1
+  const allocateNode = () => {
+    let id: string
+    do { id = `${pageId}_n${String(next++).padStart(4, "0")}` } while (spent.has(id))
+    spent.add(id)
+    return id
+  }
+  return { allocateNode, allocateSection }
+}
+
+function sectionIdFactory(storage: Storage, pageId: string, contentIds: ReadonlySet<string>): () => string {
   let highWaterMark = 0
   const spent = collectSpentSectionIds(storage, pageId)
-  for (const id of collectSpentContentIds(storage)) {
+  for (const id of contentIds) {
     const owner = sectionIdOfAnswerTextId(id) ?? id.split("__activity_gen_")[0]
     if (spentSeq(pageId, owner) !== null) spent.add(owner)
   }

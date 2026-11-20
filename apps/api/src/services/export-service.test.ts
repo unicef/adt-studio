@@ -1,10 +1,16 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { openBookDb, createBookStorage } from "@adt/storage"
+import { createHash, randomUUID } from "node:crypto"
+import { BookBusyError, openBookDb, createBookStorage, withBookWriter, writeSectioningLifecycle } from "@adt/storage"
 import { unzipSync } from "fflate"
-import { prepareExport, exportProject, exportAdt, exportWebpub, exportEpub, exportPnld } from "./export-service.js"
+import { packageEpub } from "@adt/pipeline"
+import { Hono } from "hono"
+import { createPackageRoutes } from "../routes/package.js"
+import { errorHandler } from "../middleware/error-handler.js"
+import { makeBundle, seedFromArchive } from "./adt-import/__tests__/fixtures.js"
+import { prepareExport, exportProject, exportAdt, exportScorm, exportWebpub, exportEpub, exportPnld } from "./export-service.js"
 
 let tmpDir: string
 let webAssetsDir: string
@@ -87,8 +93,12 @@ function addConfigYaml(label: string): void {
 
 function createWebAssets(dir: string): void {
   fs.mkdirSync(dir, { recursive: true })
-  fs.writeFileSync(path.join(dir, "base.js"), 'window.__ADT_BUNDLE_TEST__ = "ok";\n')
+  for (const file of ["base.bundle.min.js", "base.bundle.local.js", "activities.bundle.local.js"]) {
+    fs.writeFileSync(path.join(dir, file), 'window.__ADT_BUNDLE_TEST__ = "ok";\n')
+  }
   fs.writeFileSync(path.join(dir, "fonts.css"), "body { font-family: serif; }")
+  fs.mkdirSync(path.join(dir, "libs/fontawesome/css"), { recursive: true })
+  fs.writeFileSync(path.join(dir, "libs/fontawesome/css/all.min.css"), "/* test icons */")
   fs.writeFileSync(
     path.join(dir, "tailwind_css.css"),
     "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n"
@@ -96,6 +106,83 @@ function createWebAssets(dir: string): void {
 }
 
 describe("exportProject", () => {
+  it.each(["consume", "cancel"])("releases admission before a slow consumer finishes (%s)", async action => {
+    const label = "slow-consumer"
+    createTestDb(label)
+    const dir = path.join(tmpDir, label)
+    for (let i = 0; i < 120; i++) fs.writeFileSync(path.join(dir, `asset-${i}.txt`), `before-${i}`)
+    const { stream } = await exportProject(label, tmpDir)
+    // Deliberately do not read the response. The lock protects production, not
+    // the client's network connection or the queued response bytes.
+    await vi.waitFor(() => expect(fs.existsSync(path.join(dir, ".book-writer.json"))).toBe(false))
+    withBookWriter(dir, () => fs.writeFileSync(path.join(dir, "asset-119.txt"), "after"))
+    if (action === "cancel") await stream.cancel()
+    else {
+      const archive = unzipSync(await streamToBuffer(stream))
+      expect(Buffer.from(archive["asset-119.txt"]).toString()).toBe("before-119")
+    }
+  })
+  it("allows usable output export after a generation preference change and preserves project backup", async () => {
+    createTestDb("stale-export")
+    addPagesAndRenderings("stale-export", 1)
+    const dir = path.join(tmpDir, "stale-export")
+    fs.mkdirSync(path.join(dir, "adt"))
+    fs.writeFileSync(path.join(dir, "adt", "retained.txt"), "saved package")
+    writeSectioningLifecycle(dir, "dynamic", false)
+    await expect(prepareExport("stale-export", "webpub", tmpDir, webAssetsDir)).resolves.toEqual({ warnings: [] })
+    await expect(prepareExport("stale-export", "project", tmpDir, "")).resolves.toEqual({ warnings: [] })
+    const archive = await exportProject("stale-export", tmpDir)
+    expect(unzipSync(await streamToBuffer(archive.stream))[".sectioning-lifecycle.json"]).toBeDefined()
+  })
+  it("rejects a busy book before returning a ZIP stream", async () => {
+    createTestDb("busy-export")
+    let release!: () => void
+    const held = withBookWriter(path.join(tmpDir, "busy-export"), () => new Promise<void>((resolve) => { release = resolve }))
+    try {
+      await expect(exportProject("busy-export", tmpDir)).rejects.toMatchObject({ code: "BOOK_BUSY" })
+      expect(fs.existsSync(path.join(tmpDir, "busy-export", ".adt-project.json"))).toBe(false)
+    } finally { release(); await held }
+  })
+  it.each([false, true])("retains writer admission while a large archive is read (cancelled: %s)", async (cancelled) => {
+    const label = "export-admission"
+    createTestDb(label)
+    const bookDir = path.join(tmpDir, label)
+    for (let n = 0; n < 120; n++) fs.writeFileSync(path.join(bookDir, `fixture-${n}.txt`), "saved content")
+    const { stream } = await exportProject(label, tmpDir)
+    expect(() => withBookWriter(bookDir, () => {})).toThrow(BookBusyError)
+    if (cancelled) await stream.cancel()
+    else await streamToBuffer(stream)
+    await vi.waitFor(() => expect(fs.existsSync(path.join(bookDir, ".book-writer.json"))).toBe(false))
+    expect(() => withBookWriter(bookDir, () => {})).not.toThrow()
+  })
+
+  it("preserves lifecycle provenance without exporting live process ownership", async () => {
+    const label = "portable-lifecycle"
+    createTestDb(label)
+    const bookDir = path.join(tmpDir, label)
+    writeSectioningLifecycle(bookDir, "page", false)
+    await withBookWriter(bookDir, async () => {
+      const token = randomUUID(), artifact = `.book-writer.json.recovery.completed-${token}`
+      fs.mkdirSync(path.join(bookDir, artifact))
+      const owner = { token, pid: process.pid, host: os.hostname() }
+      fs.writeFileSync(path.join(bookDir, artifact, "owner.json"), JSON.stringify({ format: "adt-book-admission-v1", rootToken: token, owner }))
+      const preparing = `.book-writer.json.preparing-${randomUUID()}`
+      fs.writeFileSync(path.join(bookDir, preparing), JSON.stringify(owner))
+      const unknown = `.book-writer.json.preparing-${randomUUID()}`
+      fs.writeFileSync(path.join(bookDir, unknown), "unknown user data")
+      const result = await exportProject(label, tmpDir)
+      const files = unzipSync(await streamToBuffer(result.stream))
+      expect(files[".book-writer.json"]).toBeUndefined()
+      expect(files[".book-writer.json.recovery"]).toBeUndefined()
+      expect(files[artifact + "/owner.json"]).toBeUndefined()
+      expect(files[preparing]).toBeUndefined()
+      expect(Buffer.from(files[unknown]).toString()).toBe("unknown user data")
+      expect(fs.existsSync(path.join(bookDir, artifact, "owner.json"))).toBe(true)
+      expect(JSON.parse(new TextDecoder().decode(files[".sectioning-lifecycle.json"])))
+        .toEqual({ version: 1, mode: "page", sectioningReady: false, storyboardPending: true })
+    })
+  })
+
   it("produces a valid ZIP containing the db file", async () => {
     createTestDb("export-test")
     addPages("export-test", 1)
@@ -209,12 +296,13 @@ describe("exportProject", () => {
     await expect(exportProject("ghost", tmpDir)).rejects.toThrow("not found")
   })
 
-  it("throws when web assets directory is missing (prepareExport)", async () => {
+  it("does not require generated web assets to preserve a project archive", async () => {
     createTestDb("missing-assets")
     addPages("missing-assets", 1)
 
     await expect(prepareExport("missing-assets", "project", tmpDir, path.join(tmpDir, "missing-assets-dir"), undefined, undefined))
-      .rejects.toThrow("Web assets directory not found")
+      .resolves.toEqual({ warnings: [] })
+    expect(fs.existsSync(path.join(tmpDir, "missing-assets", "adt"))).toBe(false)
   })
 
   it("includes all book directory contents recursively", async () => {
@@ -320,6 +408,99 @@ function addPagesAndRenderings(label: string, count: number): void {
   }
 }
 
+it.each(["adt", "scorm", "webpub", "epub", "pnld"] as const)("exports saved harmless inline CSS through %s without rewriting history, and reports a missing resource without refusing the export", async format => {
+  const label = "saved-inline-css"
+  createBookWithMetadata(label, "Readable styling")
+  addPagesAndRenderings(label, 3)
+  const styles = ["color red", "font-family: 'Open Sans", "color:red; }"]
+  const s = createBookStorage(label, tmpDir)
+  let before: unknown
+  try {
+    for (let i = 0; i < styles.length; i++) {
+      const id = `${label}_p${i + 1}`
+      const row = s.getLatestNodeData("web-rendering", id)!.data as { sections: { html: string }[] }
+      row.sections[0].html += `<p style="${styles[i]}">Saved styling</p>`
+      s.putNodeData("web-rendering", id, row)
+    }
+    before = s.getPages().map(page => s.getAllNodeVersions("web-rendering", page.pageId))
+  } finally { s.close() }
+  const image = path.join(tmpDir, label, `images/${label}_p1_page.png`)
+  const imageBytes = fs.readFileSync(image)
+  await prepareExport(label, format, tmpDir, webAssetsDir)
+  const download = { adt: exportAdt, scorm: exportScorm, webpub: exportWebpub, epub: exportEpub, pnld: exportPnld }[format]
+  const members = unzipSync(await streamToBuffer((await download(label, tmpDir)).stream))
+  expect(Object.keys(members).length).toBeGreaterThan(0)
+  const after = createBookStorage(label, tmpDir)
+  try {
+    expect(after.getPages().map(page => after.getAllNodeVersions("web-rendering", page.pageId))).toEqual(before)
+    const row = after.getLatestNodeData("web-rendering", `${label}_p1`)!.data as { sections: { html: string }[] }
+    row.sections[0].html += '<img src="images/required-but-missing.png">'
+    after.putNodeData("web-rendering", `${label}_p1`, row)
+  } finally { after.close() }
+  // A resource the content points at but the book lacks leaves a gap on that
+  // page. The export is prepared with a warning naming it, and still downloads.
+  const prepared = await prepareExport(label, format, tmpDir, webAssetsDir)
+  expect(prepared.warnings).toContainEqual(expect.objectContaining({
+    kind: "missing-asset", pageId: `${label}_p1`, reference: "images/required-but-missing.png",
+  }))
+  const delivered = unzipSync(await streamToBuffer((await download(label, tmpDir)).stream))
+  expect(Object.keys(delivered).length).toBeGreaterThanOrEqual(Object.keys(members).length)
+  expect(fs.readFileSync(image)).toEqual(imageBytes)
+}, 30_000)
+
+it.each(["adt", "scorm", "webpub", "epub", "pnld"] as const)("exports a book whose title and pages contain characters XML forbids through %s", async format => {
+  const label = "xml-characters"
+  // PDF extraction can carry control characters into a title or page text.
+  createBookWithMetadata(label, "Form\u000Cfeed \u0001 title")
+  addPagesAndRenderings(label, 1)
+  const s = createBookStorage(label, tmpDir)
+  try {
+    const row = s.getLatestNodeData("web-rendering", `${label}_p1`)!.data as { sections: { html: string }[] }
+    row.sections[0].html += '<p>Vertical\u000Btab and \uFFFE</p><svg><use xlink:href="#icon"></use></svg><!-- a -- b -->'
+    s.putNodeData("web-rendering", `${label}_p1`, row)
+  } finally { s.close() }
+  // Writers repair what XML cannot hold, so nothing is refused or reported.
+  const prepared = await prepareExport(label, format, tmpDir, webAssetsDir)
+  expect(prepared.warnings.filter(warning => warning.kind === "missing-asset")).toEqual([])
+  const download = { adt: exportAdt, scorm: exportScorm, webpub: exportWebpub, epub: exportEpub, pnld: exportPnld }[format]
+  const members = unzipSync(await streamToBuffer((await download(label, tmpDir)).stream))
+  expect(Object.keys(members).length).toBeGreaterThan(0)
+  if (format === "scorm") {
+    const manifest = Buffer.from(members["imsmanifest.xml"]).toString()
+    expect(manifest).toContain("Formfeed  title")
+    expect(manifest).not.toMatch(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/)
+  }
+  if (format === "epub") {
+    const page = Buffer.from(members[`OEBPS/${label}_p1_sec001.xhtml`]).toString()
+    expect(page).toContain("Verticaltab and ")
+    expect(page).not.toMatch(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE]/)
+    expect(page).toContain('xmlns:xlink="http://www.w3.org/1999/xlink"')
+  }
+}, 30_000)
+
+it("reports an unreadable EPUB page to the export caller while retaining saved content", async () => {
+  const label = "epub-page-warning"
+  createBookWithMetadata(label, "Readable book")
+  addPagesAndRenderings(label, 2)
+  const storage = createBookStorage(label, tmpDir)
+  let saved: unknown
+  try {
+    const row = storage.getLatestNodeData("web-rendering", `${label}_p1`)!.data as { sections: { html: string }[] }
+    row.sections[0].html += '<unknown:element>Retain this text</unknown:element>'
+    storage.putNodeData("web-rendering", `${label}_p1`, row)
+    saved = storage.getAllNodeVersions("web-rendering", `${label}_p1`)
+  } finally { storage.close() }
+  const first = await prepareExport(label, "epub", tmpDir, webAssetsDir)
+  expect(first.warnings).toContainEqual({ kind: "unreadable-page", pageId: "", document: `OEBPS/${label}_p1_sec001.xhtml` })
+  const second = await prepareExport(label, "epub", tmpDir, webAssetsDir)
+  expect(second.warnings).toEqual(first.warnings)
+  const zip = unzipSync(await streamToBuffer((await exportEpub(label, tmpDir)).stream))
+  expect(Buffer.from(zip[`OEBPS/${label}_p1_sec001.xhtml`]).toString()).toContain("Retain this text")
+  expect(zip[`OEBPS/${label}_p2_sec001.xhtml`]).toBeDefined()
+  const after = createBookStorage(label, tmpDir)
+  try { expect(after.getAllNodeVersions("web-rendering", `${label}_p1`)).toEqual(saved) } finally { after.close() }
+}, 30_000)
+
 describe("exportWebpub", () => {
   it("produces a valid ZIP of the webpub directory", async () => {
     createBookWithMetadata("webpub-test", "Test Book")
@@ -348,7 +529,7 @@ describe("exportWebpub", () => {
 
   it("falls back to label when metadata has no title", async () => {
     createTestDb("no-title")
-    addPages("no-title", 1)
+    addPagesAndRenderings("no-title", 1)
 
     await prepareExport("no-title", "webpub", tmpDir, webAssetsDir)
     const result = await exportWebpub("no-title", tmpDir)
@@ -481,7 +662,7 @@ describe("exportEpub", () => {
 
   it("falls back to label when metadata has no title", async () => {
     createTestDb("epub-no-title")
-    addPages("epub-no-title", 1)
+    addPagesAndRenderings("epub-no-title", 1)
 
     await prepareExport("epub-no-title", "epub", tmpDir, webAssetsDir)
     const result = await exportEpub("epub-no-title", tmpDir)
@@ -759,4 +940,301 @@ describe("exportEpub — fixed-layout", () => {
     // Page image should be present
     expect(html).toContain("_page")
   })
+})
+
+
+it.each(["adt", "scorm", "webpub", "epub", "pnld"] as const)("keeps origin receipts internal to %s and preserves project reopen", async format => {
+  const label = "internal-receipt"
+  createBookWithMetadata(label, label); addPagesAndRenderings(label, 2); addPdf(label)
+  await prepareExport(label, format, tmpDir, webAssetsDir)
+  const download = { adt: exportAdt, scorm: exportScorm, webpub: exportWebpub, epub: exportEpub, pnld: exportPnld }[format]
+  const directory = format === "adt" || format === "scorm" ? "adt" : format
+  const relative = format === "epub" ? "OEBPS/.build-owners" : format === "pnld" ? "resources/data/.build-owners" : ".build-owners"
+  const receiptFile = path.join(tmpDir, label, directory, relative), receipt = fs.readFileSync(receiptFile)
+  const files = unzipSync(await streamToBuffer((await download(label, tmpDir)).stream))
+  expect.soft(Object.keys(files).some(file => path.basename(file) === ".build-owners")).toBe(false)
+  for (const [file, bytes] of Object.entries(files)) {
+    if (!["manifest.json", "content.opf", "imsmanifest.xml"].includes(path.basename(file))) continue
+    const text = new TextDecoder().decode(bytes)
+    expect.soft(text).not.toContain(".build-owners")
+    const hrefs: string[] = file.endsWith("manifest.json")
+      ? [...(JSON.parse(text).readingOrder ?? []), ...(JSON.parse(text).resources ?? [])].map(entry => entry.href)
+      : [...text.matchAll(/href="([^"]+)"/g)].map(match => match[1])
+    for (const href of hrefs) if (!/^(?:[a-z]+:|\/\/|#)/i.test(href)) expect(files[path.posix.join(path.posix.dirname(file), decodeURIComponent(href.split("#")[0]))], `${file}: ${href}`).toBeDefined()
+  }
+  expect(fs.readFileSync(receiptFile)).toEqual(receipt)
+  if (format === "webpub" || format === "epub" || format === "pnld" || format === "scorm") {
+    const manifestFile = path.join(tmpDir, label, directory, format === "webpub" ? "manifest.json" : format === "epub" ? "OEBPS/content.opf" : format === "pnld" ? "content.opf" : "imsmanifest.xml")
+    const original = fs.readFileSync(manifestFile, "utf8")
+    const declaredReceipt = format === "pnld" ? "resources/data/.build-owners" : ".build-owners"
+    const legacy = format === "webpub"
+      ? JSON.stringify({ ...JSON.parse(original), resources: [...JSON.parse(original).resources, { href: declaredReceipt, type: "application/octet-stream" }] })
+      : format === "scorm" ? original.replace("</resource>", `<file href="${declaredReceipt}"/></resource>`)
+      : original.replace("</manifest>", `<item id="internal-proof" href="${declaredReceipt}" media-type="application/octet-stream"/></manifest>`)
+    fs.writeFileSync(manifestFile, legacy)
+    await expect(download(label, tmpDir)).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+    expect(fs.readFileSync(manifestFile, "utf8")).toBe(legacy)
+    await prepareExport(label, format, tmpDir, webAssetsDir)
+    expect(fs.readFileSync(manifestFile, "utf8")).not.toContain(".build-owners")
+    await streamToBuffer((await download(label, tmpDir)).stream)
+  }
+  const project = unzipSync(await streamToBuffer((await exportProject(label, tmpDir)).stream))
+  // Upstream project backups now omit all rebuilt distribution directories.
+  // The live package receipt stays intact; the source identity/history reopens below.
+  expect(Object.keys(project).some(name => /^(adt|webpub|epub|pnld)\//.test(name))).toBe(false)
+  expect(fs.readFileSync(receiptFile)).toEqual(receipt)
+  const reopenedRoot = path.join(tmpDir, "reopened"), reopenedDir = path.join(reopenedRoot, label)
+  for (const [name, bytes] of Object.entries(project)) {
+    const file = path.join(reopenedDir, name)
+    fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, bytes)
+  }
+  const reopened = createBookStorage(label, reopenedRoot)
+  try {
+    expect(reopened.getBookIdentity()).toBe(JSON.parse(receipt.toString()).bookId)
+    expect(reopened.getPages()).toHaveLength(2)
+    expect(reopened.getAllNodeVersions("web-rendering", label + "_p1")).toHaveLength(1)
+  } finally { reopened.close() }
+})
+
+it.each(["webpub", "epub", "pnld"] as const)("binds real %s exports to their originating book and keeps relocated copies usable", async format => {
+  for (const label of ["owned-a", "foreign-b"]) {
+    createBookWithMetadata(label, label)
+    addPagesAndRenderings(label, 1)
+    await prepareExport(label, format, tmpDir, webAssetsDir)
+  }
+  const download = { webpub: exportWebpub, epub: exportEpub, pnld: exportPnld }[format]
+  const a = path.join(tmpDir, "owned-a"), b = path.join(tmpDir, "foreign-b")
+  fs.cpSync(a, path.join(tmpDir, "relocated"), { recursive: true })
+  fs.renameSync(path.join(tmpDir, "relocated/owned-a.db"), path.join(tmpDir, "relocated/relocated.db"))
+  expect((await streamToBuffer((await download("relocated", tmpDir)).stream)).length).toBeGreaterThan(0)
+  fs.rmSync(path.join(a, format), { recursive: true })
+  fs.cpSync(path.join(b, format), path.join(a, format), { recursive: true })
+  const receiptPath = format === "epub" ? "OEBPS/.build-owners" : format === "pnld" ? "resources/data/.build-owners" : ".build-owners"
+  const before = fs.readFileSync(path.join(a, format, receiptPath))
+  await expect(download("owned-a", tmpDir)).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+  expect(fs.readFileSync(path.join(a, format, receiptPath))).toEqual(before)
+  await prepareExport("owned-a", format, tmpDir, webAssetsDir)
+  expect((await streamToBuffer((await download("owned-a", tmpDir)).stream)).length).toBeGreaterThan(0)
+})
+
+it.each(["webpub", "epub", "pnld"] as const)("refuses retained %s pages after their explicit owner changes", async format => {
+  const label = "changed-owner"
+  createBookWithMetadata(label, label)
+  addPagesAndRenderings(label, 2)
+  await prepareExport(label, format, tmpDir, webAssetsDir)
+  const download = { webpub: exportWebpub, epub: exportEpub, pnld: exportPnld }[format]
+  expect((await streamToBuffer((await download(label, tmpDir)).stream)).length).toBeGreaterThan(0)
+  const directory = path.join(tmpDir, label)
+  const receiptPath = path.join(directory, format, format === "epub" ? "OEBPS/.build-owners" : format === "pnld" ? "resources/data/.build-owners" : ".build-owners")
+  const receipt = fs.readFileSync(receiptPath)
+  // Contradictory imported state: the same section ID now names another page.
+  // This must not authorize an intact artifact from its retired owner.
+  const db = openBookDb(path.join(directory, label + ".db"))
+  try {
+    const source = (id: string) => JSON.parse((db.get("SELECT data FROM node_data WHERE node='page-sectioning' AND item_id=?", [id]) as { data: string }).data)
+    const one = source(label + "_p1"), two = source(label + "_p2")
+    const rendering = JSON.parse((db.get("SELECT data FROM node_data WHERE node='web-rendering' AND item_id=?", [label + "_p2"]) as { data: string }).data)
+    db.run("UPDATE node_data SET data=? WHERE node='page-sectioning' AND item_id=?", [JSON.stringify({ ...one, sections: [] }), label + "_p1"])
+    db.run("UPDATE node_data SET data=? WHERE node='page-sectioning' AND item_id=?", [JSON.stringify({ ...two, sections: [...two.sections, { ...one.sections[0], pageNumber: 2 }] }), label + "_p2"])
+    db.run("UPDATE node_data SET data=? WHERE node='web-rendering' AND item_id=?", [JSON.stringify({ sections: [...rendering.sections, { sectionId: one.sections[0].sectionId, sectionIndex: 1, sectionType: "content", reasoning: "Imported owner", html: "<main>New owner</main>" }] }), label + "_p2"])
+  } finally { db.close() }
+  await expect(download(label, tmpDir)).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+  expect(fs.readFileSync(receiptPath)).toEqual(receipt)
+  await prepareExport(label, format, tmpDir, webAssetsDir)
+  expect((await streamToBuffer((await download(label, tmpDir)).stream)).length).toBeGreaterThan(0)
+})
+
+it.each(["webpub", "epub", "pnld"] as const)("requires complete declared files in real %s downloads", async format => {
+  const label = "declared-files"
+  createBookWithMetadata(label, label)
+  addPagesAndRenderings(label, 1)
+  await prepareExport(label, format, tmpDir, webAssetsDir)
+  const download = { webpub: exportWebpub, epub: exportEpub, pnld: exportPnld }[format]
+  const directory = path.join(tmpDir, label, format)
+  const content = format === "epub" ? path.join(directory, "OEBPS") : directory
+  const page = format === "epub" ? `${label}_p1_sec001.xhtml` : format === "pnld" ? `content/${label}_p1_sec001.html` : `${label}_p1_sec001.html`
+  const manifest = format === "webpub" ? "manifest.json" : "content.opf"
+  const refused = async () => {
+    const outcome = await download(label, tmpDir).then(async result => { await streamToBuffer(result.stream); return "accepted" }, error => error.code)
+    expect(outcome).toBe("PACKAGE_FILES_INCOMPLETE")
+  }
+  expect((await streamToBuffer((await download(label, tmpDir)).stream)).length).toBeGreaterThan(0)
+  const manifestText = fs.readFileSync(path.join(content, manifest), "utf8")
+  const stylesheet = format === "webpub"
+    ? JSON.parse(manifestText).resources.find((entry: { href: string }) => entry.href.endsWith(".css"))?.href
+    : manifestText.match(/href="([^"]+\.css)"/)?.[1]
+  expect(stylesheet).toBeTruthy()
+  for (const member of [page, manifest, stylesheet]) {
+    const file = path.join(content, member), bytes = fs.readFileSync(file)
+    fs.unlinkSync(file)
+    await refused()
+    expect(fs.existsSync(file)).toBe(false)
+    fs.mkdirSync(file)
+    await refused()
+    fs.rmdirSync(file)
+    fs.writeFileSync(file, "")
+    await refused()
+    fs.writeFileSync(file, bytes)
+    expect((await streamToBuffer((await download(label, tmpDir)).stream)).length).toBeGreaterThan(0)
+  }
+  const file = path.join(content, manifest), original = fs.readFileSync(file, "utf8")
+  // Keep the page file, but remove its declaration: filenames alone do not
+  // establish a usable reading order or spine.
+  if (format === "webpub") {
+    const value = JSON.parse(original)
+    value.readingOrder = []
+    fs.writeFileSync(file, JSON.stringify(value))
+  } else fs.writeFileSync(file, original.replace(/<itemref\b[^>]*\/>/g, ""))
+  await refused()
+  fs.writeFileSync(file, original)
+  const outsideHref = format === "epub" ? "../../outside-canary" : "../outside-canary"
+  fs.writeFileSync(path.join(tmpDir, label, "outside-canary"), "PRIVATE")
+  if (format === "webpub") {
+    const value = JSON.parse(original)
+    value.resources.push({ href: outsideHref })
+    fs.writeFileSync(file, JSON.stringify(value))
+  } else fs.writeFileSync(file, original.replace("</manifest>", `<item id="outside" href="${outsideHref}"/></manifest>`))
+  await refused()
+  fs.writeFileSync(file, original)
+  const target = path.join(content, page), aliasTarget = target + ".original"
+  fs.renameSync(target, aliasTarget)
+  try {
+    fs.symlinkSync(aliasTarget, target)
+    await refused()
+    fs.unlinkSync(target)
+  } catch (error) {
+    if (process.platform !== "win32" || (error as NodeJS.ErrnoException).code !== "EPERM") throw error
+  }
+  fs.renameSync(aliasTarget, target)
+  fs.unlinkSync(target)
+  await prepareExport(label, format, tmpDir, webAssetsDir)
+  expect((await streamToBuffer((await download(label, tmpDir)).stream)).length).toBeGreaterThan(0)
+})
+
+it.each(["epub", "pnld"] as const)("rejects malformed XML in real %s reader structure", async format => {
+  const label = "xml-structure"
+  createBookWithMetadata(label, label)
+  addPagesAndRenderings(label, 1)
+  await prepareExport(label, format, tmpDir, webAssetsDir)
+  const download = format === "epub" ? exportEpub : exportPnld
+  const directory = path.join(tmpDir, label, format)
+  const opf = path.join(directory, format === "epub" ? "OEBPS/content.opf" : "content.opf")
+  const original = fs.readFileSync(opf, "utf8")
+  const refused = async () => {
+    const outcome = await download(label, tmpDir).then(async result => { await streamToBuffer(result.stream); return "accepted" }, error => error.code)
+    expect(outcome).toBe("PACKAGE_FILES_INCOMPLETE")
+  }
+  for (const malformed of [
+    original.replace("</package>", ""),
+    original.replace("</spine>", "</wrong-spine>"),
+    original.replace('version="3.0"', 'version=3.0'),
+    original.replace('xmlns="http://www.idpf.org/2007/opf"', 'xmlns="urn:wrong-format"'),
+  ]) {
+    fs.writeFileSync(opf, malformed)
+    await refused()
+    expect(fs.readFileSync(opf, "utf8")).toBe(malformed)
+  }
+  fs.writeFileSync(opf, original)
+  for (const relative of format === "epub" ? ["OEBPS/xml-structure_p1_sec001.xhtml", "OEBPS/toc.xhtml", "OEBPS/toc.ncx"] : ["toc.ncx"]) {
+    const file = path.join(directory, relative), bytes = fs.readFileSync(file, "utf8")
+    const damaged = bytes.replace(/<\/(html|ncx)>\s*$/, "")
+    expect(damaged).not.toBe(bytes)
+    fs.writeFileSync(file, damaged)
+    // Navigation must parse or the publication cannot open. One book page
+    // that is not well-formed is delivered with the rest of the book.
+    if (relative === "OEBPS/xml-structure_p1_sec001.xhtml") {
+      expect(Object.keys(unzipSync(await streamToBuffer((await download(label, tmpDir)).stream)))).toContain(relative)
+    } else await refused()
+    expect(fs.readFileSync(file, "utf8")).toBe(damaged)
+    fs.writeFileSync(file, bytes)
+  }
+  if (format === "epub") {
+    const container = path.join(directory, "META-INF/container.xml")
+    const xml = fs.readFileSync(container, "utf8")
+    for (const malformed of [xml.replace("</container>", ""), xml.replace("</rootfiles>", "</wrong-rootfiles>")]) {
+      fs.writeFileSync(container, malformed)
+      await refused()
+      expect(fs.readFileSync(container, "utf8")).toBe(malformed)
+    }
+    fs.writeFileSync(container, xml)
+  }
+  expect((await streamToBuffer((await download(label, tmpDir)).stream)).length).toBeGreaterThan(0)
+})
+
+it("validates the actual EPUB converter's narration overlay and restored target bytes", async () => {
+  const label = "reader-overlay", id = `${label}_p1`, textId = "narration"
+  createBookWithMetadata(label, label); addPagesAndRenderings(label, 1)
+  const source = createBookStorage(label, tmpDir)
+  try {
+    const row = source.getLatestNodeData("web-rendering", id)!.data as { sections: { html: string }[] }
+    row.sections[0].html = `<p data-id="${textId}">Hello world</p>`
+    source.putNodeData("web-rendering", id, row)
+    source.putNodeData("tts-timestamps", "en", { entries: { [textId]: { textId, language: "en", duration: 1,
+      words: [{ word: "Hello", start: 0, end: 0.5 }, { word: "world", start: 0.5, end: 1 }] } }, generatedAt: "2026-01-01T00:00:00.000Z" })
+  } finally { source.close() }
+  await prepareExport(label, "adt", tmpDir, webAssetsDir)
+  const bookDir = path.join(tmpDir, label), adt = path.join(bookDir, "adt")
+  // Isolate converter input from speech generation; real saved timestamps and
+  // the actual converter produce the OPF association, SMIL and XHTML targets.
+  fs.mkdirSync(path.join(adt, "content/i18n/en/audio"), { recursive: true })
+  fs.writeFileSync(path.join(adt, "content/i18n/en/audio/narration.wav"), "original audio bytes")
+  fs.writeFileSync(path.join(adt, "content/i18n/en/audios.json"), JSON.stringify({ [textId]: "narration.wav" }))
+  const storage = createBookStorage(label, tmpDir)
+  try { await packageEpub(storage, { bookDir, label, title: label, language: "en", outputLanguages: ["en"], webAssetsDir }) }
+  finally { storage.close() }
+  const dir = path.join(bookDir, "epub/OEBPS"), smil = path.join(dir, `smil/${id}_sec001.smil`)
+  const original = fs.readFileSync(smil, "utf8")
+  expect(original).toContain("narration.wav")
+  const download = async () => unzipSync(await streamToBuffer((await exportEpub(label, tmpDir)).stream))
+  const valid = await download()
+  for (const damaged of [original.replace("</smil>", ""), original.replace("narration.wav", "missing.wav"), original.replace(`${id}_sec001.xhtml`, "missing.xhtml")]) {
+    fs.writeFileSync(smil, damaged)
+    await expect(download()).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+    expect(fs.readFileSync(smil, "utf8")).toBe(damaged)
+  }
+  fs.writeFileSync(smil, original)
+  expect(await download()).toEqual(valid)
+})
+
+
+it.each(["prepare-export", "package-route"] as const)("seals restored imported presentation before publication through %s", async entry => {
+  const sourceArchive = makeBundle()
+  // An existing imported project from before the stricter import admission:
+  // rebuilding must preserve the presentation retained with its source archive.
+  const { label } = seedFromArchive(sourceArchive, tmpDir)
+  const bookDir = path.join(tmpDir, label)
+  const revisionDir = path.join(bookDir, ".adt-imports", "legacy")
+  fs.mkdirSync(revisionDir, { recursive: true })
+  fs.writeFileSync(path.join(revisionDir, "source.zip"), sourceArchive)
+  fs.writeFileSync(path.join(bookDir, ".adt-import-current.json"), JSON.stringify({
+    version: 1, revisionId: "legacy", importedAt: "2026-01-01T00:00:00.000Z", seededFeatures: ["Speech"],
+  }))
+  const app = new Hono().onError(errorHandler).route("/api", createPackageRoutes(tmpDir, webAssetsDir))
+  const build = async () => {
+    if (entry === "prepare-export") return prepareExport(label, "adt", tmpDir, webAssetsDir)
+    const response = await app.request(`/api/books/${label}/package-adt`, { method: "POST" })
+    expect(response.status).toBe(200)
+    return response.json()
+  }
+  const download = async () => unzipSync(await streamToBuffer((await exportAdt(label, tmpDir)).stream))
+  await build()
+  const first = await download()
+  const html = Buffer.from(first["pg001_sec001.html"]).toString()
+  expect(html).toContain('href="./assets/book-showcase.css"')
+  expect(Buffer.from(first["assets/book-showcase.css"]).toString()).toContain("rebeccapurple")
+  expect(first["showcase-assets/paper.png"]).toBeDefined()
+  const manifest = JSON.parse(Buffer.from(first["manifest.json"]).toString())
+  expect(manifest.frozen.pageHtmlFingerprints["pg001_sec001.html"]).toBe(createHash("sha256").update(html).digest("hex"))
+  expect(first[".build-owners"]).toBeUndefined()
+  if (entry === "package-route") {
+    await build() // cache hit must preserve the already sealed presentation
+    expect(await download()).toEqual(first)
+  }
+  const pagePath = path.join(bookDir, "adt", "pg001_sec001.html")
+  fs.writeFileSync(pagePath, html + "<!-- changed after publication -->")
+  await expect(download()).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+  await build()
+  expect(Buffer.from((await download())["pg001_sec001.html"]).toString()).toContain('href="./assets/book-showcase.css"')
+  const current = JSON.parse(fs.readFileSync(path.join(bookDir, ".adt-import-current.json"), "utf8"))
+  expect(fs.readFileSync(path.join(bookDir, ".adt-imports", current.revisionId, "source.zip"))).toEqual(sourceArchive)
 })

@@ -3,12 +3,17 @@ import os from "node:os"
 import path from "node:path"
 
 import { afterEach, describe, expect, it } from "vitest"
-import { zipSync } from "fflate"
 import { packageAdtWeb } from "@adt/pipeline"
+import { exportAdt } from "../../export-service.js"
 import { createBookStorage } from "@adt/storage"
+import { strToU8, unzipSync, zipSync } from "fflate"
+import { Hono } from "hono"
+import { errorHandler } from "../../../middleware/error-handler.js"
+import { createPackageRoutes } from "../../../routes/package.js"
 
 import { readAdtBundle } from "../bundle-reader.js"
 import { previewAdtRecoveryImport } from "../preview.js"
+import { importAdtProject } from "../project-import.js"
 import {
   makeBundleWithFillInTheBlankAnswers,
   makeFixedLayoutBundle,
@@ -31,23 +36,10 @@ function createWebAssets(dir: string): void {
   fs.writeFileSync(path.join(dir, "base.bundle.local.js"), "window.__ADT_TEST__ = true;\n")
   fs.writeFileSync(path.join(dir, "base.bundle.min.js.map"), '{"version":3,"sources":[],"mappings":""}')
   fs.writeFileSync(path.join(dir, "fonts.css"), "body { font-family: serif; }")
-  fs.writeFileSync(path.join(dir, "libs", "fontawesome", "css", "all.min.css"), "")
+  fs.writeFileSync(path.join(dir, "libs", "fontawesome", "css", "all.min.css"), "/* test icons */")
   fs.writeFileSync(path.join(dir, "tailwind_css.css"), "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n")
   // Fixed-layout pages load the runtime's auto-fit script from assets/.
   fs.writeFileSync(path.join(dir, "auto-fit.js"), "window.__ADT_AUTO_FIT__ = true;\n")
-}
-
-function zipDirectory(dir: string): Buffer {
-  const files: Record<string, Uint8Array> = {}
-  const walk = (current: string): void => {
-    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
-      const absolute = path.join(current, entry.name)
-      if (entry.isDirectory()) walk(absolute)
-      else files[path.relative(dir, absolute).split(path.sep).join("/")] = fs.readFileSync(absolute)
-    }
-  }
-  walk(dir)
-  return Buffer.from(zipSync(files))
 }
 
 /** Import `archive`, export the new project again, and return the new archive. */
@@ -75,10 +67,28 @@ async function importThenExport(archive: Buffer): Promise<Buffer> {
   } finally {
     storage.close()
   }
-  return zipDirectory(path.join(bookDir, "adt"))
+  return Buffer.from(await new Response((await exportAdt(session.label, booksDir)).stream).arrayBuffer())
 }
 
 describe("import, then export again", () => {
+  it.each([".storybook-page { color: red } }", ".storybook-page { color: red /* note"])("RAC-19: imports and rebuilds a supported bundle with a stylesheet syntax error: %s", async css => {
+    const files = unzipSync(makeFixedLayoutBundle())
+    files["content/tailwind_output.css"] = strToU8(css)
+    files["assets/auto-fit.js"] = strToU8("window.__ADT_AUTO_FIT__ = true;")
+    files["assets/base.bundle.local.js"] = strToU8("window.__ADT_TEST__ = true;")
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "adt-reexport-css-"))
+    temporaryRoots.push(root)
+    const webAssetsDir = path.join(root, "web-assets")
+    createWebAssets(webAssetsDir)
+    const session = importAdtProject(Buffer.from(zipSync(files)), root)
+    const app = new Hono().onError(errorHandler).route("/api", createPackageRoutes(root, webAssetsDir))
+    const response = await app.request(`/api/books/${session.label}/package-adt`, { method: "POST" })
+    expect(response.status, await response.clone().text()).toBe(200)
+    const exported = Buffer.from(await new Response((await exportAdt(session.label, root)).stream).arrayBuffer())
+    expect(readAdtBundle(exported).pageHtml["pg001_sec001.html"]).toContain("Ready for eruptions")
+    expect(previewAdtRecoveryImport(exported).compatibility.supported).toBe(true)
+  })
+
   it("keeps a quiz's exported id instead of renumbering it by position (review #4)", async () => {
     // The reviewer's case: the book's only remaining quiz is qz002.
     const archive = renameInArchive(makeFixedLayoutBundle(), "qz001", "qz002")

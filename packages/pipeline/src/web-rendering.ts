@@ -1,3 +1,5 @@
+import { hasRenderableContent } from "./renderable-content.js"
+import { SectioningSafetyError } from "./sectioning-errors.js"
 import {
   type AppConfig,
   type ContentNodeData,
@@ -356,13 +358,17 @@ export async function renderPage(
 
     const section = input.sectioning.sections[i]
 
-    // Skip pruned sections
-    if (section.isPruned) continue
+    // Match coverage for structurally empty/pruned content. Missing images
+    // remain required by coverage even if no bytes can be sent to the renderer.
+    if (!hasRenderableContent(section)) continue
 
     const context = buildRenderContext(section, input.images, input.label)
 
-    // Skip sections with no renderable content
-    if (context.leaf_texts.length === 0 && context.image_refs.length === 0) continue
+    // Required content whose image bytes are unavailable is incomplete, not an
+    // empty page. Keep prior output and let the caller report the failed page.
+    if (context.leaf_texts.length === 0 && context.image_refs.length === 0) {
+      throw new SectioningSafetyError("STORYBOARD_PAGE_INPUT_MISSING", `${input.pageId}; Required image content is unavailable. Existing output is retained.`)
+    }
 
     const config = resolveConfig(section.sectionType)
 

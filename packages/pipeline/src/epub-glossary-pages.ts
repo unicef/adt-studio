@@ -23,6 +23,7 @@
  *     viewport; reflowable books get one flowing document per placement.
  */
 import type { GlossaryBacklink, GlossaryEntry } from "./epub-glossary.js"
+import { stripXmlInvalid } from "./html-escape.js"
 
 const XHTML_NS = "http://www.w3.org/1999/xhtml"
 const EPUB_NS = "http://www.idpf.org/2007/ops"
@@ -567,7 +568,7 @@ section { padding: ${PAGE.pad}rem; }
 }
 
 function escapeXml(str: string): string {
-  return str
+  return stripXmlInvalid(str)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")

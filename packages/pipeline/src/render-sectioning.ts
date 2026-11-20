@@ -12,19 +12,29 @@
  * packaging, TTS, easy-read, glossary, toc, captions, quizzes) must read the
  * tree that matches the rendered HTML, so it goes through this resolver.
  *
- * Selection is by node presence rather than config: `fixed-layout-sectioning`
- * and its rendering are retained during rerun preparation. Successful reflowable
- * publication invalidates the positioned tree for that page atomically with
- * replacement HTML. A failed strategy switch therefore leaves the prior pair
- * readable; successful fixed-layout publication writes both in one transaction.
+ * Selection follows published output rather than config. Fixed rendering
+ * publishes its positioned tree alongside HTML. Reflowable publication appends
+ * a null positioned-tree version in that same transaction, retaining the old
+ * tree in history. A config change alone never switches the active tree.
  */
 import type { NodeDataRow, Storage } from "@adt/storage"
-import type { PageSectioningOutput, PageSectioningSection, SectionRendering, PackagingWarning, ContentNodeData, SectioningSynchronization } from "@adt/types"
+import { ambiguousPublicOutputIds, isPublicOutputId } from "./public-output-identity.js"
+import type { PageSectioningOutput, PageSectioningSection, SectionRendering, ContentNodeData, SectioningSynchronization } from "@adt/types"
 import { PageSectioningOutput as PageSectioningOutputSchema, WebRenderingOutput } from "@adt/types"
 import { parseDocument, DomUtils } from "htmlparser2"
 
 export const FIXED_LAYOUT_SECTIONING_NODE = "fixed-layout-sectioning"
 export const PAGE_SECTIONING_NODE = "page-sectioning"
+
+/** A malformed positioned tree still needs retirement during an explicit whole
+ * page replacement. Never reinterpret it as permission for a partial edit. */
+export function hasFixedLayoutSectioning(storage: Storage, pageId: string): boolean {
+  try { return storage.getLatestNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId)?.data != null }
+  catch (error) {
+    if (error instanceof SyntaxError) return true
+    throw error
+  }
+}
 
 /** Older fixed-layout books stored their positioned tree in the semantic slot.
  * A reflow renderer must not reinterpret that tree as semantic sectioning. */
@@ -37,7 +47,7 @@ export function assertReflowableSectioning(sectioning: PageSectioningOutput): vo
 /** Resolve explicit ownership, never overriding contradictory declarations. */
 export function renderedSectionId(rendering: SectionRendering): string | undefined {
   const doc = parseDocument(rendering.html)
-  const owners = DomUtils.findAll((element) => element.type === "tag" && element.attribs["data-section-id"] !== undefined, doc.children)
+  const owners = DomUtils.findAll(element => Object.hasOwn(element.attribs, "data-section-id"), doc.children)
   if (owners.length > 1) return undefined
   const root = owners[0]
   const htmlId = root?.attribs["data-section-id"]
@@ -67,10 +77,10 @@ function withLegacyFixedLayoutOwnership(
 ): WebRenderingOutput {
   if (rendering.sections.length !== 1) return rendering
   const entry = rendering.sections[0]
-  if (entry.sectionId || entry.html.includes("data-section-id")) return rendering
-  const dedicatedRow = storage.getLatestNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId)
-  const dedicated = dedicatedRow?.data === null ? null : dedicatedRow
-  const fixed = PageSectioningOutputSchema.safeParse((dedicated ?? storage.getLatestNodeData(PAGE_SECTIONING_NODE, pageId))?.data)
+  if (entry.sectionId !== undefined) return rendering
+  const selection = getRenderSectioningSelection(storage, pageId)
+  const dedicated = selection?.node === FIXED_LAYOUT_SECTIONING_NODE ? selection.row : null
+  const fixed = PageSectioningOutputSchema.safeParse(selection?.row.data)
   if (!fixed.success || fixed.data.sections.length !== 1) return rendering
   // v0.7.2/v0.7.3 wrote the positioned tree to page-sectioning. A generic
   // single semantic section does not prove ownership; require that producer's
@@ -78,11 +88,16 @@ function withLegacyFixedLayoutOwnership(
   const section = fixed.data.sections[0]
   if (!dedicated && (section.sectionType !== "fixed-layout-page" || !section.viewport || !section.placement || entry.sectionType !== "fixed-layout-page")) return rendering
   const doc = parseDocument(entry.html)
+  // HTML attribute names are case-insensitive. Even an empty or retired
+  // declaration is evidence; a compatibility read must never rewrite it.
+  if (DomUtils.findOne(element => Object.hasOwn(element.attribs, "data-section-id"), doc.children)) return rendering
   const roots = DomUtils.findAll((element) => element.type === "tag" && element.attribs.id === "content", doc.children)
   if (roots.length !== 1) return rendering
   const sectionId = fixed.data.sections[0].sectionId
   roots[0].attribs["data-section-id"] = sectionId
-  return { ...rendering, sections: [{ ...entry, sectionId, html: DomUtils.getOuterHTML(doc) }] }
+  const html = DomUtils.getOuterHTML(doc)
+  if (renderedSectionId({ ...entry, html }) !== sectionId) return rendering
+  return { ...rendering, sections: [{ ...entry, sectionId, html }] }
 }
 
 /** Read-only legacy compatibility, not historical proof. Whole content trees
@@ -92,7 +107,7 @@ export function withLegacyRenderingOwnership(storage: Storage, pageId: string, r
   const projected = withLegacyFixedLayoutOwnership(storage, pageId, rendering)
   const sections = getRenderSectioning(storage, pageId)?.sections ?? []
   const declarations = projected.sections.map(entry => {
-    const elements = DomUtils.findAll(element => element.type === "tag", parseDocument(entry.html).children)
+    const elements = DomUtils.findAll(() => true, parseDocument(entry.html).children)
     const owners = elements.filter(element => element.attribs["data-section-id"] !== undefined)
       .map(element => element.attribs["data-section-id"])
     return {
@@ -161,26 +176,33 @@ export function resolveRenderedSection(
   rendering: SectionRendering,
   sections: readonly PageSectioningSection[] | undefined,
   renderings: readonly SectionRendering[],
+  // A synchronous caller may reuse owners derived from these unchanged
+  // renderings. Both directions still go through the same uniqueness checks.
+  ownerOf: typeof renderedSectionId = renderedSectionId,
 ): PageSectioningSection | undefined {
-  const id = renderedSectionId(rendering)
+  const id = ownerOf(rendering)
   if (!id) return undefined
   // Require unique valid ownership in both directions. An invalid contradictory
   // entry remains unresolved; its mentions cannot disqualify a separate valid
   // rendering. Raw declarations still reserve legacy inference candidates above.
-  const claimants = renderings.filter(entry => renderedSectionId(entry) === id)
+  const claimants = renderings.filter(entry => ownerOf(entry) === id)
   if (claimants.length !== 1 || claimants[0] !== rendering) return undefined
   const matches = sections?.filter((section) => section.sectionId === id)
   return matches?.length === 1 ? matches[0] : undefined
 }
 
 /** Shared omission disclosure for preview, API and packaged output. */
-export function renderingOwnershipWarnings(storage: Storage): PackagingWarning[] {
+export function renderingOwnershipWarnings(storage: Storage) {
+  const ambiguous = ambiguousPublicOutputIds(storage)
   return storage.getPages().flatMap((page) => {
     const rendering = WebRenderingOutput.safeParse(storage.getLatestNodeData("web-rendering", page.pageId)?.data)
     if (!rendering.success) return []
     const sections = getRenderSectioning(storage, page.pageId)?.sections
     const projected = withLegacyRenderingOwnership(storage, page.pageId, rendering.data)
-    return projected.sections.filter((entry) => !resolveRenderedSection(entry, sections, projected.sections))
+    return projected.sections.filter((entry) => {
+      const owner = resolveRenderedSection(entry, sections, projected.sections)
+      return !owner || !isPublicOutputId(owner.sectionId) || ambiguous.has(owner.sectionId)
+    })
       .map((entry) => ({ kind: "orphaned-rendering" as const, pageId: page.pageId, sectionIndex: entry.sectionIndex }))
   })
 }
@@ -199,11 +221,19 @@ export function getRenderSectioningRow(
 
 /** Versions are scoped to a node: switching source nodes can keep version 1. */
 export function getRenderSectioningSelection(storage: Storage, pageId: string) {
-  const fixed = storage.getLatestNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId)
-  // JSON null is a retained invalidation version, not an active positioned tree.
-  if (fixed && fixed.data !== null) return { node: FIXED_LAYOUT_SECTIONING_NODE, row: fixed } as const
-  const semantic = storage.getLatestNodeData(PAGE_SECTIONING_NODE, pageId)
-  return semantic ? { node: PAGE_SECTIONING_NODE, row: semantic } as const : null
+  try {
+    const fixed = storage.getLatestNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId)
+    // JSON null deactivates a positioned tree. Unreadable fixed JSON does not:
+    // never fall back to a semantic tree that cannot own the retained HTML.
+    if (fixed && fixed.data !== null) return { node: FIXED_LAYOUT_SECTIONING_NODE, row: fixed } as const
+    const semantic = storage.getLatestNodeData(PAGE_SECTIONING_NODE, pageId)
+    return semantic ? { node: PAGE_SECTIONING_NODE, row: semantic } as const : null
+  } catch (error) {
+    // A bad page has no provable current tree. Read projections omit it and
+    // coverage reports it missing; raw rows and versions remain untouched.
+    if (!(error instanceof SyntaxError)) throw error
+    return null
+  }
 }
 
 /** Parsed convenience wrapper around {@link getRenderSectioningRow}. */
@@ -215,6 +245,22 @@ export function getRenderSectioning(
   if (!row) return undefined
   const parsed = PageSectioningOutputSchema.safeParse(row.data)
   return parsed.success ? parsed.data : undefined
+}
+
+/** Only usable published pairs establish a prior layout. This includes the
+ * accepted older producer whose positioned tree lived in page-sectioning. */
+export function publishedPageLayouts(storage: Storage, pageId: string): Set<"fixed" | "reflowable"> {
+  const layouts = new Set<"fixed" | "reflowable">()
+  const source = getRenderSectioning(storage, pageId)
+  const saved = WebRenderingOutput.safeParse(storage.getLatestNodeData("web-rendering", pageId)?.data)
+  if (!source || !saved.success) return layouts
+  const projected = withLegacyRenderingOwnership(storage, pageId, saved.data)
+  for (const rendering of projected.sections) {
+    const section = resolveRenderedSection(rendering, source.sections, projected.sections)
+    if (!section || section.isPruned || !rendering.html.trim()) continue
+    layouts.add(section.sectionType === "fixed-layout-page" && section.viewport && section.placement ? "fixed" : "reflowable")
+  }
+  return layouts
 }
 
 /**

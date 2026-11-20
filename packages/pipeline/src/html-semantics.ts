@@ -1,4 +1,5 @@
 import { parseDocument, DomUtils } from "htmlparser2"
+import { stripXmlInvalid } from "./html-escape.js"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function hasClass(node: any, className: string): boolean {
@@ -284,8 +285,30 @@ export function normalizeSectionRoles(html: string): string {
   return normalizeHtmlSectionSemantics(html)
 }
 
+/** HTML tolerates things XML does not. Repair them in the tree so the
+ * serialized document is well-formed: characters XML forbids, comments that
+ * contain "--" or end in "-", and `xlink:` attributes without a namespace. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function repairForXml(nodes: any[]): void {
+  for (const node of nodes) {
+    if (node.type === "text") node.data = stripXmlInvalid(node.data ?? "")
+    else if (node.type === "comment") {
+      const data = stripXmlInvalid(node.data ?? "").replace(/-(?=-)/g, "- ")
+      node.data = data.endsWith("-") ? data + " " : data
+    }
+    if (node.attribs) {
+      for (const [name, value] of Object.entries(node.attribs as Record<string, string>)) node.attribs[name] = stripXmlInvalid(value)
+      if (Object.keys(node.attribs).some(name => name.startsWith("xlink:")) && !("xmlns:xlink" in node.attribs)) {
+        node.attribs["xmlns:xlink"] = "http://www.w3.org/1999/xlink"
+      }
+    }
+    if (node.children) repairForXml(node.children)
+  }
+}
+
 export function htmlToXhtml(html: string): string {
   const doc = parseDocument(html)
+  repairForXml(doc.children)
   let xhtml = DomUtils.getOuterHTML(doc, { xmlMode: true })
   // Replace common HTML named entities not valid in XML
   xhtml = xhtml.replace(/&nbsp;/g, "&#160;")

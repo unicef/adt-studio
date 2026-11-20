@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { useBookRun } from "@/hooks/use-book-run"
+import { sectioningErrorMessage } from "@/lib/sectioning-error"
 import { getStepLabelI18n } from "../pipeline-i18n"
 
 /**
@@ -66,7 +67,7 @@ export function PageErrorDecisionDialog() {
             <Trans>Page</Trans> {current.pageId}
           </p>
           <p className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words text-xs text-foreground/80">
-            {current.error}
+            {sectioningErrorMessage(current.error)}
           </p>
         </div>
 

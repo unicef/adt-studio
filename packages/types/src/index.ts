@@ -141,6 +141,7 @@ export {
 
 export {
   PROJECT_IDENTITY_VERSION,
+  PROJECT_IDENTITY_FILE,
   ProjectSourceKind,
   ProjectIdentity,
   AdtExportLineage,
@@ -162,7 +163,7 @@ export {
   TaskInfo,
 } from "./task.js"
 
-export { BookLabel, BookSummary, BookDetail, parseBookLabel } from "./book.js"
+export { BookLabel, BookSummary, BookDetail, parseBookLabel, BookRecoveryCopyErrorCode, BookRecoveryCopyRequest, BookRecoveryCopyResult, BookRecoveryCopyAudit, BOOK_RECOVERY_PENDING_FILE } from "./book.js"
 
 export {
   BookFormat,
@@ -290,11 +291,16 @@ export {
 
 export { ExtractionWarning } from "./extraction-warning.js"
 export { PackagingWarning } from "./packaging-warning.js"
+export { PackagingStatus } from "./packaging-status.js"
 
 export {
   FIXED_LAYOUT_MAX_SCALE,
   SectionRendering,
   WebRenderingOutput,
+  RenderingSave,
+  AiSectionEdit,
+  StoryboardSave,
+  StoryboardSaveResult,
   webRenderingLLMSchema,
   activityAnswersLLMSchema,
   visualReviewLLMSchema,
@@ -416,6 +422,7 @@ export {
   WordTimestampSaveResponse,
   VOICE_SLOTS,
   VoiceSlot,
+  PackagedAudioVoices,
   DEFAULT_VOICE_SLOT,
   SECONDARY_VOICE_SLOT_SUFFIX,
   voiceSlotEntryId,
@@ -758,7 +765,7 @@ export {
 export { GOOGLE_IMAGE_MODELS, GoogleImageModelId, DEFAULT_GOOGLE_IMAGE_MODEL, GoogleImageResponse } from "./google-image.js"
 export { imageFileExtension, ImageAspectRatio, GeneratedImagePayload, ValidatedGeneratedImage } from "./image.js"
 
-export { OutputSource, OutputReference, OutputInputEvidence, OutputReview, OutputMetadata, OutputKind, OutputIdentity, OutputWarning, OutputLocation, OutputStatus, OutputSelection, OutputReviewRequest, OutputSummary, OutputScopeSummary, OutputSummaries, OutputStageSummaryResponse, BookWriterOwner } from "./output-freshness.js"
+export { OutputSource, OutputReference, OutputInputEvidence, OutputReview, OutputMetadata, OutputKind, OutputIdentity, OutputWarning, OutputLocation, OutputStatus, OutputSelection, OutputReviewRequest, OutputSummary, OutputScopeSummary, OutputSummaries, OutputStageSummaryResponse, BookWriterOwner, BookWriterReservation } from "./output-freshness.js"
 
 export { CATALOG_OUTPUT_NODES } from "./pipeline-effects.js"
 
@@ -775,7 +782,14 @@ export { OutputSkipRequest } from "./output-freshness.js"
 export { OutputDisclosureOptions } from "./output-freshness.js"
 
 export { SOURCE_GENERATION_RESET_STEPS } from "./pipeline.js"
-export { SourceGeneratorStep, SourceGenerationPolicy, SourceGenerationState, SourceGenerationReceipt } from "./source-generation-state.js"
+export { SourceGeneratorStep, SourceGenerationPolicy, StoryboardSourceState, SourceGenerationState, SourceGenerationReceipt } from "./source-generation-state.js"
 export { BookConfigSaveReceipt } from "./book-config-save.js"
+export * from "./sectioning-lifecycle.js"
+
+export * from "./extraction.js"
+
+export * from "./history-recovery.js"
+
+export { PackageOwnershipReceipt, DerivedWebpubFiles } from "./package-ownership.js"
 
 export { type TextDirection, getTextDirection } from "./text-direction.js"
