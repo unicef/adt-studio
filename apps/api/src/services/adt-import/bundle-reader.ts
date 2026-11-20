@@ -68,6 +68,9 @@ export interface ReadAdtBundle {
   pages: Array<{ section_id: string; href: string; page_number?: number }>
   pageHtml: Record<string, string>
   runtimeFeatures: Record<string, boolean>
+  /** assets/config.json as exported, for the values only the seed needs, such
+   * as the reader's default and locked settings (#1198). */
+  runtimeConfig: Record<string, unknown> | null
   /** Declared presentation of the exported publication. `fixedLayout` books
    * render from a positioned `#content` box rather than reflowable sections, so
    * the importer has to project them through the fixed-layout path. */
@@ -493,6 +496,7 @@ export function readAdtBundle(
     pages,
     pageHtml,
     runtimeFeatures: runtimeConfig?.features ?? {},
+    runtimeConfig,
     presentation: { fixedLayout: runtimeConfig?.fixedLayout === true },
     toc,
     glossaries,

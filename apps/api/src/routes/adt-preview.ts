@@ -71,6 +71,7 @@ import {
   getCoreTtsCatalog,
   getReadyCoreTtsEntries,
   resolveNarratorLabel,
+  readerSettingsFromConfig,
 } from "@adt/pipeline"
 import { getImportedAdtPresentationAssets } from "../services/adt-import/presentation.js"
 
@@ -563,7 +564,12 @@ export function createAdtPreviewRoutes(
     })
     setNoStoreHeaders(c)
     c.header("Content-Type", "application/json")
-    return c.body(JSON.stringify(previewConfig))
+    // Start the preview from the book's reader defaults: it reports its
+    // settings back to Studio, and the export lets those override the book's
+    // own (#1198). Locks stay out, so every setting can still be changed here;
+    // the export writes them.
+    const { defaultSettings } = readerSettingsFromConfig(bookConfig)
+    return c.body(JSON.stringify({ ...previewConfig, ...(defaultSettings ? { defaultSettings } : {}) }))
   })
 
   // Custom styles from an imported ADT are loaded into the Storyboard iframe

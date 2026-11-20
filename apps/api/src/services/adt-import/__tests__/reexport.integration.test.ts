@@ -3,14 +3,15 @@ import os from "node:os"
 import path from "node:path"
 
 import { afterEach, describe, expect, it } from "vitest"
-import { zipSync } from "fflate"
-import { packageAdtWeb } from "@adt/pipeline"
+import { strToU8, unzipSync, zipSync } from "fflate"
+import { loadBookConfig, packageAdtWeb, readerSettingsFromConfig } from "@adt/pipeline"
 import { createBookStorage } from "@adt/storage"
 
 import { readAdtBundle } from "../bundle-reader.js"
 import { previewAdtRecoveryImport } from "../preview.js"
 import {
   makeBundleWithFillInTheBlankAnswers,
+  makeCurrentBundleWithExternallyAddedPage,
   makeFixedLayoutBundle,
   renameInArchive,
   seedFromArchive,
@@ -71,6 +72,8 @@ async function importThenExport(archive: Buffer): Promise<Buffer> {
       outputLanguages: source.manifest.languages.output,
       title: source.title,
       webAssetsDir,
+      // As the export service does: the book config's reader settings.
+      ...readerSettingsFromConfig(loadBookConfig(session.label, booksDir)),
     })
   } finally {
     storage.close()
@@ -79,6 +82,26 @@ async function importThenExport(archive: Buffer): Promise<Buffer> {
 }
 
 describe("import, then export again", () => {
+  // #1198: the reader's defaults and locks survive the round trip.
+  it("keeps the reader's default and locked settings", async () => {
+    const files = unzipSync(makeCurrentBundleWithExternallyAddedPage())
+    const config = JSON.parse(new TextDecoder().decode(files["assets/config.json"]))
+    files["assets/config.json"] = strToU8(JSON.stringify({
+      ...config,
+      defaultSettings: { dockLayout: { width: "full", position: "bottom", align: "spread" }, theme: "dark", iconSize: "md", reduceMotion: false },
+      lockedSettings: ["dockLayout", "theme", "iconSize", "reduceMotion"],
+    }))
+    const exported = unzipSync(await importThenExport(Buffer.from(zipSync(files))))
+    const exportedConfig = JSON.parse(new TextDecoder().decode(exported["assets/config.json"]))
+    expect(exportedConfig.defaultSettings).toEqual({
+      dockLayout: { width: "full", position: "bottom", align: "spread" },
+      theme: "dark",
+      iconSize: "md",
+      reduceMotion: false,
+    })
+    expect(exportedConfig.lockedSettings).toEqual(["dockLayout", "theme", "iconSize", "reduceMotion"])
+  })
+
   it("keeps a quiz's exported id instead of renumbering it by position (review #4)", async () => {
     // The reviewer's case: the book's only remaining quiz is qz002.
     const archive = renameInArchive(makeFixedLayoutBundle(), "qz001", "qz002")

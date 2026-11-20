@@ -63,6 +63,26 @@ describe("ADT recovery workspace", () => {
     }
   })
 
+  // #1198: an imported book keeps the reader's default and locked settings.
+  it("keeps the reader settings the export was made with", () => {
+    const files = unzipSync(makeCurrentBundleWithExternallyAddedPage())
+    const config = JSON.parse(new TextDecoder().decode(files["assets/config.json"]))
+    files["assets/config.json"] = strToU8(JSON.stringify({
+      ...config,
+      defaultSettings: { dockLayout: { width: "full", position: "bottom", align: "spread" }, theme: "dark" },
+      lockedSettings: ["dockLayout", "theme"],
+    }))
+    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-settings-"))
+    temporaryRoots.push(booksDir)
+    const session = seedFromArchive(Buffer.from(zipSync(files)), booksDir, "settings.zip")
+    const bookConfig = yaml.load(fs.readFileSync(path.join(booksDir, session.label, "config.yaml"), "utf8")) as Record<string, unknown>
+    expect(bookConfig.default_settings).toEqual({
+      dock_layout: { width: "full", position: "bottom", align: "spread" },
+      theme: "dark",
+    })
+    expect(bookConfig.locked_settings).toEqual(["dockLayout", "theme"])
+  })
+
   it("accepts quiz pages emitted before Studio added data-section-id", () => {
     expect(assessArchive(makeCurrentBundleWithLegacyQuizMarkup()))
       .toEqual({ supported: true, issues: [] })

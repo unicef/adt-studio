@@ -7,6 +7,7 @@ import { normalizeLocale } from "@adt/pipeline"
 import { createBookStorage } from "@adt/storage"
 import { BookMetadata, TextCatalogOutput, type AdtActivityImportDecision } from "@adt/types"
 
+import { importedReaderSettings } from "../reader-settings.js"
 import type { ReadAdtBundle } from "../bundle-reader.js"
 import { importedSourceTextIsCurrent, importedTextWasEdited } from "../speech.js"
 import { sourceTextsWithEditedImageAlts } from "../image-alts.js"
@@ -164,6 +165,8 @@ export function seedImportedAdtProject(
     output_languages: [sourceLanguage, ...outputLanguages],
     ...(storyboard.fixedLayoutPageCount > 0 ? FIXED_LAYOUT_CONFIG : {}),
     ...(hasEasyRead ? { easy_read: { enabled: true } } : {}),
+    // The reader's default and locked settings, which the next export writes back.
+    ...importedReaderSettings(bundle.runtimeConfig),
   }))
 
   return {
