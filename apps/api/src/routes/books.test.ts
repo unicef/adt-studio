@@ -2083,6 +2083,36 @@ describe("POST /books/preview-import", () => {
     })
   })
 
+  // A legacy export has no manifest.json: asking for one at the ZIP root made
+  // assistants wonder whether to create it.
+  it("doesn't ask for manifest.json in the repaired ZIP when the bundle has none", async () => {
+    const app = createBookRoutes(tmpDir)
+    const files = unzipSync(createExportedAdtZip({ omitManifest: true }))
+    files["notes/todo.txt"] = new TextEncoder().encode("left over")
+    const formData = new FormData()
+    formData.append("zip", new Blob([zipSync(files)], { type: "application/zip" }), "legacy-export.zip")
+
+    const body = await (await app.request("/books/preview-import", { method: "POST", body: formData })).json()
+    expect(body.compatibility.supported).toBe(false)
+    const request: string = body.agentGuide.repairPrompt
+    expect(request).not.toContain("with manifest.json at the root of the ZIP")
+    expect(request).toContain("with the bundle's contents at the root of the ZIP")
+    expect(request).toContain("This bundle has no manifest.json: do not create one, and say so in your reply.")
+  })
+
+  it("keeps asking for manifest.json at the ZIP root when the bundle has one", async () => {
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append(
+      "zip",
+      new Blob([createExportedAdtZip({ unsupportedStructure: true })], { type: "application/zip" }),
+      "unsupported-export.zip",
+    )
+    const body = await (await app.request("/books/preview-import", { method: "POST", body: formData })).json()
+    expect(body.agentGuide.repairPrompt).toContain("with manifest.json at the root of the ZIP")
+    expect(body.agentGuide.repairPrompt).not.toContain("has no manifest.json")
+  })
+
   it("does not misreport an incomplete legacy export as a missing project database", async () => {
     const encode = (value: unknown) => new TextEncoder().encode(JSON.stringify(value))
     const zip = Buffer.from(zipSync({

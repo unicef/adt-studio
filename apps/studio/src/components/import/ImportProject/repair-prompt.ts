@@ -66,7 +66,8 @@ export function buildUnreadableRepairPrompt(fileName: string, rawError: string):
     "",
     "When you are done:",
     "1. Run the checklist in the guide, if the bundle has one.",
-    `2. Save the result as ${output} next to the unzipped bundle folder, with manifest.json at the root of the ZIP. Do not overwrite the input ZIP, and do not put the new ZIP inside the bundle folder.`,
+    // A legacy export has no manifest.json, and ADT Studio reads it without one.
+    `2. Save the result as ${output} next to the unzipped bundle folder, with the bundle's contents at the root of the ZIP, and manifest.json at the root if the bundle has one. If it has none, do not create one, and say so in your reply. Do not overwrite the input ZIP, and do not put the new ZIP inside the bundle folder.`,
     "3. Reply with what you changed, anything you left unfixed and why, and whether the guide was missing.",
   ].join("\n")
 }
