@@ -5,7 +5,7 @@ import { HTTPException } from "hono/http-exception"
 import { parseBookLabel } from "@adt/types"
 import type { PackagingWarning } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
-import { packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
+import { packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook, readerSettingsFromConfig } from "@adt/pipeline"
 import { createZipStream } from "./zip-util.js"
 import { readPartInfo } from "./book-service.js"
 import { ensureProjectIdentity } from "./project-identity.js"
@@ -137,22 +137,7 @@ export async function prepareExport(
       ? normalizedRequested.filter((lang) => outputLanguages.includes(lang))
       : outputLanguages
 
-    const yamlDefaultSettings = config.default_settings
-      ? {
-          ...(config.default_settings.dock_layout
-            ? { dockLayout: config.default_settings.dock_layout }
-            : {}),
-          ...(config.default_settings.theme !== undefined
-            ? { theme: config.default_settings.theme }
-            : {}),
-          ...(config.default_settings.icon_size !== undefined
-            ? { iconSize: config.default_settings.icon_size }
-            : {}),
-          ...(config.default_settings.reduce_motion !== undefined
-            ? { reduceMotion: config.default_settings.reduce_motion }
-            : {}),
-        }
-      : undefined
+    const yamlDefaultSettings = readerSettingsFromConfig(config).defaultSettings
 
     // Preview-captured values (from request body) override YAML per top-level
     // key. dockLayout merges one level deep — fields the override didn't touch
