@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 const mocks = vi.hoisted(() => ({
   image: vi.fn(),
-  pages: [{ pageId: "pg001", pageNumber: 1, hasRendering: true, renderingVersion: 3, sectionCount: 1,
+  pages: [{ pageId: "pg001", pageNumber: 1, hasRendering: true, renderingVersion: 3 as number | null, sectionCount: 1,
     sections: [{ sectionId: "s1", sectionIndex: 0, textPreview: "First section", isPruned: false }] }],
 }))
 vi.mock("@lingui/react", () => ({ useLingui: () => ({ i18n: { _: () => "Section" } }) }))
@@ -26,6 +26,7 @@ afterEach(() => { cleanup(); vi.useRealTimers() })
 beforeEach(() => {
   mocks.image.mockReset().mockReturnValue({ data: undefined, isLoading: false, isFetching: false, isError: false })
   mocks.pages[0].hasRendering = true
+  mocks.pages[0].renderingVersion = 3
   mocks.pages[0].sections[0].isPruned = false
 })
 it("does not request the source PDF image for a rendered row until its comparison is open", () => {
@@ -50,6 +51,45 @@ it("requests a PDF fallback when no rendering exists", () => {
   mocks.pages[0].hasRendering = false
   render(<StoryboardIndex bookLabel="book" />)
   expect(mocks.image).toHaveBeenLastCalledWith("book", "pg001", { enabled: true })
+})
+
+it("keeps a saved empty Storyboard result out of processing while other pages run", () => {
+  mocks.pages[0].hasRendering = false
+  mocks.pages[0].renderingVersion = 1
+  const onSelectSection = vi.fn()
+  render(<StoryboardIndex bookLabel="book" stageRunning onSelectSection={onSelectSection} />)
+
+  const row = screen.getByRole("button")
+  expect(row.querySelector(".animate-spin")).toBeNull()
+  expect(mocks.image).toHaveBeenLastCalledWith("book", "pg001", { enabled: true })
+  expect(row.querySelector('img[src*="screenshot"]')).toBeNull()
+  fireEvent.click(row)
+  expect(onSelectSection).toHaveBeenCalledWith("pg001", 0)
+})
+
+it.each([false, true])("stops processing on page publication, including empty output (hasRendering=%s)", (hasRendering) => {
+  mocks.pages[0].hasRendering = false
+  mocks.pages[0].renderingVersion = null
+  const view = render(<StoryboardIndex bookLabel="book" stageRunning />)
+  expect(screen.getByRole("button").querySelector(".animate-spin")).not.toBeNull()
+
+  mocks.pages[0].hasRendering = hasRendering
+  mocks.pages[0].renderingVersion = 1
+  view.rerender(<StoryboardIndex bookLabel="book" stageRunning />)
+  expect(screen.getByRole("button").querySelector(".animate-spin")).toBeNull()
+})
+
+it("clears pending processing when the run stops and restores it for an explicitly reset page", () => {
+  const view = render(<StoryboardIndex bookLabel="book" stageRunning />)
+  expect(screen.getByRole("button").querySelector(".animate-spin")).toBeNull()
+
+  mocks.pages[0].hasRendering = false
+  mocks.pages[0].renderingVersion = null
+  view.rerender(<StoryboardIndex bookLabel="book" stageRunning />)
+  expect(screen.getByRole("button").querySelector(".animate-spin")).not.toBeNull()
+
+  view.rerender(<StoryboardIndex bookLabel="book" stageRunning={false} />)
+  expect(screen.getByRole("button").querySelector(".animate-spin")).toBeNull()
 })
 
 it.each(["fetching", "queued"])("does not describe %s hover images as missing", mode => {

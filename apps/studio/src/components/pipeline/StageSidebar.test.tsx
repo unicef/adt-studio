@@ -31,8 +31,21 @@ vi.mock("@/hooks/use-outputs", () => ({ useOutputSummary: () => {
   } }
 } }))
 vi.mock("./components/OutputReview", () => ({ useOutputs: () => outputsMock(), CatalogSummary: () => <div>Selected stage outputs</div> }))
-const storyboardMock = { pages: [] as Array<{ hasRendering: boolean }>, coverage: undefined as import("@adt/types").StoryboardCoverage | undefined }
+const storyboardMock = { pages: [] as Array<Partial<import("@/api/client").PageSummaryItem> & { hasRendering: boolean }>, coverage: undefined as import("@adt/types").StoryboardCoverage | undefined, showRows: false }
 const packageStatusMock = { hasAdt: false, complete: true }
+
+vi.mock("@tanstack/react-virtual", () => ({
+  useVirtualizer: ({ count }: { count: number }) => ({
+    getVirtualItems: () => storyboardMock.showRows
+      ? Array.from({ length: count }, (_, index) => ({ index, start: index * 76, end: (index + 1) * 76 }))
+      : [],
+    getTotalSize: () => count * 76,
+    scrollToIndex: vi.fn(),
+    measureElement: vi.fn(),
+    scrollOffset: 0,
+    scrollRect: { height: 800 },
+  }),
+}))
 
 vi.mock("@lingui/core", () => ({
   i18n: {
@@ -185,6 +198,7 @@ beforeEach(() => {
   sourceUpdateStages.length = 0;
   storyboardMock.pages = []
   storyboardMock.coverage = undefined
+  storyboardMock.showRows = false
   matchRouteMock.mockReturnValue(true)
   Object.assign(packageStatusMock, { hasAdt: false, complete: true })
 })
@@ -231,6 +245,29 @@ describe("StageSidebar — sharing row", () => {
 })
 
 describe("StageSidebar", () => {
+  it.each(["translate", "sectioning", "speech"])(
+    "does not show Storyboard processing on blank or unrendered pages during %s", async (activeStep) => {
+      matchRouteMock.mockReturnValue(false)
+      stageStateMock.mockImplementation((stage) => stage === activeStep ? "running" : "done")
+      storyboardMock.showRows = true
+      storyboardMock.pages = [1, null].map((renderingVersion, index) => ({
+        pageId: `pg00${index + 4}`, pageNumber: index + 4,
+        textPreview: index === 0 ? "Blank page" : "Unrendered page",
+        hasRendering: false, renderingVersion, sectionCount: 1, sections: [],
+      }))
+      const onSelectPage = vi.fn()
+      const { StageSidebar } = await import("./components/StageSidebar")
+      render(<StageSidebar bookLabel="demo-book" activeStep={activeStep} onSelectPage={onSelectPage} />)
+
+      for (const name of [/Blank page/, /Unrendered page/]) {
+        const row = screen.getByRole("button", { name })
+        expect(row.querySelector(".animate-spin")).toBeNull()
+      }
+      fireEvent.click(screen.getByRole("button", { name: /Blank page/ }))
+      expect(onSelectPage).toHaveBeenCalledWith("pg004")
+    },
+  )
+
   it("#863: links to Quizzes without inheriting the selected page from another stage", async () => {
     matchRouteMock.mockReturnValue(false)
     stageStateMock.mockReturnValue("idle")

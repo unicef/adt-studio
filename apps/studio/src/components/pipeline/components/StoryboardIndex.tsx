@@ -334,7 +334,9 @@ function SectionRow({
     ? `data:image/png;base64,${pageImageData.imageBase64}`
     : null
 
-  const sectionPending = stageRunning && !page.hasRendering
+  // A blank page can have a saved result with no rendered sections. Only an
+  // absent active result is still waiting for its first publication in this run.
+  const sectionPending = stageRunning && page.renderingVersion == null
 
   const previewLabel = section.textPreview?.trim() || i18n._(msg`Section ${section.sectionIndex + 1}`)
 

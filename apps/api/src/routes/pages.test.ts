@@ -356,6 +356,31 @@ describe("Page routes", () => {
       expect(fs.existsSync(path.join(tmpDir, "missing-book"))).toBe(false)
     })
 
+    it("distinguishes a saved blank Storyboard result from absent output in page summaries", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      const pageId = `${label}_p1`
+      const tree = storage.getLatestNodeData("page-sectioning", pageId)!.data as import("@adt/types").PageSectioningOutput
+      for (const section of tree.sections) {
+        for (const node of section.nodes) node.isPruned = true
+      }
+      storage.putNodeData("page-sectioning", pageId, tree)
+      const version = storage.putNodeData("web-rendering", pageId, { sections: [] })
+      const before = storage.getAllNodeVersions("web-rendering", pageId)
+      const coverage = storyboardCoverage(storage)
+      storage.close()
+
+      const response = await app.request(`/api/books/${label}/pages`)
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual(expect.arrayContaining([
+        expect.objectContaining({ pageId, hasRendering: false, renderingVersion: version }),
+        expect.objectContaining({ pageId: `${label}_p2`, hasRendering: false, renderingVersion: null }),
+      ]))
+      const after = createBookStorage(label, tmpDir)
+      expect(after.getAllNodeVersions("web-rendering", pageId)).toEqual(before)
+      expect(storyboardCoverage(after)).toEqual(coverage)
+      after.close()
+    })
+
     it.each(["SQL", "JSON"])("does not resurrect %s NULL rendering or its activity flags, and respects a restored pointer", async (kind) => {
       const storage = createBookStorage(label, tmpDir)
       const pageId = `${label}_p1`
@@ -365,12 +390,14 @@ describe("Page routes", () => {
       storage.close()
       const pages = await (await app.request(`/api/books/${label}/pages`)).json()
       expect(pages[0].hasRendering).toBe(false)
+      expect(pages[0].renderingVersion).toBeNull()
       expect(pages[0].sections[0].isActivity).toBe(false)
       const restore = createBookStorage(label, tmpDir)
       restore.setCurrentNodeVersion("web-rendering", pageId, version)
       restore.close()
       const restored = await (await app.request(`/api/books/${label}/pages`)).json()
       expect(restored[0].hasRendering).toBe(true)
+      expect(restored[0].renderingVersion).toBe(version)
       expect(restored[0].sections[0].isActivity).toBe(true)
     })
 
