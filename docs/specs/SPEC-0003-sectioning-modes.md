@@ -8,7 +8,7 @@ issues: ["#708"]
 prs: ["#884"]
 adr: "docs/DECISIONS.md#025-sectioning-generation-preferences-scoped-reset-and-per-page-publication"
 created: 2026-09-22
-updated: 2026-11-18
+updated: 2026-11-22
 ---
 
 ## Approved product amendment
@@ -452,9 +452,11 @@ page windows and part proof changes prevent stale model reuse. No persistent
 summary proof or ownership bypass is added. RAC-13 distinguishes this unknown
 summary from both verified completeness and known incompleteness.
 
-PF-1–3 and UX-1 are accepted follow-up work. WIN-1 is a required pre-release gate.
-B1 still requires the original-book comparison; creating its investigation issue
-does not resolve that pre-merge ask. Each item has issue tracking:
+PF-1–3 and UX-1 are accepted follow-up work. WIN-1 was a required pre-release gate;
+it was run on Windows and accepted by the product owner on 2026-11-22. The
+original-book comparison requested for B1 was run on 2026-11-20 and confirmed the
+finding; by product-owner disposition its fix is follow-up work, not a merge
+condition. Each item has issue tracking:
 
 | Follow-up | Scope and boundary |
 |---|---|
@@ -462,11 +464,12 @@ does not resolve that pre-merge ask. Each item has issue tracking:
 | [PF-2 — #1163](https://github.com/unicef/adt-studio/issues/1163) | Page-list, package-status and packaged-asset overhead. Preserve busy/ownership refusals even for byte-identical application assets; coordinate overlapping page-list work with #996. |
 | [PF-3 — #995](https://github.com/unicef/adt-studio/issues/995) | Reuse the existing config/embedded-startup issue for live reader `assets/config.json` work and repeated mounting requests, which can delay activity conflict reloads. This PR exposes pending reload honestly; it does not claim to remove that endpoint cost. |
 | [UX-1 — #1164](https://github.com/unicef/adt-studio/issues/1164) | A preserving Move/Remove-from-Library action for an unusable original and a friendlier recovered-copy label/rename workflow. Do not bypass the original's lock or delete its evidence. |
-| [WIN-1 / N1 — #1165](https://github.com/unicef/adt-studio/issues/1165) | Actual Windows lease smoke test with Defender enabled: open, edit, kill/restart, preservation and known-live-owner control. **Must be completed and closed before the first release containing this PR.** WSL2/macOS injections and Linux CI do not satisfy it. This is a tracked release gate, not an implemented automated release-workflow check. |
-| [B1 — #1166](https://github.com/unicef/adt-studio/issues/1166) | Reconcile `collectSpentContentIds` and `reconcileSectioningIdentities` on elasticsounds' original 102-page, 237-section, approximately 162 MB book. His 3.1 s / 6.1 s timings contrast with Guillermo's faster results on other books. Access to the original fixture is pending; neither other-book measurements nor plain version depth resolve this finding. Preserve identity/history verification and do not claim resolution before the matched comparison. |
+| [WIN-1 / N1 — #1165](https://github.com/unicef/adt-studio/issues/1165) | **Completed and closed on 2026-11-22.** The actual Windows lease smoke test (Windows 11, NTFS, Defender real-time protection on, at `e38a860f8`) passed 150/150 checks on the bare API process and 99/99 on the packaged desktop app: open, edit, kill/restart, preservation and known-live-owner control, with no book left `BOOK_BUSY` and no transient rename error. See the [record](../verification/spec-0003-windows-smoke-2026-11-20.md) and the product owner's [acceptance](https://github.com/unicef/adt-studio/issues/1165#issuecomment-7082529578). Accepted limits: no reboot, installer, signed build or kill during a long pipeline run or export, and no kill isolated during lease release. This was a tracked release gate, not an implemented automated release-workflow check. |
+| [B1 — #1166](https://github.com/unicef/adt-studio/issues/1166) | **Confirmed, not resolved.** The matched comparison on elasticsounds' original 102-page, 237-section book was run on 2026-11-20 ([evidence and scripts](https://github.com/unicef/adt-studio/issues/1166#issuecomment-7048664665)): `collectSpentContentIds` takes 3.0 s against 0.88 s on develop `af7972c72`, and `reconcileSectioningIdentities` 2.9 s against 1.75 s per page. The cost follows the number of saved whole-book catalog copies (132 `text-catalog` versions, 74% of one scan), not per-page version depth, and a synthetic book reproduces it, so the original fixture is no longer needed. The fix is follow-up work under this issue. Preserve identity/history verification in it. |
 
-The original-book B1 benchmark and actual Windows smoke remain unperformed in
-this closeout. The approved runtime/admission contract is unchanged. These are
+The original-book B1 benchmark and the actual Windows smoke were not part of this
+closeout. Both were performed afterwards, on 2026-11-20; the table above records
+their results. The approved runtime/admission contract is unchanged. These are
 traceable follow-ups to the linked reviews, not newly completed optimizations.
 The exact qa784/other reviewer-book measurements are his WSL2 results; local
 controlled-fixture timings do not certify those datasets, Electron startup,

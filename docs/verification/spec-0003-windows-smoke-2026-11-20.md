@@ -6,6 +6,10 @@ It was run on an actual Windows machine with Defender real-time protection on, a
 bare API process and the packaged desktop application. **No defect was found. This record does not
 close the gate: #1165 still requires human acceptance.**
 
+**Update, 22 November 2026:** the product owner
+[accepted this evidence](https://github.com/unicef/adt-studio/issues/1165#issuecomment-7082529578)
+and closed #1165. The record below is unchanged.
+
 ## Result
 
 | Target | Kill/restart cycles | Checks | Transient rename errors |

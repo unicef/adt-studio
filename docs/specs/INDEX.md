@@ -45,4 +45,4 @@ Legacy notes, from before this process existed, now in [`docs/analysis/`](../ana
 [SECTIONING_VALIDATION_FAILURES.md](../analysis/SECTIONING_VALIDATION_FAILURES.md)
 (May 2026, implemented). They are bug analyses, not specs.
 
-SPEC-0003 was approved by @gbergengruen on 2026-11-18; see its [approval and remaining follow-ups](SPEC-0003-sectioning-modes.md#approval-and-remaining-follow-ups--2026-11-18). Contract approval does not approve PR #884 or waive its remaining review requirements and pre-release Windows smoke test.
+SPEC-0003 was approved by @gbergengruen on 2026-11-18; see its [approval and remaining follow-ups](SPEC-0003-sectioning-modes.md#approval-and-remaining-follow-ups--2026-11-18). Contract approval does not approve PR #884 or waive its remaining review requirements. The pre-release Windows smoke test (#1165) was completed and accepted on 2026-11-22.
