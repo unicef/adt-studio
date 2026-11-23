@@ -17,6 +17,7 @@ import { buildConfigOverrides } from "./bookCreationConfig"
 import { getPresetAccent, type PresetAccent } from "./constants"
 import { Step0Preset } from "./step0preset"
 import { StepUpload } from "./stepUpload"
+import { AutoMode } from "./autoMode/AutoMode"
 import { FlowTopBar } from "@/components/FlowTopBar"
 import { PdfCoverPreview } from "./shared/PdfCoverPreview"
 import { LayoutPreview, getPreviewWidth } from "./step2LayoutOptions/LayoutPreview"
@@ -269,6 +270,10 @@ export function BookCreationWizard() {
     return <StepUpload />
   }
 
+  if (phase === "auto") {
+    return <AutoMode onCreate={(id) => handleCreate(id)} isCreating={isCreating} createError={submitError} />
+  }
+
   if (currentStep === 0) {
     return (
       <div className="flex flex-1 min-h-0 flex-col h-full bg-background">
@@ -290,16 +295,19 @@ export function BookCreationWizard() {
     if (currentStep < STEPS.length) setCurrentStep(currentStep + 1)
   }
 
-  async function handleCreate() {
+  async function handleCreate(setupRecommendationId?: string) {
     if (creatingRef.current) return
     creatingRef.current = true
     setSubmitError(null)
     setIsCreating(true)
+    // Read the form at call time: auto mode fills it just before calling.
+    const values = form.state.values
     try {
       const book = await createMutation.mutateAsync({
         label: values.label.trim(),
         pdf: values.file!,
         config: buildConfigOverrides(values),
+        setupRecommendationId,
       })
 
       // Kick off extraction automatically so the user lands on the book home
@@ -439,7 +447,7 @@ export function BookCreationWizard() {
             isCreating={isCreating}
             onBack={handleBack}
             onNext={handleNext}
-            onCreate={handleCreate}
+            onCreate={() => handleCreate()}
             accent={accent}
             hint={hint}
             onScrollToInvalid={handleScrollToInvalid}

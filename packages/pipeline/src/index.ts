@@ -587,3 +587,13 @@ export { collectQuizPages } from "./quiz-generation.js"
 export { assertReflowableSectioning } from "./render-sectioning.js"
 
 export { renderedTextIds, sourceTextIds, findIntroducedBlankContentId, findIntroducedDerivedIdCollision } from "./content-ids.js"
+
+// Auto mode (issue #333, experiment lane): setup recommender engine E3.
+export {
+  recommendSetup,
+  measureFacts,
+  decide as decideSetup,
+  type RecommendSetupOptions,
+  type MeasuredFacts,
+  type RenderPages,
+} from "./setup-recommender/index.js"

@@ -1,4 +1,5 @@
-import { ArrowLeft, ArrowRight, RotateCcw } from "lucide-react"
+import { ArrowLeft, ArrowRight, RotateCcw, Sparkles } from "lucide-react"
+import { isAutoModeEnabled } from "../autoMode/applyRecommendation"
 import { Trans } from "@lingui/react/macro"
 import { useStore } from "@tanstack/react-form"
 import { cn } from "@/lib/utils"
@@ -10,7 +11,7 @@ import { PresetGrid } from "./PresetGrid"
 // eslint-disable-next-line lingui/no-unlocalized-strings -- Preset reset warning text
 const STEP1_FIELDS = new Set(["label", "file", "startPage", "endPage", "selectedPreset"])
 
-function applyPreset(form: ReturnType<typeof useWizardForm>, id: PresetId) {
+export function applyPreset(form: ReturnType<typeof useWizardForm>, id: PresetId) {
   const preset = PRESETS.find((p) => p.id === id)
 
   for (const [key, value] of Object.entries(defaultWizardValues)) {
@@ -104,6 +105,24 @@ export function Step0Preset() {
       </div>
 
       <PresetGrid selected={selected} onSelect={handleSelect} />
+
+      {isAutoModeEnabled() && (
+        <button
+          type="button"
+          onClick={() => setPhase("auto")}
+          className="flex max-w-xl items-center gap-3 rounded-lg border border-dashed border-border px-4 py-3 text-left text-sm hover:border-foreground/40"
+        >
+          <Sparkles className="h-5 w-5 shrink-0 text-primary" aria-hidden />
+          <span className="flex flex-col">
+            <span className="font-medium text-foreground">
+              <Trans>Let the AI pick the settings (experiment)</Trans>
+            </span>
+            <span className="text-muted-foreground">
+              <Trans>It reads your PDF, shows what it picked and why, and asks only when it isn't sure.</Trans>
+            </span>
+          </span>
+        </button>
+      )}
 
       <div className="flex items-center gap-3">
         <Button

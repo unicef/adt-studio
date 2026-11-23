@@ -11,7 +11,7 @@ import type { ImageProcessingPreviewFocus } from "./step3ContentProcessing/image
 import type { PresetId } from "./constants"
 import { useCloseIntent } from "@/components/close-guard/CloseGuard"
 
-export type WizardPhase = "upload" | "wizard"
+export type WizardPhase = "upload" | "wizard" | "auto"
 
 interface WizardContextValue {
   phase: WizardPhase
@@ -33,7 +33,7 @@ export function WizardProvider({ children }: { children: ReactNode }) {
   const [stepDirection, setStepDirection] = useState<"forward" | "back">("forward")
 
   const setPhase = useCallback((next: WizardPhase) => {
-    setStepDirection(next === "wizard" ? "forward" : "back")
+    setStepDirection(next === "upload" ? "back" : "forward")
     setPhaseRaw(next)
   }, [])
 

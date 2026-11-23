@@ -1,4 +1,5 @@
 import fs from "node:fs"
+import { attachSetupRecommendation } from "./setup-recommendation.js"
 import path from "node:path"
 import { z } from "zod"
 import { Hono } from "hono"
@@ -263,6 +264,13 @@ export function createBookRoutes(
 
     try {
       const book = createBook(label, pdfBuffer, booksDir, configOverrides)
+      // Auto mode (issue #333): keep the recommendation and its AI log with the book.
+      const setupRecommendationId = formData.get("setupRecommendationId")
+      if (typeof setupRecommendationId === "string" && setupRecommendationId) {
+        attachSetupRecommendation(setupRecommendationId, path.join(path.resolve(booksDir), book.label), {
+          config: configOverrides,
+        })
+      }
       return c.json(book, 201)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)

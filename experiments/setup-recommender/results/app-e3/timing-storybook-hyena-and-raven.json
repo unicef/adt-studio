@@ -1,0 +1,54 @@
+{
+  "source": "storybook-hyena-and-raven.pdf",
+  "model": "openai:gpt-5.4",
+  "rows": [
+    {
+      "pages": 12,
+      "scanMs": 110,
+      "scanMsPerPage": 9.2,
+      "readingMs": 5579,
+      "labelsMs": 5075,
+      "questionsMs": 5387,
+      "totalMs": 5689,
+      "uploadKB": 923,
+      "extraAt1MbpsS": 7.6,
+      "tokensIn": 10027
+    },
+    {
+      "pages": 50,
+      "scanMs": 149,
+      "scanMsPerPage": 3,
+      "readingMs": 6417,
+      "labelsMs": 6416,
+      "questionsMs": 4573,
+      "totalMs": 6566,
+      "uploadKB": 1320,
+      "extraAt1MbpsS": 10.8,
+      "tokensIn": 13193
+    },
+    {
+      "pages": 150,
+      "scanMs": 307,
+      "scanMsPerPage": 2,
+      "readingMs": 6566,
+      "labelsMs": 6564,
+      "questionsMs": 5330,
+      "totalMs": 6872,
+      "uploadKB": 1281,
+      "extraAt1MbpsS": 10.5,
+      "tokensIn": 13287
+    },
+    {
+      "pages": 400,
+      "scanMs": 721,
+      "scanMsPerPage": 1.8,
+      "readingMs": 9775,
+      "labelsMs": 9773,
+      "questionsMs": 4949,
+      "totalMs": 10496,
+      "uploadKB": 1705,
+      "extraAt1MbpsS": 14,
+      "tokensIn": 17050
+    }
+  ]
+}

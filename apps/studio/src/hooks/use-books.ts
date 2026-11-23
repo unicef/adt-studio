@@ -51,11 +51,13 @@ export function useCreateBook() {
       label,
       pdf,
       config,
+      setupRecommendationId,
     }: {
       label: string
       pdf: File
       config?: Record<string, unknown>
-    }) => api.createBook(label, pdf, config),
+      setupRecommendationId?: string
+    }) => api.createBook(label, pdf, config, setupRecommendationId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["books"] })
     },

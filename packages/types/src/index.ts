@@ -779,3 +779,15 @@ export { SourceGeneratorStep, SourceGenerationPolicy, SourceGenerationState, Sou
 export { BookConfigSaveReceipt } from "./book-config-save.js"
 
 export { type TextDirection, getTextDirection } from "./text-direction.js"
+
+export {
+  SetupBookFactId,
+  SetupSettingId,
+  SetupSettings,
+  SetupSettingPick,
+  SetupDecided,
+  SetupFact,
+  SetupPageRange,
+  SetupRecommendation,
+  setupFactsKey,
+} from "./setup-recommendation.js"
