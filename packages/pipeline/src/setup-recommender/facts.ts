@@ -10,7 +10,15 @@ export type PageStorage = "single-pages" | "spreads-as-separate-pages" | "spread
 export type TextLayer = "digital" | "scanned" | "scanned-with-ocr" | "mixed"
 
 export interface MeasuredFacts {
-  pageStorage: { value: PageStorage; evidence: number[]; seams: number; pairs: number; wideShare: number }
+  pageStorage: {
+    value: PageStorage
+    /** How split spreads showed: one picture continuing across the fold, or a text page facing a picture page. */
+    via: "joined-pictures" | "text-facing-picture" | null
+    evidence: number[]
+    seams: number
+    pairs: number
+    wideShare: number
+  }
   textLayer: { value: TextLayer; evidence: number[]; scannedPages: number; ocrPages: number; pages: number }
   textOverPictures: { value: boolean; share: number; evidence: number[] }
   pictureHeavy: { value: boolean; medianCoverage: number }
@@ -71,6 +79,60 @@ function guessLanguage(text: string): string | null {
   return bestScore > 0.03 ? best : null
 }
 
+// A page that is mostly words, and one that is mostly picture.
+const isTextPage = (p: BookPageProfile) => p.visibleChars >= 100 && p.imageCoverage < 0.25
+const isPicturePage = (p: BookPageProfile) => p.visibleChars < 40 && (p.maxImageCoverage >= 0.7 || p.ink >= 0.5)
+/** Share of facing pairs that must show a spread. */
+const SPREAD_SHARE = 0.25
+/** How many times more often the spread side of the fold must show it than the other side. */
+const PARITY_CONTRAST = 2
+
+/**
+ * Split spreads: a two-page opening printed as two PDF pages. Openings are
+ * facing pages, so in a book of spreads every opening starts on the same side
+ * of the fold (all even pages, or all odd ones). A pair counts as an opening
+ * when one picture continues across the fold, or when a text page faces a
+ * picture page (the classic picture-book layout, where nothing crosses the
+ * fold). Pictures that merely happen to sit next to text land on both sides
+ * of the fold alike, so the side holding the openings must show them at least
+ * PARITY_CONTRAST times as often as the other, and in SPREAD_SHARE of its pairs.
+ */
+function measureSplitSpreads(b: BookProfile): {
+  via: MeasuredFacts["pageStorage"]["via"]
+  evidence: number[]
+  seams: number
+  pairs: number
+} {
+  const byPage = new Map(b.pages.map((p) => [p.page, p]))
+  const seamLeads = new Set(detectSpreads(b.edges).filter((s) => s.confidence >= 0.7).map((s) => s.lead))
+  const first = Math.min(...b.pages.map((p) => p.page))
+  const last = Math.max(...b.pages.map((p) => p.page))
+  const sides = [0, 1].map((parity) => {
+    const leads: number[] = []
+    for (let lead = first; lead < last; lead++) if (lead % 2 === parity && byPage.has(lead) && byPage.has(lead + 1)) leads.push(lead)
+    const seams = leads.filter((l) => seamLeads.has(l))
+    const facing = leads.filter((l) => {
+      const a = byPage.get(l)!
+      const c = byPage.get(l + 1)!
+      return (isTextPage(a) && isPicturePage(c)) || (isPicturePage(a) && isTextPage(c))
+    })
+    const openings = new Set([...seams, ...facing])
+    return { pairs: leads.length, seams, facing, openings: openings.size }
+  })
+  const [side, other] = sides[0].openings >= sides[1].openings ? [sides[0], sides[1]] : [sides[1], sides[0]]
+  const pairs = Math.max(1, side.pairs)
+  const isSpread =
+    side.openings >= Math.max(2, SPREAD_SHARE * pairs) && side.openings >= PARITY_CONTRAST * Math.max(1, other.openings)
+  const via = !isSpread ? null : side.seams.length >= side.facing.length ? "joined-pictures" : "text-facing-picture"
+  const leads = via === "joined-pictures" ? side.seams : side.facing
+  return {
+    via,
+    evidence: via ? leads.slice(0, 2).flatMap((l) => [l, l + 1]) : [],
+    seams: seamLeads.size,
+    pairs,
+  }
+}
+
 export function measureFacts(b: BookProfile): MeasuredFacts {
   const pages = interior(b.pages)
   const n = pages.length
@@ -78,27 +140,21 @@ export function measureFacts(b: BookProfile): MeasuredFacts {
   // Page storage: wide pages already hold a spread; seams that continue across
   // facing pages mean the spread was split into two PDF pages.
   const wideShare = pages.filter((p) => p.width / p.height > 1.2).length / Math.max(1, n)
-  const pairs = Math.max(1, Math.floor(b.pages.length / 2))
-  const seams = detectSpreads(b.edges).filter((s) => s.confidence >= 0.7)
+  const spreads = measureSplitSpreads(b)
   let pageStorage: MeasuredFacts["pageStorage"]
   if (wideShare >= 0.6) {
     pageStorage = {
       value: "spreads-as-wide-pages",
+      via: null,
       evidence: pages.filter((p) => p.width / p.height > 1.2).slice(0, 3).map((p) => p.page),
-      seams: seams.length,
-      pairs,
+      seams: spreads.seams,
+      pairs: spreads.pairs,
       wideShare,
     }
-  } else if (seams.length >= Math.max(2, 0.25 * pairs)) {
-    pageStorage = {
-      value: "spreads-as-separate-pages",
-      evidence: seams.slice(0, 2).flatMap((s) => [s.lead, s.lead + 1]),
-      seams: seams.length,
-      pairs,
-      wideShare,
-    }
+  } else if (spreads.via) {
+    pageStorage = { value: "spreads-as-separate-pages", via: spreads.via, evidence: spreads.evidence, seams: spreads.seams, pairs: spreads.pairs, wideShare }
   } else {
-    pageStorage = { value: "single-pages", evidence: [], seams: seams.length, pairs, wideShare }
+    pageStorage = { value: "single-pages", via: null, evidence: [], seams: spreads.seams, pairs: spreads.pairs, wideShare }
   }
 
   // Text layer. A few full-page pictures without text are normal in picture

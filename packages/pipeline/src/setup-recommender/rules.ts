@@ -53,6 +53,7 @@ export type RuleId =
   | "render-side-by-side"
   | "render-reflow"
   | "group-joined-spreads"
+  | "group-facing-pages"
   | "group-wide-pages"
   | "group-single"
   | "activities-on"
@@ -71,7 +72,7 @@ export function decide(d: MeasuredFacts, s: BookFacts): Decided {
 
   const pageGrouping: Decided["pageGrouping"] =
     d.pageStorage.value === "spreads-as-separate-pages"
-      ? { value: "spread", rule: "group-joined-spreads" }
+      ? { value: "spread", rule: d.pageStorage.via === "text-facing-picture" ? "group-facing-pages" : "group-joined-spreads" }
       : { value: "single", rule: d.pageStorage.value === "spreads-as-wide-pages" ? "group-wide-pages" : "group-single" }
 
   const hasText = d.textLayer.value === "digital"

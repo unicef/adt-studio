@@ -50,14 +50,13 @@ export const FACT_LONG: Record<SetupBookFactId, Record<string, MessageDescriptor
   },
 }
 
-export const SETTING_NAME: Record<SetupSettingId | "pageRange", MessageDescriptor> = {
+export const SETTING_NAME: Record<SetupSettingId, MessageDescriptor> = {
   preset: msg`Kind of book`,
   renderStrategy: msg`Page layout`,
   pageGrouping: msg`Pictures across two pages`,
   sectioningMode: msg`How each page is split`,
   activitiesGenerator: msg`Interactive activities`,
   figureExtraction: msg`Maps and labelled drawings`,
-  pageRange: msg`Pages to import`,
 }
 
 /** What the picked value means for the finished book. */
@@ -107,6 +106,7 @@ export const RULE_WHY: Record<string, MessageDescriptor> = {
   "render-side-by-side": msg`The words sit beside the pictures, so they can go side by side.`,
   "render-reflow": msg`The book is mostly words, so they can flow to fit the screen.`,
   "group-joined-spreads": msg`Pictures run across two facing pages.`,
+  "group-facing-pages": msg`The book is laid out in two-page openings: a page of text faces a page of picture.`,
   "group-wide-pages": msg`Your PDF already has both pages side by side on one wide page.`,
   "group-single": msg`Pictures don't run across facing pages.`,
   "activities-on": msg`The book asks the reader to write or mark answers.`,

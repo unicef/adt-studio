@@ -1796,8 +1796,8 @@ msgid "All"
 msgstr "Të gjitha"
 
 #. placeholder {0}: rec.pageCount
-msgid "All {0} pages"
-msgstr "Të gjitha {0} faqet"
+#~ msgid "All {0} pages"
+#~ msgstr "Të gjitha {0} faqet"
 
 #. placeholder {0}: status.pageCount
 msgid "All {0} pages merged in"
@@ -6552,8 +6552,8 @@ msgstr "Lëre bosh për të dalë vetëm në gjuhën e librit."
 msgid "Leave empty to use the book language."
 msgstr "Lëre bosh për të përdorur gjuhën e librit."
 
-msgid "Leave out these pages"
-msgstr "Lëri jashtë këto faqe"
+#~ msgid "Leave out these pages"
+#~ msgstr "Lëri jashtë këto faqe"
 
 msgid "Leave setup"
 msgstr "Dil nga konfigurimi"
@@ -8325,8 +8325,8 @@ msgstr "Sugjero zëvendësime vetëm kur korrigjimi është me besim të lartë"
 msgid "Only the most central vocabulary."
 msgstr "Vetëm fjalorin më qendror."
 
-msgid "Only these pages are turned into the digital book. The rest of the PDF is left out."
-msgstr "Vetëm këto faqe kthehen në librin dixhital. Pjesa tjetër e PDF-së lihet jashtë."
+#~ msgid "Only these pages are turned into the digital book. The rest of the PDF is left out."
+#~ msgstr "Vetëm këto faqe kthehen në librin dixhital. Pjesa tjetër e PDF-së lihet jashtë."
 
 msgid "Only with open feedback"
 msgstr "Vetëm me komente të hapura"
@@ -8739,12 +8739,12 @@ msgid "Page {0} captions"
 msgstr "Titujt e faqes {0}"
 
 #. placeholder {0}: s.from
-msgid "Page {0} comes before the book starts."
-msgstr "Faqja {0} vjen para se të fillojë libri."
+#~ msgid "Page {0} comes before the book starts."
+#~ msgstr "Faqja {0} vjen para se të fillojë libri."
 
 #. placeholder {0}: s.from
-msgid "Page {0} is an end page."
-msgstr "Faqja {0} është faqe përmbyllëse."
+#~ msgid "Page {0} is an end page."
+#~ msgstr "Faqja {0} është faqe përmbyllëse."
 
 #. placeholder {0}: activeIndex + 1
 #. placeholder {0}: current.pageNumber
@@ -8869,19 +8869,19 @@ msgstr "Faqet {0}–{1}"
 
 #. placeholder {0}: s.from
 #. placeholder {1}: s.to
-msgid "Pages {0}–{1} are end pages."
-msgstr "Faqet {0}–{1} janë faqe përmbyllëse."
+#~ msgid "Pages {0}–{1} are end pages."
+#~ msgstr "Faqet {0}–{1} janë faqe përmbyllëse."
 
 #. placeholder {0}: s.from
 #. placeholder {1}: s.to
-msgid "Pages {0}–{1} come before the book starts."
-msgstr "Faqet {0}–{1} vijnë para se të fillojë libri."
+#~ msgid "Pages {0}–{1} come before the book starts."
+#~ msgstr "Faqet {0}–{1} vijnë para se të fillojë libri."
 
 #. placeholder {0}: range.start
 #. placeholder {1}: range.end
 #. placeholder {2}: rec.pageCount
-msgid "Pages {0}–{1} of {2}"
-msgstr "Faqet {0}–{1} nga {2}"
+#~ msgid "Pages {0}–{1} of {2}"
+#~ msgstr "Faqet {0}–{1} nga {2}"
 
 msgid "Pages {pageNumber}–{lastPageNumber} · Section {sectionNumber}"
 msgstr "Faqet {pageNumber}–{lastPageNumber} · Seksioni {sectionNumber}"
@@ -8920,8 +8920,8 @@ msgstr "Faqe për Kuiz"
 msgid "Pages reviewed"
 msgstr "Faqe të rishikuara"
 
-msgid "Pages to import"
-msgstr "Faqet për t'u importuar"
+#~ msgid "Pages to import"
+#~ msgstr "Faqet për t'u importuar"
 
 msgid "Pages to review"
 msgstr "Faqet për t'u shqyrtuar"
@@ -12333,6 +12333,9 @@ msgstr "Libri nuk ka figura me etiketa."
 msgid "The book has no tasks for the reader."
 msgstr "Libri nuk ka detyra për lexuesin."
 
+msgid "The book is laid out in two-page openings: a page of text faces a page of picture."
+msgstr "Libri është faqosur në faqe të dyfishta: një faqe me tekst përballë një faqeje me figurë."
+
 msgid "The book is mostly words, so they can flow to fit the screen."
 msgstr "Libri është kryesisht tekst, prandaj teksti mund të rrjedhë për t'iu përshtatur ekranit."
 
@@ -12378,8 +12381,8 @@ msgstr "Lidhja me Cloudflare u ndërpre ose zgjati shumë. Kontrolloni interneti
 msgid "The copy also includes the current guide, because this archive’s guide is missing or outdated."
 msgstr "Kopja përfshin edhe udhëzuesin aktual, sepse udhëzuesi i këtij arkivi mungon ose është i vjetëruar."
 
-msgid "The cover (page 1) is left out too."
-msgstr "Edhe kopertina (faqja 1) lihet jashtë."
+#~ msgid "The cover (page 1) is left out too."
+#~ msgstr "Edhe kopertina (faqja 1) lihet jashtë."
 
 msgid "The credits page."
 msgstr "Faqja e krediteve."

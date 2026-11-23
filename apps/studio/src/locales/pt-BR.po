@@ -1794,8 +1794,8 @@ msgid "All"
 msgstr "Todos"
 
 #. placeholder {0}: rec.pageCount
-msgid "All {0} pages"
-msgstr "Todas as {0} páginas"
+#~ msgid "All {0} pages"
+#~ msgstr "Todas as {0} páginas"
 
 #. placeholder {0}: status.pageCount
 msgid "All {0} pages merged in"
@@ -6550,8 +6550,8 @@ msgstr "Deixe vazio para gerar apenas no idioma do livro."
 msgid "Leave empty to use the book language."
 msgstr "Deixe vazio para usar o idioma do livro."
 
-msgid "Leave out these pages"
-msgstr "Deixar estas páginas de fora"
+#~ msgid "Leave out these pages"
+#~ msgstr "Deixar estas páginas de fora"
 
 msgid "Leave setup"
 msgstr "Sair da configuração"
@@ -8323,8 +8323,8 @@ msgstr "Sugerir substituições apenas quando a correção tiver alta confiança
 msgid "Only the most central vocabulary."
 msgstr "Apenas o vocabulário mais central."
 
-msgid "Only these pages are turned into the digital book. The rest of the PDF is left out."
-msgstr "Só estas páginas viram o livro digital. O resto do PDF fica de fora."
+#~ msgid "Only these pages are turned into the digital book. The rest of the PDF is left out."
+#~ msgstr "Só estas páginas viram o livro digital. O resto do PDF fica de fora."
 
 msgid "Only with open feedback"
 msgstr "Apenas com feedback aberto"
@@ -8737,12 +8737,12 @@ msgid "Page {0} captions"
 msgstr "Texto alternativo da página {0}"
 
 #. placeholder {0}: s.from
-msgid "Page {0} comes before the book starts."
-msgstr "A página {0} vem antes do começo do livro."
+#~ msgid "Page {0} comes before the book starts."
+#~ msgstr "A página {0} vem antes do começo do livro."
 
 #. placeholder {0}: s.from
-msgid "Page {0} is an end page."
-msgstr "A página {0} é uma página final."
+#~ msgid "Page {0} is an end page."
+#~ msgstr "A página {0} é uma página final."
 
 #. placeholder {0}: activeIndex + 1
 #. placeholder {0}: current.pageNumber
@@ -8867,19 +8867,19 @@ msgstr "Páginas {0}–{1}"
 
 #. placeholder {0}: s.from
 #. placeholder {1}: s.to
-msgid "Pages {0}–{1} are end pages."
-msgstr "As páginas {0}–{1} são páginas finais."
+#~ msgid "Pages {0}–{1} are end pages."
+#~ msgstr "As páginas {0}–{1} são páginas finais."
 
 #. placeholder {0}: s.from
 #. placeholder {1}: s.to
-msgid "Pages {0}–{1} come before the book starts."
-msgstr "As páginas {0}–{1} vêm antes do começo do livro."
+#~ msgid "Pages {0}–{1} come before the book starts."
+#~ msgstr "As páginas {0}–{1} vêm antes do começo do livro."
 
 #. placeholder {0}: range.start
 #. placeholder {1}: range.end
 #. placeholder {2}: rec.pageCount
-msgid "Pages {0}–{1} of {2}"
-msgstr "Páginas {0}–{1} de {2}"
+#~ msgid "Pages {0}–{1} of {2}"
+#~ msgstr "Páginas {0}–{1} de {2}"
 
 msgid "Pages {pageNumber}–{lastPageNumber} · Section {sectionNumber}"
 msgstr "Páginas {pageNumber}–{lastPageNumber} · Seção {sectionNumber}"
@@ -8918,8 +8918,8 @@ msgstr "Páginas por questionário"
 msgid "Pages reviewed"
 msgstr "Páginas revisadas"
 
-msgid "Pages to import"
-msgstr "Páginas a importar"
+#~ msgid "Pages to import"
+#~ msgstr "Páginas a importar"
 
 msgid "Pages to review"
 msgstr "Páginas para revisar"
@@ -12331,6 +12331,9 @@ msgstr "O livro não tem imagens com legendas."
 msgid "The book has no tasks for the reader."
 msgstr "O livro não tem tarefas para o leitor."
 
+msgid "The book is laid out in two-page openings: a page of text faces a page of picture."
+msgstr "O livro é diagramado em páginas duplas: uma página de texto fica de frente para uma página de imagem."
+
 msgid "The book is mostly words, so they can flow to fit the screen."
 msgstr "O livro é quase só texto, então o texto pode fluir para caber na tela."
 
@@ -12376,8 +12379,8 @@ msgstr "A conexão com o Cloudflare caiu ou demorou demais. Verifique sua intern
 msgid "The copy also includes the current guide, because this archive’s guide is missing or outdated."
 msgstr "A cópia também inclui o guia atual, porque o guia deste arquivo está ausente ou desatualizado."
 
-msgid "The cover (page 1) is left out too."
-msgstr "A capa (página 1) também fica de fora."
+#~ msgid "The cover (page 1) is left out too."
+#~ msgstr "A capa (página 1) também fica de fora."
 
 msgid "The credits page."
 msgstr "A página de créditos."

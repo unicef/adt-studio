@@ -1794,8 +1794,8 @@ msgid "All"
 msgstr "All"
 
 #. placeholder {0}: rec.pageCount
-msgid "All {0} pages"
-msgstr "All {0} pages"
+#~ msgid "All {0} pages"
+#~ msgstr "All {0} pages"
 
 #. placeholder {0}: status.pageCount
 msgid "All {0} pages merged in"
@@ -6550,8 +6550,8 @@ msgstr "Leave empty to output only in the book language."
 msgid "Leave empty to use the book language."
 msgstr "Leave empty to use the book language."
 
-msgid "Leave out these pages"
-msgstr "Leave out these pages"
+#~ msgid "Leave out these pages"
+#~ msgstr "Leave out these pages"
 
 msgid "Leave setup"
 msgstr "Leave setup"
@@ -8323,8 +8323,8 @@ msgstr "Only suggest replacements when the correction is high confidence"
 msgid "Only the most central vocabulary."
 msgstr "Only the most central vocabulary."
 
-msgid "Only these pages are turned into the digital book. The rest of the PDF is left out."
-msgstr "Only these pages are turned into the digital book. The rest of the PDF is left out."
+#~ msgid "Only these pages are turned into the digital book. The rest of the PDF is left out."
+#~ msgstr "Only these pages are turned into the digital book. The rest of the PDF is left out."
 
 msgid "Only with open feedback"
 msgstr "Only with open feedback"
@@ -8737,12 +8737,12 @@ msgid "Page {0} captions"
 msgstr "Page {0} captions"
 
 #. placeholder {0}: s.from
-msgid "Page {0} comes before the book starts."
-msgstr "Page {0} comes before the book starts."
+#~ msgid "Page {0} comes before the book starts."
+#~ msgstr "Page {0} comes before the book starts."
 
 #. placeholder {0}: s.from
-msgid "Page {0} is an end page."
-msgstr "Page {0} is an end page."
+#~ msgid "Page {0} is an end page."
+#~ msgstr "Page {0} is an end page."
 
 #. placeholder {0}: activeIndex + 1
 #. placeholder {0}: current.pageNumber
@@ -8867,19 +8867,19 @@ msgstr "Pages {0}–{1}"
 
 #. placeholder {0}: s.from
 #. placeholder {1}: s.to
-msgid "Pages {0}–{1} are end pages."
-msgstr "Pages {0}–{1} are end pages."
+#~ msgid "Pages {0}–{1} are end pages."
+#~ msgstr "Pages {0}–{1} are end pages."
 
 #. placeholder {0}: s.from
 #. placeholder {1}: s.to
-msgid "Pages {0}–{1} come before the book starts."
-msgstr "Pages {0}–{1} come before the book starts."
+#~ msgid "Pages {0}–{1} come before the book starts."
+#~ msgstr "Pages {0}–{1} come before the book starts."
 
 #. placeholder {0}: range.start
 #. placeholder {1}: range.end
 #. placeholder {2}: rec.pageCount
-msgid "Pages {0}–{1} of {2}"
-msgstr "Pages {0}–{1} of {2}"
+#~ msgid "Pages {0}–{1} of {2}"
+#~ msgstr "Pages {0}–{1} of {2}"
 
 msgid "Pages {pageNumber}–{lastPageNumber} · Section {sectionNumber}"
 msgstr "Pages {pageNumber}–{lastPageNumber} · Section {sectionNumber}"
@@ -8918,8 +8918,8 @@ msgstr "Pages per Quiz"
 msgid "Pages reviewed"
 msgstr "Pages reviewed"
 
-msgid "Pages to import"
-msgstr "Pages to import"
+#~ msgid "Pages to import"
+#~ msgstr "Pages to import"
 
 msgid "Pages to review"
 msgstr "Pages to review"
@@ -12331,6 +12331,9 @@ msgstr "The book has no labelled pictures."
 msgid "The book has no tasks for the reader."
 msgstr "The book has no tasks for the reader."
 
+msgid "The book is laid out in two-page openings: a page of text faces a page of picture."
+msgstr "The book is laid out in two-page openings: a page of text faces a page of picture."
+
 msgid "The book is mostly words, so they can flow to fit the screen."
 msgstr "The book is mostly words, so they can flow to fit the screen."
 
@@ -12376,8 +12379,8 @@ msgstr "The connection to Cloudflare dropped or timed out. Check your internet, 
 msgid "The copy also includes the current guide, because this archive’s guide is missing or outdated."
 msgstr "The copy also includes the current guide, because this archive’s guide is missing or outdated."
 
-msgid "The cover (page 1) is left out too."
-msgstr "The cover (page 1) is left out too."
+#~ msgid "The cover (page 1) is left out too."
+#~ msgstr "The cover (page 1) is left out too."
 
 msgid "The credits page."
 msgstr "The credits page."

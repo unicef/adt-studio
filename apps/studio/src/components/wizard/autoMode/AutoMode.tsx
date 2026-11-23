@@ -70,14 +70,14 @@ export function AutoMode({
           isCreating={isCreating}
           error={createError}
           onBack={backToPresets}
-          onCustomize={(settings, range) => {
-            applyRecommendation(form, settings, range)
+          onCustomize={(settings) => {
+            applyRecommendation(form, settings)
             setCommittedStep0Preset(settings.preset!.value as "textbook" | "storybook" | "reference")
             setPhase("wizard")
             setCurrentStep(1)
           }}
-          onCreate={(settings, range) => {
-            applyRecommendation(form, settings, range)
+          onCreate={(settings) => {
+            applyRecommendation(form, settings)
             onCreate(rec.id)
           }}
         />

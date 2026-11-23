@@ -37,6 +37,10 @@ export interface BookPageEdges {
   leftEdge: number[]
   rightEdge: number[]
   textLength: number
+  /** Characters in text blocks that reach into the outer 4% of the page on each side: text that can
+   *  sit under the edge sample, unlike captions and body text kept inside the margins. */
+  textNearLeftEdge: number
+  textNearRightEdge: number
 }
 
 export interface BookProfile {
@@ -119,12 +123,18 @@ function profilePage(doc: MupdfDocument, index: number): { profile: BookPageProf
     }
     let text = ""
     let textOverImageChars = 0
+    let textNearLeftEdge = 0
+    let textNearRightEdge = 0
+    const band = 0.04 * (b[2] - b[0])
     const bigImages = images.filter((i) => area(clip(i.rect, pageRect)) >= 0.3 * pageArea)
     for (const block of json.blocks) {
       if (block.type !== "text" || !block.lines) continue
       const r: Rect = [block.bbox.x, block.bbox.y, block.bbox.x + block.bbox.w, block.bbox.y + block.bbox.h]
       const t = block.lines.map((l) => l.text).join(" ")
       text += t + "\n"
+      const chars = t.replace(/\s/g, "").length
+      if (r[0] <= b[0] + band) textNearLeftEdge += chars
+      if (r[2] >= b[2] - band) textNearRightEdge += chars
       if (bigImages.some((i) => inside(r, i.rect))) textOverImageChars += t.replace(/\s/g, "").length
     }
     const totalChars = text.replace(/\s/g, "").length
@@ -168,7 +178,7 @@ function profilePage(doc: MupdfDocument, index: number): { profile: BookPageProf
         ink,
         text: text.replace(/[ \t]+/g, " ").trim(),
       },
-      edges: { pageNumber: index + 1, leftEdge, rightEdge, textLength: totalChars },
+      edges: { pageNumber: index + 1, leftEdge, rightEdge, textLength: totalChars, textNearLeftEdge, textNearRightEdge },
     }
   } finally {
     page.destroy()

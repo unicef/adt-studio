@@ -1,4 +1,4 @@
-import type { SetupDecided, SetupPageRange } from "@adt/types"
+import type { SetupDecided } from "@adt/types"
 import type { useWizardForm } from "../wizardForm"
 import { applyPreset } from "../step0preset"
 import type { PresetId, RenderStrategyId } from "../constants"
@@ -17,7 +17,6 @@ export function isAutoModeEnabled(): boolean {
 export function applyRecommendation(
   form: ReturnType<typeof useWizardForm>,
   settings: SetupDecided,
-  range: SetupPageRange | null,
 ) {
   const preset = settings.preset!.value as PresetId
   form.setFieldValue("selectedPreset", preset)
@@ -27,13 +26,5 @@ export function applyRecommendation(
   form.setFieldValue("sectioningMode", settings.sectioningMode!.value as "page" | "dynamic")
   form.setFieldValue("activitiesGenerator", settings.activitiesGenerator!.value === true)
   form.setFieldValue("figureExtraction", settings.figureExtraction!.value as "off" | "auto")
-  if (range) {
-    form.setFieldValue("scope", "range")
-    form.setFieldValue("startPage", String(range.start))
-    form.setFieldValue("endPage", String(range.end))
-  } else {
-    form.setFieldValue("scope", "whole")
-    form.setFieldValue("startPage", "")
-    form.setFieldValue("endPage", "")
-  }
+  // The page range is the user's choice (how much of the PDF to convert): auto mode leaves it alone.
 }

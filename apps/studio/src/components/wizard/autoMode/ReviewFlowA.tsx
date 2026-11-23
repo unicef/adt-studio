@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { useBooks } from "@/hooks/use-books"
 import { useWizardForm } from "../wizardForm"
 import { ProjectNameField } from "../step1BasicInfo/ProjectNameField"
+import { Scope } from "../step1BasicInfo/Scope"
 import { createProjectLabelSchema, isStep1BasicInfoValid } from "../step1BasicInfo/projectLabelSchema"
 import { AskCard } from "./AskCard"
 import { PickRow } from "./PickRow"
@@ -44,8 +45,8 @@ export function ReviewFlowA({
   isCreating: boolean
   error: string | null
   onBack: () => void
-  onCustomize: (settings: SetupRecommendation["settings"], range: SetupRecommendation["pageRange"]) => void
-  onCreate: (settings: SetupRecommendation["settings"], range: SetupRecommendation["pageRange"]) => void
+  onCustomize: (settings: SetupRecommendation["settings"]) => void
+  onCreate: (settings: SetupRecommendation["settings"]) => void
 }) {
   const { t, i18n } = useLingui()
   const form = useWizardForm()
@@ -56,8 +57,6 @@ export function ReviewFlowA({
 
   const asked = rec.facts.filter((f) => f.ask)
   const [answers, setAnswers] = useState<Partial<Record<SetupBookFactId, string>>>({})
-  const range = rec.pageRange && rec.pageRange.skipped.length > 0 ? rec.pageRange : null
-  const [useRange, setUseRange] = useState(range !== null)
 
   const factValues = useMemo(() => {
     const out = {} as Record<SetupBookFactId, string>
@@ -84,7 +83,6 @@ export function ReviewFlowA({
       : settled("genre")
         ? i18n._(FACT_SHORT.genre[factValues.genre])
         : t`We need your help with this one`
-  const chosenRange = useRange ? range : null
 
   return (
     <div className="flex flex-1 min-h-0 flex-col overflow-y-auto bg-muted">
@@ -166,39 +164,6 @@ export function ReviewFlowA({
               />
             )
           })}
-          {range && (
-            <PickRow
-              name={i18n._(SETTING_NAME.pageRange)}
-              value={
-                useRange
-                  ? t`Pages ${range.start}–${range.end} of ${rec.pageCount}`
-                  : t`All ${rec.pageCount} pages`
-              }
-              means={t`Only these pages are turned into the digital book. The rest of the PDF is left out.`}
-              why={[
-                ...range.skipped.map((s) =>
-                  s.why === "opening"
-                    ? s.from === s.to
-                      ? t`Page ${s.from} comes before the book starts.`
-                      : t`Pages ${s.from}–${s.to} come before the book starts.`
-                    : s.from === s.to
-                      ? t`Page ${s.from} is an end page.`
-                      : t`Pages ${s.from}–${s.to} are end pages.`,
-                ),
-                // Only one block of pages can be imported, so a kept cover can't be joined to it.
-                ...(range.keepCover && range.start > 1 ? [t`The cover (page 1) is left out too.`] : []),
-              ].join(" ")}
-              pages={range.skipped.map((s) => s.from)}
-              images={images}
-              locked
-              extra={
-                <label className="flex items-center gap-2 text-sm text-foreground">
-                  <input id="auto-use-range" type="checkbox" checked={useRange} onChange={(e) => setUseRange(e.target.checked)} />
-                  <Trans>Leave out these pages</Trans>
-                </label>
-              }
-            />
-          )}
         </section>
 
         <section className="flex flex-col gap-3 rounded-xl border border-border bg-background p-4">
@@ -212,6 +177,7 @@ export function ReviewFlowA({
               />
             )}
           </form.Field>
+          <Scope />
         </section>
 
         {error && <p className="text-center text-sm text-destructive">{error}</p>}
@@ -222,11 +188,11 @@ export function ReviewFlowA({
             <Trans>Back</Trans>
           </Button>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Button type="button" variant="outline" onClick={() => onCustomize(settings, chosenRange)}>
+            <Button type="button" variant="outline" onClick={() => onCustomize(settings)}>
               <SlidersHorizontal className="mr-1.5 h-4 w-4" />
               <Trans>Change settings myself</Trans>
             </Button>
-            <Button type="button" disabled={!canCreate} onClick={() => onCreate(settings, chosenRange)}>
+            <Button type="button" disabled={!canCreate} onClick={() => onCreate(settings)}>
               {isCreating ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Zap className="mr-1.5 h-4 w-4" />}
               {isCreating ? <Trans>Creating...</Trans> : <Trans>Create book</Trans>}
             </Button>

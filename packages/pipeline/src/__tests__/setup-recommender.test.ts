@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest"
-import type { MeasuredFacts } from "../setup-recommender/facts.js"
+import type { BookProfile } from "@adt/pdf"
+import { measureFacts, type MeasuredFacts } from "../setup-recommender/facts.js"
 import { decide, factMatters } from "../setup-recommender/rules.js"
 import { countLabels, samplePlan, suggestRange, type PageLabel } from "../setup-recommender/readings.js"
 
 const measured = (over: Partial<MeasuredFacts> = {}): MeasuredFacts => ({
-  pageStorage: { value: "single-pages", evidence: [], seams: 0, pairs: 5, wideShare: 0 },
+  pageStorage: { value: "single-pages", via: null, evidence: [], seams: 0, pairs: 5, wideShare: 0 },
   textLayer: { value: "digital", evidence: [], scannedPages: 0, ocrPages: 0, pages: 10 },
   textOverPictures: { value: false, share: 0, evidence: [] },
   pictureHeavy: { value: false, medianCoverage: 0 },
@@ -48,7 +49,7 @@ describe("setup recommender rules", () => {
   })
 
   it("joins facing pages only when pictures run across the gutter", () => {
-    const m = measured({ pageStorage: { value: "spreads-as-separate-pages", evidence: [2, 3], seams: 4, pairs: 5, wideShare: 0 } })
+    const m = measured({ pageStorage: { value: "spreads-as-separate-pages", via: "joined-pictures", evidence: [2, 3], seams: 4, pairs: 5, wideShare: 0 } })
     expect(decide(m, { genre: "story", exercises: "none", composition: "text-in-art", diagrams: "none" }).pageGrouping.value).toBe("spread")
   })
 
@@ -87,5 +88,47 @@ describe("page labels", () => {
     expect(plan.full).toBe(false)
     expect(plan.all.length).toBeLessThanOrEqual(40)
     expect(plan.all.at(-1)).toBe(400)
+  })
+})
+
+// T = a page of text, P = a full picture with no text, - = neither (title, mixed page).
+function bookOf(kinds: string): BookProfile {
+  const flat = Array.from({ length: 48 }, () => 250)
+  const pages = [...kinds].map((k, i) => ({
+    page: i + 1,
+    width: 500,
+    height: 700,
+    visibleChars: k === "T" ? 600 : k === "P" ? 0 : 60,
+    invisibleChars: 0,
+    images: [],
+    imageCoverage: k === "P" ? 1 : k === "-" ? 0.4 : 0,
+    maxImageCoverage: k === "P" ? 1 : k === "-" ? 0.4 : 0,
+    pathCount: 0,
+    textOverImageChars: 0,
+    ink: k === "P" ? 0.8 : 0.1,
+    text: "",
+  }))
+  const edges = pages.map((p) => ({ pageNumber: p.page, leftEdge: flat, rightEdge: flat, textLength: p.visibleChars, textNearLeftEdge: 0, textNearRightEdge: 0 }))
+  return { pageCount: pages.length, language: "en", producer: "", pages, edges, ms: 0 }
+}
+
+describe("split spreads", () => {
+  it("finds two-page openings where a text page faces a picture page", () => {
+    // Openings start on even pages and the text side switches: 2-3, 4-5, ...
+    const m = measureFacts(bookOf("P" + "TPPTTPPTTPPTTPPTTPPT" + "-"))
+    expect(m.pageStorage).toMatchObject({ value: "spreads-as-separate-pages", via: "text-facing-picture" })
+    expect(decide(m, { genre: "story", exercises: "none", composition: "text-beside-art", diagrams: "none" }).pageGrouping).toEqual({
+      value: "spread",
+      rule: "group-facing-pages",
+    })
+  })
+
+  it("can't tell openings apart when text and pictures simply alternate", () => {
+    // T P T P ...: every pair on both sides of the fold is text + picture, so nothing marks the openings.
+    expect(measureFacts(bookOf("P" + "TP".repeat(10) + "-")).pageStorage.value).toBe("single-pages")
+  })
+
+  it("keeps single pages for a text book with an occasional full-page picture", () => {
+    expect(measureFacts(bookOf("P" + "TTTPTTTTTTPTTTTTTTPTTTTT" + "-")).pageStorage.value).toBe("single-pages")
   })
 })
