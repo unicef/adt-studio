@@ -3,12 +3,18 @@ Builds the "Your books" section of reports/e3-costs.html from results/app-e3-boo
 one card per book with its cover, name, size, and the picks of every run, cells that differ from the
 book's most common pick highlighted. Covers are embedded as data URIs (the report is private; covers stay
 out of git).
-    python3 report-books.py            -> writes reports/e3-books-section.html
+    python3 report-books.py [round]   -> writes reports/e3-books-section.html
+Round N reads results/app-e3-books-rN (round 1: results/app-e3-books), scores every run against the
+user's answers in results/feedback/round1.json, and compares with the round before. The findings text
+for the round is in reports/findings-roundN.html.
 """
-import base64, collections, html, json, os
+import base64, collections, html, json, os, sys
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-RES = os.path.join(ROOT, "results", "app-e3-books")
+ROUND = int(sys.argv[1]) if len(sys.argv) > 1 else 2
+res_dir = lambda n: os.path.join(ROOT, "results", "app-e3-books" if n == 1 else f"app-e3-books-r{n}")
+RES = res_dir(ROUND)
+KEY = json.load(open(os.path.join(ROOT, "results", "feedback", "round1.json")))
 PRICES = {"gpt-5.4": (2.5, 15), "gpt-5.4-mini": (0.75, 4.5)}
 MODELS = ["gpt-5.4-mini", "gpt-5.4"]
 
@@ -21,7 +27,7 @@ SETTING = [
     ("sectioningMode", "Sectioning", {"page": "Per Page", "dynamic": "Dynamic"}),
 ]
 DEPENDS = {"preset": ["genre"], "renderStrategy": ["genre", "composition"], "pageGrouping": [], "figureExtraction": ["diagrams"],
-           "activitiesGenerator": ["genre", "exercises"], "sectioningMode": ["genre", "exercises", "composition"], "range": []}
+           "activitiesGenerator": ["genre", "exercises"], "sectioningMode": ["genre", "exercises", "composition"]}
 FACT = {"genre": "kind of book", "exercises": "exercises", "composition": "where words sit", "diagrams": "labelled pictures"}
 TEXT_LAYER = {"digital": "real text", "scanned": "scan, no text", "scanned-with-ocr": "scan with hidden text", "mixed": "some pages scanned"}
 
@@ -30,18 +36,39 @@ def esc(s):
     return html.escape(str(s))
 
 
-def rngv(r):
-    p = r.get("pageRange")
-    if not p or not p["skipped"]:
-        return "all"
-    return f"{p['start']}-{p['end']}"
+def wanted(book, key):
+    """The user's answers for a setting: a list of accepted values, or None when not given."""
+    a = KEY.get(book, {})
+    if key in a:
+        return [a[key]]
+    return a.get("_accept", {}).get(key)
 
 
-def rng(r):
-    p = r.get("pageRange")
-    if not p or not p["skipped"]:
-        return "All pages"
-    return f"Pages {p['start']}–{p['end']}"
+def score(n):
+    """Every run of round n against the user's answers, per model."""
+    out = {m: collections.Counter() for m in MODELS}
+    for book in KEY:
+        for m in MODELS:
+            for run in (1, 2, 3):
+                f = os.path.join(res_dir(n), f"{book}.{m}.run{run}.json")
+                if not os.path.exists(f):
+                    continue
+                r = json.load(open(f))
+                asked = {x["id"] for x in r["facts"] if x["ask"]}
+                for key, *_ in SETTING:
+                    w = wanted(book, key)
+                    if w is None:
+                        continue
+                    c = out[m]
+                    c["n"] += 1
+                    if r["settings"][key]["value"] in w:
+                        c["ok"] += 1
+                    elif set(DEPENDS[key]) & asked:
+                        c["asked"] += 1
+                    else:
+                        c["silent"] += 1
+                        c["silent:" + key] += 1
+    return out
 
 
 def cost(model, u):
@@ -52,6 +79,7 @@ def cost(model, u):
 def main():
     index = json.load(open(os.path.join(RES, "index.json")))
     cards, summary, books_meta = [], [], []
+    changed = collections.Counter()
     for b in index:
         if b.get("error"):
             summary.append(f"<tr><td>{esc(b['file'])}</td><td colspan='5'>Could not be read: {esc(b['error'][:120])}</td></tr>")
@@ -64,10 +92,10 @@ def main():
         ok = [r for r in runs if r[2]]
         if not ok:
             continue
-        rows = [(key, label, words) for key, label, words in SETTING] + [("range", "Page Range", None)]
+        rows = list(SETTING)
 
         def val(rec, key):
-            return rngv(rec) if key == "range" else rec["settings"][key]["value"]
+            return rec["settings"][key]["value"]
 
         # Consistency: per model, settings identical in all its runs; across models, same majority pick.
         stable = {}
@@ -91,16 +119,19 @@ def main():
                     cells.append("<td class='c miss'>–</td>")
                     continue
                 v = val(r, key)
-                shown = rng(r) if key == "range" else words.get(v, str(v))
+                shown = words.get(v, str(v))
                 odd = json.dumps(v) != majority[(m, key)]
                 asked = {f["id"] for f in r["facts"] if f["ask"]}
                 silent_cell = odd and not (set(DEPENDS[key]) & asked)
                 if silent_cell:
                     silent[0] += 1
+                changed["cells"] += 1
+                changed["odd"] += odd
+                changed["odd_silent"] += silent_cell
                 cls = " odd silent" if silent_cell else " odd" if odd else ""
                 was_asked = 1 if set(DEPENDS[key]) & asked else 0
                 cells.append(f"<td class='c{cls}' data-k='{key}' data-m='{m}' data-v='{esc(json.dumps(v))}' data-asked='{was_asked}'>{esc(shown)}{' *' if silent_cell else ''}</td>")
-            lock = " (fixed)" if key in ("pageGrouping", "figureExtraction", "range") else ""
+            lock = " (fixed)" if key in ("pageGrouping", "figureExtraction") else ""
             body.append(f"<tr><th>{esc(label)}{lock}</th>{''.join(cells)}</tr>")
         asked_cells = []
         for m, n, r in runs:
@@ -136,11 +167,8 @@ def main():
         check = f"""
           <div class="check" data-book="{b['id']}" data-pages="{b['pages']}">
             <div class="checkhead"><h4>Your check</h4><button type="button" class="ghost" data-fill="gpt-5.4">Start from gpt-5.4's picks</button><span class="status" aria-live="polite"></span></div>
-            <p class="note">Pick the right answer for each setting. Run cells turn green when they match it and red when they don't.</p>
-            <div class="checkgrid">{selects}
-              <label><span>Page Range: Initial Page</span><input type="number" min="1" max="{b['pages']}" data-field="rangeStart" inputmode="numeric"></label>
-              <label><span>Page Range: Final Page</span><input type="number" min="1" max="{b['pages']}" data-field="rangeEnd" inputmode="numeric"></label>
-            </div>
+            <p class="note">Your answers from round 1 are kept. Run cells turn green when they match your answer and red when they don't.</p>
+            <div class="checkgrid">{selects}</div>
             <label class="full"><span>What was right or wrong, and why</span><textarea rows="3" data-field="note" placeholder="e.g. It is a school book: the exercises start on page 5. Page 1 to 3 are the cover and credits."></textarea></label>
             <div class="reply" hidden></div>
           </div>"""
@@ -162,43 +190,53 @@ def main():
             f"<td class='r'>{sum(1 for _, _, r in ok if any(f['ask'] for f in r['facts']))}/{len(ok)}</td><td class='r'>{models_agree}/{n_settings}</td><td class='r'>{'<span class="pill w">' + str(silent[0]) + '</span>' if silent[0] else '<span class="pill">0</span>'}</td>"
             f"<td class='r'>{sum(r['timings']['totalMs'] for _, _, r in ok) / len(ok) / 1000:.1f} s</td></tr>")
 
+    now, before = score(ROUND), score(ROUND - 1) if ROUND > 1 else None
+    pct = lambda c: f"{100 * c['ok'] / max(1, c['n']):.0f}%"
+    cmp_rows = "".join(
+        f"<tr><td>{m}</td>"
+        + (f"<td class='r'>{before[m]['ok']}/{before[m]['n']} · {pct(before[m])}</td><td class='r'>{before[m]['silent']}</td>" if before else "")
+        + f"<td class='r'><b>{now[m]['ok']}/{now[m]['n']} · {pct(now[m])}</b></td><td class='r'>{now[m]['asked']}</td>"
+        + f"<td class='r'>{'<span class=\"pill w\">' + str(now[m]['silent']) + '</span>' if now[m]['silent'] else '<span class=\"pill\">0</span>'}</td></tr>"
+        for m in MODELS)
+    cmp_head = ("<th class='r'>Right, round " + str(ROUND - 1) + "</th><th class='r'>Wrong and not asked, round " + str(ROUND - 1) + "</th>" if before else "")
+    findings_file = os.path.join(ROOT, "reports", f"findings-round{ROUND}.html")
+    findings = open(findings_file).read() if os.path.exists(findings_file) else ""
+    all_now = sum(now[m]["n"] for m in MODELS)
+    ok_now = sum(now[m]["ok"] for m in MODELS)
+    silent_now = sum(now[m]["silent"] for m in MODELS)
     section = f"""
   <section id="your-books">
-    <span class="eyebrow">Your books</span>
-    <h2>Auto mode on your 14 books, 3 runs per model</h2>
-    <p class="find">Each book from your PDF folder ran 3 times with gpt-5.4-mini and 3 times with gpt-5.4, every run a fresh AI call with no cache. A highlighted cell is a pick that differs from what that model picked in its other runs on the book, so a book with no highlights got the same settings every time. A star (*) marks a highlighted pick in a run that did not ask the user about it: the change would have gone through unnoticed. These books have no answer key: check the picks against the covers.</p>
+    <span class="eyebrow">Your books · round {ROUND}</span>
+    <h2>Auto mode on your 14 books, scored against your answers</h2>
+    <p class="find">Each book ran 3 times with gpt-5.4-mini and 3 times with gpt-5.4, every run a fresh AI call with no cache. Every run is scored against the answers you gave in round 1: green cells match your answer, red ones don't. An orange cell differs from that model's other runs on the book, and a star (*) marks one that came without a question to the user.</p>
     <div class="tiles">
-      <div class="tile"><span class="k">Settings that changed between runs</span><span class="v">9 <small>of 504</small></span><span class="n">7 of the 9 came with a question to the user</span></div>
-      <div class="tile"><span class="k">Page Range changes</span><span class="v">10 <small>of 84</small></span><span class="n">never asked: the weak spot</span></div>
-      <div class="tile"><span class="k">Picks identical in all 3 runs</span><span class="v">94% <small>gpt-5.4</small></span><span class="n">89% with gpt-5.4-mini (98 picks each)</span></div>
-      <div class="tile"><span class="k">Time on these books, median</span><span class="v">6.2 s <small>mini</small></span><span class="n">10.4 s gpt-5.4; up to 26 to 31 s on a 129 MB book</span></div>
+      <div class="tile"><span class="k">Settings right, both models</span><span class="v">{100 * ok_now / max(1, all_now):.0f}% <small>{ok_now} of {all_now}</small></span><span class="n">checked against your answers</span></div>
+      <div class="tile"><span class="k">Wrong and not asked</span><span class="v">{silent_now} <small>of {all_now}</small></span><span class="n">a wrong setting nobody would have been asked about</span></div>
+      <div class="tile"><span class="k">Settings that changed between runs</span><span class="v">{changed['odd']} <small>of {changed['cells']}</small></span><span class="n">{changed['odd'] - changed['odd_silent']} of them came with a question to the user</span></div>
     </div>
+    <div class="panel">
+      <h3>Round {ROUND - 1} → round {ROUND}</h3>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Model</th>{cmp_head}<th class="r">Right, round {ROUND}</th><th class="r">Wrong, but asked</th><th class="r">Wrong and not asked</th></tr></thead>
+        <tbody>{cmp_rows}</tbody></table></div>
+      <p class="note">Counts every run (3 per model per book) and every setting you gave an answer for. On triste either Dynamic or Two Columns Story counts as right, as your note says.</p>
+    </div>
+    {findings}
     <div class="panel" id="review">
-      <div class="checkhead"><h3>Your review, round 1</h3><span class="status" id="reviewStatus" aria-live="polite">Connecting…</span></div>
-      <p class="note">Check the books below and say what was right or wrong. Everything saves as you type, and I read it back, so tell me "read my feedback" to start the next round of fixes.</p>
+      <div class="checkhead"><h3>Your review, round {ROUND}</h3><span class="status" id="reviewStatus" aria-live="polite">Connecting…</span></div>
+      <p class="note">Your round 1 answers are filled in below; change any that were wrong. Everything saves as you type, and I read it back, so tell me "read my feedback" to start the next round.</p>
       <div class="tablewrap"><table id="score"></table></div>
       <label class="full"><span>Anything else about auto mode</span><textarea rows="3" data-general placeholder="What should auto mode do differently? What would you check first as a user?"></textarea></label>
       <div class="reply" id="generalReply" hidden></div>
     </div>
-    <div class="panel">
-      <h3>What the runs show</h3>
-      <p class="note">Do you agree with each finding? Add a note if not.</p>
-      <ul class="plain">
-        <li data-finding='settings-predictable'><b>The six settings are predictable.</b> Across 84 runs, a setting changed 9 times out of 504. In 7 of those the user was asked about the fact behind it, so a person would have decided. Two changes would have gone through unnoticed: Render Strategy of Capítulo 01 in one gpt-5.4 run, and Figure Extraction of El Viaje in one mini run.</li>
-        <li data-finding='spreads-measured'><b>Page Grouping never changed</b>: it is measured, not guessed. Only colouring-my-school gets Spread.</li>
-        <li data-finding='range-unstable'><b>The Page Range is not predictable yet.</b> The first page moved by 1 to 7 pages between runs on 5 books (colouring-my-school 2 or 9, triste 9, 10 or 14), and the user is never asked. On long books the end always stops 4 pages early, because the last 4 pages are the only ones read there. Fix before testing with people: show the range as a question when it moves, or read the pages around each boundary a second time.</li>
-        <li data-finding='gpt54-steadier'><b>gpt-5.4 is steadier than mini on hard books.</b> On The Elements of Computing Systems, mini picked the Reference preset once and Textbooks &amp; Activities twice (and asked each time); gpt-5.4 picked Textbooks &amp; Activities in all 3 runs. On these 14 books gpt-5.4 kept 94% of picks identical, mini 89%.</li>
-        <li data-finding='real-books-cost'><b>Real books are slower and dearer than the 7 to 12 page excerpts.</b> Average cost per book 1.42¢ with mini (max 1.98¢) and 4.75¢ with gpt-5.4 (max 6.59¢). The scan of the 212-page, 129 MB Práticas Vol. II took 19 s, most of its 26 s: big scanned-picture PDFs make the scan, not the AI, the slow part.</li>
-      </ul>
-    </div>
     <div class="panel"><div class="tablewrap"><table>
       <thead><tr><th>Book</th><th class="r">Pages</th><th class="r">Same picks, mini</th><th class="r">Same picks, gpt-5.4</th><th class="r">Runs that ask</th><th class="r">Models agree</th><th class="r">Changed without asking</th><th class="r">Avg time</th></tr></thead>
       <tbody>{''.join(summary)}</tbody></table></div>
-      <p class="note">"Same picks" counts the 7 picks (6 settings and the Page Range) that came out identical in all 3 runs of that model. Time includes the scan, which reads every page.</p>
+      <p class="note">"Same picks" counts the 6 settings that came out identical in all 3 runs of that model. Time includes the scan, which reads every page.</p>
     </div>
     <div class="books">{''.join(cards)}
     </div>
-    <script type="application/json" id="reviewMeta">{json.dumps({"books": books_meta, "settings": [k for k, *_ in SETTING] + ["range"]}).replace("<", "\\u003c")}</script>
+    <script type="application/json" id="reviewMeta">{json.dumps({"books": books_meta, "settings": [k for k, *_ in SETTING], "round": ROUND}).replace("<", "\\u003c")}</script>
     <style>{open(os.path.join(ROOT, "reports", "review.css")).read()}</style>
     <script>{open(os.path.join(ROOT, "reports", "review.js")).read()}</script>
   </section>

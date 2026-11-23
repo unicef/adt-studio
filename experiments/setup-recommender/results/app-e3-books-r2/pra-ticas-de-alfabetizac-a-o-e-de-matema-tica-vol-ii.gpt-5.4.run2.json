@@ -1,0 +1,2405 @@
+{
+  "id": "pra-ticas-de-alfabetizac-a-o-e-de-matema-tica-vol-ii-2",
+  "engine": "e3",
+  "model": "openai:gpt-5.4",
+  "pageCount": 212,
+  "previewPage": 11,
+  "measured": {
+    "pageStorage": "single-pages",
+    "pageStorageEvidence": [],
+    "joinedPairs": 0,
+    "facingPairs": 105,
+    "textLayer": "digital",
+    "textLayerEvidence": [],
+    "medianChars": 700,
+    "language": "pt"
+  },
+  "facts": [
+    {
+      "id": "genre",
+      "value": "textbook",
+      "secondOpinion": "textbook",
+      "reason": "The pages teach topics like biografia, números, saúde and tirinha and repeatedly give classroom tasks such as 'resolva', 'anote' and 'ligue'.",
+      "evidencePages": [
+        11,
+        12,
+        13,
+        24
+      ],
+      "matters": true,
+      "affectsLocked": false,
+      "ask": false,
+      "askReason": null
+    },
+    {
+      "id": "exercises",
+      "value": "many",
+      "secondOpinion": "many",
+      "reason": "All shown pages include prompts to answer, fill blanks, circle numbers, or discuss tasks, and 118 of 212 pages are said to show exercise cues.",
+      "evidencePages": [
+        8,
+        9,
+        12,
+        13
+      ],
+      "matters": true,
+      "affectsLocked": false,
+      "ask": false,
+      "askReason": null
+    },
+    {
+      "id": "composition",
+      "value": "text-beside-art",
+      "secondOpinion": "text-mostly",
+      "reason": "The sampled pages are dominated by blocks of text and questions, and the PDF summary says pictures cover a median 0% of a page.",
+      "evidencePages": [
+        6,
+        11,
+        13,
+        24
+      ],
+      "matters": false,
+      "affectsLocked": false,
+      "ask": false,
+      "askReason": null
+    },
+    {
+      "id": "diagrams",
+      "value": "some",
+      "secondOpinion": "some",
+      "reason": "Page 121 has a number grid and page 101 has a structured information table, while the other shown pages mostly have plain text or simple illustrations.",
+      "evidencePages": [
+        13,
+        24,
+        47,
+        101
+      ],
+      "matters": false,
+      "affectsLocked": false,
+      "ask": false,
+      "askReason": null
+    }
+  ],
+  "settings": {
+    "preset": {
+      "value": "textbook",
+      "rule": "genre-textbook"
+    },
+    "renderStrategy": {
+      "value": "llm",
+      "rule": "render-textbook-ai"
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "group-single"
+    },
+    "sectioningMode": {
+      "value": "dynamic",
+      "rule": "sections-split"
+    },
+    "activitiesGenerator": {
+      "value": true,
+      "rule": "activities-on"
+    },
+    "figureExtraction": {
+      "value": "auto",
+      "rule": "figures-keep-together"
+    }
+  },
+  "settingsByFacts": {
+    "story|none|text-in-art|none": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "fixed_layout",
+        "rule": "render-keep-page"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|none|text-in-art|some": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "fixed_layout",
+        "rule": "render-keep-page"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|none|text-in-art|many": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "fixed_layout",
+        "rule": "render-keep-page"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|none|text-beside-art|none": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "two_column_story",
+        "rule": "render-side-by-side"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|none|text-beside-art|some": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "two_column_story",
+        "rule": "render-side-by-side"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|none|text-beside-art|many": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "two_column_story",
+        "rule": "render-side-by-side"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|none|text-mostly|none": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-reflow"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|none|text-mostly|some": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-reflow"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|none|text-mostly|many": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-reflow"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|some|text-in-art|none": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "fixed_layout",
+        "rule": "render-keep-page"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|some|text-in-art|some": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "fixed_layout",
+        "rule": "render-keep-page"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|some|text-in-art|many": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "fixed_layout",
+        "rule": "render-keep-page"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|some|text-beside-art|none": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "two_column_story",
+        "rule": "render-side-by-side"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|some|text-beside-art|some": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "two_column_story",
+        "rule": "render-side-by-side"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|some|text-beside-art|many": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "two_column_story",
+        "rule": "render-side-by-side"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|some|text-mostly|none": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-reflow"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|some|text-mostly|some": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-reflow"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|some|text-mostly|many": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-reflow"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|many|text-in-art|none": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "fixed_layout",
+        "rule": "render-keep-page"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|many|text-in-art|some": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "fixed_layout",
+        "rule": "render-keep-page"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|many|text-in-art|many": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "fixed_layout",
+        "rule": "render-keep-page"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|many|text-beside-art|none": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "two_column_story",
+        "rule": "render-side-by-side"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|many|text-beside-art|some": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "two_column_story",
+        "rule": "render-side-by-side"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|many|text-beside-art|many": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "two_column_story",
+        "rule": "render-side-by-side"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|many|text-mostly|none": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-reflow"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|many|text-mostly|some": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-reflow"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "story|many|text-mostly|many": {
+      "preset": {
+        "value": "storybook",
+        "rule": "genre-story"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-reflow"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|none|text-in-art|none": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|none|text-in-art|some": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|none|text-in-art|many": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|none|text-beside-art|none": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|none|text-beside-art|some": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|none|text-beside-art|many": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|none|text-mostly|none": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|none|text-mostly|some": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|none|text-mostly|many": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|some|text-in-art|none": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "dynamic",
+        "rule": "sections-split"
+      },
+      "activitiesGenerator": {
+        "value": true,
+        "rule": "activities-on"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|some|text-in-art|some": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "dynamic",
+        "rule": "sections-split"
+      },
+      "activitiesGenerator": {
+        "value": true,
+        "rule": "activities-on"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|some|text-in-art|many": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "dynamic",
+        "rule": "sections-split"
+      },
+      "activitiesGenerator": {
+        "value": true,
+        "rule": "activities-on"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|some|text-beside-art|none": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "dynamic",
+        "rule": "sections-split"
+      },
+      "activitiesGenerator": {
+        "value": true,
+        "rule": "activities-on"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|some|text-beside-art|some": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "dynamic",
+        "rule": "sections-split"
+      },
+      "activitiesGenerator": {
+        "value": true,
+        "rule": "activities-on"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|some|text-beside-art|many": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "dynamic",
+        "rule": "sections-split"
+      },
+      "activitiesGenerator": {
+        "value": true,
+        "rule": "activities-on"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|some|text-mostly|none": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "dynamic",
+        "rule": "sections-split"
+      },
+      "activitiesGenerator": {
+        "value": true,
+        "rule": "activities-on"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|some|text-mostly|some": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "dynamic",
+        "rule": "sections-split"
+      },
+      "activitiesGenerator": {
+        "value": true,
+        "rule": "activities-on"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|some|text-mostly|many": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "dynamic",
+        "rule": "sections-split"
+      },
+      "activitiesGenerator": {
+        "value": true,
+        "rule": "activities-on"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|many|text-in-art|none": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "dynamic",
+        "rule": "sections-split"
+      },
+      "activitiesGenerator": {
+        "value": true,
+        "rule": "activities-on"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|many|text-in-art|some": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "dynamic",
+        "rule": "sections-split"
+      },
+      "activitiesGenerator": {
+        "value": true,
+        "rule": "activities-on"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|many|text-in-art|many": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "dynamic",
+        "rule": "sections-split"
+      },
+      "activitiesGenerator": {
+        "value": true,
+        "rule": "activities-on"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|many|text-beside-art|none": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "dynamic",
+        "rule": "sections-split"
+      },
+      "activitiesGenerator": {
+        "value": true,
+        "rule": "activities-on"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|many|text-beside-art|some": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "dynamic",
+        "rule": "sections-split"
+      },
+      "activitiesGenerator": {
+        "value": true,
+        "rule": "activities-on"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|many|text-beside-art|many": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "dynamic",
+        "rule": "sections-split"
+      },
+      "activitiesGenerator": {
+        "value": true,
+        "rule": "activities-on"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|many|text-mostly|none": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "dynamic",
+        "rule": "sections-split"
+      },
+      "activitiesGenerator": {
+        "value": true,
+        "rule": "activities-on"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|many|text-mostly|some": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "dynamic",
+        "rule": "sections-split"
+      },
+      "activitiesGenerator": {
+        "value": true,
+        "rule": "activities-on"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "textbook|many|text-mostly|many": {
+      "preset": {
+        "value": "textbook",
+        "rule": "genre-textbook"
+      },
+      "renderStrategy": {
+        "value": "llm",
+        "rule": "render-textbook-ai"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "dynamic",
+        "rule": "sections-split"
+      },
+      "activitiesGenerator": {
+        "value": true,
+        "rule": "activities-on"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|none|text-in-art|none": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|none|text-in-art|some": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|none|text-in-art|many": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|none|text-beside-art|none": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|none|text-beside-art|some": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|none|text-beside-art|many": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|none|text-mostly|none": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|none|text-mostly|some": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|none|text-mostly|many": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-none"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|some|text-in-art|none": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|some|text-in-art|some": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|some|text-in-art|many": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|some|text-beside-art|none": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|some|text-beside-art|some": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|some|text-beside-art|many": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|some|text-mostly|none": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|some|text-mostly|some": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|some|text-mostly|many": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|many|text-in-art|none": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|many|text-in-art|some": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|many|text-in-art|many": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|many|text-beside-art|none": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|many|text-beside-art|some": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|many|text-beside-art|many": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|many|text-mostly|none": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|many|text-mostly|some": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    },
+    "reference|many|text-mostly|many": {
+      "preset": {
+        "value": "reference",
+        "rule": "genre-reference"
+      },
+      "renderStrategy": {
+        "value": "single_column",
+        "rule": "render-reference-column"
+      },
+      "pageGrouping": {
+        "value": "single",
+        "rule": "group-single"
+      },
+      "sectioningMode": {
+        "value": "page",
+        "rule": "sections-page"
+      },
+      "activitiesGenerator": {
+        "value": false,
+        "rule": "activities-not-in-preset"
+      },
+      "figureExtraction": {
+        "value": "auto",
+        "rule": "figures-keep-together"
+      }
+    }
+  },
+  "settingEvidence": {
+    "preset": [
+      11,
+      12,
+      13,
+      24
+    ],
+    "renderStrategy": [
+      6,
+      11,
+      12,
+      13
+    ],
+    "pageGrouping": [],
+    "sectioningMode": [
+      8,
+      9,
+      12,
+      13
+    ],
+    "activitiesGenerator": [
+      8,
+      9,
+      12,
+      13
+    ],
+    "figureExtraction": [
+      13,
+      24,
+      47,
+      101
+    ]
+  },
+  "lockedSettings": [
+    "pageGrouping",
+    "figureExtraction"
+  ],
+  "pageRange": {
+    "keepCover": true,
+    "start": 11,
+    "end": 208,
+    "skipped": [
+      {
+        "from": 2,
+        "to": 10,
+        "why": "opening"
+      },
+      {
+        "from": 209,
+        "to": 212,
+        "why": "end"
+      }
+    ],
+    "startExact": true,
+    "endExact": false
+  },
+  "pageLabels": [
+    {
+      "page": 1,
+      "type": "cover"
+    },
+    {
+      "page": 2,
+      "type": "front-matter"
+    },
+    {
+      "page": 3,
+      "type": "front-matter"
+    },
+    {
+      "page": 4,
+      "type": "front-matter"
+    },
+    {
+      "page": 5,
+      "type": "front-matter"
+    },
+    {
+      "page": 6,
+      "type": "front-matter"
+    },
+    {
+      "page": 7,
+      "type": "front-matter"
+    },
+    {
+      "page": 8,
+      "type": "front-matter"
+    },
+    {
+      "page": 9,
+      "type": "front-matter"
+    },
+    {
+      "page": 10,
+      "type": "front-matter"
+    },
+    {
+      "page": 11,
+      "type": "lesson"
+    },
+    {
+      "page": 12,
+      "type": "exercise"
+    },
+    {
+      "page": 13,
+      "type": "exercise"
+    },
+    {
+      "page": 24,
+      "type": "lesson"
+    },
+    {
+      "page": 43,
+      "type": "exercise"
+    },
+    {
+      "page": 63,
+      "type": "exercise"
+    },
+    {
+      "page": 82,
+      "type": "exercise"
+    },
+    {
+      "page": 101,
+      "type": "exercise"
+    },
+    {
+      "page": 121,
+      "type": "exercise"
+    },
+    {
+      "page": 140,
+      "type": "lesson"
+    },
+    {
+      "page": 160,
+      "type": "exercise"
+    },
+    {
+      "page": 179,
+      "type": "lesson"
+    },
+    {
+      "page": 198,
+      "type": "exercise"
+    },
+    {
+      "page": 209,
+      "type": "back-matter"
+    },
+    {
+      "page": 210,
+      "type": "back-matter"
+    },
+    {
+      "page": 211,
+      "type": "back-matter"
+    },
+    {
+      "page": 212,
+      "type": "cover"
+    }
+  ],
+  "secondOpinion": true,
+  "timings": {
+    "profileMs": 17714.303712,
+    "factsMs": 19.864561999995203,
+    "questionsMs": 6286.095912999997,
+    "labelsMs": 9239.435461000001,
+    "totalMs": 26973.811042,
+    "uploadBytes": 1734333
+  },
+  "usage": {
+    "inputTokens": 17667,
+    "outputTokens": 838,
+    "calls": 2,
+    "labels": {
+      "inputTokens": 9777,
+      "outputTokens": 592
+    },
+    "questions": {
+      "inputTokens": 7890,
+      "outputTokens": 246
+    }
+  }
+}

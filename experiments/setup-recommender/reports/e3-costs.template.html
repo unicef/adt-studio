@@ -114,7 +114,7 @@ details summary{cursor:pointer;font-size:13px;color:var(--accent)}
             <text x="359" y="158">all pages if ≤ 30</text><text x="359" y="172">else about 40</text>
             <text x="527" y="80">every chosen page, 512 px</text><text x="527" y="94">labels each page alone</text>
             <text x="527" y="230">6 pages, 1000 px</text><text x="527" y="244">4 questions, pages cited</text>
-            <text x="705" y="150">facts → 6 settings</text><text x="705" y="164">+ page range</text><text x="705" y="178">ask if unsure and it matters</text>
+            <text x="705" y="150">facts → 6 settings</text><text x="705" y="178">ask if unsure and it matters</text>
             <text x="880" y="150">what, meaning, why, pages</text><text x="880" y="164">answers update picks</text><text x="880" y="178">saved with the book</text>
             <text x="540" y="274">measured facts (spreads, text layer, diagrams, exercise cues) also feed the rules</text>
           </g>
@@ -127,7 +127,7 @@ details summary{cursor:pointer;font-size:13px;color:var(--accent)}
       <div class="panel">
         <h3>1 · Scan the PDF, no AI</h3>
         <p>Every page is opened once with the same PDF library ADT already uses. For each page we measure page size, visible text and hidden text (an OCR layer over a scan), where pictures sit and how much of the page they cover, how many drawn lines and shapes it has, and whether words sit on top of a large picture. The edges of facing pages are compared to see if one picture runs across the gutter.</p>
-        <p>From these numbers come the measured facts: how pages are stored (single pages, a two-page picture split in two, or already wide), whether the PDF has real text or is a scan, labelled diagrams (40+ drawn shapes with text on the page), exercise cues (blanks, boxes, numbered items, instruction verbs in English, Portuguese, Spanish and French) and the language.</p>
+        <p>From these numbers come the measured facts: how pages are stored (single pages, two-page openings split in two, or already wide), whether the PDF has real text or is a scan, labelled diagrams (40+ drawn shapes with text on the page), exercise cues (blanks, boxes, numbered items, instruction verbs in English, Portuguese, Spanish and French) and the language.</p>
       </div>
       <div class="panel">
         <h3>2 · Choose the pages the AI sees</h3>
@@ -137,7 +137,7 @@ details summary{cursor:pointer;font-size:13px;color:var(--accent)}
       <div class="panel">
         <h3>3a · Page-label reading</h3>
         <p>Each chosen page is sent as a small picture (512 px) with its first 300 characters. The AI labels every page on its own: cover, front matter, story, lesson, exercise, informational, back matter or blank; where the words sit (on the picture, beside it, mostly text, none); and whether it has a meaningful figure such as a map or a labelled diagram.</p>
-        <p>Book facts are then counted from the labels with fixed thresholds: only pages of the book itself vote, the most common type gives the kind of book, and a count under 60% is flagged. A few odd pages can't drag the whole book. The labels also give the pages to import: from the first two book pages in a row to the last one.</p>
+        <p>Book facts are then counted from the labels with fixed thresholds: only pages of the book itself vote, the most common type gives the kind of book, and a count under 60% is flagged. A few odd pages can't drag the whole book.</p>
       </div>
       <div class="panel">
         <h3>3b · Plain-question reading</h3>
@@ -153,11 +153,11 @@ details summary{cursor:pointer;font-size:13px;color:var(--accent)}
         <tbody>
           <tr><td>Preset</td><td>Kind of book</td><td>Story → Storybook, school book → Textbooks &amp; Activities, information → Reference.</td><td>Can change</td></tr>
           <tr><td>Render Strategy</td><td>Kind of book, where the words sit, text layer</td><td>Information → Single Column. School book → Dynamic. Story with words on the pictures → Fixed Layout (Dynamic Overlay if the PDF has no real text). Words beside the pictures → Two Columns Story. Mostly words → Dynamic.</td><td>Can change</td></tr>
-          <tr><td>Page Grouping</td><td>Measured only</td><td>Spread when pictures cross the gutter on at least a quarter of the pairs. Wide pages already hold both sides.</td><td><span class="pill w">Fixed</span></td></tr>
+          <tr><td>Page Grouping</td><td>Measured only</td><td>Spread when the book is built from two-page openings: one picture continuing across the fold, or a page of text facing a page of picture. Openings all start on the same side of the fold, so that side must show them in at least a quarter of its pairs and twice as often as the other side. Wide pages already hold both sides.</td><td><span class="pill w">Fixed</span></td></tr>
           <tr><td>Figure Extraction</td><td>Labelled pictures, measured diagrams, text layer</td><td>Auto (keep each figure together with its labels) when the PDF has real text and either reading or the scan found labelled pictures.</td><td><span class="pill w">Fixed</span></td></tr>
           <tr><td>Activities</td><td>Kind of book, exercises</td><td>On only for a school book with exercises. The Storybook and Reference presets remove exercise sections, so turning activities on there would delete them.</td><td>Can change</td></tr>
           <tr><td>Sectioning</td><td>Kind of book, exercises, layout</td><td>Dynamic (reading and tasks split apart) for a school book with exercises, unless Render Strategy is Fixed Layout. Otherwise Per Page.</td><td>Can change</td></tr>
-          <tr><td>Page Range</td><td>Page labels</td><td>Leave out opening and end pages that aren't the book itself, when the labels show where it starts and ends.</td><td><span class="pill w">Fixed</span></td></tr>
+          <tr><td>Page Range</td><td>The user</td><td>Not picked by auto mode: how much of the PDF to convert is the user's choice, set as in the wizard (whole book by default).</td><td>Can change</td></tr>
         </tbody>
       </table></div>
       <p class="note">The server sends the settings for all 81 combinations of the four facts, so when the user answers a question the screen updates the picks without running the rules in the browser.</p>

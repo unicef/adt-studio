@@ -1,0 +1,118 @@
+{
+ "1930-el-viaje-pdf": {
+  "activitiesGenerator": false,
+  "pageGrouping": "single",
+  "preset": "storybook",
+  "renderStrategy": "llm",
+  "sectioningMode": "page"
+ },
+ "alfabetizacao_e_matematica": {
+  "activitiesGenerator": true,
+  "pageGrouping": "single",
+  "preset": "textbook",
+  "renderStrategy": "llm",
+  "sectioningMode": "dynamic"
+ },
+ "biomolecules": {
+  "activitiesGenerator": false,
+  "figureExtraction": "auto",
+  "pageGrouping": "single",
+  "preset": "reference",
+  "renderStrategy": "single_column",
+  "sectioningMode": "page"
+ },
+ "capi-tulo-01": {
+  "activitiesGenerator": false,
+  "figureExtraction": "off",
+  "pageGrouping": "single",
+  "preset": "storybook",
+  "renderStrategy": "llm-overlay",
+  "sectioningMode": "page"
+ },
+ "colouring-my-school": {
+  "activitiesGenerator": false,
+  "figureExtraction": "off",
+  "pageGrouping": "spread",
+  "preset": "storybook",
+  "renderStrategy": "fixed_layout",
+  "sectioningMode": "page"
+ },
+ "cuaderno5": {
+  "activitiesGenerator": true,
+  "figureExtraction": "auto",
+  "pageGrouping": "single",
+  "preset": "textbook",
+  "renderStrategy": "llm",
+  "sectioningMode": "dynamic"
+ },
+ "leonardo-guimara-es-tangon-roge-rio-carlos-dos-santos-arquit": {
+  "activitiesGenerator": true,
+  "figureExtraction": "auto",
+  "pageGrouping": "single",
+  "preset": "textbook",
+  "renderStrategy": "llm",
+  "sectioningMode": "dynamic"
+ },
+ "lp-4-volcanoes": {
+  "activitiesGenerator": false,
+  "figureExtraction": "auto",
+  "pageGrouping": "spread",
+  "preset": "storybook",
+  "renderStrategy": "fixed_layout",
+  "sectioningMode": "page",
+  "_note": "this book is 100% spread, lets see why it was labaled as single page"
+ },
+ "matematica-volume-1": {
+  "activitiesGenerator": true,
+  "figureExtraction": "auto",
+  "pageGrouping": "single",
+  "preset": "textbook",
+  "renderStrategy": "llm",
+  "sectioningMode": "dynamic"
+ },
+ "noam-nisan-shimon-schocken-the-elements-of-computing-systems": {
+  "activitiesGenerator": false,
+  "figureExtraction": "auto",
+  "pageGrouping": "single",
+  "preset": "textbook",
+  "renderStrategy": "llm",
+  "sectioningMode": "dynamic"
+ },
+ "pra-ticas-de-alfabetizac-a-o-e-de-matema-tica-vol-ii": {
+  "activitiesGenerator": true,
+  "figureExtraction": "auto",
+  "pageGrouping": "single",
+  "preset": "textbook",
+  "renderStrategy": "llm",
+  "sectioningMode": "dynamic"
+ },
+ "raven": {
+  "activitiesGenerator": false,
+  "figureExtraction": "off",
+  "pageGrouping": "single",
+  "preset": "storybook",
+  "renderStrategy": "two_column_story",
+  "sectioningMode": "page"
+ },
+ "superacao-arte": {
+  "activitiesGenerator": true,
+  "pageGrouping": "single",
+  "preset": "textbook",
+  "renderStrategy": "llm",
+  "sectioningMode": "dynamic"
+ },
+ "triste": {
+  "activitiesGenerator": false,
+  "figureExtraction": "off",
+  "pageGrouping": "spread",
+  "preset": "storybook",
+  "sectioningMode": "page",
+  "_note": "This could be either dynamic or two column story, but its 100% spread",
+  "_accept": {
+   "renderStrategy": [
+    "llm",
+    "two_column_story"
+   ]
+  }
+ }
+}

@@ -1,11 +1,11 @@
 // Review controls for the "Your books" section. Feedback lives in the artifact database (collection
 // "review") so Claude can read it back with ArtifactData and answer in each doc's `reply` field.
-// Docs: book-<slug> {kind, book, correct:{setting: json value, rangeStart, rangeEnd}, note, reply?},
+// Docs: book-<slug> {kind, book, correct:{setting: json value}, note, reply?},
 // finding-<id> {kind, verdict, note, reply?}, general {kind, note, reply?}.
 (function () {
   const META = JSON.parse(document.getElementById("reviewMeta").textContent)
   const BOOK = Object.fromEntries(META.books.map((b) => [b.id, b]))
-  const ROUND = 1
+  const ROUND = META.round || 1
   const state = {}
   const pending = {}
   const inflight = {}
@@ -45,17 +45,11 @@
     const id = bookId(slug)
     return state[id] || (state[id] = { kind: "book", book: slug, title: BOOK[slug].title, correct: {}, note: "" })
   }
-  function correctRange(slug) {
-    const c = bookState(slug).correct
-    const s = Number(c.rangeStart), e = Number(c.rangeEnd)
-    if (!s || !e) return null
-    return JSON.stringify(s === 1 && e === BOOK[slug].pages ? "all" : `${s}-${e}`)
-  }
   function markBook(slug) {
     const card = document.querySelector(`.check[data-book="${CSS.escape(slug)}"]`).closest(".book")
     const c = bookState(slug).correct
     card.querySelectorAll("td[data-k]").forEach((td) => {
-      const want = td.dataset.k === "range" ? correctRange(slug) : c[td.dataset.k] || null
+      const want = c[td.dataset.k] || null
       td.classList.toggle("right", !!want && td.dataset.v === want)
       td.classList.toggle("wrong", !!want && td.dataset.v !== want)
     })
@@ -79,7 +73,6 @@
       const st = bookState(slug)
       const f = el.dataset.field
       if (f === "note") st.note = el.value
-      else if (f === "rangeStart" || f === "rangeEnd") st.correct[f] = el.value ? Number(el.value) : null
       else st.correct[f] = el.value || null
       markBook(slug)
       renderScore()
@@ -90,13 +83,7 @@
       const maj = BOOK[slug].maj[m]
       if (!maj) return
       const st = bookState(slug)
-      for (const [k, v] of Object.entries(maj)) {
-        if (k === "range") {
-          const [s, e] = v === "all" ? [1, BOOK[slug].pages] : v.split("-").map(Number)
-          st.correct.rangeStart = s
-          st.correct.rangeEnd = e
-        } else st.correct[k] = JSON.stringify(v)
-      }
+      for (const [k, v] of Object.entries(maj)) st.correct[k] = JSON.stringify(v)
       fillBook(slug)
       renderScore()
       schedule(bookId(slug), 0)
@@ -152,11 +139,11 @@
   // ---- score ----
   function renderScore() {
     const models = ["gpt-5.4-mini", "gpt-5.4"]
-    const acc = Object.fromEntries(models.map((m) => [m, { set: 0, right: 0, asked: 0, silent: 0, rset: 0, rright: 0 }]))
+    const acc = Object.fromEntries(models.map((m) => [m, { set: 0, right: 0, asked: 0, silent: 0 }]))
     let booksChecked = 0
     for (const slug of Object.keys(BOOK)) {
       const c = bookState(slug).correct
-      const want = (k) => (k === "range" ? correctRange(slug) : c[k] || null)
+      const want = (k) => c[k] || null
       if (!META.settings.some((k) => want(k))) continue
       booksChecked++
       const card = document.querySelector(`.check[data-book="${CSS.escape(slug)}"]`).closest(".book")
@@ -165,7 +152,6 @@
         if (!w) return
         const a = acc[td.dataset.m]
         const ok = td.dataset.v === w
-        if (td.dataset.k === "range") { a.rset++; if (ok) a.rright++; return }
         a.set++
         if (ok) a.right++
         else if (td.dataset.asked === "1") a.asked++
@@ -175,9 +161,9 @@
     const pct = (n, d) => (d ? Math.round((100 * n) / d) + "%" : "–")
     const findings = Object.values(state).filter((s) => s.kind === "finding" && s.verdict)
     document.getElementById("score").innerHTML =
-      `<thead><tr><th>Model</th><th class="r">Settings right</th><th class="r">Wrong, but the user was asked</th><th class="r">Wrong and not asked</th><th class="r">Page Range right</th></tr></thead><tbody>` +
-      models.map((m) => { const a = acc[m]; return `<tr><td>${m}</td><td class="r">${a.right}/${a.set} · ${pct(a.right, a.set)}</td><td class="r">${a.asked}</td><td class="r${a.silent ? " bad" : ""}">${a.silent}</td><td class="r">${a.rright}/${a.rset} · ${pct(a.rright, a.rset)}</td></tr>` }).join("") +
-      `</tbody><caption class="note" style="caption-side:bottom;text-align:left;padding-top:6px">${booksChecked} of ${META.books.length} books checked · ${findings.length} of 5 findings answered. Counts every run (3 per model per book) against your answers.</caption>`
+      `<thead><tr><th>Model</th><th class="r">Settings right</th><th class="r">Wrong, but the user was asked</th><th class="r">Wrong and not asked</th></tr></thead><tbody>` +
+      models.map((m) => { const a = acc[m]; return `<tr><td>${m}</td><td class="r">${a.right}/${a.set} · ${pct(a.right, a.set)}</td><td class="r">${a.asked}</td><td class="r${a.silent ? " bad" : ""}">${a.silent}</td></tr>` }).join("") +
+      `</tbody><caption class="note" style="caption-side:bottom;text-align:left;padding-top:6px">${booksChecked} of ${META.books.length} books checked · ${findings.length} of ${document.querySelectorAll("li[data-finding]").length} findings answered. Counts every run (3 per model per book) against your answers.</caption>`
   }
 
   // ---- load ----
