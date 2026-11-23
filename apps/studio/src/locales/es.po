@@ -158,10 +158,6 @@ msgstr "{0, plural, one {# tarea hereda este modelo} other {# tareas heredan est
 msgid "{0, plural, one {comment} other {comments}}"
 msgstr "{0, plural, one {comentario} other {comentarios}}"
 
-#. placeholder {0}: health.modelCount
-msgid "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
-msgstr "{0, plural, one {Conectado correctamente: # modelo disponible.} other {Conectado correctamente: # modelos disponibles.}}"
-
 #. placeholder {0}: state.days
 msgid "{0, plural, one {day} other {days}}"
 msgstr "{0, plural, one {día} other {días}}"
@@ -280,6 +276,11 @@ msgstr "{0} hallazgos señalados en esta revisión"
 msgid "{0} fonts"
 msgstr "{0} fuentes"
 
+#. placeholder {0}: state.data.issueCount
+#. placeholder {1}: state.data.checkpointable
+msgid "{0} history issue(s); {1} readable record(s) without a checkpoint. Showing up to 20 affected versions."
+msgstr "{0} problema(s) en el historial; {1} registro(s) legible(s) sin punto de recuperación. Se muestran hasta 20 versiones afectadas."
+
 #. placeholder {0}: String(captions.length)
 #. placeholder {0}: String(group.captions.length)
 #. placeholder {0}: String(totalImages)
@@ -376,10 +377,6 @@ msgstr "{0} páginas"
 msgid "{0} pages · split into {1} parts"
 msgstr "{0} páginas · dividido en {1} partes"
 
-#. placeholder {0}: adt.pageCount
-#~ msgid "{0} pages and {imageCount} images read"
-#~ msgstr "{0} páginas y {imageCount} imágenes leídas"
-
 #. placeholder {0}: section.criteria.length - reviewed
 msgid "{0} pending"
 msgstr "{0} pendientes"
@@ -419,16 +416,6 @@ msgstr "{0} textos"
 #. placeholder {0}: outputLanguages.length
 msgid "{0} translations"
 msgstr "{0} traducciones"
-
-#. placeholder {0}: i18n._(recovered[0].label)
-#. placeholder {1}: i18n._(recovered[1].label)
-#. placeholder {2}: recoveredCount - 2
-#~ msgid "{0}, {1} and {2} more"
-#~ msgstr "{0}, {1} y {2} más"
-
-#. placeholder {0}: adt.title
-#~ msgid "{0}, separate from your other projects"
-#~ msgstr "{0}, separado de tus otros proyectos"
 
 #. placeholder {0}: newest.root.author_name
 #. placeholder {1}: newest.root.body
@@ -714,8 +701,16 @@ msgstr "{providerKey, select, other {Tu clave de {name} fue rechazada}}"
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}}"
 msgstr "{regionCount} {regionCount, plural, one {región} other {regiones}}"
 
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Your {name} key was rejected}}"
+msgstr "{providerKey, select, other {Tu clave de {name} fue rechazada}}"
+
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {región detectada} other {regiones detectadas}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{rejectedProviderKey, select, other {API Key Settings — the {rejectedName} key was rejected}}"
+msgstr "{rejectedProviderKey, select, other {Configuración de clave API — la clave de {rejectedName} fue rechazada}}"
 
 #. placeholder {0}: section.criteria.length
 msgid "{reviewed}/{0} checked"
@@ -996,6 +991,9 @@ msgstr "Una página de cuestionario de comprensión generada."
 
 msgid "A glossary term with this word already exists."
 msgstr "Ya existe un término del glosario con esta palabra."
+
+msgid "A historical record is missing; it cannot be reconstructed safely"
+msgstr "Falta un registro del historial; no se puede reconstruir de forma segura"
 
 msgid "A language is required so downstream stages can localize the book."
 msgstr "Se requiere un idioma para que las etapas posteriores puedan localizar el libro."
@@ -1616,17 +1614,11 @@ msgstr "ADT STUDIO"
 msgid "ADT Studio accepts ZIP archives up to 1 GiB compressed. Choose a smaller bundle and try again."
 msgstr "ADT Studio acepta archivos ZIP de hasta 1 GiB comprimidos. Elige un paquete más pequeño e inténtalo de nuevo."
 
-#~ msgid "ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again."
-#~ msgstr "ADT Studio acepta archivos ZIP de hasta 512 MiB comprimidos. Elige un paquete más pequeño e inténtalo de nuevo."
-
 msgid "ADT Studio can’t import this ZIP"
 msgstr "ADT Studio no puede importar este ZIP"
 
 msgid "ADT Studio can’t tell whether its pages changed. They become the working source, so check generated features after import."
 msgstr "ADT Studio no puede saber si sus páginas cambiaron. Pasan a ser la fuente de trabajo, así que revisa las funciones generadas después de importar."
-
-#~ msgid "ADT Studio checks it again right away."
-#~ msgstr "ADT Studio lo vuelve a comprobar enseguida."
 
 msgid "ADT Studio compared every page with the fingerprints saved at export."
 msgstr "ADT Studio comparó cada página con las huellas guardadas al exportar."
@@ -1759,9 +1751,6 @@ msgstr "Superposición por IA"
 msgid "AI provider connected. Your book can be processed now."
 msgstr "Proveedor de IA conectado. Ya se puede procesar tu libro."
 
-msgid "AI provider credentials"
-msgstr "Credenciales de proveedores de IA"
-
 msgid "AI providers"
 msgstr "Proveedores de IA"
 
@@ -1773,6 +1762,9 @@ msgstr "Guía de reparación con IA"
 
 msgid "AI sees the current image and modifies it"
 msgstr "La IA ve la imagen actual y la modifica"
+
+msgid "AI steps will fail until the key is updated."
+msgstr "Los pasos de IA fallarán hasta que se actualice la clave."
 
 msgid "AI-powered"
 msgstr "Impulsado por IA"
@@ -1882,9 +1874,6 @@ msgstr "ya está allí"
 
 msgid "Also delete the sharing service and every shared book from my Cloudflare account"
 msgstr "Eliminar también el servicio para compartir y todos los libros compartidos de mi cuenta de Cloudflare"
-
-msgid "Also regenerate these pages and replace their saved content"
-msgstr "También regenerar estas páginas y reemplazar su contenido guardado"
 
 msgid "Also used by {readerNames} unless that provider has its own key."
 msgstr "También la usa {readerNames}, salvo que ese proveedor tenga su propia clave."
@@ -2115,9 +2104,6 @@ msgstr "Coloca todos los elementos en una única secuencia correcta."
 
 msgid "Arrange extracted content into a structured storyboard with pages, sections, and layouts."
 msgstr "Organiza el contenido extraído en un storyboard estructurado con páginas, secciones y diseños."
-
-#~ msgid "Arrange items into an order or categories."
-#~ msgstr "Ordenar elementos o clasificarlos en categorías."
 
 msgid "Article"
 msgstr "Artículo"
@@ -2760,8 +2746,14 @@ msgstr "Cambia cómo compartes"
 msgid "Change language"
 msgstr "Cambiar idioma"
 
+msgid "Change mode"
+msgstr "Cambiar modo"
+
 msgid "Change Preset"
 msgstr "Cambiar Preajuste"
+
+msgid "Change Sectioning mode?"
+msgstr "¿Cambiar el modo de Seccionamiento?"
 
 msgid "Change the book language?"
 msgstr "¿Cambiar el idioma del libro?"
@@ -2783,6 +2775,9 @@ msgstr "Cambios desde la exportación"
 
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Cambiar las fuentes afecta cómo se renderizan las páginas — vuelve a ejecutar Storyboard y Exportar para aplicar las nuevas fuentes."
+
+msgid "Changing layout requires every active page to render successfully. Run the whole Storyboard stage. Previous output is retained."
+msgstr "Para cambiar el diseño, todas las páginas activas deben renderizarse correctamente. Ejecuta toda la etapa Storyboard. Se conserva el resultado anterior."
 
 msgid "Changing the language may affect saved work."
 msgstr "Cambiar el idioma puede afectar al trabajo guardado."
@@ -2826,9 +2821,6 @@ msgstr "Título de capítulo"
 msgid "Chart / Graph"
 msgstr "Gráfico / Tabla"
 
-#~ msgid "Check each page and choose how ADT Studio should treat it after import."
-#~ msgstr "Revisa cada página y elige cómo debe tratarla ADT Studio después de la importación."
-
 msgid "Check for new comments"
 msgstr "Buscar comentarios nuevos"
 
@@ -2859,8 +2851,14 @@ msgstr "Comprobando todas las respuestas"
 msgid "Checking for updates…"
 msgstr "Buscando actualizaciones…"
 
+msgid "Checking latest…"
+msgstr "Comprobando la última versión…"
+
 msgid "Checking the connection…"
 msgstr "Comprobando la conexión…"
+
+msgid "Checking the latest saved version…"
+msgstr "Comprobando la última versión guardada…"
 
 msgid "Checking whether this book is shared…"
 msgstr "Comprobando si este libro está compartido…"
@@ -2910,9 +2908,6 @@ msgstr "Elige un modelo existente o escribe un nuevo id provider:model. Crear ar
 msgid "Choose another ZIP"
 msgstr "Elegir otro ZIP"
 
-#~ msgid "Choose classification"
-#~ msgstr "Elige la clasificación"
-
 msgid "Choose exactly one answer from several options."
 msgstr "Elegir exactamente una respuesta entre varias opciones."
 
@@ -2949,9 +2944,6 @@ msgstr "Elige la página de la que recortar."
 msgid "Choose the part file that was shared with you, or export it again."
 msgstr "Elige el archivo de parte que te compartieron, o expórtalo de nuevo."
 
-#~ msgid "Choose the repaired ZIP"
-#~ msgstr "Elige el ZIP reparado"
-
 msgid "Choose the source pages and where the quiz lands in the page editor."
 msgstr "Elige las páginas de origen y dónde se ubica el cuestionario en el editor de páginas."
 
@@ -2975,13 +2967,6 @@ msgstr "Ciencias de la Naturaleza - Educación Primaria"
 
 msgid "Classic Storybook"
 msgstr "Libro infantil clásico"
-
-#~ msgid "Classification"
-#~ msgstr "Clasificación"
-
-#. placeholder {0}: item.href
-#~ msgid "Classification for {0}"
-#~ msgstr "Clasificación de {0}"
 
 msgid "Classify every page"
 msgstr "Clasifica cada página"
@@ -3072,6 +3057,9 @@ msgstr "Cerrar editor de estilo"
 
 msgid "Close the guide"
 msgstr "Cerrar la guía"
+
+msgid "Close this book in other apps first. Recovery creates and checks a separate copy, keeping the original book and its lock evidence unchanged. It refuses a known active owner or a source that changes during copying. It does not repair damaged history or regenerate content."
+msgstr "Cierra primero este libro en las otras aplicaciones. La recuperación crea y verifica una copia independiente y conserva el libro original y la información de sus bloqueos sin cambios. No continúa si detecta un proceso activo o si el origen cambia durante la copia. No repara el historial dañado ni regenera contenido."
 
 msgid "Close this comment"
 msgstr "Cerrar este comentario"
@@ -3248,17 +3236,11 @@ msgstr "Configura la información básica del documento y las rutas de archivo"
 msgid "Configure features to include in the export"
 msgstr "Configura las características a incluir en la exportación"
 
-msgid "Configure the credentials used by AI features on this device."
-msgstr "Configura las credenciales que usan las funciones de IA en este dispositivo."
-
 msgid "Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine."
 msgstr "Configura las credenciales de los proveedores usadas cuando ADT Studio ejecuta pasos de la pipeline de IA en esta máquina."
 
 msgid "Configure voices and accents"
 msgstr "Configurar voces y acentos"
-
-msgid "Configured on server"
-msgstr "Configurado en el servidor"
 
 msgid "Confirm merge"
 msgstr "Confirmar fusión"
@@ -3426,6 +3408,9 @@ msgstr "Continuar"
 msgid "Continue adding your book"
 msgstr "Seguir añadiendo tu libro"
 
+msgid "Continue anyway"
+msgstr "Continuar de todos modos"
+
 #. placeholder {0}: resumeTarget.pageNumber ?? resumeTarget.pageId
 msgid "Continue on page {0}"
 msgstr "Continuar en la página {0}"
@@ -3533,12 +3518,6 @@ msgstr "Copiar el enlace a {0}"
 msgid "Copy the link to send"
 msgstr "Copiar el enlace para enviarlo"
 
-#~ msgid "Copy the repair request"
-#~ msgstr "Copia la solicitud de reparación"
-
-#~ msgid "Copy the repair request and give it, with the unzipped export, to an AI assistant such as Claude or Codex. Then choose the ZIP it returns."
-#~ msgstr "Copia la solicitud de reparación y entrégala, junto con la exportación descomprimida, a un asistente de IA como Claude o Codex. Después elige el ZIP que te devuelva."
-
 msgid "Coral reefs cover less than 1% of the ocean floor, yet they support roughly 25% of all marine species. Often called the 'rainforests of the sea,' these underwater ecosystems are built by tiny animals called coral polyps."
 msgstr "Los arrecifes de coral cubren menos del 1% del fondo oceánico, pero sostienen aproximadamente el 25% de todas las especies marinas. A menudo llamados 'los bosques lluviosos del mar', estos ecosistemas submarinos son construidos por pequeños animales llamados pólipos de coral."
 
@@ -3563,9 +3542,6 @@ msgstr "No se pudo cargar el contenido guardado."
 msgid "Could not load saved content. Retry"
 msgstr "No se pudo cargar el contenido guardado. Reintentar"
 
-msgid "Could not load the AI provider catalogue."
-msgstr "No se pudo cargar el catálogo de proveedores de IA."
-
 msgid "Could not load the book outline."
 msgstr "No se pudo cargar el esquema del libro."
 
@@ -3583,6 +3559,9 @@ msgstr "No se pudieron eliminar {failed} de {total} videos — por favor, intén
 
 msgid "Could not revert this page. Your edits were kept. Try again."
 msgstr "No se pudieron deshacer los cambios de esta página. Se conservaron tus cambios. Inténtalo de nuevo."
+
+msgid "Could not save Sectioning mode."
+msgstr "No se pudo guardar el modo de Seccionamiento."
 
 #. placeholder {0}: getStageLabelI18n(fromStage)
 msgid "Could not start {0}: {detail}"
@@ -3636,6 +3615,9 @@ msgstr "No se pudo leer este PDF"
 
 msgid "Couldn't restore v{version}. Please try again."
 msgstr "No se pudo restaurar la v{version}. Inténtalo de nuevo."
+
+msgid "Couldn't save the credentials in this browser. Check that site storage is allowed, then try again."
+msgstr "No se pudieron guardar las credenciales en este navegador. Comprueba que el almacenamiento del sitio esté permitido e inténtalo de nuevo."
 
 msgid "Couldn't save the glossary. Your draft is kept; check for newer changes before trying again."
 msgstr "No se pudo guardar el glosario. Tu borrador se conserva; comprueba si hay cambios más recientes antes de volver a intentarlo."
@@ -4151,9 +4133,6 @@ msgstr "Detecta y divide ilustraciones compuestas en regiones separadas para que
 
 msgid "Detects exercises and quizzes embedded in the book and classifies them as their own sections so they can render as interactive elements downstream."
 msgstr "Detecta ejercicios y cuestionarios incrustados en el libro y los clasifica como sus propias secciones para que puedan renderizarse como elementos interactivos más adelante."
-
-#~ msgid "Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed."
-#~ msgstr "Detecta texto estampado de forma idéntica en todas las páginas — como un aviso diagonal de “solo para lectura en línea” — y lo elimina de las páginas renderizadas, las figuras extraídas y el texto del libro. Desactívalo para conservar las páginas exactamente como están impresas."
 
 msgid "Diagnostics"
 msgstr "Diagnósticos"
@@ -4788,8 +4767,14 @@ msgstr "Excluir de la renderización"
 msgid "Existing output is included."
 msgstr "Se incluye el resultado existente."
 
+msgid "Existing pages stay unchanged. This run fills missing Sectioning only unless you explicitly choose replacement."
+msgstr "Las páginas existentes permanecen sin cambios. Esta ejecución solo genera el Seccionamiento que falta, salvo que elijas reemplazarlo explícitamente."
+
 msgid "Existing reviewer sessions keep their own checklist snapshot. New checklist changes apply to newly created sessions."
 msgstr "Las sesiones de revisor existentes conservan su propia instantánea de la lista de verificación. Los nuevos cambios en la lista se aplican solo a las sesiones creadas a partir de ahora."
+
+msgid "Existing-book extraction and CLI resume are unavailable here. Use Sectioning in Studio to review and confirm any replacement."
+msgstr "La extracción de libros existentes y la reanudación mediante CLI no están disponibles aquí. Usa Seccionamiento en Studio para revisar y confirmar cualquier reemplazo."
 
 msgid "Expand"
 msgstr "Expandir"
@@ -4933,6 +4918,9 @@ msgstr "Extrayendo..."
 msgid "Extraction and the other AI steps run on your own AI provider."
 msgstr "La extracción y los demás pasos de IA se ejecutan con tu propio proveedor de IA."
 
+msgid "Extraction did not finish. Partial data is retained. Start extraction in a new book."
+msgstr "La extracción no terminó. Se conservan los datos parciales. Inicia la extracción en un libro nuevo."
+
 msgid "Extraction is running — you can review spreads once it finishes."
 msgstr "La extracción está en curso — puedes revisar las dobles páginas una vez que termine."
 
@@ -4944,6 +4932,9 @@ msgstr "Notas de extracción"
 
 msgid "Extraction Prompt"
 msgstr "Indicación de extracción"
+
+msgid "Extraction settings have changed. Existing content is retained. Start extraction in a new book."
+msgstr "La configuración de extracción ha cambiado. Se conserva el contenido existente. Inicia la extracción en un libro nuevo."
 
 msgid "Extracts text and image data from each page of the PDF."
 msgstr "Extrae texto y datos de imagen de cada página del PDF."
@@ -5488,8 +5479,14 @@ msgstr "Generando…"
 msgid "Generation failed"
 msgstr "Falló la generación"
 
+msgid "Generation failed on {total} page(s) (showing up to 20): {pages}. Successful pages are retained. Inspect the page errors before retrying."
+msgstr "La generación falló en {total} página(s) (se muestran hasta 20): {pages}. Las páginas generadas correctamente se conservan. Revisa los errores de las páginas antes de volver a intentarlo."
+
 msgid "Generation failed. Please try again."
 msgstr "Falló la generación. Por favor, inténtalo de nuevo."
+
+msgid "Generation preferences changed or their history is unknown. Saved content remains usable. Existing pages are kept unless you explicitly replace them."
+msgstr "Las preferencias de generación cambiaron o se desconoce su historial. El contenido guardado sigue siendo utilizable. Las páginas existentes se conservan salvo que las reemplaces explícitamente."
 
 msgid "Generation Prompt"
 msgstr "Prompt de generación"
@@ -5747,6 +5744,12 @@ msgstr "Pista cuando falla (no reveles la respuesta)"
 msgid "História e Sociedade - Vol. 1"
 msgstr "Historia y Sociedad - Vol. 1"
 
+msgid "History recovery"
+msgstr "Recuperación del historial"
+
+msgid "History tracking is incomplete. Existing content is retained, but edits and generation that need verified history are unavailable. Restore a verified book backup; recovery cannot reconstruct missing tracking evidence."
+msgstr "El registro del historial está incompleto. El contenido existente se conserva, pero las ediciones y la generación que necesitan un historial verificado no están disponibles. Restaura una copia de seguridad verificada del libro; la recuperación no puede reconstruir las pruebas de seguimiento que faltan."
+
 msgid "Hit"
 msgstr "Hit"
 
@@ -5816,9 +5819,6 @@ msgstr "Cómo funciona la tabla de contenidos"
 msgid "How to add quizzes"
 msgstr "Cómo añadir cuestionarios"
 
-#~ msgid "How to repair"
-#~ msgstr "Cómo reparar"
-
 msgid "HTML"
 msgstr "HTML"
 
@@ -5830,6 +5830,9 @@ msgstr "Fuente HTML · {pageCount} páginas"
 
 msgid "HTML5 + EPUB"
 msgstr "HTML5 + EPUB"
+
+msgid "I reviewed this book and the affected versions, and explicitly confirm this operation."
+msgstr "He revisado este libro y las versiones afectadas y confirmo explícitamente esta operación."
 
 msgid "I understand the part was processed with different prompts/models and want to merge it anyway."
 msgstr "Entiendo que la parte se procesó con distintos prompts/modelos y quiero fusionarla de todos modos."
@@ -6133,6 +6136,15 @@ msgstr "Contraportada interna"
 msgid "Inside the school, no internet needed"
 msgstr "Dentro de la escuela, sin necesidad de internet"
 
+msgid "Inspect history"
+msgstr "Inspeccionar historial"
+
+msgid "Inspect identity history before recovery. Only verified original bytes can be restored. Recovery keeps damaged evidence and assets, and does not regenerate content."
+msgstr "Inspecciona el historial de identidades antes de la recuperación. Solo se pueden restaurar los bytes originales verificados. La recuperación conserva las evidencias dañadas y los recursos, sin regenerar el contenido."
+
+msgid "Inspecting history…"
+msgstr "Inspeccionando historial…"
+
 msgid "Install"
 msgstr "Instalar"
 
@@ -6234,9 +6246,6 @@ msgstr "Solo problemas"
 
 msgid "It contains unexpected file paths. Use a .zip exported from ADT Studio."
 msgstr "Contiene rutas de archivo inesperadas. Usa un archivo .zip exportado desde ADT Studio."
-
-#~ msgid "It lists the problems and the editing rules."
-#~ msgstr "Enumera los problemas y las reglas de edición."
 
 msgid "It no longer opens. Sharing again makes a new one."
 msgstr "Ya no se abre. Al compartir de nuevo se crea uno nuevo."
@@ -6370,6 +6379,9 @@ msgstr "Conservar este"
 msgid "Keep working"
 msgstr "Sigue trabajando"
 
+msgid "Keep your entire activity draft, including its questions and answers."
+msgstr "Conserva todo tu borrador de actividad, incluidas sus preguntas y respuestas."
+
 msgid "Keep your entire table of contents, including its chapter targets and order."
 msgstr "Conserva todo tu índice, incluidos los destinos y el orden de los capítulos."
 
@@ -6388,6 +6400,9 @@ msgstr "Conservado"
 msgid "Kept where nothing changed since export. The rest is generated again."
 msgstr "Se conserva donde nada cambió desde la exportación. El resto se genera de nuevo."
 
+msgid "Key rejected"
+msgstr "Clave rechazada"
+
 msgid "Key terms"
 msgstr "Términos clave"
 
@@ -6399,9 +6414,6 @@ msgstr "Teclado y navegación"
 
 msgid "Keyboard shortcuts"
 msgstr "Atajos de teclado"
-
-msgid "Keys are stored locally in this browser or desktop session and are sent only with run requests."
-msgstr "Las claves se almacenan localmente en este navegador o sesión de escritorio y solo se envían con solicitudes de ejecución."
 
 msgid "Keys are stored locally on this device — never sent anywhere else."
 msgstr "Las claves se guardan localmente en este dispositivo — nunca se envían a ningún otro lugar."
@@ -6549,9 +6561,6 @@ msgstr "Deja que el agente elija"
 
 msgid "Let the model write descriptive chapter titles based on each section's contents. Best for storybooks or when headings are missing."
 msgstr "Deja que el modelo escriba títulos de capítulos descriptivos basados en el contenido de cada sección. Mejor para libros de cuentos o cuando faltan encabezados."
-
-#~ msgid "Let your AI assistant fix it"
-#~ msgstr "Deja que tu asistente de IA lo corrija"
 
 msgid "Let's start"
 msgstr "Empecemos"
@@ -6703,9 +6712,6 @@ msgstr "Cargar los últimos valores guardados"
 
 msgid "Loading accessibility summary..."
 msgstr "Cargando resumen de accesibilidad..."
-
-msgid "Loading AI providers…"
-msgstr "Cargando proveedores de IA…"
 
 msgid "Loading beta versions…"
 msgstr "Cargando versiones beta…"
@@ -7395,9 +7401,6 @@ msgstr "Requiere atención"
 msgid "Needs changes"
 msgstr "Necesita cambios"
 
-#~ msgid "Needs classification"
-#~ msgstr "Necesita clasificación"
-
 msgid "Needs fixing"
 msgstr "Necesita arreglo"
 
@@ -7510,6 +7513,9 @@ msgstr "Aún no se ha generado ninguna evaluación de accesibilidad. Empaquete l
 
 msgid "No accessibility findings were reported for this page."
 msgstr "No se informaron hallazgos de accesibilidad para esta página."
+
+msgid "No additional page IDs shown"
+msgstr "No se muestran más ID de página"
 
 msgid "No AI edits yet for this section."
 msgstr "Aún no hay ediciones con IA para esta sección."
@@ -7742,6 +7748,9 @@ msgstr "No hay comentarios abiertos. Los nuevos llegan aquí primero."
 
 msgid "No open-source license detected. Make sure you have the right to embed and distribute this font."
 msgstr "No se detectó una licencia open source. Asegúrate de tener derecho a incrustar y distribuir esta fuente."
+
+msgid "No original evidence was saved before damage"
+msgstr "No se guardaron evidencias originales antes del daño"
 
 msgid "No other images in this book"
 msgstr "No hay otras imágenes en este libro"
@@ -7987,6 +7996,9 @@ msgstr "No compatible con Diseño Fijo"
 msgid "Not configured"
 msgstr "No configurado"
 
+msgid "Not connected"
+msgstr "No conectado"
+
 msgid "Not created"
 msgstr "No creado"
 
@@ -8052,6 +8064,9 @@ msgstr "Todavía no"
 
 msgid "Not yet split:"
 msgstr "Aún sin dividir:"
+
+msgid "Not yet verified"
+msgstr "Aún no verificado"
 
 msgid "Note"
 msgstr "Nota"
@@ -8229,9 +8244,6 @@ msgstr "Una sola escala de texto para todo el libro. Parte de los tamaños detec
 msgid "One ZIP, up to 1 GiB"
 msgstr "Un ZIP, de hasta 1 GiB"
 
-#~ msgid "One ZIP, up to 512 MiB"
-#~ msgstr "Un ZIP, de hasta 512 MiB"
-
 msgid "Only images that appear in the storyboard (have captions) can be selected."
 msgstr "Solo se pueden seleccionar imágenes que aparezcan en el storyboard (con subtítulos)."
 
@@ -8308,9 +8320,6 @@ msgstr "Abrir todos en el Storyboard"
 msgid "Open an ADT project that <0>already exists</0> — a backup, a book part, or one exported by someone else. Nothing is converted. <1>.zip → added as-is</1>"
 msgstr "Abre un proyecto ADT que <0>ya existe</0> — una copia de seguridad, una parte de un libro, o uno exportado por otra persona. Nada se convierte. <1>.zip → añadido tal cual</1>"
 
-msgid "Open API key settings"
-msgstr "Abrir configuración de claves API"
-
 msgid "Open command palette"
 msgstr "Abrir paleta de comandos"
 
@@ -8359,6 +8368,9 @@ msgstr "Abrir solicitud de cambios {0}"
 msgid "Open quiz in Quizzes"
 msgstr "Abrir el cuestionario en Cuestionarios"
 
+msgid "Open recovered copy"
+msgstr "Abrir la copia recuperada"
+
 msgid "Open Sharing"
 msgstr "Abrir Compartir"
 
@@ -8373,6 +8385,12 @@ msgstr "Abrir Storyboard"
 
 msgid "Open the book"
 msgstr "Abrir el libro"
+
+msgid "Open the book to verify Preview"
+msgstr "Abre el libro para verificar la vista previa"
+
+msgid "Open the book to verify Storyboard and Preview"
+msgstr "Abre el libro para verificar Storyboard y la vista previa"
 
 msgid "Open the Cloudflare page again"
 msgstr "Abrir la página de Cloudflare de nuevo"
@@ -8437,6 +8455,10 @@ msgstr "Abriendo el cuestionario…"
 
 msgid "Operation failed"
 msgstr "La operación falló"
+
+#. placeholder {0}: mutation.data.count
+msgid "Operation recorded for {0} version(s). Review the current inspection before continuing. Generation has not been started."
+msgstr "Operación registrada para {0} versión(es). Revisa la inspección actual antes de continuar. No se ha iniciado la generación."
 
 msgid "Option columns"
 msgstr "Columnas de opciones"
@@ -8513,6 +8535,12 @@ msgstr "Original"
 msgid "Original book"
 msgstr "Libro original"
 
+msgid "Original evidence or record continuity cannot be verified"
+msgstr "No se puede verificar la evidencia original ni la continuidad del registro"
+
+msgid "Original extraction data is missing or unreadable. Existing data is retained. Restore a verified book copy or import the PDF as a new book."
+msgstr "Los datos originales de extracción faltan o no se pueden leer. Se conservan los datos existentes. Restaura una copia verificada del libro o importa el PDF como un libro nuevo."
+
 msgid "Original language"
 msgstr "Idioma original"
 
@@ -8566,6 +8594,9 @@ msgstr "Resaltado: {0} en esta página, sin tipo de actividad."
 #. placeholder {0}: controlsLabel(activeItem.controls)
 msgid "Outlined: {0} found on this page."
 msgstr "Resaltado: {0} en esta página."
+
+msgid "output available"
+msgstr "contenido disponible"
 
 msgid "Output languages"
 msgstr "Idiomas de salida"
@@ -8667,6 +8698,15 @@ msgstr "Página {0}"
 #. placeholder {1}: i + 1
 msgid "Page {0} — Section {1}"
 msgstr "Página {0} — Sección {1}"
+
+#. placeholder {0}: r.pageNumber ?? r.itemId
+#. placeholder {1}: r.itemId
+#. placeholder {2}: r.version
+#. placeholder {3}: r.renderingVersion ?? 0
+#. placeholder {4}: r.renderTreeVersion ?? 0
+#. placeholder {5}: r.editableActivityVersion ?? 0
+msgid "Page {0} ({1}): Sectioning v{2}, Storyboard v{3}, render tree v{4}, activities v{5}"
+msgstr "Página {0} ({1}): Seccionamiento v{2}, Storyboard v{3}, árbol de renderizado v{4}, actividades v{5}"
 
 #. placeholder {0}: String(pageNumber)
 msgid "Page {0} captions"
@@ -8821,9 +8861,6 @@ msgstr "Páginas del intervalo seleccionado"
 msgid "Pages in this part"
 msgstr "Páginas de esta parte"
 
-msgid "Pages listed below will keep their saved content unless you choose to replace them. All other pages will be regenerated."
-msgstr "Las páginas indicadas abajo conservarán su contenido guardado a menos que elijas reemplazarlo. Todas las demás páginas se regenerarán."
-
 msgid "pages per quiz"
 msgstr "páginas por cuestionario"
 
@@ -8835,9 +8872,6 @@ msgstr "Páginas revisadas"
 
 msgid "Pages to review"
 msgstr "Páginas por revisar"
-
-msgid "Pages with manual edits or unknown authorship:"
-msgstr "Páginas con cambios manuales o autoría desconocida:"
 
 msgid "Pages, edits and generated features"
 msgstr "Páginas, ediciones y funciones generadas"
@@ -9315,9 +9349,6 @@ msgstr "El proveedor \"{providerId}\" no admite la generación de texto."
 msgid "Provider \"{providerId}\" is not registered. Add its API keys in Settings or choose another model."
 msgstr "El proveedor \"{providerId}\" no está registrado. Agrega sus claves de API en Configuración o elige otro modelo."
 
-msgid "Provider credentials"
-msgstr "Credenciales del proveedor"
-
 msgid "Provider credentials saved."
 msgstr "Credenciales de proveedores guardadas."
 
@@ -9326,9 +9357,6 @@ msgstr "Documentación del proveedor"
 
 msgid "providers api key credentials endpoint"
 msgstr "proveedores clave API credenciales punto final"
-
-msgid "Providers unavailable"
-msgstr "Proveedores no disponibles"
 
 msgid "Provides consistent HTML/CSS patterns for LLM-generated pages."
 msgstr "Proporciona patrones HTML/CSS consistentes para páginas generadas por LLM."
@@ -9587,6 +9615,9 @@ msgstr "Contenido de lectura en voz alta"
 msgid "Read-only"
 msgstr "Solo lectura"
 
+msgid "Readable versions included in this checkpoint"
+msgstr "Versiones legibles incluidas en este punto de recuperación"
+
 msgid "Reader"
 msgstr "Lector"
 
@@ -9766,6 +9797,21 @@ msgstr "Registre los hallazgos del revisor para la página actual y guárdelos e
 
 msgid "Recover {recoveredCount} {recoveredCount, plural, one {feature} other {features}}"
 msgstr "Recuperar {recoveredCount} {recoveredCount, plural, one {función} other {funciones}}"
+
+msgid "Recover a copy"
+msgstr "Recuperar una copia"
+
+msgid "Recover a separate copy?"
+msgstr "¿Recuperar una copia independiente?"
+
+msgid "Recovering copy…"
+msgstr "Recuperando copia…"
+
+msgid "Recovery cannot safely proceed because an active owner cannot be ruled out. Close other book apps and retry. If the refusal persists, restart your computer and try again."
+msgstr "La recuperación no puede continuar de forma segura porque no se puede descartar que otro proceso esté usando el libro. Cierra las otras aplicaciones del libro e inténtalo de nuevo. Si el bloqueo persiste, reinicia el equipo y vuelve a intentarlo."
+
+msgid "Recovery could not read or write its files. Check folder permissions and retry. The original book is unchanged."
+msgstr "La recuperación no pudo leer o escribir los archivos. Revisa los permisos de la carpeta e inténtalo de nuevo. El libro original no ha cambiado."
 
 msgid "Recrop from page"
 msgstr "Recortar desde la página"
@@ -10005,11 +10051,20 @@ msgstr "Reemplazar cuestionario"
 msgid "Replace quizzes"
 msgstr "Reemplazar cuestionarios"
 
+msgid "Replace these pages and reset their Storyboard"
+msgstr "Reemplazar estas páginas y restablecer su Storyboard"
+
 msgid "Replace this audio file"
 msgstr "Reemplazar este archivo de audio"
 
 msgid "Replace your overlapping changes with the latest saved values."
 msgstr "Reemplaza tus cambios superpuestos por los últimos valores guardados."
+
+msgid "Replacement inputs could not be verified. Existing pages will stay unchanged."
+msgstr "No se pudieron verificar los datos necesarios para el reemplazo. Las páginas existentes permanecerán sin cambios."
+
+msgid "Replacing these pages resets their current Storyboard, including manual edits. Saved versions and media stay in history; Storyboard must be rebuilt even if generation is cancelled or fails."
+msgstr "Al reemplazar estas páginas se restablece su Storyboard actual, incluidas las ediciones manuales. Las versiones guardadas y los archivos multimedia permanecen en el historial; Storyboard debe reconstruirse aunque la generación se cancele o falle."
 
 msgid "Replay the guided introduction to ADT Studio."
 msgstr "Reproducir la introducción guiada a ADT Studio."
@@ -10105,11 +10160,17 @@ msgstr "Resolver el comentario de {0}"
 msgid "Resolve conflicting edits before saving"
 msgstr "Resuelve los cambios en conflicto antes de guardar"
 
+msgid "Resolve the conflicting changes before saving."
+msgstr "Resuelve los cambios en conflicto antes de guardar."
+
 msgid "Resolved"
 msgstr "Resuelto"
 
 msgid "Resolving source language..."
 msgstr "Resolviendo idioma de origen..."
+
+msgid "Resources in the package document {document} could not be verified. Existing output is retained. Correct the saved content, then prepare the export again."
+msgstr "No se pudieron verificar los recursos del documento del paquete {document}. Se conserva la salida existente. Corrige el contenido guardado y vuelve a preparar la exportación."
 
 msgid "Respiration"
 msgstr "Respiración"
@@ -10135,8 +10196,14 @@ msgstr "Restaurar su trabajo"
 msgid "Restore section to flow"
 msgstr "Restaurar sección al flujo"
 
+msgid "Restore the listed recoverable versions exactly. A selected version receives a new version number so old edit drafts cannot overwrite it. Review new replacement consent before running Sectioning."
+msgstr "Restaura exactamente las versiones recuperables indicadas. Una versión seleccionada recibe un nuevo número de versión para que los borradores de edición antiguos no puedan sobrescribirla. Revisa una nueva confirmación de sustitución antes de ejecutar Seccionamiento."
+
 msgid "Restore this term — it will be eligible again on the next regeneration."
 msgstr "Restaurar este término — será elegible nuevamente en la próxima regeneración."
+
+msgid "Restore verified history"
+msgstr "Restaurar historial verificado"
 
 msgid "restored"
 msgstr "restaurado"
@@ -10208,15 +10275,6 @@ msgstr "Revise {formatted} después de esta ejecución."
 msgid "Review {label} outputs"
 msgstr "Revisar los resultados de {label}"
 
-#~ msgid "Review {unresolvedActivityCount} activities"
-#~ msgstr "Revisar {unresolvedActivityCount} actividades"
-
-#~ msgid "Review activities"
-#~ msgstr "Revisar actividades"
-
-#~ msgid "Review activity pages"
-#~ msgstr "Revisar las páginas de actividades"
-
 msgid "Review and refine each simplified block side-by-side with the original before packaging."
 msgstr "Revisa y refina cada bloque simplificado junto al original antes de empaquetar."
 
@@ -10270,8 +10328,14 @@ msgstr "Rigor de la revisión"
 msgid "Review style"
 msgstr "Estilo de revisión"
 
+msgid "Review the affected pages and their current versions, then explicitly confirm replacement and the Storyboard reset."
+msgstr "Revisa las páginas afectadas y sus versiones actuales y confirma explícitamente el reemplazo y el restablecimiento de Storyboard."
+
 msgid "Review the affected stages after this change."
 msgstr "Revise las etapas afectadas después de este cambio."
+
+msgid "Review the chosen activity, then save again."
+msgstr "Revisa la actividad elegida y vuelve a guardar."
 
 msgid "Review the chosen document, then save again."
 msgstr "Revisa el documento elegido y vuelve a guardar."
@@ -10530,8 +10594,14 @@ msgstr "Guardar lista de verificación"
 msgid "Save failed"
 msgstr "Error al guardar"
 
+msgid "Save history checkpoint"
+msgstr "Guardar punto de recuperación del historial"
+
 msgid "Save or cancel your draft before reviewing outputs."
 msgstr "Guarda o cancela tu borrador antes de revisar los resultados."
+
+msgid "Save or discard your changes before AI editing"
+msgstr "Guarda o descarta tus cambios antes de editar con IA"
 
 msgid "Save or discard your changes before re-running."
 msgstr "Guarda o descarta tus cambios antes de volver a ejecutar."
@@ -10541,6 +10611,9 @@ msgstr "Primero guarda o descarta tus cambios"
 
 msgid "Save page review"
 msgstr "Guardar revisión de la página"
+
+msgid "Save recovery evidence for currently readable history. A checkpoint cannot recover records that were already damaged."
+msgstr "Guarda evidencias de recuperación para el historial que se puede leer actualmente. Un punto de recuperación no puede recuperar registros que ya estaban dañados."
 
 msgid "Save section changes?"
 msgstr "¿Guardar los cambios de las secciones?"
@@ -10566,6 +10639,9 @@ msgstr "Guarda tu trabajo primero si quieres conservar estos cambios."
 msgid "Saved"
 msgstr "Guardado"
 
+msgid "Saved book history is unreadable. Existing content has been retained. Verified history recovery is required before generating new content."
+msgstr "El historial guardado del libro no se puede leer. Se ha conservado el contenido existente. Es necesario recuperar el historial a partir de datos verificados antes de generar contenido nuevo."
+
 msgid "Saved content and page sections are kept. Review the affected stages after changing the language. No generation starts automatically."
 msgstr "Se conservan el contenido guardado y las secciones de las páginas. Revise las etapas afectadas después de cambiar el idioma. No se inicia ninguna generación automáticamente."
 
@@ -10577,6 +10653,15 @@ msgstr "Se conserva el contenido guardado. Revise los resultados que dependen de
 
 msgid "Saved content is unavailable; your draft is retained"
 msgstr "El contenido guardado no está disponible; tu borrador se conserva"
+
+msgid "Saved pages:"
+msgstr "Páginas guardadas:"
+
+msgid "Saved Sectioning is unreadable on {total} page(s) (showing up to 20): {pages}. Those records were retained. Restore valid historical versions before replacing them. Other successful pages remain available."
+msgstr "El Seccionamiento guardado es ilegible en {total} página(s) (se muestran hasta 20): {pages}. Esos registros se conservaron. Restaura versiones válidas del historial antes de reemplazarlos. Las demás páginas generadas correctamente siguen disponibles."
+
+msgid "Saved sections changed. Your unsaved editor is retained against its original version. Discard your edits to load the current section."
+msgstr "Las secciones guardadas cambiaron. El editor con sus cambios sin guardar conserva la versión original como referencia. Descarte sus cambios para cargar la sección actual."
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Guardado. Vuelva a empaquetar la Vista previa para aplicar."
@@ -10797,9 +10882,6 @@ msgstr "Sección sin tipo"
 
 msgid "Sectioning"
 msgstr "Seccionamiento"
-
-msgid "Sectioning has changed since some sections were rendered. Open a section and use “Re-render this section” to update it, or re-run Storyboard to regenerate every page."
-msgstr "El seccionamiento ha cambiado desde que se renderizaron algunas secciones. Abre una sección y usa “Re-renderizar esta sección” para actualizarla, o vuelve a ejecutar Storyboard para regenerar todas las páginas."
 
 msgid "Sectioning mode"
 msgstr "Modo de sección"
@@ -11079,11 +11161,18 @@ msgstr "Configuración"
 msgid "Settings — a sharing update is ready"
 msgstr "Ajustes: hay una actualización para compartir"
 
+#. missingName is the provider's name (OpenAI, Anthropic, Claude Agent…).
+msgid "Settings — the default AI provider isn't set up ({missingName})"
+msgstr "Configuración — el proveedor de IA predeterminado no está configurado ({missingName})"
+
 msgid "Settings for this step are not yet available."
 msgstr "La configuración para esta etapa aún no está disponible."
 
 msgid "Settings guide"
 msgstr "Guía de configuraciones"
+
+msgid "Settings were saved. Review replacement again using the updated configuration and page window."
+msgstr "La configuración se ha guardado. Revisa de nuevo el reemplazo con la configuración y el intervalo de páginas actualizados."
 
 msgid "Setup couldn't finish"
 msgstr "La configuración no pudo terminar"
@@ -11404,18 +11493,18 @@ msgstr "Recorte Inteligente"
 msgid "So only this computer can share or change your books."
 msgstr "Así solo este ordenador puede compartir o cambiar tus libros."
 
-#~ msgid "So you can keep working right away"
-#~ msgstr "Para que puedas seguir trabajando enseguida"
-
 msgid "Software update"
 msgstr "Actualización de software"
 
 msgid "Software update status"
 msgstr "Estado de la actualización de software"
 
-#. placeholder {0}: warnings.length
-msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
-msgstr "Parte del contenido quedó fuera del paquete: {0} secciones renderizadas de {pageList} no tienen una sección de origen verificada y no pudieron incluirse. Su contenido e historial se conservan. Revisa sus identidades de sección en Storyboard y vuelve a crear el paquete."
+#. placeholder {0}: ownership.length
+msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageTotal} page(s) (showing up to 20): {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
+msgstr "Se omitió parte del contenido del paquete: {0} sección(es) renderizada(s) en {pageTotal} página(s) (se muestran hasta 20): {pageList} no tienen una sección de origen verificada y no pudieron incluirse. Su contenido e historial se conservan. Revisa las identidades de las secciones en Storyboard y vuelve a crear el paquete."
+
+msgid "Some history cannot be recovered from the available evidence. Existing content stays retained. A verified book backup may be needed; choosing an older selected version does not repair missing history."
+msgstr "Parte del historial no se puede recuperar con las evidencias disponibles. Se conserva el contenido existente. Puede ser necesaria una copia de seguridad verificada del libro; seleccionar una versión anterior no repara el historial que falta."
 
 msgid "Some items could not be updated. The list has been refreshed; completed changes are kept."
 msgstr "No se pudieron actualizar algunos elementos. La lista se ha actualizado; los cambios completados se conservan."
@@ -11426,8 +11515,17 @@ msgstr "Algunas páginas"
 msgid "Some pages differ from the export. They become the working source, so check generated features such as Speech after import."
 msgstr "Algunas páginas difieren de la exportación. Pasan a ser la fuente de trabajo, así que revisa las funciones generadas, como el audio, después de importar."
 
+msgid "Some pages have missing or unreadable input ({total} total; showing up to 20): {pages}. Other runnable pages remain available."
+msgstr "Algunas páginas tienen datos de entrada ausentes o ilegibles ({total} en total; se muestran hasta 20): {pages}. Las demás páginas procesables siguen disponibles."
+
+msgid "Some pages have missing or unreadable input: {pages}. Other runnable pages remain available."
+msgstr "Algunas páginas tienen datos de entrada ausentes o ilegibles: {pages}. Las demás páginas que se pueden procesar siguen disponibles."
+
 msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 msgstr "Algunas páginas no tienen capa de texto incrustado — el texto se recuperó a partir de la imagen de la página. Usa preferentemente un PDF basado en texto."
+
+msgid "Some pages or sections are missing Storyboard output. Existing pages remain available."
+msgstr "Algunas páginas o secciones no tienen contenido de Storyboard. Las páginas existentes siguen disponibles."
 
 msgid "Some permissions are missing"
 msgstr "Faltan algunos permisos"
@@ -11483,6 +11581,9 @@ msgstr "Candidatos de origen:"
 
 msgid "Source changed. Your edit has been kept."
 msgstr "La fuente ha cambiado. Se ha conservado tu edición."
+
+msgid "Source content changed after some Storyboard output was saved. The saved output remains available."
+msgstr "El contenido de origen cambió después de guardar parte del resultado del Storyboard. El resultado guardado sigue disponible."
 
 msgid "Source file"
 msgstr "Archivo de origen"
@@ -11780,6 +11881,15 @@ msgstr "Storyboard"
 msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
 msgstr "El storyboard ya se ejecutó. Los cambios realizados aquí no tendrán efecto hasta que se vuelva a ejecutar el storyboard."
 
+msgid "Storyboard inputs changed on {total} page(s) (showing up to 20): {pages}. Refresh the saved content before retrying. Previous output is retained."
+msgstr "Las entradas de Storyboard cambiaron en {total} página(s) (se muestran hasta 20): {pages}. Actualiza el contenido guardado antes de volver a intentarlo. Se conserva la salida anterior."
+
+msgid "Storyboard inputs changed or the requested scope is incompatible with this layout. Refresh the saved content and render the affected pages again."
+msgstr "Los datos de entrada de Storyboard cambiaron o el alcance solicitado es incompatible con este diseño. Actualiza el contenido guardado y vuelve a renderizar las páginas afectadas."
+
+msgid "Storyboard needs review"
+msgstr "El Storyboard necesita revisión"
+
 msgid "Storyboard nodes:"
 msgstr "Nodos del guion gráfico:"
 
@@ -11994,9 +12104,8 @@ msgstr "Tarea completada"
 msgid "Task failed"
 msgstr "La tarea falló"
 
-#. placeholder {0}: d.error
-msgid "Task failed: {0}"
-msgstr "La tarea falló: {0}"
+msgid "Task failed: {taskError}"
+msgstr "Error en la tarea: {taskError}"
 
 msgid "Task Running"
 msgstr "Tarea en Ejecución"
@@ -12043,6 +12152,9 @@ msgstr "Basado en plantillas"
 msgid "Templated"
 msgstr "Con plantilla"
 
+msgid "Temporarily unavailable"
+msgstr "No disponible temporalmente"
+
 msgid "term"
 msgstr "término"
 
@@ -12063,9 +12175,6 @@ msgstr "Los términos fueron seleccionados por IA del libro. Edita una definici�
 
 msgid "Terms, character names, or phrases the judge should preserve or prefer."
 msgstr "Términos, nombres de personajes o frases que el juez debe preservar o preferir."
-
-msgid "Test connection"
-msgstr "Probar conexión"
 
 msgid "Test notification"
 msgstr "Probar notificación"
@@ -12149,8 +12258,14 @@ msgstr "Eso no se realizó"
 msgid "That didn't resolve. Try again."
 msgstr "No se resolvió. Inténtalo de nuevo."
 
+msgid "That recovery copy name is already in use. Retry to use a new name. The original book is unchanged."
+msgstr "Ese nombre de copia recuperada ya está en uso. Vuelve a intentarlo para usar un nombre nuevo. El libro original no ha cambiado."
+
 msgid "That reply didn't send. Try again."
 msgstr "Esa respuesta no se envió. Inténtalo de nuevo."
+
+msgid "The activity changed while feedback was being generated. Review your draft and try again."
+msgstr "La actividad cambió mientras se generaban los comentarios. Revisa tu borrador y vuelve a intentarlo."
 
 msgid "The activity structure needs confirmation."
 msgstr "La estructura de la actividad necesita confirmación."
@@ -12179,6 +12294,15 @@ msgstr "El archivo debe contener una base de datos de proyecto y su PDF. Vuelve 
 msgid "The back cover of the book."
 msgstr "La contraportada del libro."
 
+msgid "The book changed after inspection. Inspect its history again and review the affected versions before confirming recovery."
+msgstr "El libro cambió después de la inspección. Inspecciona de nuevo su historial y revisa las versiones afectadas antes de confirmar la recuperación."
+
+msgid "The book changed while preparing the package. Prepare the export again using the current book."
+msgstr "El libro cambió mientras se preparaba el paquete. Vuelve a preparar la exportación con el libro actual."
+
+msgid "The book could not be found. Return to the Library and open it again."
+msgstr "No se pudo encontrar el libro. Vuelve a la Biblioteca y ábrelo de nuevo."
+
 msgid "The book couldn't be exported"
 msgstr "El libro no pudo ser exportado"
 
@@ -12203,6 +12327,12 @@ msgstr "El título y los metadatos del libro llegan con la parte que contiene la
 msgid "The built-in prompts are optimized for {DEFAULT_MODEL}. You switched the default LLM to <0>{savedModel}</0>, so we recommend generating new global prompt files tuned for it. You can also continue with the existing prompts."
 msgstr "Los prompts integrados están optimizados para {DEFAULT_MODEL}. Cambiaste el LLM predeterminado a <0>{savedModel}</0>, por lo que te recomendamos generar nuevos archivos de prompts globales adaptados a ese modelo. También puedes continuar con los prompts existentes."
 
+msgid "The bundle was built, but {assetTotal} image or media file(s) it refers to were not found and are missing from it."
+msgstr "El paquete se generó, pero no se encontraron {assetTotal} archivo(s) de imagen o multimedia a los que hace referencia, por lo que faltan en él."
+
+msgid "The bundle was built, but {assetTotal} image or media file(s) it refers to were not found and are missing from it. Pages affected (showing up to 20): {assetPageList}. Check the images on those pages, then build again."
+msgstr "El paquete se generó, pero no se encontraron {assetTotal} archivo(s) de imagen o multimedia a los que hace referencia, por lo que faltan en él. Páginas afectadas (se muestran hasta 20): {assetPageList}. Revisa las imágenes de esas páginas y vuelve a generarlo."
+
 msgid "The Cloudflare sign-in did not grant everything sharing needs. Disconnect, connect again, and allow every permission ADT Studio asks for. Nothing was created in your account."
 msgstr "El inicio de sesión de Cloudflare no concedió todo lo que compartir necesita. Desconecta, vuelve a conectar y permite todos los permisos que pide ADT Studio. No se creó nada en tu cuenta."
 
@@ -12218,14 +12348,14 @@ msgstr "Los comentarios que dejó la gente se conservan. Puedes reanudar el comp
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "La comunidad de organismos vivos en un lugar y la forma en que interactúan entre sí y con su entorno."
 
-msgid "The connection check could not be completed."
-msgstr "No se pudo completar la comprobación de la conexión."
-
 msgid "The connection to Cloudflare dropped or timed out. Check your internet, then try again — anything already set up is kept."
 msgstr "La conexión con Cloudflare se cortó o tardó demasiado. Revisa tu conexión a internet y vuelve a intentarlo; lo que ya está configurado se conserva."
 
 msgid "The copy also includes the current guide, because this archive’s guide is missing or outdated."
 msgstr "La copia también incluye la guía actual, porque la guía de este archivo falta o está desactualizada."
+
+msgid "The copy could not be validated. The original book is unchanged. Check that other apps have closed it and that there is enough disk space, then retry."
+msgstr "No se pudo validar la copia. El libro original no ha cambiado. Comprueba que las otras aplicaciones lo hayan cerrado y que haya suficiente espacio en disco; después, vuelve a intentarlo."
 
 msgid "The credits page."
 msgstr "La página de créditos."
@@ -12242,6 +12372,9 @@ msgstr "Falta la página de actividad declarada."
 msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure and ElevenLabs ignore it."
 msgstr "La instrucción TTS predeterminada aplicada a todos los idiomas salvo que se anule más abajo. OpenAI la usa como instrucción de voz y Gemini como guía de acento dentro del prompt; Azure y ElevenLabs la ignoran."
 
+msgid "The edit request is invalid. Refresh the saved content and try again."
+msgstr "La solicitud de edición no es válida. Actualiza el contenido guardado e inténtalo de nuevo."
+
 msgid "The end date can be changed once the sharing service answers"
 msgstr "Podrás cambiar la fecha de finalización cuando el servicio para compartir responda"
 
@@ -12250,6 +12383,9 @@ msgstr "Toda la página se trata como una sola sección - todo el texto e imáge
 
 msgid "The export couldn't be packed up"
 msgstr "La exportación no pudo ser empaquetada"
+
+msgid "The export was built, but {unreadableTotal} page(s) may not open in an EPUB reader. Documents affected (showing up to 20): {unreadableList}. Review those pages before sharing."
+msgstr "La exportación se ha generado, pero es posible que {unreadableTotal} página(s) no se abran en un lector EPUB. Documentos afectados (se muestran hasta 20): {unreadableList}. Revisa esas páginas antes de compartirlas."
 
 msgid "The exported activity marker is missing."
 msgstr "Falta el marcador de actividad exportado."
@@ -12292,6 +12428,9 @@ msgstr "La última fecha que conoce esta computadora. Podrás cambiarla cuando e
 
 msgid "The last translation review failed before producing reliable item-level results. Run Review again for the visible translations."
 msgstr "La última revisión de traducción falló antes de producir resultados fiables por elemento. Vuelve a ejecutar Revisar para las traducciones visibles."
+
+msgid "The layout switch has {total} unfinished page(s) (showing up to 20): {pages}. Inspect their inputs and page errors, then retry the whole Storyboard stage. Previous output is retained."
+msgstr "El cambio de diseño tiene {total} página(s) sin terminar (se muestran hasta 20): {pages}. Revisa sus entradas y errores de página y vuelve a ejecutar toda la etapa de Storyboard. Se conserva la salida anterior."
 
 msgid "The link doesn't open right now. Resuming turns the same link back on, with every comment kept."
 msgstr "El enlace no se abre ahora mismo. Al reanudar se vuelve a activar el mismo enlace, con todos los comentarios."
@@ -12364,6 +12503,18 @@ msgstr "El mensaje incluye el título, el enlace y el código."
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "El modelo detecta cajas delimitadoras para que cada elemento visual pueda almacenarse y disponerse por separado."
 
+msgid "The original history could not be verified. Existing records and assets have been retained. Recovery requires trustworthy evidence for these exact versions."
+msgstr "No se pudo verificar el historial original. Se han conservado los registros y recursos existentes. La recuperación requiere evidencias fiables para estas versiones exactas."
+
+msgid "The package document {document} requires a missing or invalid file: {member}. Existing output is retained. Correct the saved content or restore the file, then prepare the export again."
+msgstr "El documento {document} del paquete requiere un archivo que falta o no es válido: {member}. Se conserva la salida existente. Corrige el contenido guardado o restaura el archivo y vuelve a preparar la exportación."
+
+msgid "The package is missing required files. Prepare the export again before downloading it."
+msgstr "Faltan archivos necesarios en el paquete. Vuelve a preparar la exportación antes de descargarla."
+
+msgid "The package recovery folder is unrecognized. Existing files have been retained. Check the book folder before preparing another export."
+msgstr "No se reconoce la carpeta de recuperación del paquete. Se han conservado los archivos existentes. Revisa la carpeta del libro antes de preparar otra exportación."
+
 msgid "The page"
 msgstr "La página"
 
@@ -12396,6 +12547,9 @@ msgstr "La página usa un script externo no compatible."
 
 msgid "The page’s element ids no longer match the page lists in manifest.json and content/pages.json."
 msgstr "Los ids de los elementos de la página ya no coinciden con las listas de páginas de manifest.json y content/pages.json."
+
+msgid "The PDF or extraction settings are invalid. Check the file and settings before trying again."
+msgstr "El PDF o la configuración de extracción no son válidos. Comprueba el archivo y la configuración antes de volver a intentarlo."
 
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "El proceso que las plantas usan para convertir la luz solar, agua y dióxido de carbono en alimento."
@@ -12460,11 +12614,17 @@ msgstr "El veloz zorro marrón salta sobre el perro perezoso."
 msgid "The reader experience"
 msgstr "La experiencia del lector"
 
+msgid "The recovery request is invalid. Inspect the book again and explicitly confirm the affected versions."
+msgstr "La solicitud de recuperación no es válida. Inspecciona el libro de nuevo y confirma explícitamente las versiones afectadas."
+
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "La estrategia de renderización usada para secciones sin un mapeo explícito."
 
 msgid "The request appears as <0>Wrangler</0> — Cloudflare's own tool, which ADT Studio signs in through. This is expected."
 msgstr "La solicitud aparece como <0>Wrangler</0> — la propia herramienta de Cloudflare, a través de la cual ADT Studio inicia sesión. Esto es esperado."
+
+msgid "The requested pages are outside the active page window ({total} total; showing up to 20): {pages}. Select pages within the current window. Saved content is retained."
+msgstr "Las páginas solicitadas están fuera del intervalo de páginas activo ({total} en total; se muestran hasta 20): {pages}. Selecciona páginas dentro del intervalo actual. El contenido guardado se conserva."
 
 msgid "The rules ADT Studio checks. Your assistant gets them with the repair request."
 msgstr "Las reglas que comprueba ADT Studio. Tu asistente las recibe con la solicitud de reparación."
@@ -12474,6 +12634,9 @@ msgstr "El mismo data-id se usa en más de una página."
 
 msgid "The same edition in every language."
 msgstr "La misma edición en cada idioma."
+
+msgid "The saved content changed. Your draft is retained. Refresh and review the current versions before retrying."
+msgstr "El contenido guardado cambió. Tu borrador se conserva. Actualiza y revisa las versiones actuales antes de volver a intentarlo."
 
 msgid "The saved translation review is stale. Run Review again for the visible translations."
 msgstr "La revisión de traducción guardada está obsoleta. Vuelve a ejecutar Revisar para las traducciones visibles."
@@ -12501,6 +12664,9 @@ msgstr "El servicio para compartir no responde. Todos los comentarios están a s
 
 msgid "The small program that shows your books."
 msgstr "El pequeño programa que muestra tus libros."
+
+msgid "The source PDF has changed. Existing content is retained. Import the changed PDF as a new book."
+msgstr "El PDF de origen ha cambiado. Se conserva el contenido existente. Importa el PDF modificado como un libro nuevo."
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "El storyboard debe completarse antes de generar {stageName}. Ejecuta la etapa de Storyboard primero."
@@ -12556,14 +12722,20 @@ msgstr "tema apariencia oscuro claro modo"
 msgid "theme appearance system automatic"
 msgstr "tema apariencia sistema automático"
 
-#~ msgid "Then zip the folder again."
-#~ msgstr "Luego vuelve a comprimir la carpeta en un ZIP."
+msgid "There is no readable history that needs a recovery checkpoint."
+msgstr "No hay historial legible que necesite un punto de recuperación."
+
+msgid "There is not enough disk space for the copy. Free space and retry. The original book is unchanged."
+msgstr "No hay suficiente espacio en disco para la copia. Libera espacio e inténtalo de nuevo. El libro original no ha cambiado."
 
 msgid "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
 msgstr "Estos cambios aún no se han aplicado. Si sales, se perderán, o guarda y re-ejecuta para aplicarlos. La ejecución continúa en segundo plano mientras sigues trabajando."
 
 msgid "These features improve access for people with disabilities. Running them before exporting helps your book meet ADT accessibility standards."
 msgstr "Estas funciones mejoran el acceso para personas con discapacidades. Ejecutarlas antes de exportar ayuda a que su libro cumpla con los estándares de accesibilidad ADT."
+
+msgid "These keys are shared with Settings → AI providers and apply to every book."
+msgstr "Estas claves se comparten con Configuración → Proveedores de IA y se aplican a todos los libros."
 
 msgid "These pages come from an imported ADT export. Edit them here; regenerating Storyboard is off so it can’t overwrite them."
 msgstr "Estas páginas provienen de una exportación ADT importada. Edítalas aquí; la regeneración de Storyboard está desactivada para que no pueda sobrescribirlas."
@@ -12613,6 +12785,9 @@ msgstr "Esta actividad no tiene textos ni respuestas direccionables. Vuelve a ge
 msgid "This activity was added after export."
 msgstr "Esta actividad se añadió después de la exportación."
 
+msgid "This activity was rebuilt or replaced. Your draft is intact. Choose which complete activity to keep."
+msgstr "Esta actividad se ha regenerado o reemplazado. Tu borrador sigue intacto. Elige qué actividad completa quieres conservar."
+
 msgid "This ADT export can’t be read"
 msgstr "Esta exportación ADT no se puede leer"
 
@@ -12643,6 +12818,9 @@ msgstr "Este libro no tiene imágenes para subtitular"
 msgid "This book has no pages. Make sure the extraction and storyboard stages produced content before generating {stageName}."
 msgstr "Este libro no tiene páginas. Asegúrate de que las etapas de extracción y storyboard produjeron contenido antes de generar {stageName}."
 
+msgid "This book has no verified extraction record. Saved content is retained. Start extraction in a new book."
+msgstr "Este libro no tiene un registro de extracción verificado. Se conserva el contenido guardado. Inicia la extracción en un libro nuevo."
+
 msgid "This book is a part — its page range is fixed to the assigned subset and cannot be changed."
 msgstr "Este libro es una parte: su rango de páginas es fijo, corresponde al subconjunto asignado y no se puede cambiar."
 
@@ -12654,6 +12832,9 @@ msgstr "Este libro está completamente ensamblado"
 
 msgid "This book is not on this computer."
 msgstr "Este libro no está en este equipo."
+
+msgid "This book is temporarily unavailable. Its saved content is preserved. Try opening it for details and retry after resolving the reported problem."
+msgstr "Este libro no está disponible temporalmente. Su contenido guardado se conserva. Intenta abrirlo para ver los detalles y vuelve a intentarlo después de resolver el problema indicado."
 
 #. placeholder {0}: book.title
 msgid "This book is titled \"{0}\"."
@@ -12669,14 +12850,29 @@ msgstr "Este libro aún no está completo — las páginas <0>{0}</0> no se han 
 msgid "This book isn't shared right now"
 msgstr "Este libro no está compartido en este momento"
 
+msgid "This book may still be in use. Finish any active work and close other book apps, then retry. If it stays unavailable, go to Library, select this book, and choose Recover a copy. If recovery is also refused, restart your computer and try again."
+msgstr "Este libro podría seguir en uso. Termina cualquier trabajo activo y cierra otras aplicaciones de libros; luego vuelve a intentarlo. Si sigue sin estar disponible, ve a Biblioteca, selecciona este libro y elige Recuperar una copia. Si tampoco se permite la recuperación, reinicia el equipo y vuelve a intentarlo."
+
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "Este libro se renderiza con diseño fijo, por lo que mantiene las fuentes originales del PDF. Las fuentes adjuntas igualmente guían a la IA en actividades y páginas generadas."
 
 msgid "This book was already shared — another window may have done it. Use \"Update site\" to push your latest changes to the link you already have."
 msgstr "Este libro ya estaba compartido; puede que lo haya hecho otra ventana. Usa \"Actualizar sitio\" para enviar tus últimos cambios al enlace que ya tienes."
 
+msgid "This book's configuration is invalid or unreadable. Check its config.yaml file, then open the book again."
+msgstr "La configuración de este libro no es válida o no se puede leer. Comprueba su archivo config.yaml y vuelve a abrir el libro."
+
+msgid "This book's saved part window is invalid or unreadable. Restore a valid part manifest before running it. Saved content is retained."
+msgstr "El intervalo guardado de la parte de este libro no es válido o es ilegible. Restaura un manifiesto de parte válido antes de ejecutarlo. El contenido guardado se conserva."
+
+msgid "This bundle is incomplete. Storyboard output is missing on {missingTotal} page(s) (showing up to 20): {missingList}. Render those pages to complete it."
+msgstr "Este paquete está incompleto. Falta la salida de Storyboard en {missingTotal} página(s) (se muestran hasta 20): {missingList}. Renderiza esas páginas para completarlo."
+
 msgid "This cannot be undone. Every link you have shared will stop working."
 msgstr "Esto no se puede deshacer. Todos los enlaces que has compartido dejarán de funcionar."
+
+msgid "This changes how new Sectioning is generated. Saved content and Storyboard stay available. Replacing existing pages requires a separate confirmation."
+msgstr "Esto cambia cómo se genera el nuevo Seccionamiento. El contenido guardado y Storyboard siguen disponibles. Reemplazar las páginas existentes requiere una confirmación aparte."
 
 msgid "This code still works. A new one can wait until the service is back."
 msgstr "Este código sigue funcionando. Uno nuevo puede esperar a que el servicio vuelva."
@@ -12837,6 +13033,9 @@ msgstr "Esta página cambió después de que empezaras a editarla, por lo que al
 msgid "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "La capa de texto incrustado de esta página está vacía, pero el paso de Seccionamiento recuperó texto a partir de la imagen de la página, por lo que parece una página escaneada o solo de imagen. La canalización aún puede funcionar con el texto recuperado, pero para obtener mejores resúmenes, metadatos y traducciones, intenta conseguir una versión de este PDF basada en texto (con una capa de texto real) en lugar de una copia escaneada."
 
+msgid "This page's saved Sectioning is unreadable. Restore a valid historical version before replacing it. History and media are retained."
+msgstr "El Seccionamiento guardado de esta página es ilegible. Restaura una versión válida del historial antes de reemplazarlo. El historial y los archivos multimedia se conservan."
+
 msgid "This part cannot be merged"
 msgstr "Esta parte no se puede fusionar"
 
@@ -12867,9 +13066,6 @@ msgstr "Este proyecto se creó a partir de una publicación ADT exportada, por l
 msgid "This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used."
 msgstr "Este aviso instruye al LLM cómo evaluar el HTML renderizado contra la página original. La selección arriba controla qué plantilla se usa."
 
-msgid "This provider does not require local credentials."
-msgstr "Este proveedor no requiere credenciales locales."
-
 msgid "This provider has no automatic connection check."
 msgstr "Este proveedor no tiene verificación automática de conexión."
 
@@ -12884,6 +13080,15 @@ msgstr "Este cuestionario ya no está en el libro; puede que se haya eliminado d
 
 msgid "This quiz will be removed from the book. You can still restore it from the version history."
 msgstr "Este cuestionario se quitará del libro. Aún podrás restaurarlo desde el historial de versiones."
+
+msgid "This record was changed or recreated; older evidence cannot restore it"
+msgstr "Este registro se modificó o se volvió a crear; las evidencias anteriores no pueden restaurarlo"
+
+msgid "This recovery record could not be found. Inspect the book history again."
+msgstr "No se pudo encontrar este registro de recuperación. Inspecciona de nuevo el historial del libro."
+
+msgid "This recovery request was already used with different details. Inspect the book again before making a new request."
+msgstr "Esta solicitud de recuperación ya se utilizó con datos diferentes. Inspecciona el libro de nuevo antes de realizar una nueva solicitud."
 
 msgid "This release includes general improvements and fixes."
 msgstr "Esta versión incluye mejoras generales y correcciones."
@@ -12903,8 +13108,8 @@ msgstr "Esto reemplaza el índice editado manualmente o heredado. Su versión gu
 msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 msgstr "Esto restaura la fuente predeterminada en todas las páginas y borra los ajustes de fuente por elemento y la selección de fuente para todo el libro. Las fuentes adjuntas permanecen en la lista. La reversión está disponible por página en el historial de versiones."
 
-msgid "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. This page can be regenerated on the next Re-run."
-msgstr "Esto restaura la última división en secciones generada para esta página. Tu versión editada permanece en el historial. Las demás páginas conservan sus cambios. Esta página podrá regenerarse en la próxima ejecución."
+msgid "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. Replacing this page later requires a separate confirmation."
+msgstr "Esto restaura el último Seccionamiento generado para esta página. Tu versión editada permanece en el historial. Las demás páginas conservan sus ediciones. Reemplazar esta página más adelante requiere una confirmación aparte."
 
 msgid "This screen couldn’t load"
 msgstr "Esta pantalla no pudo cargarse"
@@ -13416,6 +13621,9 @@ msgstr "Actualización disponible"
 msgid "Update filtered items"
 msgstr "Actualizar elementos filtrados"
 
+msgid "Update key"
+msgstr "Actualizar clave"
+
 msgid "Update link"
 msgstr "Actualizar enlace"
 
@@ -13575,6 +13783,9 @@ msgstr "Usa Extendido para libros impresos con diseños de páginas enfrentadas 
 msgid "Use the + between pages to place the quiz"
 msgstr "Usa el + entre las páginas para colocar el cuestionario"
 
+msgid "Use the entire latest saved activity instead of this draft."
+msgstr "Usa la última actividad guardada completa en lugar de este borrador."
+
 msgid "Use the exported pages"
 msgstr "Usar las páginas exportadas"
 
@@ -13671,6 +13882,9 @@ msgstr "Variaciones"
 msgid "Verified applied"
 msgstr "Aplicación verificada"
 
+msgid "Verified original available"
+msgstr "Original verificado disponible"
+
 #. placeholder {0}: String(data.version)
 #. placeholder {0}: String(version)
 #. placeholder {0}: connection.worker_version
@@ -13742,6 +13956,9 @@ msgstr "Ver página"
 msgid "View page {pageNum} larger"
 msgstr "Ver la página {pageNum} más grande"
 
+msgid "View recovery evidence"
+msgstr "Ver evidencias de recuperación"
+
 msgid "Visible page entries"
 msgstr "Entradas visibles de la página"
 
@@ -13795,6 +14012,9 @@ msgstr "Espere a que el storyboard se complete"
 
 msgid "Wait for the current operation to finish, then try the import again."
 msgstr "Espera a que termine la operación actual y, luego, vuelve a intentar la importación."
+
+msgid "Wait for the current operation to finish."
+msgstr "Espera a que termine la operación actual."
 
 msgid "Waiting"
 msgstr "Pendiente"
@@ -14018,9 +14238,6 @@ msgstr "Toda la página"
 
 msgid "Whole-book checks for packaged ADT output, plus reviewer findings captured from Preview."
 msgstr "Comprobaciones de todo el libro para la salida ADT empaquetada, más los hallazgos de revisores registrados desde la Vista previa."
-
-#~ msgid "Why this needs review"
-#~ msgstr "Por qué esto necesita revisión"
 
 msgid "Wide multilingual coverage with neural voices for many locales."
 msgstr "Amplia cobertura multilingüe con voces neuronales para muchos lugares."
