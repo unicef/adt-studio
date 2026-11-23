@@ -544,9 +544,15 @@ A book in case B is offered both Resume and Replace. A part book is offered
 Resume and Retry only: its page window is fixed, and changing its other
 extraction settings would make it unmergeable.
 
-A resumed image-meaningfulness pass re-judges the images each page currently
-keeps, because that pass leaves no per-page record. A manual keep decision can
-therefore be overturned by the resumed pass; earlier versions stay restorable.
+Each image pass reads only the images it is meant for: meaningfulness and
+segmentation read images that came from the PDF, and cropping reads those plus
+the segments. A resumed pass therefore never prunes, segments or crops a
+segment, a crop or an upload that an earlier pass or the user produced.
+
+A resumed image-meaningfulness pass re-judges the PDF images each page currently
+keeps, because that pass leaves no per-page record. A manual keep decision on
+such an image can therefore be overturned by the resumed pass; earlier versions
+stay restorable.
 Studio's Extract view shows the run card instead of the page grid while the
 stage is failed or interrupted, so such edits are not made from there.
 
