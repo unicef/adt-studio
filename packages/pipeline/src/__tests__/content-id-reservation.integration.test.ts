@@ -206,6 +206,9 @@ it("AC-24: rejects a new rendered image id ending in _audio", () => {
 
 it("AC-24: the image-save guard rejects a new image id ending in _audio", () => {
   expect(findIntroducedImageAudioCollision(["pg001_im999_audio"], [])).toBe("pg001_im999_audio")
+  // The route passes the extracted image bases as previous: a real base image
+  // with a newly introduced `_audio` variant is still a new slot.
+  expect(findIntroducedImageAudioCollision(["pg001_im999_audio"], ["pg001_im999"])).toBe("pg001_im999_audio")
   expect(findIntroducedImageAudioCollision(["pg001_im999_audio"], ["pg001_im999_audio"])).toBeUndefined()
   // A real text id and a normal image id are not the reserved slot.
   expect(findIntroducedImageAudioCollision(["pg001_listen_audio"], [])).toBeUndefined()

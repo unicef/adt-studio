@@ -1980,8 +1980,9 @@ describe("packageAdtWeb", () => {
       path.join(bookDir, "adt", "assets", "offline-preloader.js"),
       "utf-8",
     )
-    expect(preloader).toContain("element_audio.json")
-    expect(preloader).toContain("pg001_im001")
+    expect(preloader).toContain(
+      '"./content/i18n/en/element_audio.json":["pg001_im001"]',
+    )
   })
 
   it("AC-14/AC-24: a legacy image id ending _audio is not remapped", async () => {
