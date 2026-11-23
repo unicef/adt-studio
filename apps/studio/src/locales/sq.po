@@ -9118,6 +9118,9 @@ msgstr "Kryesor"
 msgid "Print a variable"
 msgstr "Shfaq një variabël"
 
+msgid "Problems to fix"
+msgstr "Problemet për t’u rregulluar"
+
 msgid "Process every page on this machine."
 msgstr "Përpunoni çdo faqe në këtë makinë."
 
