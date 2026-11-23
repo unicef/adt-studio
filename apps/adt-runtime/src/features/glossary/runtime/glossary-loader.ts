@@ -8,12 +8,18 @@ import {
   glossaryDataAtom,
   type GlossaryData,
 } from "@/features/glossary/state/glossary.atoms"
+import { appConfigAtom } from "@/shared/state/config.atoms"
 
 export async function loadGlossary(
   lang: string,
   bundleVersion?: string,
   isCurrent: () => boolean = () => true,
 ): Promise<GlossaryData> {
+  // The export writes no glossary.json when the glossary is off (#1157).
+  if (getDefaultStore().get(appConfigAtom).features?.glossary === false) {
+    if (isCurrent()) getDefaultStore().set(glossaryDataAtom, {})
+    return {}
+  }
   const versionParam = bundleVersion ? `?v=${bundleVersion}` : ""
   const url = `./content/i18n/${lang}/glossary.json${versionParam}`
   try {

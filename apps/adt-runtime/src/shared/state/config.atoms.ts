@@ -8,6 +8,12 @@ export interface AppFeatures {
   signLanguage?: boolean
   easyRead?: boolean
   glossary?: boolean
+  /**
+   * Whether the export carries a second narrator (`audio_voices.json` and
+   * `timecode/timecode_voices.json`). Only an explicit `false` skips those
+   * requests: configs written before the flag existed don't say (#1157).
+   */
+  voiceVariants?: boolean
   eli5?: boolean
   readAloud?: boolean
   autoplay?: boolean

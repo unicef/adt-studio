@@ -10,6 +10,7 @@
  */
 import { getDefaultStore } from "jotai"
 import { timecodeMapsAtom, type TimecodeMap, type WordTimestamp } from "@/features/audio/state/audio.atoms"
+import { appConfigAtom } from "@/shared/state/config.atoms"
 
 interface RawTimecodeEntry {
   timecodes?: [unknown, { word_timestamps?: WordTimestamp[] }]
@@ -35,9 +36,11 @@ export async function loadTimecodes(
       primary: map,
       secondary: {},
     }
+    // A book with one narrator has no timecode_voices.json (#1157).
+    const voiceVariants = getDefaultStore().get(appConfigAtom).features?.voiceVariants !== false
     try {
-      const voicesRes = await fetch(voicesUrl)
-      if (voicesRes.ok) {
+      const voicesRes = voiceVariants ? await fetch(voicesUrl) : null
+      if (voicesRes?.ok) {
         const voicesRaw = (await voicesRes.json()) as Record<
           "primary" | "secondary",
           Record<string, RawTimecodeEntry>
