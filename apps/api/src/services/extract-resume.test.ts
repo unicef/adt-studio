@@ -273,6 +273,63 @@ describe("SPEC-0003 Extract resume", { timeout: 60_000 }, () => {
     expect(ids.filter(id => id.startsWith("pg002") && /_seg|_crop/.test(id)).every(id => listed.has(id))).toBe(true)
   })
 
+  it("RAC-21: a resumed meaningfulness pass judges only images that came from the PDF", async () => {
+    const b = book()
+    seedImageLists(b, ["image-filtering", "image-meaningfulness"])
+    llm.segment.add("pg001_im001")
+    llm.crop.add("pg001_im002")
+    await b.resume()
+    // Meaningfulness did not finish, but segmentation and cropping already ran:
+    // the lists hold kept segments and crops.
+    b.read(storage => storage.clearStepRuns(["image-meaningfulness"]))
+    const derived = ["pg001_im001_seg001_v1", "pg001_im001_seg002_v1", "pg001_im002_crop_v1"]
+    const before = imageList(b, "pg001")
+    for (const id of derived) expect(before.images.find(image => image.imageId === id)).toMatchObject({ isPruned: false })
+
+    llm.calls.length = 0
+    for (const id of derived) llm.reject.add(id)
+    const events = await b.resume()
+    expect(stepEvents(events, "step-start")).toEqual(["image-meaningfulness"])
+    const judged = callsOf("image-meaningfulness").flatMap(call => call.imageIds)
+    expect(judged.length).toBeGreaterThan(0)
+    expect(judged.filter(id => /_seg|_crop/.test(id))).toEqual([])
+    expect(imageList(b, "pg001")).toEqual(before)
+  })
+
+  it("RAC-21: resumed segmentation and cropping leave manual crops and uploads alone", async () => {
+    const b = book()
+    seedImageLists(b, ["image-filtering", "image-meaningfulness"])
+    // A crop and an upload the user added in Extract; neither pass has a record for pg001.
+    const manual = ["pg001_im001_crop_manual", "pg001_upload001"]
+    const source = b.rows("SELECT path, width, height FROM images WHERE image_id = 'pg001_im001'")[0] as { path: string; width: number; height: number }
+    const db = openBookDb(path.join(b.dir, `${label}.db`))
+    try {
+      for (const [index, id] of manual.entries()) {
+        fs.copyFileSync(path.join(b.dir, source.path), path.join(b.dir, "images", `${id}.png`))
+        db.run("INSERT INTO images (image_id, page_id, path, hash, width, height, source) VALUES (?, 'pg001', ?, ?, ?, ?, ?)",
+          [id, `images/${id}.png`, `manual-${index}`, source.width, source.height, index === 0 ? "crop" : "upload"])
+      }
+    } finally { db.close() }
+    b.read(storage => {
+      const list = storage.getLatestNodeData("image-filtering", "pg001")!.data as ReturnType<typeof imageList>
+      storage.putNodeData("image-filtering", "pg001", { images: [...list.images, ...manual.map(imageId => ({ imageId, isPruned: false }))] })
+    })
+
+    llm.segment.add("pg001_im001")
+    llm.crop.add("*")
+    await b.resume()
+    for (const task of ["image-segmentation", "image-cropping"]) {
+      const sent = callsOf(task).filter(call => call.pageId === "pg001").flatMap(call => call.imageIds)
+      expect(sent, task).toContain("pg001_im002")
+      expect(sent.filter(id => manual.includes(id)), task).toEqual([])
+    }
+    // The cropping pass still crops what segmentation produced.
+    expect(callsOf("image-cropping").find(call => call.pageId === "pg001")!.imageIds).toContain("pg001_im001_seg001_v1")
+    const ids = (b.rows("SELECT image_id FROM images WHERE page_id = 'pg001'") as Array<{ image_id: string }>).map(row => row.image_id)
+    expect(ids.filter(id => manual.some(m => id.startsWith(`${m}_`)))).toEqual([])
+    for (const id of manual) expect(imageList(b, "pg001").images.find(image => image.imageId === id)).toEqual({ imageId: id, isPruned: false })
+  })
+
   it("RAC-21: a page whose segments cannot all be stored keeps no segmentation record", async () => {
     const b = book()
     seedImageLists(b, ["image-filtering", "image-meaningfulness"])

@@ -4074,6 +4074,18 @@ async function runSpeechStep(
   }
 }
 
+/** What each image pass reads. Segments and crops are made by the later passes
+ * or by the user, and uploads by the user: meaningfulness judges, and
+ * segmentation splits, only images that came from the PDF, and cropping adds
+ * the segments. So a resumed pass (SPEC-0003 RAC-21) never prunes, segments or
+ * crops what an earlier pass or the user produced. On a first extraction no
+ * other image exists when each pass runs, so this selects every image. */
+const PDF_IMAGE_SOURCES: ReadonlySet<string> = new Set(["page", "extract"])
+const CROPPABLE_IMAGE_SOURCES: ReadonlySet<string> = new Set([...PDF_IMAGE_SOURCES, "segment"])
+function pageImagesFrom(storage: Storage, pageId: string, sources: ReadonlySet<string>) {
+  return storage.getPageImages(pageId, true).filter((image) => sources.has(image.storedAsset?.source ?? ""))
+}
+
 async function runFilterPass(
   label: string,
   pages: PageData[],
@@ -4155,13 +4167,14 @@ async function runMeaningfulnessPass(
   progress.emit({ type: "step-start", step: "image-meaningfulness" })
   // Identical bytes on several pages are judged once: only the first copy
   // goes to the model, and its verdict is copied onto the others afterwards.
-  const dedupPlan = buildHashDedupPlan(storage, pages, (pageId) => results.get(pageId))
+  const dedupPlan = buildHashDedupPlan(storage, pages, (pageId) => results.get(pageId), PDF_IMAGE_SOURCES)
   const judgedPages = new Set<string>()
   /** Judge one page's images that `include` accepts; false when the page failed (reported for a skip/stop decision). */
   const judgePage = async (page: PageData, include: (imageId: string) => boolean): Promise<boolean> => {
     const existing = results.get(page.pageId)!
     try {
-      const unprunedImages = buildMeaningfulnessImages(storage, page.pageId, existing, include)
+      const fromPdf = new Set(pageImagesFrom(storage, page.pageId, PDF_IMAGE_SOURCES).map((image) => image.imageId))
+      const unprunedImages = buildMeaningfulnessImages(storage, page.pageId, existing, (imageId) => fromPdf.has(imageId) && include(imageId))
 
       if (unprunedImages.length > 0) {
         const updated = await filterPageImageMeaningfulness(
@@ -4263,7 +4276,7 @@ async function runSegmentationPass(
       return
     }
     try {
-      const images = storage.getPageImages(page.pageId)
+      const images = pageImagesFrom(storage, page.pageId, PDF_IMAGE_SOURCES)
       const unprunedIds = new Set(
         existing.images.filter((img) => !img.isPruned).map((img) => img.imageId)
       )
@@ -4387,7 +4400,7 @@ async function runCroppingPass(
       return
     }
     try {
-      const images = storage.getPageImages(page.pageId)
+      const images = pageImagesFrom(storage, page.pageId, CROPPABLE_IMAGE_SOURCES)
       const prunedIds = new Set(
         existing.images.filter((img) => img.isPruned).map((img) => img.imageId)
       )
