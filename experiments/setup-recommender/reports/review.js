@@ -175,7 +175,7 @@
     const pct = (n, d) => (d ? Math.round((100 * n) / d) + "%" : "–")
     const findings = Object.values(state).filter((s) => s.kind === "finding" && s.verdict)
     document.getElementById("score").innerHTML =
-      `<thead><tr><th>Model</th><th class="r">Settings right</th><th class="r">Wrong, but the user was asked</th><th class="r">Wrong and not asked</th><th class="r">Pages to import right</th></tr></thead><tbody>` +
+      `<thead><tr><th>Model</th><th class="r">Settings right</th><th class="r">Wrong, but the user was asked</th><th class="r">Wrong and not asked</th><th class="r">Page Range right</th></tr></thead><tbody>` +
       models.map((m) => { const a = acc[m]; return `<tr><td>${m}</td><td class="r">${a.right}/${a.set} · ${pct(a.right, a.set)}</td><td class="r">${a.asked}</td><td class="r${a.silent ? " bad" : ""}">${a.silent}</td><td class="r">${a.rright}/${a.rset} · ${pct(a.rright, a.rset)}</td></tr>` }).join("") +
       `</tbody><caption class="note" style="caption-side:bottom;text-align:left;padding-top:6px">${booksChecked} of ${META.books.length} books checked · ${findings.length} of 5 findings answered. Counts every run (3 per model per book) against your answers.</caption>`
   }

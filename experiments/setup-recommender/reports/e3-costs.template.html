@@ -151,13 +151,13 @@ details summary{cursor:pointer;font-size:13px;color:var(--accent)}
       <div class="tablewrap"><table>
         <thead><tr><th>Setting</th><th>Decided by</th><th>Rule</th><th>After import</th></tr></thead>
         <tbody>
-          <tr><td>Kind of book (preset)</td><td>Kind of book</td><td>Story → Storybook, school book → Textbook, information → Reference.</td><td>Can change</td></tr>
-          <tr><td>Page layout</td><td>Kind of book, where the words sit, text layer</td><td>Information → one column. School book → rebuilt by AI. Story with words on the pictures → keep the printed page (words rebuilt on top if the PDF has no real text). Words beside the pictures → picture beside the words. Mostly words → rebuilt to fit the screen.</td><td>Can change</td></tr>
-          <tr><td>Pictures across two pages</td><td>Measured only</td><td>Join facing pages when pictures cross the gutter on at least a quarter of the pairs. Wide pages already hold both sides.</td><td><span class="pill w">Fixed</span></td></tr>
-          <tr><td>Maps and labelled drawings</td><td>Labelled pictures, measured diagrams, text layer</td><td>Keep each figure together with its labels when the PDF has real text and either reading or the scan found labelled pictures.</td><td><span class="pill w">Fixed</span></td></tr>
-          <tr><td>Interactive activities</td><td>Kind of book, exercises</td><td>On only for a school book with exercises. The Storybook and Reference presets remove exercise sections, so turning activities on there would delete them.</td><td>Can change</td></tr>
-          <tr><td>How each page is split</td><td>Kind of book, exercises, layout</td><td>Split into reading and tasks for a school book with exercises, unless the printed page is kept.</td><td>Can change</td></tr>
-          <tr><td>Pages to import</td><td>Page labels</td><td>Leave out opening and end pages that aren't the book itself, when the labels show where it starts and ends.</td><td><span class="pill w">Fixed</span></td></tr>
+          <tr><td>Preset</td><td>Kind of book</td><td>Story → Storybook, school book → Textbooks &amp; Activities, information → Reference.</td><td>Can change</td></tr>
+          <tr><td>Render Strategy</td><td>Kind of book, where the words sit, text layer</td><td>Information → Single Column. School book → Dynamic. Story with words on the pictures → Fixed Layout (Dynamic Overlay if the PDF has no real text). Words beside the pictures → Two Columns Story. Mostly words → Dynamic.</td><td>Can change</td></tr>
+          <tr><td>Page Grouping</td><td>Measured only</td><td>Spread when pictures cross the gutter on at least a quarter of the pairs. Wide pages already hold both sides.</td><td><span class="pill w">Fixed</span></td></tr>
+          <tr><td>Figure Extraction</td><td>Labelled pictures, measured diagrams, text layer</td><td>Auto (keep each figure together with its labels) when the PDF has real text and either reading or the scan found labelled pictures.</td><td><span class="pill w">Fixed</span></td></tr>
+          <tr><td>Activities</td><td>Kind of book, exercises</td><td>On only for a school book with exercises. The Storybook and Reference presets remove exercise sections, so turning activities on there would delete them.</td><td>Can change</td></tr>
+          <tr><td>Sectioning</td><td>Kind of book, exercises, layout</td><td>Dynamic (reading and tasks split apart) for a school book with exercises, unless Render Strategy is Fixed Layout. Otherwise Per Page.</td><td>Can change</td></tr>
+          <tr><td>Page Range</td><td>Page labels</td><td>Leave out opening and end pages that aren't the book itself, when the labels show where it starts and ends.</td><td><span class="pill w">Fixed</span></td></tr>
         </tbody>
       </table></div>
       <p class="note">The server sends the settings for all 81 combinations of the four facts, so when the user answers a question the screen updates the picks without running the rules in the browser.</p>

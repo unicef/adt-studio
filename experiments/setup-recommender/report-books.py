@@ -13,12 +13,12 @@ PRICES = {"gpt-5.4": (2.5, 15), "gpt-5.4-mini": (0.75, 4.5)}
 MODELS = ["gpt-5.4-mini", "gpt-5.4"]
 
 SETTING = [
-    ("preset", "Kind of book", {"storybook": "Story", "textbook": "School book", "reference": "Information"}),
-    ("renderStrategy", "Page layout", {"llm": "Rebuilt to fit", "llm-overlay": "Page + words on top", "single_column": "One column", "two_column_story": "Picture beside words", "fixed_layout": "Keep printed page"}),
-    ("pageGrouping", "Two-page pictures", {"single": "One page per screen", "spread": "Join facing pages"}),
-    ("figureExtraction", "Labelled drawings", {"auto": "Keep with labels", "off": "Not needed"}),
+    ("preset", "Preset", {"storybook": "Storybook", "textbook": "Textbooks & Activities", "reference": "Reference"}),
+    ("renderStrategy", "Render Strategy", {"llm": "Dynamic", "llm-overlay": "Dynamic Overlay", "single_column": "Single Column", "two_column_story": "Two Columns Story", "fixed_layout": "Fixed Layout"}),
+    ("pageGrouping", "Page Grouping", {"single": "Single Page", "spread": "Spread"}),
+    ("figureExtraction", "Figure Extraction", {"auto": "Auto", "off": "Off"}),
     ("activitiesGenerator", "Activities", {True: "On", False: "Off"}),
-    ("sectioningMode", "Page split", {"page": "Whole page", "dynamic": "Reading + tasks"}),
+    ("sectioningMode", "Sectioning", {"page": "Per Page", "dynamic": "Dynamic"}),
 ]
 DEPENDS = {"preset": ["genre"], "renderStrategy": ["genre", "composition"], "pageGrouping": [], "figureExtraction": ["diagrams"],
            "activitiesGenerator": ["genre", "exercises"], "sectioningMode": ["genre", "exercises", "composition"], "range": []}
@@ -64,7 +64,7 @@ def main():
         ok = [r for r in runs if r[2]]
         if not ok:
             continue
-        rows = [(key, label, words) for key, label, words in SETTING] + [("range", "Pages to import", None)]
+        rows = [(key, label, words) for key, label, words in SETTING] + [("range", "Page Range", None)]
 
         def val(rec, key):
             return rngv(rec) if key == "range" else rec["settings"][key]["value"]
@@ -138,8 +138,8 @@ def main():
             <div class="checkhead"><h4>Your check</h4><button type="button" class="ghost" data-fill="gpt-5.4">Start from gpt-5.4's picks</button><span class="status" aria-live="polite"></span></div>
             <p class="note">Pick the right answer for each setting. Run cells turn green when they match it and red when they don't.</p>
             <div class="checkgrid">{selects}
-              <label><span>First page to import</span><input type="number" min="1" max="{b['pages']}" data-field="rangeStart" inputmode="numeric"></label>
-              <label><span>Last page to import</span><input type="number" min="1" max="{b['pages']}" data-field="rangeEnd" inputmode="numeric"></label>
+              <label><span>Page Range: Initial Page</span><input type="number" min="1" max="{b['pages']}" data-field="rangeStart" inputmode="numeric"></label>
+              <label><span>Page Range: Final Page</span><input type="number" min="1" max="{b['pages']}" data-field="rangeEnd" inputmode="numeric"></label>
             </div>
             <label class="full"><span>What was right or wrong, and why</span><textarea rows="3" data-field="note" placeholder="e.g. It is a school book: the exercises start on page 5. Page 1 to 3 are the cover and credits."></textarea></label>
             <div class="reply" hidden></div>
@@ -169,7 +169,7 @@ def main():
     <p class="find">Each book from your PDF folder ran 3 times with gpt-5.4-mini and 3 times with gpt-5.4, every run a fresh AI call with no cache. A highlighted cell is a pick that differs from what that model picked in its other runs on the book, so a book with no highlights got the same settings every time. A star (*) marks a highlighted pick in a run that did not ask the user about it: the change would have gone through unnoticed. These books have no answer key: check the picks against the covers.</p>
     <div class="tiles">
       <div class="tile"><span class="k">Settings that changed between runs</span><span class="v">9 <small>of 504</small></span><span class="n">7 of the 9 came with a question to the user</span></div>
-      <div class="tile"><span class="k">Pages to import that changed</span><span class="v">10 <small>of 84</small></span><span class="n">never asked: the weak spot</span></div>
+      <div class="tile"><span class="k">Page Range changes</span><span class="v">10 <small>of 84</small></span><span class="n">never asked: the weak spot</span></div>
       <div class="tile"><span class="k">Picks identical in all 3 runs</span><span class="v">94% <small>gpt-5.4</small></span><span class="n">89% with gpt-5.4-mini (98 picks each)</span></div>
       <div class="tile"><span class="k">Time on these books, median</span><span class="v">6.2 s <small>mini</small></span><span class="n">10.4 s gpt-5.4; up to 26 to 31 s on a 129 MB book</span></div>
     </div>
@@ -184,17 +184,17 @@ def main():
       <h3>What the runs show</h3>
       <p class="note">Do you agree with each finding? Add a note if not.</p>
       <ul class="plain">
-        <li data-finding='settings-predictable'><b>The six settings are predictable.</b> Across 84 runs, a setting changed 9 times out of 504. In 7 of those the user was asked about the fact behind it, so a person would have decided. Two changes would have gone through unnoticed: the layout of Capítulo 01 in one gpt-5.4 run, and the labelled-drawings setting of El Viaje in one mini run.</li>
-        <li data-finding='spreads-measured'><b>Pictures across two pages never changed</b>: it is measured, not guessed. Only colouring-my-school joins facing pages.</li>
-        <li data-finding='range-unstable'><b>The pages to import are not predictable yet.</b> The first page moved by 1 to 7 pages between runs on 5 books (colouring-my-school 2 or 9, triste 9, 10 or 14), and the user is never asked. On long books the end always stops 4 pages early, because the last 4 pages are the only ones read there. Fix before testing with people: show the range as a question when it moves, or read the pages around each boundary a second time.</li>
-        <li data-finding='gpt54-steadier'><b>gpt-5.4 is steadier than mini on hard books.</b> On The Elements of Computing Systems, mini said "information" once and "school book" twice (and asked each time); gpt-5.4 said school book in all 3 runs. On these 14 books gpt-5.4 kept 94% of picks identical, mini 89%.</li>
+        <li data-finding='settings-predictable'><b>The six settings are predictable.</b> Across 84 runs, a setting changed 9 times out of 504. In 7 of those the user was asked about the fact behind it, so a person would have decided. Two changes would have gone through unnoticed: Render Strategy of Capítulo 01 in one gpt-5.4 run, and Figure Extraction of El Viaje in one mini run.</li>
+        <li data-finding='spreads-measured'><b>Page Grouping never changed</b>: it is measured, not guessed. Only colouring-my-school gets Spread.</li>
+        <li data-finding='range-unstable'><b>The Page Range is not predictable yet.</b> The first page moved by 1 to 7 pages between runs on 5 books (colouring-my-school 2 or 9, triste 9, 10 or 14), and the user is never asked. On long books the end always stops 4 pages early, because the last 4 pages are the only ones read there. Fix before testing with people: show the range as a question when it moves, or read the pages around each boundary a second time.</li>
+        <li data-finding='gpt54-steadier'><b>gpt-5.4 is steadier than mini on hard books.</b> On The Elements of Computing Systems, mini picked the Reference preset once and Textbooks &amp; Activities twice (and asked each time); gpt-5.4 picked Textbooks &amp; Activities in all 3 runs. On these 14 books gpt-5.4 kept 94% of picks identical, mini 89%.</li>
         <li data-finding='real-books-cost'><b>Real books are slower and dearer than the 7 to 12 page excerpts.</b> Average cost per book 1.42¢ with mini (max 1.98¢) and 4.75¢ with gpt-5.4 (max 6.59¢). The scan of the 212-page, 129 MB Práticas Vol. II took 19 s, most of its 26 s: big scanned-picture PDFs make the scan, not the AI, the slow part.</li>
       </ul>
     </div>
     <div class="panel"><div class="tablewrap"><table>
       <thead><tr><th>Book</th><th class="r">Pages</th><th class="r">Same picks, mini</th><th class="r">Same picks, gpt-5.4</th><th class="r">Runs that ask</th><th class="r">Models agree</th><th class="r">Changed without asking</th><th class="r">Avg time</th></tr></thead>
       <tbody>{''.join(summary)}</tbody></table></div>
-      <p class="note">"Same picks" counts the 7 picks (6 settings and the pages to import) that came out identical in all 3 runs of that model. Time includes the scan, which reads every page.</p>
+      <p class="note">"Same picks" counts the 7 picks (6 settings and the Page Range) that came out identical in all 3 runs of that model. Time includes the scan, which reads every page.</p>
     </div>
     <div class="books">{''.join(cards)}
     </div>
