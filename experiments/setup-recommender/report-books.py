@@ -30,6 +30,13 @@ def esc(s):
     return html.escape(str(s))
 
 
+def rngv(r):
+    p = r.get("pageRange")
+    if not p or not p["skipped"]:
+        return "all"
+    return f"{p['start']}-{p['end']}"
+
+
 def rng(r):
     p = r.get("pageRange")
     if not p or not p["skipped"]:
@@ -44,7 +51,7 @@ def cost(model, u):
 
 def main():
     index = json.load(open(os.path.join(RES, "index.json")))
-    cards, summary = [], []
+    cards, summary, books_meta = [], [], []
     for b in index:
         if b.get("error"):
             summary.append(f"<tr><td>{esc(b['file'])}</td><td colspan='5'>Could not be read: {esc(b['error'][:120])}</td></tr>")
@@ -60,7 +67,7 @@ def main():
         rows = [(key, label, words) for key, label, words in SETTING] + [("range", "Pages to import", None)]
 
         def val(rec, key):
-            return rng(rec) if key == "range" else rec["settings"][key]["value"]
+            return rngv(rec) if key == "range" else rec["settings"][key]["value"]
 
         # Consistency: per model, settings identical in all its runs; across models, same majority pick.
         stable = {}
@@ -84,14 +91,15 @@ def main():
                     cells.append("<td class='c miss'>–</td>")
                     continue
                 v = val(r, key)
-                shown = v if key == "range" else words.get(v, str(v))
+                shown = rng(r) if key == "range" else words.get(v, str(v))
                 odd = json.dumps(v) != majority[(m, key)]
                 asked = {f["id"] for f in r["facts"] if f["ask"]}
                 silent_cell = odd and not (set(DEPENDS[key]) & asked)
                 if silent_cell:
                     silent[0] += 1
                 cls = " odd silent" if silent_cell else " odd" if odd else ""
-                cells.append(f"<td class='c{cls}'>{esc(shown)}{' *' if silent_cell else ''}</td>")
+                was_asked = 1 if set(DEPENDS[key]) & asked else 0
+                cells.append(f"<td class='c{cls}' data-k='{key}' data-m='{m}' data-v='{esc(json.dumps(v))}' data-asked='{was_asked}'>{esc(shown)}{' *' if silent_cell else ''}</td>")
             lock = " (fixed)" if key in ("pageGrouping", "figureExtraction", "range") else ""
             body.append(f"<tr><th>{esc(label)}{lock}</th>{''.join(cells)}</tr>")
         asked_cells = []
@@ -118,6 +126,24 @@ def main():
             "<span class='pill'>same in all 3 runs</span>" if stable[m] == n_settings
             else f"<span class='pill w'>{n_settings - stable[m]} of {n_settings} picks changed</span>" if stable[m] is not None else ""
         )
+        maj = {m: {key: json.loads(majority[(m, key)]) for key, *_ in rows} for m in MODELS if (m, "preset") in majority}
+        books_meta.append({"id": b["id"], "title": b["file"][:-4], "pages": b["pages"], "maj": maj})
+        selects = "".join(
+            f"<label><span>{esc(label)}</span><select data-field='{key}'><option value=''>Not checked</option>"
+            + "".join(f"<option value='{esc(json.dumps(v))}'>{esc(w)}</option>" for v, w in words.items())
+            + "</select></label>"
+            for key, label, words in SETTING)
+        check = f"""
+          <div class="check" data-book="{b['id']}" data-pages="{b['pages']}">
+            <div class="checkhead"><h4>Your check</h4><button type="button" class="ghost" data-fill="gpt-5.4">Start from gpt-5.4's picks</button><span class="status" aria-live="polite"></span></div>
+            <p class="note">Pick the right answer for each setting. Run cells turn green when they match it and red when they don't.</p>
+            <div class="checkgrid">{selects}
+              <label><span>First page to import</span><input type="number" min="1" max="{b['pages']}" data-field="rangeStart" inputmode="numeric"></label>
+              <label><span>Last page to import</span><input type="number" min="1" max="{b['pages']}" data-field="rangeEnd" inputmode="numeric"></label>
+            </div>
+            <label class="full"><span>What was right or wrong, and why</span><textarea rows="3" data-field="note" placeholder="e.g. It is a school book: the exercises start on page 5. Page 1 to 3 are the cover and credits."></textarea></label>
+            <div class="reply" hidden></div>
+          </div>"""
         cards.append(f"""
       <article class="book">
         <div class="cover">{img}</div>
@@ -126,6 +152,7 @@ def main():
           <p class="meta">{b['pages']} pages · {b['sizeMB']} MB · {TEXT_LAYER.get(first['measured']['textLayer'], '')} · scan {b['scanMs'] / 1000:.1f} s</p>
           <p class="meta">gpt-5.4-mini {badge('gpt-5.4-mini')} &nbsp; gpt-5.4 {badge('gpt-5.4')}</p>
           <div class="tablewrap"><table class="runs"><thead><tr><th></th>{head}</tr></thead><tbody>{''.join(body)}</tbody></table></div>
+          {check}
           <details><summary>What the AI said about this book (gpt-5.4-mini, run 1)</summary><ul class="plain">{''.join(reasons)}</ul></details>
         </div>
       </article>""")
@@ -146,14 +173,22 @@ def main():
       <div class="tile"><span class="k">Picks identical in all 3 runs</span><span class="v">94% <small>gpt-5.4</small></span><span class="n">89% with gpt-5.4-mini (98 picks each)</span></div>
       <div class="tile"><span class="k">Time on these books, median</span><span class="v">6.2 s <small>mini</small></span><span class="n">10.4 s gpt-5.4; up to 26 to 31 s on a 129 MB book</span></div>
     </div>
+    <div class="panel" id="review">
+      <div class="checkhead"><h3>Your review, round 1</h3><span class="status" id="reviewStatus" aria-live="polite">Connecting…</span></div>
+      <p class="note">Check the books below and say what was right or wrong. Everything saves as you type, and I read it back, so tell me "read my feedback" to start the next round of fixes.</p>
+      <div class="tablewrap"><table id="score"></table></div>
+      <label class="full"><span>Anything else about auto mode</span><textarea rows="3" data-general placeholder="What should auto mode do differently? What would you check first as a user?"></textarea></label>
+      <div class="reply" id="generalReply" hidden></div>
+    </div>
     <div class="panel">
       <h3>What the runs show</h3>
+      <p class="note">Do you agree with each finding? Add a note if not.</p>
       <ul class="plain">
-        <li><b>The six settings are predictable.</b> Across 84 runs, a setting changed 9 times out of 504. In 7 of those the user was asked about the fact behind it, so a person would have decided. Two changes would have gone through unnoticed: the layout of Capítulo 01 in one gpt-5.4 run, and the labelled-drawings setting of El Viaje in one mini run.</li>
-        <li><b>Pictures across two pages never changed</b>: it is measured, not guessed. Only colouring-my-school joins facing pages.</li>
-        <li><b>The pages to import are not predictable yet.</b> The first page moved by 1 to 7 pages between runs on 5 books (colouring-my-school 2 or 9, triste 9, 10 or 14), and the user is never asked. On long books the end always stops 4 pages early, because the last 4 pages are the only ones read there. Fix before testing with people: show the range as a question when it moves, or read the pages around each boundary a second time.</li>
-        <li><b>gpt-5.4 is steadier than mini on hard books.</b> On The Elements of Computing Systems, mini said "information" once and "school book" twice (and asked each time); gpt-5.4 said school book in all 3 runs. On these 14 books gpt-5.4 kept 94% of picks identical, mini 89%.</li>
-        <li><b>Real books are slower and dearer than the 7 to 12 page excerpts.</b> Average cost per book 1.42¢ with mini (max 1.98¢) and 4.75¢ with gpt-5.4 (max 6.59¢). The scan of the 212-page, 129 MB Práticas Vol. II took 19 s, most of its 26 s: big scanned-picture PDFs make the scan, not the AI, the slow part.</li>
+        <li data-finding='settings-predictable'><b>The six settings are predictable.</b> Across 84 runs, a setting changed 9 times out of 504. In 7 of those the user was asked about the fact behind it, so a person would have decided. Two changes would have gone through unnoticed: the layout of Capítulo 01 in one gpt-5.4 run, and the labelled-drawings setting of El Viaje in one mini run.</li>
+        <li data-finding='spreads-measured'><b>Pictures across two pages never changed</b>: it is measured, not guessed. Only colouring-my-school joins facing pages.</li>
+        <li data-finding='range-unstable'><b>The pages to import are not predictable yet.</b> The first page moved by 1 to 7 pages between runs on 5 books (colouring-my-school 2 or 9, triste 9, 10 or 14), and the user is never asked. On long books the end always stops 4 pages early, because the last 4 pages are the only ones read there. Fix before testing with people: show the range as a question when it moves, or read the pages around each boundary a second time.</li>
+        <li data-finding='gpt54-steadier'><b>gpt-5.4 is steadier than mini on hard books.</b> On The Elements of Computing Systems, mini said "information" once and "school book" twice (and asked each time); gpt-5.4 said school book in all 3 runs. On these 14 books gpt-5.4 kept 94% of picks identical, mini 89%.</li>
+        <li data-finding='real-books-cost'><b>Real books are slower and dearer than the 7 to 12 page excerpts.</b> Average cost per book 1.42¢ with mini (max 1.98¢) and 4.75¢ with gpt-5.4 (max 6.59¢). The scan of the 212-page, 129 MB Práticas Vol. II took 19 s, most of its 26 s: big scanned-picture PDFs make the scan, not the AI, the slow part.</li>
       </ul>
     </div>
     <div class="panel"><div class="tablewrap"><table>
@@ -163,6 +198,9 @@ def main():
     </div>
     <div class="books">{''.join(cards)}
     </div>
+    <script type="application/json" id="reviewMeta">{json.dumps({"books": books_meta, "settings": [k for k, *_ in SETTING] + ["range"]}).replace("<", "\\u003c")}</script>
+    <style>{open(os.path.join(ROOT, "reports", "review.css")).read()}</style>
+    <script>{open(os.path.join(ROOT, "reports", "review.js")).read()}</script>
   </section>
 """
     open(os.path.join(ROOT, "reports", "e3-books-section.html"), "w").write(section)

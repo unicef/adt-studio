@@ -1,0 +1,28 @@
+:root{--bad:#b4232c;--bad-soft:#fbe3e4}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bad:#ff8a8f;--bad-soft:#3a1719}}
+:root[data-theme="dark"]{--bad:#ff8a8f;--bad-soft:#3a1719}
+.checkhead{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.checkhead h4{margin:0;font:600 15px var(--display)}
+.status{font:500 12px var(--mono);color:var(--ink-3);margin-left:auto}
+.status.err{color:var(--bad)}
+.check{border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
+.checkgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,190px),1fr));gap:10px}
+.check label,#review label,.fb label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--ink-2);min-width:0}
+select,input[type=number],textarea{font:14px var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:7px 8px;width:100%;min-width:0}
+textarea{resize:vertical;line-height:1.45}
+select:focus-visible,input:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button{font:500 13px var(--body);cursor:pointer;border-radius:7px;padding:6px 10px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+button.ghost{color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+button[data-verdict="disagree"][aria-pressed="true"]{background:var(--bad);border-color:var(--bad)}
+button[data-verdict="agree"][aria-pressed="true"]{background:var(--good);border-color:var(--good)}
+table.runs td.right{background:var(--good-soft);color:var(--good);font-weight:600}
+table.runs td.wrong{background:var(--bad-soft);color:var(--bad);font-weight:600}
+table.runs td.right::after{content:" ✓"}
+table.runs td.wrong::after{content:" ✗"}
+.reply{border-left:3px solid var(--accent);padding:6px 10px;font-size:13px;color:var(--ink-2);white-space:pre-wrap}
+.reply b{color:var(--ink)}
+.fb{display:flex;flex-direction:column;gap:6px;margin:6px 0 4px}
+.fb .verdicts{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+#score td.bad{color:var(--bad);font-weight:600}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
