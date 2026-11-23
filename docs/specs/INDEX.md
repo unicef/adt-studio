@@ -47,3 +47,5 @@ Legacy notes, from before this process existed, now in [`docs/analysis/`](../ana
 (May 2026, implemented). They are bug analyses, not specs.
 
 SPEC-0003 was approved by @gbergengruen on 2026-11-18; see its [approval and remaining follow-ups](SPEC-0003-sectioning-modes.md#approval-and-remaining-follow-ups--2026-11-18). Contract approval does not approve PR #884 or waive its remaining review requirements. The pre-release Windows smoke test (#1165) was completed and accepted on 2026-11-22.
+
+A SPEC-0003 amendment proposed on 2026-11-23 would let Studio and the API run Extract again (resume, retry, replace) on a book that holds only Extract output; see its [Extract re-run amendment](SPEC-0003-sectioning-modes.md#extract-re-run-amendment--proposed-2026-11-23). It is not approved until a non-author maintainer approves it; SPEC-0003's status is unchanged.
