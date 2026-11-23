@@ -5,7 +5,7 @@ status: approved
 owner: "@ksokolovic"
 approvers: ["@gbergengruen"]
 issues: ["#708", "#1214"]
-prs: ["#884"]
+prs: ["#884", "#1215"]
 adr: "docs/DECISIONS.md#025-sectioning-generation-preferences-scoped-reset-and-per-page-publication"
 created: 2026-09-22
 updated: 2026-11-23
