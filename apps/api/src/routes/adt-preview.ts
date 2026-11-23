@@ -1,5 +1,6 @@
 import { catalogOutputs } from "../services/catalog-output-service.js"
-import { reconcileSpeechInputs, loadCoreTtsProfiles, scopeLegacyActivityIds, activeEasyRead, buildEasyReadSourceBlocks } from "@adt/pipeline"
+import { bookStateKey } from "../services/book-state-memo.js"
+import { partScopedPages, requiredPartRange, buildTextCatalogSnapshot, reconcileSpeechInputs, loadCoreTtsProfiles, scopeLegacyActivityIds, activeEasyRead, buildEasyReadSourceBlocks } from "@adt/pipeline"
 import fs from "node:fs"
 import path from "node:path"
 import { createHash } from "node:crypto"
@@ -63,6 +64,8 @@ import {
   isFixedLayoutBook,
   resolveReflowableFontChain,
   getRenderSectioning,
+  FIXED_LAYOUT_SECTIONING_NODE,
+  PAGE_SECTIONING_NODE,
   readEditableActivities,
   enabledEditableActivity,
   renderEditableActivityHtml,
@@ -147,16 +150,33 @@ function getPreviewBundleVersion(webAssetsDir: string): string {
 
 function getPreviewContentVersion(storage: Storage, webAssetsDir: string): string {
   const assetVersion = getPreviewBundleVersion(webAssetsDir)
+  // Page membership and imported-part scope live outside node_data. Include
+  // both so the reader refreshes even when all selected node bytes are equal.
+  const pageScope = {
+    range: storage.bookDir ? requiredPartRange(storage.bookDir) : null,
+    pages: storage.getPages().map(({ pageId, pageNumber }) => ({ pageId, pageNumber })),
+  }
   const fingerprint = storage.getNodeVersionFingerprint(["accessibility-assessment"])
     .map((entry) => {
-      const row = storage.getLatestNodeData(entry.node, entry.itemId)
+      let data: unknown
+      try { data = storage.getLatestNodeData(entry.node, entry.itemId)?.data ?? null }
+      catch (error) {
+        // Render selection already omits unreadable Sectioning without falling
+        // back to another tree. Its cache token must preserve that selected
+        // identity/version without making healthy sibling pages unreadable.
+        if (error instanceof SyntaxError && (entry.node === PAGE_SECTIONING_NODE || entry.node === FIXED_LAYOUT_SECTIONING_NODE)) {
+          return { ...entry, dataHash: "unreadable-sectioning" }
+        }
+        throw error
+      }
       return {
         ...entry,
-        dataHash: hashValue(row?.data ?? null),
+        dataHash: hashValue(data),
       }
     })
   const hash = createHash("sha256")
     .update(assetVersion)
+    .update(JSON.stringify(pageScope))
     .update(JSON.stringify(fingerprint))
     .digest("hex")
     .slice(0, 12)
@@ -184,12 +204,6 @@ function safePreviewLanguage(rawLanguage: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Caches (built lazily per book)
-// ---------------------------------------------------------------------------
-
-// No Tailwind cache — preview is a dev tool; staleness causes more pain than rebuild cost
-
-// ---------------------------------------------------------------------------
 // Helpers to read book data from storage
 // ---------------------------------------------------------------------------
 
@@ -208,7 +222,7 @@ function getBookTitle(storage: Storage): string {
 }
 
 async function getTextCatalog(storage: Storage): Promise<TextCatalogOutput> {
-  const pages = storage.getPages()
+  const pages = partScopedPages(storage)
   return await buildTextCatalog(storage, pages)
 }
 
@@ -217,9 +231,12 @@ function getGlossary(storage: Storage): GlossaryOutput | undefined {
   return row?.data as GlossaryOutput | undefined
 }
 
-function getQuizData(storage: Storage): QuizGenerationOutput | undefined {
+function getQuizData(storage: Storage, scopedPages = partScopedPages(storage)): QuizGenerationOutput | undefined {
   const row = storage.getLatestNodeData("quiz-generation", "book")
-  return row ? withResolvedQuizIds(row.data as QuizGenerationOutput) : undefined
+  if (!row) return undefined
+  const data = withResolvedQuizIds(row.data as QuizGenerationOutput)
+  const pages = new Set(scopedPages.map(page => page.pageId))
+  return { ...data, quizzes: data.quizzes.filter(quiz => pages.has(quiz.afterPageId)) }
 }
 
 function buildTextsMap(
@@ -237,7 +254,7 @@ function buildTextsMap(
     if (catalog?.entries) {
       for (const e of catalog.entries) textsMap[e.id] = e.text
     }
-    const easyReadEntries = easyReadEnabled ? flattenEasyReadEntries(activeEasyRead(storage, buildEasyReadSourceBlocks(storage, storage.getPages()))) : []
+    const easyReadEntries = easyReadEnabled ? flattenEasyReadEntries(activeEasyRead(storage, buildEasyReadSourceBlocks(storage, partScopedPages(storage)))) : []
     for (const e of easyReadEntries) textsMap[e.id] = e.text
   } else {
     const legacyLang = normalizedLang.replace("-", "_")
@@ -247,7 +264,7 @@ function buildTextsMap(
     if (transRow) {
       const translated = transRow.data as TextCatalogOutput
       const active = new Set((catalog?.entries ?? []).map((entry) => entry.id))
-      const easy = activeEasyRead(storage, buildEasyReadSourceBlocks(storage, storage.getPages()))
+      const easy = activeEasyRead(storage, buildEasyReadSourceBlocks(storage, partScopedPages(storage)))
       if (easyReadEnabled) for (const entry of flattenEasyReadEntries(easy)) active.add(entry.id)
       for (const e of translated.entries) if (active.has(e.id) && !Object.hasOwn(textsMap, e.id)) textsMap[e.id] = e.text
     }
@@ -413,7 +430,7 @@ function buildPreviewConfig(
   // Also check if any rendered sections are activity types
   let hasActivitySections = false
   if (!hasQuiz) {
-    const pages = storage.getPages()
+    const pages = partScopedPages(storage)
     for (const page of pages) {
       const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
       if (renderRow) {
@@ -429,7 +446,7 @@ function buildPreviewConfig(
   }
 
   const hasSignLanguageVideos = storage.getSignLanguageVideos().some((v) => v.sectionId !== null)
-  const hasEasyRead = easyReadEnabled && flattenEasyReadEntries(activeEasyRead(storage, buildEasyReadSourceBlocks(storage, storage.getPages()))).length > 0
+  const hasEasyRead = easyReadEnabled && flattenEasyReadEntries(activeEasyRead(storage, buildEasyReadSourceBlocks(storage, partScopedPages(storage)))).length > 0
 
   // Available languages = the source language + every translation actually
   // present in the DB. We restrict against the book's configured
@@ -495,6 +512,14 @@ export function createAdtPreviewRoutes(
   promptsDir = path.resolve("prompts"),
 ): Hono {
   const app = new Hono()
+  app.use("/books/:label/adt-preview/*", async (c, next) => {
+    const label = parseBookLabel(c.req.param("label"))
+    if (!fs.existsSync(path.join(path.resolve(booksDir), label))) throw new HTTPException(404, { message: "Book not found" })
+    requiredPartRange(path.join(path.resolve(booksDir), label))
+    // A mode-incompatible retained Storyboard is different from the usable
+    // stale captions/translation/speech warnings supplied by SPEC-0001.
+    await next()
+  })
 
   // Allow browser caching — the iframe URL includes a cache-busting version
   // parameter (v-{timestamp}) that changes on repackage, so stale content
@@ -510,6 +535,7 @@ export function createAdtPreviewRoutes(
     if (!fs.existsSync(path.join(bookDir, `${safeLabel}.db`))) {
       throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
     }
+    requiredPartRange(bookDir)
     return { safeLabel, bookDir }
   }
 
@@ -519,7 +545,24 @@ export function createAdtPreviewRoutes(
     const storage = createBookStorage(safeLabel, booksDir)
     let result: T
     try {
-      result = fn(storage, safeLabel, bookDir)
+      // Live Preview can show readable siblings when a selected rendering is
+      // corrupt. Limit this projection to these read-only routes: packaging,
+      // reconciliation writers and retained-origin checks keep strict storage.
+      const readable: Storage = {
+        ...storage,
+        getLatestNodeData(node, itemId) {
+          try { return storage.getLatestNodeData(node, itemId) }
+          catch (error) {
+            if (node !== "web-rendering" || !(error instanceof SyntaxError)) throw error
+            const selected = storage.getNodeVersionFingerprint().find(entry => entry.node === node && entry.itemId === itemId)
+            if (!selected) throw error
+            // Preserve presence/version with invalid data. Returning no row
+            // could revive a stale legacy text catalog when every page is bad.
+            return { version: selected.version, data: null }
+          }
+        },
+      }
+      result = fn(readable, safeLabel, bookDir)
     } catch (err) {
       storage.close()
       throw err
@@ -533,9 +576,16 @@ export function createAdtPreviewRoutes(
 
   function previewSpeech(storage: Storage, label: string, language: string) {
     const config = loadBookConfig(label, booksDir, configPath)
-    return reconcileSpeechInputs({ storage, config, sourceLanguage: config.editing_language ?? getBookLanguage(storage),
+    const entries = reconcileSpeechInputs({ storage, config, sourceLanguage: config.editing_language ?? getBookLanguage(storage),
       languages: [language], profiles: loadCoreTtsProfiles(configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config")),
       promptsDir, bookDir: path.join(path.resolve(booksDir), label), persist: false })[0]?.entries ?? []
+    if (!storage.bookDir || !requiredPartRange(storage.bookDir)) return entries
+    const pages = partScopedPages(storage)
+    const ids = new Set([
+      ...buildTextCatalogSnapshot(storage, pages).entries,
+      ...flattenEasyReadEntries(activeEasyRead(storage, buildEasyReadSourceBlocks(storage, pages))),
+    ].map(entry => entry.id))
+    return entries.filter(entry => ids.has(entry.id))
   }
   function includedSpeechIds(storage: Storage, label: string, language: string, voiceSlot?: VoiceSlot, kind: "audio" | "timestamps" = "audio") {
     const usableSpeech = new Set(previewSpeech(storage, label, language).filter((entry) => entry.speechText?.trim()).map((entry) => entry.id))
@@ -652,13 +702,26 @@ export function createAdtPreviewRoutes(
     return c.body(NAV_HTML)
   })
 
-  // /content/tailwind_output.css — generated from the current book fingerprint.
+  // /content/tailwind_output.css — cached by the actual scoped compiler inputs.
   // GET: generates CSS from DB content only.
   // POST: accepts { extraHtml } to include unsaved content (e.g., AI edits) in the scan.
 
   const tailwindCssCache = new Map<string, string>()
   const tailwindCssInFlight = new Map<string, Promise<string>>()
   const TAILWIND_CACHE_CAP = 4
+  // Saved-state token -> exact compiler-input key. An unchanged book answers
+  // from here without re-reading every page; any change falls through to the
+  // exact-input hash below, so the stylesheet served is never for other inputs.
+  const tailwindInputKeys = new Map<string, string>()
+  const TAILWIND_STATE_CAP = 16
+
+  function rememberTailwindInputs(stateKey: string, cacheKey: string): void {
+    tailwindInputKeys.delete(stateKey)
+    tailwindInputKeys.set(stateKey, cacheKey)
+    if (tailwindInputKeys.size > TAILWIND_STATE_CAP) {
+      tailwindInputKeys.delete(tailwindInputKeys.keys().next().value as string)
+    }
+  }
 
   function rememberTailwindCss(key: string, css: string): void {
     tailwindCssCache.delete(key)
@@ -670,31 +733,63 @@ export function createAdtPreviewRoutes(
 
   /** Collect all rendered HTML from the DB + optional extra HTML for Tailwind scanning. */
   async function generateTailwindCss(safeLabel: string, extraHtml?: string): Promise<string> {
-    const storage = createBookStorage(safeLabel, booksDir)
-    try {
-      const fingerprint = storage.getNodeVersionFingerprint()
-      // Pages of a book with a right-to-left language are served through the
-      // direction-neutral rewrite (SPEC-0024), which introduces classes the
-      // stored HTML does not have (`text-end`, `float-start`). Scan what is
-      // served as well as what is stored, which the Storyboard shows.
-      const pageDirection = resolvePageDirection(
-        getBookLanguage(storage),
-        loadBookConfig(safeLabel, booksDir, configPath).output_languages,
-      )
-      const asServed = (html: string): string => {
+    return withStorage(safeLabel, async (storage, _label, bookDir) => {
+      const pages = partScopedPages(storage)
+      const typographyCss = resolveTypographyCss(storage)
+      const bundleVersion = getPreviewBundleVersion(webAssetsDir)
+      // Scan stored and direction-neutral served markup (SPEC-0024).
+      const pageDirection = resolvePageDirection(getBookLanguage(storage), loadBookConfig(safeLabel, booksDir, configPath).output_languages)
+      const asServed = (html: string) => {
         if (!pageDirection) return html
         const served = neutralizeDirectionMarkup(html, pageDirection)
         return served === html ? html : `${html}\n${served}`
       }
-      const cacheKey = createHash("sha256")
-        .update(safeLabel)
-        .update("\0")
-        .update(JSON.stringify(fingerprint))
-        .update("\0")
-        .update(pageDirection ?? "")
-        .update("\0")
-        .update(extraHtml ?? "")
-        .digest("hex")
+      // Everything the compiler reads comes from saved book content, page
+      // membership, the imported-part window, the runtime assets, typography
+      // and this request's unsaved HTML. The saved-state key changes on any
+      // content write or unexplained database change (same-version rewrites
+      // included), so an equal token means equal compiler inputs.
+      const stateKey = hashValue([
+        safeLabel, bundleVersion, bookStateKey(storage, bookDir),
+        storage.bookDir ? requiredPartRange(storage.bookDir) : null,
+        storage.getPages().map(({ pageId, pageNumber }) => [pageId, pageNumber]),
+        typographyCss, pageDirection, extraHtml ?? "",
+      ])
+      const knownInputs = tailwindInputKeys.get(stateKey)
+      const reused = knownInputs === undefined ? undefined : tailwindCssCache.get(knownInputs)
+      if (reused != null) return reused
+
+      let allHtml = ""
+      for (const page of pages) {
+        const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
+        if (renderRow) {
+          const parsed = WebRenderingOutput.safeParse(renderRow.data)
+          if (parsed.success) {
+            for (const section of parsed.data.sections) {
+              allHtml += asServed(section.html) + "\n"
+            }
+          }
+        }
+      }
+
+      // Include quiz HTML so Tailwind scans quiz classes, using the same pages
+      // as the rendering scan. The catalog timestamp is not a compiler input.
+      const quizData = getQuizData(storage, pages)
+      const catalog = buildTextCatalogSnapshot(storage, pages)
+      if (quizData?.quizzes) {
+        for (let i = 0; i < quizData.quizzes.length; i++) {
+          const quizId = resolveQuizId(quizData.quizzes[i], i)
+          allHtml += asServed(renderQuizHtml(quizData.quizzes[i], quizId, catalog)) + "\n"
+        }
+      }
+
+      // Unsaved edits participate only in this request's input snapshot.
+      if (extraHtml) allHtml += "\n" + extraHtml
+      // Hash exactly the derived book inputs passed to the compiler, rather
+      // than guessing which node versions, page rows or part metadata matter.
+      // A save that leaves these inputs equal reuses the compiled stylesheet.
+      const cacheKey = hashValue([safeLabel, bundleVersion, allHtml, typographyCss])
+      rememberTailwindInputs(stateKey, cacheKey)
       const cached = tailwindCssCache.get(cacheKey)
       if (cached != null) return cached
 
@@ -702,35 +797,7 @@ export function createAdtPreviewRoutes(
       if (pending) return await pending
 
       const build = (async () => {
-        const pages = storage.getPages()
-        let allHtml = ""
-        for (const page of pages) {
-          const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
-          if (renderRow) {
-            const parsed = WebRenderingOutput.safeParse(renderRow.data)
-            if (parsed.success) {
-              for (const section of parsed.data.sections) {
-                allHtml += asServed(section.html) + "\n"
-              }
-            }
-          }
-        }
-
-        // Include quiz HTML so Tailwind scans quiz classes
-        const quizData = getQuizData(storage)
-        const catalog = await getTextCatalog(storage)
-        if (quizData?.quizzes) {
-          for (let i = 0; i < quizData.quizzes.length; i++) {
-            const quizId = resolveQuizId(quizData.quizzes[i], i)
-            allHtml += asServed(renderQuizHtml(quizData.quizzes[i], quizId, catalog)) + "\n"
-          }
-        }
-
-        // Include unsaved content (e.g., AI-edited section HTML) so new Tailwind classes
-        // are picked up before the edit is persisted to the DB.
-        if (extraHtml) allHtml += "\n" + extraHtml
-
-        const css = await buildPreviewTailwindCss(allHtml, webAssetsDir, resolveTypographyCss(storage))
+        const css = await buildPreviewTailwindCss(allHtml, webAssetsDir, typographyCss)
         rememberTailwindCss(cacheKey, css)
         return css
       })()
@@ -740,9 +807,7 @@ export function createAdtPreviewRoutes(
       } finally {
         tailwindCssInFlight.delete(cacheKey)
       }
-    } finally {
-      storage.close()
-    }
+    })
   }
 
   app.get("/books/:label/adt-preview/content/tailwind_output.css", async (c) => {
@@ -1079,6 +1144,11 @@ export function createAdtPreviewRoutes(
       // array position — ids are allocated once and never reused — so resolve by
       // id rather than indexing into the array.
       if (parseQuizId(pageId) !== null) {
+        // Direct URLs obey the same namespace/ownership projection as the
+        // manifest. A legacy alias must not expose the omitted quiz anyway.
+        if (!resolveReadingOrder(storage).items.some(item => item.kind === "quiz" && item.id === pageId)) {
+          throw new HTTPException(404, { message: `No quiz data for: ${pageId}` })
+        }
         const quizData = getQuizData(storage)
         const quiz = quizData?.quizzes?.find(
           (q, i) => resolveQuizId(q, i) === pageId
@@ -1159,9 +1229,10 @@ export function createAdtPreviewRoutes(
           ((config.quiz_generation?.match_book_style ?? true)
             ? resolveQuizPalette(storage)
             : null) ?? DEFAULT_QUIZ_PALETTE
-        // Empty image map (preview serves stored srcs directly) but the same
-        // curated alt/decorative handling as packaged output.
+        // Preview resolves portable references against this book, with the
+        // same curated alt/decorative handling as packaged output.
         const resolved = resolveEditableActivityImages(stepperActivity, new Map(), {
+          previewLabel: label,
           preferredAltMap: preferredImageAltMap,
           decorativeImageIds,
         })

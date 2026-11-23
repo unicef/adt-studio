@@ -1,8 +1,9 @@
 import fs from "node:fs"
+import { stripXmlInvalid } from "../html-escape.js"
 import path from "node:path"
 import { JSDOM } from "jsdom"
 import type { Storage } from "@adt/storage"
-import type { BookMetadata, EpubGlossaryConfig, TocGenerationOutput, WordTimestampOutput } from "@adt/types"
+import type { BookMetadata, EpubGlossaryConfig, PackagingWarning, TocGenerationOutput, WordTimestampOutput } from "@adt/types"
 import {
   type PackageAdtWebOptions,
   EXPORT_MIME_TYPES,
@@ -16,6 +17,8 @@ import {
 } from "./web.js"
 import { htmlToXhtml } from "../html-semantics.js"
 import { stripRuntimeBundle } from "./strip-runtime-bundle.js"
+import { PACKAGE_OWNERS_FILE } from "./bundle-ownership.js"
+import { inspectReaderXml } from "./reader-xml.js"
 
 /**
  * Canonical word-id format used by SMIL fragment refs, EPUB packaging
@@ -115,7 +118,7 @@ export function stripSecondaryNarratorAssets(oebpsDir: string): void {
 export function packageEpub(
   storage: Storage,
   options: PackageEpubOptions,
-): void {
+): PackagingWarning[] {
   const { bookDir, title, language } = options
 
   const adtDir = path.join(bookDir, "adt")
@@ -494,6 +497,21 @@ export function packageEpub(
     path.join(oebpsDir, "toc.ncx"),
     buildNcx(title, pageList, glossaryTocEntries),
   )
+
+  // Check the final page bytes after glossary/activity conversion as well as
+  // XML repairs. One unreadable page still ships, with a visible build warning.
+  const warnings: PackagingWarning[] = []
+  for (const page of pageList) {
+    const source = fs.readFileSync(path.join(oebpsDir, page.href), "utf8")
+    try {
+      inspectReaderXml(source, root => {
+        if (root.localName !== "html" || root.namespaceURI !== "http://www.w3.org/1999/xhtml") throw new Error("Invalid XHTML page")
+      })
+    } catch {
+      warnings.push({ kind: "unreadable-page", pageId: "", document: `OEBPS/${page.href}` })
+    }
+  }
+  return warnings
 }
 
 // ---------------------------------------------------------------------------
@@ -506,6 +524,7 @@ function collectFiles(
   out: Array<{ href: string; mediaType: string }>,
 ): void {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === PACKAGE_OWNERS_FILE) continue
     const fullPath = path.join(dir, entry.name)
     if (entry.isDirectory()) {
       collectFiles(baseDir, fullPath, out)
@@ -969,7 +988,7 @@ function replaceStepperShells(oebpsDir: string): void {
 }
 
 function escapeXml(str: string): string {
-  return str
+  return stripXmlInvalid(str)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")

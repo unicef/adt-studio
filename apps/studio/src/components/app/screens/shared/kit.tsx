@@ -109,7 +109,7 @@ const OPTIONAL: StageDef[] = STAGES.filter(
   (stage) => stage.slug !== "book" && !CORE_STAGE_SET.has(stage.slug),
 )
 
-export type Status = "new" | "in-progress" | "ready" | "rebuild"
+export type Status = "new" | "in-progress" | "ready" | "rebuild" | "unverified"
 
 export interface Progress {
   status: Status
@@ -129,12 +129,12 @@ export function progressFor(vm: BookVM): Progress {
   const baseComplete = !baseFrontier
   const optional = OPTIONAL.map((stage) => ({ stage, done: done.has(stage.slug) }))
   const optionalDone = optional.filter((o) => o.done)
-  const status: Status = vm.needsRebuild ? "rebuild" : vm.isNew ? "new" : !baseComplete ? "in-progress" : "ready"
+  const status: Status = vm.needsRebuild ? "rebuild" : vm.isNew ? "new" : vm.raw.storyboardVerificationPending ? "unverified" : !baseComplete ? "in-progress" : "ready"
   return { status, baseSteps, baseFrontier, baseComplete, optional, optionalDone }
 }
 
 export function isActive(vm: BookVM): boolean {
-  return ["in-progress", "rebuild"].includes(progressFor(vm).status)
+  return ["in-progress", "rebuild", "unverified"].includes(progressFor(vm).status)
 }
 
 export function pickResume<T extends BookVM>(sortedByRecency: T[]): T | undefined {
@@ -167,6 +167,9 @@ export function StageBar({ vm, labels = false, className }: { vm: BookVM; labels
     const extra = Math.max(0, p.optionalDone.length - max)
     return (
       <div className={cn("flex items-center gap-1", className)}>
+        {vm.raw.storyboardVerificationPending && <span className="text-xs text-muted-foreground"><Trans>Open the book to verify Storyboard and Preview</Trans></span>}
+        {!vm.raw.storyboardVerificationPending && vm.raw.previewStatus === "unverified" && <span className="text-xs text-muted-foreground"><Trans>Open the book to verify Preview</Trans></span>}
+        {vm.raw.storyboardNeedsReview && <span title={t`Storyboard needs review`} className="text-xs text-amber-700"><Trans>Storyboard needs review</Trans></span>}
         {p.baseComplete ? (
           <span title={t`Base ready`} className="grid size-5 place-items-center rounded-full bg-stage-validation/12 text-stage-validation">
             <Check className="size-3" strokeWidth={2.5} />
@@ -187,6 +190,9 @@ export function StageBar({ vm, labels = false, className }: { vm: BookVM; labels
   const extra = Math.max(0, p.optionalDone.length - 7)
   return (
     <div className={className}>
+      {vm.raw.storyboardVerificationPending && <p className="mb-1 text-xs text-muted-foreground"><Trans>Open the book to verify Storyboard and Preview</Trans></p>}
+      {!vm.raw.storyboardVerificationPending && vm.raw.previewStatus === "unverified" && <p className="mb-1 text-xs text-muted-foreground"><Trans>Open the book to verify Preview</Trans></p>}
+      {vm.raw.storyboardNeedsReview && <p className="mb-1 text-xs text-amber-700"><Trans>Storyboard needs review</Trans></p>}
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1">
           {p.baseSteps.map(({ stage, done }) => {
@@ -256,6 +262,7 @@ export function FrontierChip({ vm, className }: { vm: BookVM; className?: string
         <Trans>Needs rebuild</Trans>
       </span>
     )
+  if (p.status === "unverified") return <span className={cn(base, "bg-muted text-muted-foreground", className)}><Trans>Not yet verified</Trans></span>
   if (p.status === "ready")
     return (
       <span className={cn(base, "bg-stage-validation-50 text-stage-validation", className)}>
@@ -356,7 +363,7 @@ export function filterBooks(books: BookVM[], f: Filter): BookVM[] {
 export function sortByStatus(books: BookVM[]): BookVM[] {
   const rank = (vm: BookVM) => {
     const s = progressFor(vm).status
-    return s === "rebuild" ? 0 : s === "in-progress" ? 1 : s === "new" ? 2 : 3
+    return s === "rebuild" ? 0 : (s === "in-progress" || s === "unverified") ? 1 : s === "new" ? 2 : 3
   }
   return [...books].sort(
     (a, b) => rank(a) - rank(b) || new Date(b.raw.modifiedAt).getTime() - new Date(a.raw.modifiedAt).getTime(),
@@ -510,6 +517,9 @@ export function StatusLabel({ vm, className }: { vm: BookVM; className?: string 
   } else if (p.status === "rebuild") {
     text = t`Needs rebuild`
     color = "text-stage-toc"
+  } else if (p.status === "unverified") {
+    text = t`Not yet verified`
+    color = "text-muted-foreground"
   } else if (p.status === "ready") {
     text = t`Ready`
     color = "text-stage-validation"

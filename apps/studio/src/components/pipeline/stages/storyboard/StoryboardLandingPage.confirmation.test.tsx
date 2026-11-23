@@ -3,14 +3,14 @@ import React from "react"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-const state = vi.hoisted(() => ({ queue: vi.fn(), config: { merged: { render_strategies: {}, section_types: {} } }, completed: false, running: false, pages: [{ pageId: "pg003" }] }))
+const state = vi.hoisted(() => ({ queue: vi.fn(), provider: true, config: { merged: { default_render_strategy: "", render_strategies: {}, section_types: {} } }, completed: false, running: false, pages: [{ pageId: "pg003" }] }))
 vi.mock("@lingui/react/macro", () => ({ Trans: ({ children }: { children: React.ReactNode }) => <>{children}</>, useLingui: () => ({ t: (strings: TemplateStringsArray, ...values: unknown[]) => strings.reduce((s, p, i) => s + p + (values[i] ?? ""), "") }) }))
 vi.mock("@lingui/core/macro", () => ({ msg: (strings: TemplateStringsArray) => ({ id: strings[0] }) }))
 vi.mock("@tanstack/react-router", () => ({ Link: ({ children }: { children: React.ReactNode }) => <span>{children}</span> }))
 vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({ queueRun: state.queue, isCancelling: false, cancelRun: vi.fn() }) }))
-vi.mock("@/hooks/use-api-key", () => ({ useApiKey: () => ({ apiKey: "fixture" }), useBookStructuredTextAvailability: () => true }))
+vi.mock("@/hooks/use-api-key", () => ({ useApiKey: () => ({ apiKey: "fixture" }), useBookStructuredTextAvailability: () => state.provider }))
 vi.mock("@/hooks/use-stage-status", () => ({ useStageStatus: (stage: string) => ({ isCompleted: stage === "sectioning" && state.completed, isRunning: state.running, hasError: false }) }))
-vi.mock("@/hooks/use-pages", () => ({ usePages: () => ({ data: state.pages, isPending: false, isFetching: false, isError: false }) }))
+vi.mock("@/hooks/use-pages", () => ({ usePages: () => ({ data: state.pages.map(page => ({ ...page, sectioningVersion: state.completed ? 7 : null })), isPending: false, isFetching: false, isError: false }) }))
 vi.mock("@/hooks/use-book-config", () => ({ useBookConfig: () => ({ data: { config: {} } }) }))
 vi.mock("@/hooks/use-debug", () => ({ useActiveConfig: () => ({ data: state.config }) }))
 vi.mock("@/hooks/use-persist-config", () => ({ usePersistConfig: () => vi.fn() }))
@@ -27,9 +27,9 @@ i18n.load("en", {}); i18n.activate("en")
 const { api } = await import("@/api/client")
 const { StoryboardLandingPage } = await import("./StoryboardLandingPage")
 const { TooltipProvider } = await import("@/components/ui/tooltip")
-const protectedPage = { node: "page-sectioning", itemId: "pg003", version: 7, pageNumber: 3 }
+const protectedPage = { node: "page-sectioning", itemId: "pg003", version: 7, pageNumber: 3, renderingVersion: 9, renderTreeVersion: 2, sectioningInputSignature: "a".repeat(64) }
 let client: QueryClient
-beforeEach(() => { vi.clearAllMocks(); state.completed = false; state.running = false; state.pages = [{ pageId: "pg003" }]; vi.mocked(api.getStepStatus).mockResolvedValue({ protectedWork: [protectedPage] } as never); client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } }) })
+beforeEach(() => { vi.clearAllMocks(); state.provider = true; state.config.merged.default_render_strategy = ""; state.completed = false; state.running = false; state.pages = [{ pageId: "pg003" }]; vi.mocked(api.getStepStatus).mockResolvedValue({ protectedWork: [protectedPage] } as never); client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } }) })
 afterEach(() => { cleanup(); client.clear() })
 function mount() {
   const tree = (book: string) => <QueryClientProvider client={client}><TooltipProvider><StoryboardLandingPage bookLabel={book} /></TooltipProvider></QueryClientProvider>
@@ -40,10 +40,27 @@ async function open() {
   fireEvent.click(screen.getByRole("button", { name: "Run Storyboard" }))
   return screen.findByRole("dialog")
 }
+it("allows a credential-free fixed Storyboard click only when Sectioning is already covered", async () => {
+  state.provider = false
+  state.config.merged.render_strategies = { print: { render_type: "fixed_layout" } }
+  state.config.merged.default_render_strategy = "print"
+  const show = mount()
+  const button = () => screen.getByRole("button", { name: "Run Storyboard" }) as HTMLButtonElement
+  expect(button().disabled).toBe(true)
+  state.completed = true
+  show()
+  await waitFor(() => expect(button().disabled).toBe(false))
+  fireEvent.click(button())
+  await waitFor(() => expect(state.queue).toHaveBeenCalledWith(expect.objectContaining({ fromStage: "storyboard", toStage: "storyboard" })))
+  state.config.merged.default_render_strategy = ""
+  show()
+  expect(button().disabled).toBe(true)
+})
+
 it("confirms the protected Sectioning in a restored book's combined run, default off and exact versions", async () => {
   mount()
   let dialog = await open()
-  expect(within(dialog).getByText(/Pages with manual edits or unknown authorship/).textContent).toContain("3")
+  expect(within(dialog).getByText(/Page 3 .*Sectioning v7, Storyboard v9, render tree v2/)).toBeTruthy()
   fireEvent.click(within(dialog).getByRole("checkbox"))
   fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }))
   expect(state.queue).not.toHaveBeenCalled()
@@ -56,7 +73,7 @@ it("confirms the protected Sectioning in a restored book's combined run, default
   fireEvent.click(within(dialog).getByRole("checkbox"))
   act(() => client.setQueryData(["books", "a", "step-status"], { protectedWork: [{ ...protectedPage, version: 8 }] }))
   fireEvent.click(within(dialog).getByRole("button", { name: "Re-run" }))
-  await waitFor(() => expect(state.queue).toHaveBeenCalledWith(expect.objectContaining({ fromStage: "sectioning", toStage: "storyboard", replaceManual: true, protectedReplacements: [{ node: "page-sectioning", itemId: "pg003", version: 7 }] })))
+  await waitFor(() => expect(state.queue).toHaveBeenCalledWith(expect.objectContaining({ fromStage: "sectioning", toStage: "storyboard", replaceManual: true, protectedReplacements: [{ node: "page-sectioning", itemId: "pg003", version: 7, renderingVersion: 9, renderTreeVersion: 2, sectioningInputSignature: "a".repeat(64) }] })))
 })
 it.each(["book", "range"])("drops combined-run consent if its %s changes", async change => {
   const show = mount(); await open()

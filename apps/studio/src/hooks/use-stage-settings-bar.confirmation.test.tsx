@@ -3,6 +3,7 @@ import React from "react"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { refreshRunStatus, invalidateBookQueries } from "./run-query-invalidation"
 
 const state = vi.hoisted(() => ({
   config: { config: {} }, active: { merged: {} }, save: vi.fn(), queue: vi.fn(), navigate: vi.fn(), proceed: vi.fn(), reset: vi.fn(),
@@ -13,14 +14,14 @@ vi.mock("@lingui/react/macro", () => ({ Trans: ({ children }: { children: React.
 vi.mock("@lingui/core/macro", () => ({ msg: (strings: TemplateStringsArray) => ({ id: strings[0] }) }))
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => state.navigate, useBlocker: () => ({ status: state.blocked ? "blocked" : "idle", proceed: state.proceed, reset: state.reset }) }))
 vi.mock("@/components/close-guard/CloseGuard", () => ({ useCloseIntent: () => {} }))
-vi.mock("@/hooks/use-book-config", () => ({ useBookConfig: () => ({ data: state.config }), useUpdateBookConfig: () => ({ mutateAsync: state.save, isPending: false }) }))
+vi.mock("@/hooks/use-book-config", () => ({ useBookConfig: () => ({ data: state.config }), useUpdateBookConfig: () => ({ mutateAsync: state.save, isPending: false }), useBookConfigSaving: () => false }))
 vi.mock("@/hooks/use-debug", () => ({ useActiveConfig: () => ({ data: state.active }) }))
 vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({ queueRun: state.queue, isRunning: state.running }) }))
 vi.mock("@/hooks/use-api-key", () => ({ useApiKey: () => ({ apiKey: "test-only" }), useBookStructuredTextAvailability: () => state.provider }))
 vi.mock("@/components/pipeline/pipeline-i18n", () => ({ getStageLabelI18n: (slug: string) => slug }))
 vi.mock("@/components/pipeline/settings-tabs", () => ({ getSettingsTabLabel: (_stage: string, tab: string) => tab }))
 vi.mock("@/components/pipeline/components/PromptViewer", () => ({ PromptViewer: ({ onModelChange, maxRetries, onMaxRetriesChange }: { onModelChange: (value: string) => void; maxRetries: string; onMaxRetriesChange: (value: string) => void }) => <><button onClick={() => { state.edits(); onModelChange("fixture:new-model") }}>Change model</button><input aria-label="Retries" value={maxRetries} onChange={event => onMaxRetriesChange(event.target.value)} /></>, savePromptDraft: vi.fn(), toPromptDraft: vi.fn() }))
-vi.mock("@/api/client", () => ({ api: { getStepStatus: vi.fn() } }))
+vi.mock("@/api/client", () => ({ api: { getStepStatus: vi.fn(), getSectioningModeState: vi.fn(), getTasks: vi.fn() } }))
 const { i18n } = await import("@lingui/core")
 i18n.load("en", {})
 i18n.activate("en")
@@ -32,9 +33,9 @@ const { UnsavedChangesGuard } = await import("@/components/pipeline/components/U
 const { SettingsDirtyTabsProvider } = await import("@/hooks/use-settings-dirty-tabs")
 const { TooltipProvider } = await import("@/components/ui/tooltip")
 let client: QueryClient
-const record = (stage: string, version = 7) => ({ node: stage === "toc" ? "toc-generation" : "page-sectioning", itemId: stage === "toc" ? "book" : "pg003", version, pageNumber: 3 })
+const record = (stage: string, version = 7) => ({ node: stage === "toc" ? "toc-generation" : "page-sectioning", itemId: stage === "toc" ? "book" : "pg003", version, pageNumber: 3, ...(stage === "sectioning" ? { renderingVersion: 4, renderTreeVersion: 0, sectioningInputSignature: "a".repeat(64) } : {}) })
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done }); return { promise, resolve } }
-beforeEach(() => { vi.clearAllMocks(); state.config = { config: {} }; state.active = { merged: {} }; state.blocked = false; state.running = false; state.provider = true; state.save.mockResolvedValue({}); client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } }) })
+beforeEach(() => { vi.clearAllMocks(); vi.mocked(api.getTasks).mockResolvedValue({ tasks: [] } as never); vi.mocked(api.getSectioningModeState).mockResolvedValue({ effectiveMode: "dynamic", hasOutput: false } as never); state.config = { config: {} }; state.active = { merged: {} }; state.blocked = false; state.running = false; state.provider = true; state.save.mockResolvedValue({}); client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } }) })
 afterEach(() => { cleanup(); client.clear() })
 async function mount(stage: "toc" | "sectioning", editModel = true) {
   vi.mocked(api.getStepStatus).mockResolvedValue({ protectedWork: [record(stage)] } as never)
@@ -69,7 +70,7 @@ it.each(["toc", "sectioning"] as const)("%s Settings names protected work before
   if (stage === "sectioning") fireEvent.click(screen.getByRole("checkbox"))
   await act(async () => { client.setQueryData(["books", "a", "step-status"], { protectedWork: [record(stage, 8)] }); await new Promise(resolve => setTimeout(resolve, 0)) })
   await confirm()
-  await waitFor(() => expect(state.queue).toHaveBeenCalledExactlyOnceWith({ fromStage: stage, toStage: stage, apiKey: "test-only", replaceManual: true, protectedReplacements: [{ node: record(stage).node, itemId: record(stage).itemId, version: 7 }] }))
+  await waitFor(() => expect(state.queue).toHaveBeenCalledExactlyOnceWith({ fromStage: stage, toStage: stage, apiKey: "test-only", replaceManual: true, protectedReplacements: [(({ pageNumber: _, ...saved }) => saved)(record(stage))] }))
   expect(state.save).toHaveBeenCalledTimes(1)
   expect(state.navigate).toHaveBeenCalledTimes(1)
 })
@@ -125,6 +126,30 @@ it("a cancelled fresh protection read cannot use cached empty protection to run"
   expect(state.queue).not.toHaveBeenCalled()
   await open(); await confirm()
   await waitFor(() => expect(state.queue).toHaveBeenCalledTimes(1))
+})
+it("a background status fetch cannot replace or cancel the fresh protection read", async () => {
+  await mount("sectioning")
+  const background = deferred<never>(), fresh = deferred<never>()
+  vi.mocked(api.getStepStatus).mockReturnValueOnce(fresh.promise)
+  let backgroundRead!: Promise<unknown>
+  act(() => {
+    // Start between the last enabled render and its click handler: a real
+    // QueryClient deduplicates calls under the same canonical status key.
+    backgroundRead = client.fetchQuery({ queryKey: ["books", "a", "step-status"], staleTime: 0, queryFn: () => background.promise })
+    fireEvent.click(screen.getByRole("button", { name: "Save & Re-run" }))
+  })
+  await waitFor(() => expect(api.getStepStatus).toHaveBeenCalledTimes(2))
+  await act(async () => { background.resolve({ protectedWork: [record("sectioning", 4)] } as never); await backgroundRead })
+  expect(screen.queryByRole("dialog")).toBeNull()
+  expect(state.save).not.toHaveBeenCalled(); expect(state.queue).not.toHaveBeenCalled()
+  await act(async () => refreshRunStatus(client, "a", false))
+  await act(async () => fresh.resolve({ protectedWork: [record("sectioning", 11)] } as never))
+  const dialog = await screen.findByRole("dialog")
+  expect(dialog.textContent).toContain("Sectioning v11")
+  expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(false)
+  expect(client.getQueryCache().findAll({ queryKey: ["books", "a", "step-status"] })).toHaveLength(1)
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }))
+  expect(state.save).not.toHaveBeenCalled(); expect(state.queue).not.toHaveBeenCalled()
 })
 it.each(["toc", "sectioning"] as const)("%s Save alone does not request consent or call generation", async stage => {
   await mount(stage)
@@ -253,4 +278,55 @@ it("Sectioning retains local selection changes and independently refreshed disab
   await open(); await confirm()
   await waitFor(() => expect(state.save).toHaveBeenCalledTimes(1))
   expect(state.save.mock.calls[0][0].config.disabled_section_types.sort()).toEqual(["custom", "independent"])
+})
+
+
+it.each(["cancel", "confirm"])("Sectioning Save requires fresh default-off replacement consent when configuration changes: %s", async action => {
+  await mount("sectioning")
+  const first = await open()
+  fireEvent.click(within(first).getByRole("checkbox"))
+  state.save.mockImplementation(async () => {
+    vi.mocked(api.getStepStatus).mockResolvedValue({ protectedWork: [{ ...record("sectioning", 8), sectioningInputSignature: "b".repeat(64) }] } as never)
+  })
+  await confirm()
+  const second = await screen.findByText(/Settings were saved. Review replacement again/)
+  const dialog = second.closest('[role="dialog"]') as HTMLElement
+  expect((within(dialog).getByRole("checkbox") as HTMLInputElement).checked).toBe(false)
+  expect(state.save).toHaveBeenCalledTimes(1)
+  expect(state.queue).not.toHaveBeenCalled()
+  if (action === "cancel") {
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }))
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+    expect(state.queue).not.toHaveBeenCalled()
+  } else {
+    fireEvent.click(within(dialog).getByRole("checkbox"))
+    fireEvent.click(within(dialog).getByRole("button", { name: "Re-run" }))
+    await waitFor(() => expect(state.queue).toHaveBeenCalledWith(expect.objectContaining({ replaceManual: true,
+      protectedReplacements: [expect.objectContaining({ version: 8, sectioningInputSignature: "b".repeat(64) })] })))
+  }
+})
+
+it("Sectioning Save keeps frozen versions when only another writer's content changed", async () => {
+  await mount("sectioning")
+  const first = await open()
+  fireEvent.click(within(first).getByRole("checkbox"))
+  state.save.mockImplementation(async () => { vi.mocked(api.getStepStatus).mockResolvedValue({ protectedWork: [record("sectioning", 9)] } as never) })
+  await confirm()
+  await waitFor(() => expect(state.queue).toHaveBeenCalledWith(expect.objectContaining({ replaceManual: true,
+    protectedReplacements: [expect.objectContaining({ version: 7, sectioningInputSignature: "a".repeat(64) })] })))
+  expect(screen.queryByText(/Settings were saved. Review replacement again/)).toBeNull()
+})
+
+it.each(["toc", "sectioning"] as const)("%s confirmation survives a concurrent background publication refresh", async stage => {
+  await mount(stage)
+  const fresh = deferred<never>()
+  vi.mocked(api.getStepStatus).mockReturnValueOnce(fresh.promise)
+  fireEvent.click(screen.getByRole("button", { name: "Save & Re-run" }))
+  await act(async () => { await invalidateBookQueries(client, "a") })
+  expect(state.queue).not.toHaveBeenCalled()
+  await act(async () => fresh.resolve({ protectedWork: [record(stage, 11)] } as never))
+  await screen.findByRole("dialog", { name: /Re-run/ })
+  if (stage === "sectioning") fireEvent.click(screen.getByRole("checkbox"))
+  await confirm()
+  await waitFor(() => expect(state.queue).toHaveBeenCalledWith(expect.objectContaining({ protectedReplacements: [expect.objectContaining({ version: 11 })] })))
 })

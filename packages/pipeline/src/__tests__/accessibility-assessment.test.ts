@@ -34,8 +34,12 @@ function createMockStorage(
 
 function createWebAssets(webAssetsDir: string): void {
   fs.mkdirSync(webAssetsDir, { recursive: true })
-  fs.writeFileSync(path.join(webAssetsDir, "base.js"), 'window.__ADT_BUNDLE_TEST__ = "ok";\n')
+  for (const file of ["base.bundle.min.js", "base.bundle.local.js", "activities.bundle.local.js"]) {
+    fs.writeFileSync(path.join(webAssetsDir, file), 'window.__ADT_BUNDLE_TEST__ = "ok";\n')
+  }
   fs.writeFileSync(path.join(webAssetsDir, "fonts.css"), "body { font-family: serif; }")
+  fs.mkdirSync(path.join(webAssetsDir, "libs/fontawesome/css"), { recursive: true })
+  fs.writeFileSync(path.join(webAssetsDir, "libs/fontawesome/css/all.min.css"), "/* test icons */")
   fs.writeFileSync(
     path.join(webAssetsDir, "tailwind_css.css"),
     "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n",
@@ -182,6 +186,23 @@ describe("runAccessibilityAssessment", () => {
 
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  it("cancellation between accessibility pages stops before another audit and never reports completion", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const adtDir = path.join(bookDir, "adt")
+    fs.mkdirSync(path.join(adtDir, "content"), { recursive: true })
+    fs.writeFileSync(path.join(adtDir, "content/pages.json"), JSON.stringify([
+      { section_id: "p1_sec001", href: "one.html" }, { section_id: "p2_sec001", href: "two.html" },
+    ]))
+    for (const file of ["one.html", "two.html"]) fs.writeFileSync(path.join(adtDir, file), '<html lang="en"><title>Page</title><main><h1>Book</h1></main></html>')
+    const abort = new AbortController()
+    let completed = false
+    await expect(runAccessibilityAssessment({ bookDir, signal: abort.signal }, { emit(event) {
+      if (event.type === "step-progress" && event.page === 2) abort.abort()
+      if (event.type === "step-complete") completed = true
+    } })).rejects.toThrow()
+    expect(completed).toBe(false)
   })
 
   it("audits packaged pages and reports axe violations", async () => {

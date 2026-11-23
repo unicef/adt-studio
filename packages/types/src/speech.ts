@@ -153,6 +153,14 @@ export const VOICE_SLOTS = ["primary", "secondary"] as const
 export const VoiceSlot = z.enum(VOICE_SLOTS)
 export type VoiceSlot = z.infer<typeof VoiceSlot>
 
+/** Optional reader manifest emitted when selectable narration is packaged. */
+const PackagedVoice = z.object({ label: z.string(), audios: z.record(z.string(), z.string().min(1)) })
+export const PackagedAudioVoices = z.object({
+  defaultVoice: VoiceSlot,
+  voices: z.object({ primary: PackagedVoice, secondary: PackagedVoice.optional() }),
+}).refine(manifest => manifest.voices[manifest.defaultVoice] !== undefined)
+export type PackagedAudioVoices = z.infer<typeof PackagedAudioVoices>
+
 export const DEFAULT_VOICE_SLOT: VoiceSlot = "primary"
 
 /** Appended to the secondary voice's on-disk filename / word-timestamp map

@@ -39,3 +39,29 @@ export function readCurrentNodeRow(
  * `LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id`.
  */
 export const CURRENT_VERSION_ORDER = "(nd.version = nc.version) DESC, nd.version DESC"
+
+/** Select one raw row per item without reading the unselected history payloads.
+ * Keep invalidation markers and malformed data for the caller to interpret,
+ * just as a first-row-wins bulk read does. The selector uses the same ordering
+ * as readCurrentNodeRow, including fallback when a pointer dangles.
+ */
+export function readCurrentNodeRows(
+  db: sqlite.Database,
+  node: string,
+): Array<{ item_id: string; version: number; data: string | null }> {
+  return db.all(
+    `SELECT chosen.item_id, chosen.version, chosen.data
+     FROM (SELECT DISTINCT item_id FROM node_data WHERE node = ?1) items
+     CROSS JOIN node_data chosen
+       ON chosen.node = ?1 AND chosen.item_id = items.item_id
+       AND chosen.version = (
+         SELECT nd.version FROM node_data nd
+         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
+         WHERE nd.node = ?1 AND nd.item_id = items.item_id
+         ORDER BY ${CURRENT_VERSION_ORDER}
+         LIMIT 1
+       )
+     ORDER BY items.item_id`,
+    [node],
+  ) as Array<{ item_id: string; version: number; data: string | null }>
+}

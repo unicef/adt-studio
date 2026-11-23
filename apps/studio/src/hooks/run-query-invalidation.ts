@@ -1,3 +1,4 @@
+import { isRunConfirmationQuery } from "./run-confirmation-query"
 import type { QueryClient } from "@tanstack/react-query"
 
 /** Refresh the completed book and the list without overlapping prefixes.
@@ -5,10 +6,10 @@ import type { QueryClient } from "@tanstack/react-query"
  * reads may have captured an older state before final publication. */
 export async function invalidateBookQueries(client: QueryClient, label: string) {
   const filters = [
-    { queryKey: ["books", label] },
+    { queryKey: ["books", label], predicate: (query: Parameters<typeof isRunConfirmationQuery>[0]) => !isRunConfirmationQuery(query) },
     { queryKey: ["books"], exact: true },
     { queryKey: ["package-adt-status", label] },
-    { queryKey: ["debug"] },
+    { queryKey: ["debug"], predicate: (query: Parameters<typeof isRunConfirmationQuery>[0]) => query.queryKey[2] === label },
   ]
   await Promise.all(filters.map((filter) => client.cancelQueries(filter)))
   await Promise.all(filters.map((filter) => client.invalidateQueries(filter)))
@@ -20,7 +21,9 @@ export async function refreshRunStatus(client: QueryClient, label: string, publi
   // An accepted/terminal run can precede the first status response. An empty
   // receipt list distinguishes that case from merely opening an idle book.
   if (publicationExpected && client.getQueryData(receipts) === undefined) client.setQueryData(receipts, [])
-  const filter = { queryKey: ["books", label, "step-status"] }
+  // Refresh the shared status view without cancelling request-owned protection
+  // reads beneath this prefix. Deliberate prefix/book cancellation still works.
+  const filter = { queryKey: ["books", label, "step-status"], exact: true }
   await client.cancelQueries(filter)
   await client.invalidateQueries(filter)
 }

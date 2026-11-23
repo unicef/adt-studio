@@ -174,6 +174,20 @@ describe("createBookStorage", () => {
     storage.close()
   })
 
+  it("returns deduplication hashes alongside opt-in stored-asset evidence", () => {
+    const { storage } = createTempStorage()
+    try {
+      storage.putExtractedPage(makePage(1))
+      const ordinary = storage.getPageImages("pg001").find(image => image.imageId === "pg001_im001")!
+      const admitted = storage.getPageImages("pg001", true).find(image => image.imageId === ordinary.imageId)!
+      expect(ordinary.hash).toBe("hash_im001_1")
+      expect(ordinary).not.toHaveProperty("storedAsset")
+      expect(admitted).toEqual({ ...ordinary, storedAsset: {
+        relativePath: "images/pg001_im001.png", hash: ordinary.hash, source: "extract",
+      } })
+    } finally { storage.close() }
+  })
+
   it("persists segment placement bounds and returns them in getPageImages", () => {
     const { storage } = createTempStorage()
     storage.putExtractedPage(makePage(1))
