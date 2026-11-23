@@ -6,7 +6,7 @@ import { Hono } from "hono"
 import { streamSSE } from "hono/streaming"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
-import { createBookStorage, openBookDb, withBookWriter } from "@adt/storage"
+import { createBookStorage, openBookDb, withBookWriter, ExtractionAdmissionError } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import type { ExtractRerunStatus } from "@adt/types"
 import { ExtractRerunRequest, AuthoredRunOptions, OUTPUT_KIND_TO_STAGE, SourceGeneratorStep, OutputSkipRequest, OutputRunScope, StageName, STAGE_ORDER, STEP_TO_STAGE, PIPELINE, IMPORTED_ADT_LOCKED_STAGES, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
@@ -148,8 +148,9 @@ export function makeBeforeRun(label: string, fromStage: StageName, toStage: Stag
     requireExistingBook(label, booksDir)
     prepareSectioningRun(label, booksDir, fromStage, toStage, configPath, extraction)
     // A resume that passed admission (RAC-21) runs on the book as it is: no
-    // data, section id or step record is cleared.
-    if (fromStage === "extract" && extraction?.action === "resume") {
+    // data, section id or step record is cleared. An admitted retry (RAC-22)
+    // is validated only: the reset in the runner owns every change it makes.
+    if (fromStage === "extract" && (extraction?.action === "resume" || extraction?.action === "retry")) {
       ran = true
       return
     }
@@ -277,7 +278,12 @@ export function createStageRoutes(
       `credentialProviders=${Object.keys(credentials).join(",") || "(none)"}`,
     )
 
-    const activeRun = stageService.getStatus(label).active
+    const { active: activeRun, queue } = stageService.getStatus(label)
+    // SPEC-0003 RAC-22/23: a retry or replace is never queued. It is bound to
+    // the book as it is now, which the run ahead of it may change.
+    if (extraction && extraction.action !== "resume" && (activeRun?.status === "running" || activeRun?.status === "cancelling" || queue.length > 0)) {
+      throw new ExtractionAdmissionError("EXTRACTION_RERUN_STALE")
+    }
     if (activeRun?.status !== "running" && activeRun?.status !== "cancelling") {
       withBookWriter(path.join(path.resolve(booksDir), parseBookLabel(label)), () => {
         prepareSectioningRun(label, booksDir, fromStage, toStage, configPath, extraction)

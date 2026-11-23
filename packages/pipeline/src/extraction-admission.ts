@@ -1,7 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import { countPdfPages, computeGroups } from "@adt/pdf"
-import { EXTRACTION_CONTRACT_VERSION, ExtractionInputs, PartManifest, type AppConfig } from "@adt/types"
+import { EXTRACTION_CONTRACT_VERSION, ExtractionInputs, PartManifest, PROJECT_IDENTITY_FILE, ProjectIdentity, type AppConfig, type ExtractionManifest } from "@adt/types"
 import { extractionHash, readExtractionManifest, inspectExtractionDestination, ExtractionAdmissionError, BookBusyError, assertBookWriter, resolveBookPaths, withBookWriter } from "@adt/storage"
 import type { ExtractOptions } from "./pdf-extraction.js"
 import { figureExtractionFlags } from "./figure-extraction-config.js"
@@ -23,10 +23,36 @@ export function extractionOptionsFromConfig(pdfPath: string, config: AppConfig):
 }
 
 export function prepareExtractionAdmission(bookDir: string, options: ExtractOptions) {
+  return resolveExtraction(bookDir, options)
+}
+
+/** SPEC-0003 RAC-22/23, reset step 2: what a retry or replace will extract,
+ * resolved as initial admission resolves it, before anything is discarded.
+ * `previous` is the book's extraction record when it has a readable one. The
+ * PDF must still be the one that record and the project identity name. Reads
+ * only: any refusal leaves the book untouched. */
+export function prepareExtractionReset(bookDir: string, options: ExtractOptions, previous: ExtractionManifest | null) {
+  return resolveExtraction(bookDir, options, { previous })
+}
+
+/** The source of a reset is the PDF the project was created from. */
+function assertResetSource(bookDir: string, sourceHash: string): "reset" {
+  const file = path.join(bookDir, PROJECT_IDENTITY_FILE)
+  if (fs.existsSync(file)) {
+    const identity = ProjectIdentity.safeParse(JSON.parse(fs.readFileSync(file, "utf8")))
+    if (identity.data?.sourceKind !== "pdf" || identity.data.sourceFingerprint !== sourceHash) throw new ExtractionAdmissionError("EXTRACTION_SOURCE_CHANGED")
+  }
+  return "reset"
+}
+
+interface ResolvedExtraction<Outcome> { pdfBuffer: Buffer; sourceHash: string; inputs: ExtractionInputs; outcome: Outcome; expectedPages: number }
+function resolveExtraction(bookDir: string, options: ExtractOptions): ResolvedExtraction<"initial" | "reused">
+function resolveExtraction(bookDir: string, options: ExtractOptions, reset: { previous: ExtractionManifest | null }): ResolvedExtraction<"reset">
+function resolveExtraction(bookDir: string, options: ExtractOptions, reset?: { previous: ExtractionManifest | null }): ResolvedExtraction<"initial" | "reused" | "reset"> {
   assertBookWriter(bookDir)
   try {
-    const previous = readExtractionManifest(bookDir)
-    if (previous && previous.status !== "complete") throw new ExtractionAdmissionError("EXTRACTION_INCOMPLETE")
+    const previous = reset ? reset.previous : readExtractionManifest(bookDir)
+    if (!reset && previous && previous.status !== "complete") throw new ExtractionAdmissionError("EXTRACTION_INCOMPLETE")
     const pdfBuffer = fs.readFileSync(options.pdfPath)
     const sourceHash = extractionHash(pdfBuffer)
     if (previous && sourceHash !== previous.sourceHash) throw new ExtractionAdmissionError("EXTRACTION_SOURCE_CHANGED")
@@ -59,7 +85,7 @@ export function prepareExtractionAdmission(bookDir: string, options: ExtractOpti
       removeWatermarks: options.removeWatermarks ?? false,
       fixedLayout: options.fixedLayout ?? false,
     })
-    const outcome = inspectExtractionDestination(bookDir, sourceHash, inputs)
+    const outcome = reset ? assertResetSource(bookDir, sourceHash) : inspectExtractionDestination(bookDir, sourceHash, inputs)
     return { pdfBuffer, sourceHash, inputs, outcome, expectedPages: groups.length }
   } catch (error) {
     if (error instanceof ExtractionAdmissionError || error instanceof BookBusyError) throw error

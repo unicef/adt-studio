@@ -4928,8 +4928,11 @@ msgstr "Extraindo..."
 msgid "Extraction and the other AI steps run on your own AI provider."
 msgstr "A extração e as demais etapas de IA são executadas no seu próprio provedor de IA."
 
-msgid "Extraction did not finish. Partial data is retained. Start extraction in a new book."
-msgstr "A extração não foi concluída. Os dados parciais são mantidos. Inicie a extração em um novo livro."
+msgid "Extraction did not finish. Open Extract and retry it."
+msgstr "A extração não foi concluída. Abra Extração e tente novamente."
+
+#~ msgid "Extraction did not finish. Partial data is retained. Start extraction in a new book."
+#~ msgstr "A extração não foi concluída. Os dados parciais são mantidos. Inicie a extração em um novo livro."
 
 msgid "Extraction is running — you can review spreads once it finishes."
 msgstr "A extração está em andamento — você poderá revisar as páginas duplas quando ela terminar."

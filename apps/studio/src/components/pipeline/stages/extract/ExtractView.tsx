@@ -151,16 +151,18 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
   // The server offers a resume when only Extract output exists and some Extract
   // steps are unfinished (SPEC-0003 RAC-21): Retry then runs those steps on the
   // existing pages. Without the offer, a book with pages cannot run Extract.
-  const canResume = extractRerun?.actions.includes("resume") ?? false
-  const resumeAttemptId = extractRerun?.attemptId ?? null
+  // It offers a retry when the extraction itself failed, was cancelled or was
+  // interrupted (RAC-22): Retry then discards that attempt and extracts again.
+  const rerunAction = (["resume", "retry"] as const).find((action) => extractRerun?.actions.includes(action)) ?? null
+  const rerunAttemptId = extractRerun?.attemptId ?? null
 
   const handleRetryExtract = useCallback(() => {
     if (!hasStructuredTextProvider || extractRunning) return
     queueRun({
       fromStage: "extract", toStage: "extract", apiKey,
-      ...(canResume ? { extraction: { action: "resume" as const, attemptId: resumeAttemptId } } : {}),
+      ...(rerunAction ? { extraction: { action: rerunAction, attemptId: rerunAttemptId } } : {}),
     })
-  }, [hasStructuredTextProvider, extractRunning, apiKey, queueRun, canResume, resumeAttemptId])
+  }, [hasStructuredTextProvider, extractRunning, apiKey, queueRun, rerunAction, rerunAttemptId])
 
   const pageList = pages ?? []
   const warnPages = pageList.filter((p) => p.extractionWarning)
@@ -261,7 +263,7 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
       {showRunCard ? (
         <div className="flex flex-col gap-4">
           <MissingKeyNotice bookLabel={bookLabel} />
-          {hasPages && !extractRunning && !canResume && (
+          {hasPages && !extractRunning && !rerunAction && (
             <div className="mb-4">
               <LandingPageWarning
                 variant="prereq"
@@ -281,7 +283,7 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
             isRunning={extractRunning}
             completed={extractDone}
             onRun={handleRetryExtract}
-            disabled={(!extractError && !extractInterrupted) || !hasStructuredTextProvider || extractRunning || (hasPages && !canResume)}
+            disabled={(!extractError && !extractInterrupted && rerunAction !== "retry") || !hasStructuredTextProvider || extractRunning || (hasPages && !rerunAction)}
             disabledReason={
               providerStatusReady && !hasStructuredTextProvider ? (
                 <Trans>Connect an AI provider to retry.</Trans>

@@ -27,6 +27,14 @@ it("RAC-24: tells a stale Extract re-run, a refused Extract run and an unavailab
     .toBe("Existing-book extraction and CLI resume are unavailable here. Use Sectioning in Studio to review and confirm any replacement.")
 })
 
+it("RAC-22: points an unfinished extraction to Retry, not to a new book", () => {
+  for (const diagnostic of ["Extraction is incomplete or failed; its partial data has been retained. Use a fresh, user-chosen label: pnpm pipeline <new-label> <pdf-file> [options].", "Extraction did not complete; partial data was retained."]) {
+    const message = sectioningErrorMessage(`EXTRACTION_INCOMPLETE: ${diagnostic}`)
+    expect(message).toBe("Extraction did not finish. Open Extract and retry it.")
+    expect(message).toBe(sectioningErrorMessage(diagnostic, "EXTRACTION_INCOMPLETE"))
+  }
+})
+
 it("retains unrecognized provider diagnostics", () => {
   expect(sectioningErrorMessage("Provider returned diagnostic ABC")).toBe("Provider returned diagnostic ABC")
 })

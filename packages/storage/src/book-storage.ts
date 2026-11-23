@@ -6,7 +6,7 @@ import path from "node:path"
 import type sqlite from "node-sqlite3-wasm"
 import type { ExtractedPage, ExtractedImage } from "@adt/pdf"
 import type { LlmLogEntry } from "@adt/llm"
-import { TranslatedImageAsset, imageFileExtension, parseBookLabel, CATALOG_OUTPUT_NODES, STAGE_OUTPUT_NODES, PIPELINE } from "@adt/types"
+import { TranslatedImageAsset, imageFileExtension, parseBookLabel, CATALOG_OUTPUT_NODES, STAGE_OUTPUT_NODES, PIPELINE, EXTRACT_OWNED_NODES } from "@adt/types"
 import type { Storage, PageData, ImageData, NodeDataRow, CroppedImageInput, SegmentedImageInput, SignLanguageVideoData, TranslatedImageInput } from "./storage.js"
 import { assertRecoveryCopyReady, openBookDb } from "./db.js"
 import { readCurrentNodeRow } from "./node-current.js"
@@ -17,6 +17,8 @@ import { invalidateSectioningLifecycle } from "./sectioning-transition.js"
 import { inspectExtractOnly, readExtractContentToken } from "./extract-only.js"
 
 const storageDirectories = new WeakMap<Storage, string>()
+const EXTRACT_STEPS: string[] = PIPELINE.find((stage) => stage.name === "extract")!.steps.map((step) => step.name)
+const EXTRACT_NODE_LIST = EXTRACT_OWNED_NODES.map(() => "?").join(", ")
 
 export interface BookPaths {
   bookDir: string
@@ -103,6 +105,29 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       clearImageFiles(paths.debugImagesDir)
       clearExtractedRows(db)
     },
+
+    resetExtractData(): void {
+      transaction(() => {
+        for (const table of ["node_data", "node_current"]) db.run(`DELETE FROM ${table} WHERE node IN (${EXTRACT_NODE_LIST})`, [...EXTRACT_OWNED_NODES])
+        db.run("DELETE FROM images")
+        db.run("DELETE FROM pages")
+        db.run(`DELETE FROM step_runs WHERE step IN (${EXTRACT_STEPS.map(() => "?").join(", ")})`, EXTRACT_STEPS)
+      })
+      clearImageFiles(paths.imagesDir)
+      clearImageFiles(paths.debugImagesDir)
+    },
+
+    findExtractResetLeftover: () => transaction(() => {
+      for (const table of ["pages", "images"]) if (db.get(`SELECT 1 FROM ${table} LIMIT 1`)) return `table:${table}`
+      for (const table of ["node_data", "node_current"]) {
+        const row = db.get(`SELECT node FROM ${table} WHERE node IN (${EXTRACT_NODE_LIST}) LIMIT 1`, [...EXTRACT_OWNED_NODES]) as { node: string } | null
+        if (row) return `node:${row.node}`
+      }
+      for (const directory of [paths.imagesDir, paths.debugImagesDir]) {
+        if (fs.readdirSync(directory).length) return `directory:${path.basename(directory)}`
+      }
+      return null
+    }, "DEFERRED"),
 
     clearNodesByType(nodes: string[], itemId?: string): void {
       if (nodes.length === 0) return

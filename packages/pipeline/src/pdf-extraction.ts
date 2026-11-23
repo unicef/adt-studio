@@ -3,9 +3,11 @@ import path from "node:path"
 import { randomUUID } from "node:crypto"
 import { extractPdfStream, samplePageEdges } from "@adt/pdf"
 import type { Storage } from "@adt/storage"
-import { getStorageBookDir, withBookWriter, extractionHash, writeExtractionManifest, hashExtractionAsset, flushExtractionAsset, syncDirectory, verifyExtractionInventory, ExtractionAdmissionError } from "@adt/storage"
+import { getStorageBookDir, withBookWriter, extractionHash, readExtractionManifest, writeExtractionManifest, hashExtractionAsset, flushExtractionAsset, syncDirectory, verifyExtractionInventory, ExtractionAdmissionError } from "@adt/storage"
 import type { ExtractionManifest } from "@adt/types"
-import { prepareExtractionAdmission } from "./extraction-admission.js"
+import { prepareExtractionAdmission, prepareExtractionReset } from "./extraction-admission.js"
+import { admitExtractReset, assertExtractResetComplete } from "./extraction-rerun.js"
+import { assertFirstExtraction } from "./sectioning-lifecycle.js"
 import type { Progress } from "./progress.js"
 import { toBookMetadata } from "./metadata-model.js"
 import { ensureBookGoogleFontsCached } from "./fonts-bundle.js"
@@ -53,40 +55,99 @@ export async function extractPDF(
     const admission = prepareExtractionAdmission(bookDir, options)
     if (admission.outcome === "reused") return "reused"
     options.signal?.throwIfAborted()
-    const manifest: ExtractionManifest = {
-      schemaVersion: 1, attemptId: randomUUID(), status: "extracting",
-      sourceHash: admission.sourceHash, inputs: admission.inputs,
-      inputFingerprint: extractionHash(JSON.stringify(admission.inputs)),
-      pages: [], assets: [], nodes: [], images: [],
-    }
-    writeExtractionManifest(bookDir, manifest)
-    try {
-      const sourceName = `${path.basename(bookDir)}.pdf`
-      const snapshotPath = path.join(bookDir, sourceName)
-      if (!fs.existsSync(snapshotPath)) fs.writeFileSync(snapshotPath, admission.pdfBuffer, { flag: "wx" })
-      const snapshot = fs.readFileSync(snapshotPath)
-      if (extractionHash(snapshot) !== admission.sourceHash) throw new ExtractionAdmissionError("EXTRACTION_SOURCE_CHANGED")
-      await extractInitialPDF({ ...options, ...admission.inputs, pdfPath: snapshotPath }, storage, progress, snapshot, manifest)
-      options.signal?.throwIfAborted()
-      if (manifest.pages.length !== admission.expectedPages || manifest.pages.length === 0) throw new ExtractionAdmissionError("EXTRACTION_INCOMPLETE")
-      manifest.assets.push({ path: sourceName, hash: admission.sourceHash })
-      for (const asset of manifest.assets) flushExtractionAsset(bookDir, asset.path)
-      flushExtractionAsset(bookDir, `${path.basename(bookDir)}.db`)
-      syncDirectory(path.join(bookDir, "images"))
-      manifest.status = "complete"
-      verifyExtractionInventory(bookDir, manifest)
-      writeExtractionManifest(bookDir, manifest)
-    } catch (error) {
-      // Keep the attempt and all partial output. A failed diagnostics write must
-      // never turn the existing extracting record into a reusable extraction.
-      manifest.status = "failed"
-      writeExtractionManifest(bookDir, manifest)
-      progress.emit({ type: "step-error", step: "extract", error: "EXTRACTION_INCOMPLETE: Extraction did not complete; partial data was retained." })
-      throw error
-    }
-    progress.emit({ type: "step-complete", step: "extract" })
+    await runExtractionAttempt(bookDir, options, storage, progress, admission)
     return "extracted"
   })
+}
+
+/** SPEC-0003 RAC-22/23: discard the book's extraction and extract again with
+ * the current settings (Studio/API retry and replace). `expectedAttemptId`
+ * binds the reset to the extraction the request was made for: the record's
+ * `attemptId`, or null when the book has no readable record. The source is the
+ * book's own PDF; `options.pdfPath` is ignored. `extractPDF` never does this.
+ *
+ * One writer lease, in this order (the spec's "Reset order"):
+ *  1. binding and Extract-only rule; 2. extraction inputs. A refusal in either
+ *     leaves every byte of the book unchanged.
+ *  3. the record is written as `failed`; 4. the Extract rows are deleted in one
+ *     transaction, then the image files; 5. the post-reset check;
+ *  6. a new attempt starts and extracts.
+ * From step 3 until the new attempt completes the record is never `complete`
+ * and never absent, so an interruption anywhere leaves a book a retry accepts. */
+export async function reextractPDF(
+  options: ExtractOptions,
+  storage: Storage,
+  progress: Progress,
+  rerun: { expectedAttemptId: string | null },
+): Promise<void> {
+  const bookDir = getStorageBookDir(storage)
+  return withBookWriter(bookDir, async () => {
+    if (!admitExtractReset(storage, rerun.expectedAttemptId)) {
+      assertFirstExtraction(bookDir, storage)
+      throw new ExtractionAdmissionError("EXTRACTION_RERUN_STALE")
+    }
+    let previous: ExtractionManifest | null = null
+    try { previous = readExtractionManifest(bookDir) } catch { /* unreadable: replaced below */ }
+    const source = { ...options, pdfPath: path.join(bookDir, `${path.basename(bookDir)}.pdf`) }
+    const admission = prepareExtractionReset(bookDir, source, previous)
+    options.signal?.throwIfAborted()
+    writeExtractionManifest(bookDir, previous
+      ? { ...previous, status: "failed" }
+      : newAttempt("failed", admission))
+    try {
+      if (!storage.resetExtractData) throw new Error("Extraction reset requires book-backed storage")
+      storage.resetExtractData()
+      assertExtractResetComplete(storage)
+    } catch (error) {
+      progress.emit({ type: "step-error", step: "extract", error: "EXTRACTION_INCOMPLETE: The previous extraction could not be discarded. Retry the extraction." })
+      throw error
+    }
+    await runExtractionAttempt(bookDir, source, storage, progress, admission)
+  })
+}
+
+type AttemptAdmission = Pick<ReturnType<typeof prepareExtractionAdmission>, "pdfBuffer" | "sourceHash" | "inputs" | "expectedPages">
+
+const newAttempt = (status: ExtractionManifest["status"], admission: AttemptAdmission): ExtractionManifest => ({
+  schemaVersion: 1, attemptId: randomUUID(), status,
+  sourceHash: admission.sourceHash, inputs: admission.inputs,
+  inputFingerprint: extractionHash(JSON.stringify(admission.inputs)),
+  pages: [], assets: [], nodes: [], images: [],
+})
+
+/** One extraction attempt under the caller's writer lease, shared by the first
+ * extraction and the reset: record `extracting`, extract, verify the
+ * inventory, record `complete`; any failure records `failed`. */
+async function runExtractionAttempt(
+  bookDir: string, options: ExtractOptions, storage: Storage, progress: Progress, admission: AttemptAdmission,
+): Promise<void> {
+  const manifest = newAttempt("extracting", admission)
+  writeExtractionManifest(bookDir, manifest)
+  try {
+    const sourceName = `${path.basename(bookDir)}.pdf`
+    const snapshotPath = path.join(bookDir, sourceName)
+    if (!fs.existsSync(snapshotPath)) fs.writeFileSync(snapshotPath, admission.pdfBuffer, { flag: "wx" })
+    const snapshot = fs.readFileSync(snapshotPath)
+    if (extractionHash(snapshot) !== admission.sourceHash) throw new ExtractionAdmissionError("EXTRACTION_SOURCE_CHANGED")
+    await extractInitialPDF({ ...options, ...admission.inputs, pdfPath: snapshotPath }, storage, progress, snapshot, manifest)
+    options.signal?.throwIfAborted()
+    if (manifest.pages.length !== admission.expectedPages || manifest.pages.length === 0) throw new ExtractionAdmissionError("EXTRACTION_INCOMPLETE")
+    manifest.assets.push({ path: sourceName, hash: admission.sourceHash })
+    for (const asset of manifest.assets) flushExtractionAsset(bookDir, asset.path)
+    flushExtractionAsset(bookDir, `${path.basename(bookDir)}.db`)
+    syncDirectory(path.join(bookDir, "images"))
+    manifest.status = "complete"
+    verifyExtractionInventory(bookDir, manifest)
+    writeExtractionManifest(bookDir, manifest)
+  } catch (error) {
+    // Keep the attempt and all partial output. A failed diagnostics write must
+    // never turn the existing extracting record into a reusable extraction.
+    manifest.status = "failed"
+    writeExtractionManifest(bookDir, manifest)
+    progress.emit({ type: "step-error", step: "extract", error: "EXTRACTION_INCOMPLETE: Extraction did not complete; partial data was retained." })
+    throw error
+  }
+  progress.emit({ type: "step-complete", step: "extract" })
 }
 
 async function extractInitialPDF(

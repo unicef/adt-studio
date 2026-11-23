@@ -80,13 +80,35 @@ export function readExtractRerunStatus(storage: Storage, runActive: boolean): Ex
  * other reason, including one added later, means the book is not Extract-only. */
 const EXTRACT_ONLY_REASONS: ReadonlySet<ExtractRerunBlockedReason | null> = new Set([null, "part-book", "extraction-inconsistent"])
 
-/** SPEC-0003 RAC-21 admission of a resume request, re-checked under the writer
- * lease by every caller. False: the book is not Extract-only, and the caller
- * keeps today's refusal. Throws before any write when the book is Extract-only
- * and the request no longer matches it. */
-export function admitExtractResume(storage: Storage, request: ExtractRerunRequest): boolean {
+/** Is the book Extract-only, with `status` read by readExtractRerunStatus? */
+const isExtractOnly = (status: ExtractRerunStatus): boolean => status.actions.length > 0 || EXTRACT_ONLY_REASONS.has(status.blockedReason)
+
+/** SPEC-0003 RAC-21–23 admission of an Extract re-run request, re-checked
+ * under the writer lease by every caller. False: the book is not Extract-only,
+ * and the caller keeps today's refusal. Throws before any write when the book
+ * is Extract-only and the request no longer matches it. */
+export function admitExtractRerun(storage: Storage, request: ExtractRerunRequest): boolean {
   const status = readExtractRerunStatus(storage, false)
-  if (!status.actions.length && !EXTRACT_ONLY_REASONS.has(status.blockedReason)) return false
-  if (!status.actions.includes("resume") || status.attemptId !== request.attemptId) throw new ExtractionAdmissionError("EXTRACTION_RERUN_STALE")
+  if (!isExtractOnly(status)) return false
+  if (!status.actions.includes(request.action) || status.attemptId !== request.attemptId) throw new ExtractionAdmissionError("EXTRACTION_RERUN_STALE")
   return true
+}
+
+/** Reset step 1 (RAC-22/23): the same admission for the reset itself, which is
+ * bound to an extraction and not to one action. A reset serves retry and
+ * replace alike, so either being offered admits it. */
+export function admitExtractReset(storage: Storage, expectedAttemptId: string | null): boolean {
+  const status = readExtractRerunStatus(storage, false)
+  if (!isExtractOnly(status)) return false
+  if (!status.actions.some((action) => action !== "resume") || status.attemptId !== expectedAttemptId) throw new ExtractionAdmissionError("EXTRACTION_RERUN_STALE")
+  return true
+}
+
+/** Reset step 5 (RAC-22/23): the book holds nothing the new extraction would
+ * collide with. Initial admission cannot be reused here: it refuses the LLM
+ * log, typography, style guides and the extraction record a reset keeps. */
+export function assertExtractResetComplete(storage: Storage): void {
+  const inspection = storage.inspectExtractOnly?.()
+  const leftover = inspection?.extractOnly ? storage.findExtractResetLeftover?.() : "storage:not-extract-only"
+  if (leftover !== null) throw new ExtractionAdmissionError("EXTRACTION_INCOMPLETE")
 }

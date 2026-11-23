@@ -93,7 +93,7 @@ export function sectioningErrorMessage(error?: string, code?: string): string | 
       return i18n._(msg`This page's saved Sectioning is unreadable. Restore a valid historical version before replacing it. History and media are retained.`)
     }
     case "EXTRACTION_LEGACY": return i18n._(msg`This book has no verified extraction record. Saved content is retained. Start extraction in a new book.`)
-    case "EXTRACTION_INCOMPLETE": return i18n._(msg`Extraction did not finish. Partial data is retained. Start extraction in a new book.`)
+    case "EXTRACTION_INCOMPLETE": return i18n._(msg`Extraction did not finish. Open Extract and retry it.`)
     case "EXTRACTION_SOURCE_CHANGED": return i18n._(msg`The source PDF has changed. Existing content is retained. Import the changed PDF as a new book.`)
     case "EXTRACTION_INPUTS_CHANGED": return i18n._(msg`Extraction settings have changed. Existing content is retained. Start extraction in a new book.`)
     case "EXTRACTION_ASSETS_INVALID": return i18n._(msg`Original extraction data is missing or unreadable. Existing data is retained. Restore a verified book copy or import the PDF as a new book.`)

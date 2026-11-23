@@ -36,6 +36,7 @@ import {
 import type { LlmLogEntry, AdaptiveRateLimiter } from "@adt/llm"
 import {
   extractPDF,
+  reextractPDF,
   figureExtractionFlags,
   resolveFigureExtractionMode,
   resolveFontsCacheDir,
@@ -1152,7 +1153,9 @@ async function generateAndStoreBookOutline(
   }
 }
 
-/** Step 1 of a first extraction: read the PDF into pages, images and fonts. */
+/** Step 1 of a first extraction: read the PDF into pages, images and fonts.
+ * A retry or replace (SPEC-0003 RAC-22/23) first discards the extraction the
+ * request is bound to, under the same writer lease. */
 async function runPdfExtraction(
   label: string,
   options: StageRunOptions,
@@ -1163,7 +1166,11 @@ async function runPdfExtraction(
   const { booksDir } = options
   const pdfPath = path.join(path.resolve(booksDir), label, `${label}.pdf`)
   console.log(`[stage-run] ${label}: extracting PDF from ${pdfPath}`)
-  await extractPDF(
+  const rerun = options.extraction?.action === "retry" ? options.extraction : undefined
+  const extract: (...args: Parameters<typeof extractPDF>) => Promise<unknown> = rerun
+    ? (extractOptions, target, events) => reextractPDF(extractOptions, target, events, { expectedAttemptId: rerun.attemptId })
+    : extractPDF
+  await extract(
     {
       pdfPath,
       startPage: config.start_page,
