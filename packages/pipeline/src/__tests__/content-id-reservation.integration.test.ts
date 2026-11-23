@@ -3,7 +3,7 @@ import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { createBookStorage, openBookDb } from "@adt/storage"
-import { collectSpentContentIds, findIntroducedDerivedIdCollision } from "../content-ids.js"
+import { collectSpentContentIds, findIntroducedDerivedIdCollision, findIntroducedImageAudioCollision } from "../content-ids.js"
 import { reconcileGlossaryEditIds } from "../glossary.js"
 import { saveQuizOutput } from "../quiz-ids.js"
 import { createSectionIdFactory } from "../section-ids.js"
@@ -202,4 +202,12 @@ it("AC-24: rejects a new rendered image id ending in _audio", () => {
   expect(findIntroducedDerivedIdCollision(["pg001_im999_audio"], ["pg001_im999_audio"])).toBeUndefined()
   // A real text id is not the reserved image-audio slot.
   expect(findIntroducedDerivedIdCollision(["pg001_listen_audio"], [])).toBeUndefined()
+})
+
+it("AC-24: the image-save guard rejects a new image id ending in _audio", () => {
+  expect(findIntroducedImageAudioCollision(["pg001_im999_audio"], [])).toBe("pg001_im999_audio")
+  expect(findIntroducedImageAudioCollision(["pg001_im999_audio"], ["pg001_im999_audio"])).toBeUndefined()
+  // A real text id and a normal image id are not the reserved slot.
+  expect(findIntroducedImageAudioCollision(["pg001_listen_audio"], [])).toBeUndefined()
+  expect(findIntroducedImageAudioCollision(["pg001_im999"], [])).toBeUndefined()
 })
