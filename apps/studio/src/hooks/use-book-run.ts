@@ -58,6 +58,8 @@ export interface QueueRunOptions {
   /** When true, skip page-sectioning and only re-render from existing section data. */
   renderOnly?: boolean
   providerCredentials?: StageRunProviderCredentials
+  /** Extract re-run action offered by step-status' `extractRerun` (SPEC-0003 RAC-21). */
+  extraction?: import("@adt/types").ExtractRerunRequest
   /**
    * When true, navigate to the `toStage` step view after queueing. A no-op from
    * the step index (it already swaps to the view once running); a real switch
@@ -79,6 +81,7 @@ interface StepStatusResponse {
   publicationAgeMs?: number
   pendingDecisions?: PendingDecision[]
   coverage?: import("@adt/types").StoryboardCoverage
+  extractRerun?: import("@adt/types").ExtractRerunStatus
 }
 
 // ---------------------------------------------------------------------------
@@ -92,6 +95,8 @@ export interface BookRunContextValue {
   sourceUpdateStages?: string[]
   /** Actual saved-output coverage, independent of the last attempt. */
   storyboardCoverage?: import("@adt/types").StoryboardCoverage
+  /** Which Extract re-run actions the book allows (SPEC-0003 RAC-24). */
+  extractRerun?: import("@adt/types").ExtractRerunStatus
   /** Stage state: idle / queued / running / done / error */
   stageState(stage: string): StageState
   /** Step state: idle / running / done / error */
@@ -508,6 +513,8 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       })
       announceRef.current(i18n._(msg`Run cancelled`))
       toast.info(i18n._(msg`Run cancelled`))
+      // queueRun may have emptied the page list for a run that never replaced it.
+      queryClient.invalidateQueries({ queryKey: ["books", label, "pages"] })
       void refreshRunStatus(queryClient, label)
     })
 
@@ -531,6 +538,9 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       // network blip never toasts or beeps.
       if (me.data) {
         pagePublications.reset()
+        // queueRun may have emptied the page list for a run that then failed,
+        // for example a queued run refused when it started.
+        queryClient.invalidateQueries({ queryKey: ["books", label, "pages"] })
         try {
           const d = JSON.parse(me.data)
           const runError = sectioningErrorMessage(d.error, d.code) ?? i18n._(msg`Step run failed`)
@@ -727,8 +737,12 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         geminiApiKey: geminiKey || undefined,
       }
 
+      // A resume (SPEC-0003 RAC-21) clears nothing on the server: it runs only
+      // the Extract steps that are not done or skipped, on the existing pages.
+      const resume = fromStage === "extract" && toStage === "extract" && options.extraction?.action === "resume"
+
       // Optimistically mark target stage(s) as queued and clear downstream
-      const stagesToClear = new Set(getStageClearOrder(fromStage as StageName))
+      const stagesToClear = new Set<StageName>(resume ? ["extract"] : getStageClearOrder(fromStage as StageName))
       queryClient.setQueryData<StepStatusResponse>(stepStatusKey(label), (old) => {
         // Seed a base when the initial step-status fetch hasn't resolved yet
         // (e.g. a run kicked off right after landing on the book). Bailing out
@@ -745,6 +759,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
             for (const step of stageDef.steps) {
               // Render-only: preserve page-sectioning step state
               if (renderOnly && step.name === "page-sectioning") continue
+              if (resume && (steps[step.name] === "done" || steps[step.name] === "skipped")) continue
               steps[step.name] = "idle"
               delete stepMessages?.[step.name]
             }
@@ -766,8 +781,8 @@ export function useBookRunStatus(label: string): BookRunContextValue {
 
       // Only clear data that the server actually removes. Invalidating an
       // attempt must not blank retained rendering or protected source drafts.
-      const clearedNodes = new Set(getStageRerunClearNodes(fromStage as StageName, toStage as StageName))
-      const clearsPages = fromStage === "extract"
+      const clearedNodes = new Set(resume ? [] : getStageRerunClearNodes(fromStage as StageName, toStage as StageName))
+      const clearsPages = fromStage === "extract" && !resume
       const clearsRendering = clearsPages || clearedNodes.has("web-rendering")
       const clearsSectioning = clearsPages || clearedNodes.has("page-sectioning")
       if (clearsPages) {
@@ -828,7 +843,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       runChainRef.current = runChainRef.current.then(async () => {
         try {
           // The Studio always opts into interactive page-error handling.
-          await api.runStages(label, apiKey, { fromStage, toStage, renderOnly, pageErrorPolicy: "ask", replaceManual: options.replaceManual, protectedReplacements: options.protectedReplacements }, providerCredentials)
+          await api.runStages(label, apiKey, { fromStage, toStage, renderOnly, pageErrorPolicy: "ask", replaceManual: options.replaceManual, protectedReplacements: options.protectedReplacements, extraction: options.extraction }, providerCredentials)
         } catch (error) {
           // The server refused to start (e.g. a model in the run's range has no
           // credential). Nothing ran, so say why instead of silently snapping
@@ -968,6 +983,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   return {
     sourceUpdateStages: data?.sourceUpdateStages ?? [],
     storyboardCoverage: data?.coverage,
+    extractRerun: data?.extractRerun,
     bookLabel: label,
     stageState,
     stepState: stepStateAccessor,

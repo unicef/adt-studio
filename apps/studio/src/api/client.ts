@@ -408,6 +408,8 @@ export interface RunStagesOptions {
   /** How to react when a page fails inside a per-page step. The Studio sends
    *  "ask" so page errors surface an interactive skip/stop dialog. */
   pageErrorPolicy?: "ask" | "stop"
+  /** Extract re-run action, only on a run from Extract to Extract (SPEC-0003 RAC-21). */
+  extraction?: import("@adt/types").ExtractRerunRequest
 }
 
 export function getProviders(): Promise<ProvidersResponse> {

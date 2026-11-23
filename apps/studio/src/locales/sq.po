@@ -4893,6 +4893,9 @@ msgstr "Nxjerr"
 msgid "Extract & filter"
 msgstr "Nxirr dhe filtro"
 
+msgid "Extract cannot run again on this book because it already has extracted pages or later work. To extract again, create a new book from the PDF."
+msgstr "Nxjerrja nuk mund të ekzekutohet përsëri në këtë libër, sepse ai ka tashmë faqe të nxjerra ose punë të mëvonshme. Për të nxjerrë përsëri, krijoni një libër të ri nga PDF-ja."
+
 msgid "Extract hasn't run yet"
 msgstr "Nxjerrja nuk është ekzekutuar ende"
 
@@ -12852,6 +12855,9 @@ msgstr "Ky libër ka tashmë faqe të ekstraktuara. Riekstraktimi i një libri e
 
 msgid "This book has {pageCount} pages."
 msgstr "Ky libër ka {pageCount} faqe."
+
+msgid "This book has changed since this screen loaded, so the run was not started. Reload the book and try again."
+msgstr "Ky libër ka ndryshuar që kur u ngarkua ky ekran, prandaj ekzekutimi nuk u nis. Ringarkoni librin dhe provoni sërish."
 
 msgid "This book has no images to caption"
 msgstr "Ky libër nuk ka imazhe për t'i titulluar"

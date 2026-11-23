@@ -4893,6 +4893,9 @@ msgstr "Extraire"
 msgid "Extract & filter"
 msgstr "Extraire et filtrer"
 
+msgid "Extract cannot run again on this book because it already has extracted pages or later work. To extract again, create a new book from the PDF."
+msgstr "L’extraction ne peut pas être relancée sur ce livre, car il contient déjà des pages extraites ou du travail ultérieur. Pour extraire à nouveau, créez un nouveau livre à partir du PDF."
+
 msgid "Extract hasn't run yet"
 msgstr "Extraction n'a pas encore été exécutée"
 
@@ -12852,6 +12855,9 @@ msgstr "Ce livre a déjà des pages extraites. La réextraction d'un livre exist
 
 msgid "This book has {pageCount} pages."
 msgstr "Ce livre comporte {pageCount} pages."
+
+msgid "This book has changed since this screen loaded, so the run was not started. Reload the book and try again."
+msgstr "Ce livre a changé depuis le chargement de cet écran ; l’exécution n’a donc pas été lancée. Rechargez le livre et réessayez."
 
 msgid "This book has no images to caption"
 msgstr "Ce livre ne contient aucune image à légender"

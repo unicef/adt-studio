@@ -3,10 +3,12 @@ import React, { type ReactNode } from "react"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import type { PageSummaryItem } from "@/api/client"
+import type { ExtractRerunStatus } from "@adt/types"
 import { ExtractView } from "./ExtractView"
 
 const state = vi.hoisted(() => ({
   pages: [] as PageSummaryItem[], available: false, ready: true, stage: "error",
+  rerun: undefined as ExtractRerunStatus | undefined,
   queueRun: vi.fn(), navigate: vi.fn(), setExtra: vi.fn(), setOnLabelClick: vi.fn(),
 }))
 vi.mock("@lingui/react/macro", () => ({
@@ -23,7 +25,7 @@ vi.mock("@/hooks/use-api-key", () => ({
 }))
 vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({
   stageState: () => state.stage, stepState: () => "idle", stepProgress: () => undefined,
-  stepError: () => undefined, queueRun: state.queueRun,
+  stepError: () => undefined, queueRun: state.queueRun, extractRerun: state.rerun,
 }) }))
 vi.mock("../../components/StepViewRouter", () => ({ useStepHeader: () => ({ setExtra: state.setExtra, setOnLabelClick: state.setOnLabelClick }) }))
 vi.mock("../../pipeline-i18n", () => ({
@@ -35,13 +37,20 @@ vi.mock("./components/SpreadReview", () => ({ SpreadReview: () => null }))
 vi.mock("./BookHeader", () => ({ BookHeader: () => null }))
 
 beforeEach(() => {
-  Object.assign(state, { pages: [], available: false, ready: true, stage: "error" })
+  Object.assign(state, { pages: [], available: false, ready: true, stage: "error", rerun: undefined })
   vi.clearAllMocks()
 })
 afterEach(cleanup)
 
-it.each(["idle", "error"])("preserves populated-book extraction protection when provider onboarding is available (%s)", (stage) => {
+const offers = (...actions: ExtractRerunStatus["actions"]): ExtractRerunStatus => ({ actions, attemptId: "7b0e9d4c-52a1-4a43-9c0e-2f6f3f1f8a11", blockedReason: null })
+
+it.each([
+  { stage: "idle", rerun: undefined }, { stage: "error", rerun: undefined },
+  { stage: "error", rerun: offers("replace") }, { stage: "idle", rerun: offers("retry") },
+  { stage: "error", rerun: { actions: [], attemptId: null, blockedReason: "downstream-output" } satisfies ExtractRerunStatus },
+])("preserves populated-book extraction protection when provider onboarding is available ($stage, $rerun.actions)", ({ stage, rerun }) => {
   state.stage = stage
+  state.rerun = rerun
   state.pages = [{ pageId: "pg001", pageNumber: 1 } as PageSummaryItem]
   const view = render(<ExtractView bookLabel="historical" />)
   expect(screen.getByText("Re-extraction is not available in this version")).toBeTruthy()
@@ -78,4 +87,27 @@ it("offers provider connection only after status is known and retries an empty b
   expect(retry.disabled).toBe(false)
   fireEvent.click(retry)
   expect(state.queueRun).toHaveBeenCalledExactlyOnceWith({ fromStage: "extract", toStage: "extract", apiKey: "fixture" })
+})
+
+it.each([
+  { stage: "error", rerun: offers("resume", "replace") },
+  { stage: "idle", rerun: offers("resume") },
+  { stage: "idle", rerun: { ...offers("resume", "replace"), attemptId: null } },
+])("RAC-24: offers Retry and sends the resume request when Extract can resume ($stage, $rerun.attemptId)", ({ stage, rerun }) => {
+  state.stage = stage
+  state.rerun = rerun
+  state.pages = [{ pageId: "pg001", pageNumber: 1 } as PageSummaryItem]
+  const view = render(<ExtractView bookLabel="unfinished" />)
+  expect(screen.queryByText("Re-extraction is not available in this version")).toBeNull()
+  const run = screen.getByRole("button", { name: /^(Run|Retry) Extract$/ }) as HTMLButtonElement
+  // Still needs a provider: the pending steps call a model.
+  expect(run.disabled).toBe(true)
+  state.available = true
+  view.rerender(<ExtractView bookLabel="unfinished" />)
+  expect(run.disabled).toBe(false)
+  fireEvent.click(run)
+  expect(state.queueRun).toHaveBeenCalledExactlyOnceWith({
+    fromStage: "extract", toStage: "extract", apiKey: "fixture",
+    extraction: { action: "resume", attemptId: rerun.attemptId },
+  })
 })
