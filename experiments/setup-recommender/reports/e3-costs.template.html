@@ -48,7 +48,7 @@ thead th{border-top:0;font-weight:600;font-size:13px;color:var(--ink-2)}
 td.r,th.r{text-align:right}
 .pill{display:inline-block;font:500 11px/1.7 var(--mono);padding:0 7px;border-radius:99px;background:var(--good-soft);color:var(--good)}
 .pill.w{background:var(--warn-soft);color:var(--warn)}
-.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:12px}
 .note{font-size:13px;color:var(--ink-3)}
 ul.plain{margin:0;padding-left:18px;color:var(--ink-2);display:flex;flex-direction:column;gap:6px;max-width:72ch}
 #tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);font:12px/1.4 var(--body);padding:6px 8px;border-radius:6px;max-width:260px;z-index:20}
@@ -58,7 +58,7 @@ ul.plain{margin:0;padding-left:18px;color:var(--ink-2);display:flex;flex-directi
 <main>
   <header style="display:flex;flex-direction:column;gap:12px">
     <span class="eyebrow">Issue #333 · auto mode · engine E3 · measured 2026-11-23</span>
-    <h1>What auto mode costs: time, money and data</h1>
+    <h1>Auto mode: how it works and what it costs</h1>
     <p class="lede">Engine E3 measures the PDF, reads it twice with AI at the same time, and picks settings with a fixed rulebook. Every number here comes from real runs inside ADT Studio on the 6 PoC books (7 to 12 pages, 4 runs per model) and on test books of 12 to 400 pages.</p>
   </header>
 
@@ -66,6 +66,113 @@ ul.plain{margin:0;padding-left:18px;color:var(--ink-2);display:flex;flex-directi
     <div class="tiles" id="tiles"></div>
     <p class="note">Prices: OpenAI standard tier, USD per 1M tokens: gpt-5.4 $2.50 in / $15 out, gpt-5.4-mini $0.75 in / $4.50 out. Running the same PDF again costs nothing: answers are cached on disk.</p>
   </section>
+
+  <section>
+    <span class="eyebrow">How it works</span>
+    <h2>Measure, read twice, apply fixed rules, ask only when needed</h2>
+    <p class="find">The AI never picks settings. It describes the book in plain facts a teacher could check. A fixed rulebook turns those facts into settings, so the same facts always give the same settings. Two readings that look at the book in different ways tell us when a fact is uncertain.</p>
+    <div class="panel">
+      <div class="chart">
+        <svg viewBox="0 0 960 300" role="img" aria-label="The PDF is scanned without AI. Pages are chosen. Two AI readings run in parallel: page labels and plain questions. Facts from both go to the rulebook and the asking rule. The review screen shows picks and any questions. The book is created with the settings, the recommendation and the AI log.">
+          <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--ink-3)"/></marker></defs>
+          <g fill="var(--surface)" stroke="var(--line)" stroke-width="1.5">
+            <rect x="8" y="110" width="100" height="70" rx="8"/>
+            <rect x="140" y="110" width="128" height="70" rx="8"/>
+            <rect x="300" y="110" width="118" height="70" rx="8"/>
+            <rect x="452" y="30" width="150" height="80" rx="8" style="stroke:var(--s3)"/>
+            <rect x="452" y="180" width="150" height="80" rx="8" style="stroke:var(--s4)"/>
+            <rect x="636" y="100" width="138" height="90" rx="8"/>
+            <rect x="808" y="100" width="144" height="90" rx="8"/>
+          </g>
+          <g fill="none" stroke="var(--ink-3)" stroke-width="1.5">
+            <path d="M108 145H138" marker-end="url(#ar)"/><path d="M268 145H298" marker-end="url(#ar)"/>
+            <path d="M418 145H432V70H450" marker-end="url(#ar)"/><path d="M432 145V220H450" marker-end="url(#ar)"/>
+            <path d="M602 70H618V145H634" marker-end="url(#ar)"/><path d="M602 220H618V145" />
+            <path d="M774 145H806" marker-end="url(#ar)"/>
+            <path d="M204 180V280H880V192" stroke-dasharray="5 4" marker-end="url(#ar)"/>
+          </g>
+          <g font-size="13" fill="var(--ink)" font-weight="600" text-anchor="middle">
+            <text x="58" y="140">PDF</text><text x="204" y="140">1 · Scan</text><text x="359" y="140">2 · Pick pages</text>
+            <text x="527" y="62">3a · Page labels</text><text x="527" y="212">3b · Plain questions</text>
+            <text x="705" y="132">4 · Rules + asking</text><text x="880" y="132">5 · Review, create</text>
+          </g>
+          <g font-size="11" fill="var(--ink-3)" text-anchor="middle">
+            <text x="58" y="158">any length</text>
+            <text x="204" y="158">every page, no AI</text><text x="204" y="172">0.1 to 11 s</text>
+            <text x="359" y="158">all pages if ≤ 30</text><text x="359" y="172">else about 40</text>
+            <text x="527" y="80">every chosen page, 512 px</text><text x="527" y="94">labels each page alone</text>
+            <text x="527" y="230">6 pages, 1000 px</text><text x="527" y="244">4 questions, pages cited</text>
+            <text x="705" y="150">facts → 6 settings</text><text x="705" y="164">+ page range</text><text x="705" y="178">ask if unsure and it matters</text>
+            <text x="880" y="150">what, meaning, why, pages</text><text x="880" y="164">answers update picks</text><text x="880" y="178">saved with the book</text>
+            <text x="540" y="274">measured facts (spreads, text layer, diagrams, exercise cues) also feed the rules</text>
+          </g>
+          <text x="527" y="148" font-size="11" fill="var(--ink-2)" text-anchor="middle">in parallel, 2 to 7 s</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="two">
+      <div class="panel">
+        <h3>1 · Scan the PDF, no AI</h3>
+        <p>Every page is opened once with the same PDF library ADT already uses. For each page we measure page size, visible text and hidden text (an OCR layer over a scan), where pictures sit and how much of the page they cover, how many drawn lines and shapes it has, and whether words sit on top of a large picture. The edges of facing pages are compared to see if one picture runs across the gutter.</p>
+        <p>From these numbers come the measured facts: how pages are stored (single pages, a two-page picture split in two, or already wide), whether the PDF has real text or is a scan, labelled diagrams (40+ drawn shapes with text on the page), exercise cues (blanks, boxes, numbered items, instruction verbs in English, Portuguese, Spanish and French) and the language.</p>
+      </div>
+      <div class="panel">
+        <h3>2 · Choose the pages the AI sees</h3>
+        <p><b>Books of 30 pages or fewer:</b> the label reading sees every page. The question reading sees up to 6 pages picked from the measurements: the first inside page, the page with the most exercise cues, the most words on pictures, the most drawn shapes, the middle page and the last inside page.</p>
+        <p><b>Longer books:</b> a fixed sample of the opening (6% of the book, 10 to 24 pages), 10 pages spread through the middle and the last 4. The question reading uses 6 of the middle pages, so a long foreword can't mislead it. The sample stays at about 40 pages, which is why AI time and cost barely grow with length.</p>
+      </div>
+      <div class="panel">
+        <h3>3a · Page-label reading</h3>
+        <p>Each chosen page is sent as a small picture (512 px) with its first 300 characters. The AI labels every page on its own: cover, front matter, story, lesson, exercise, informational, back matter or blank; where the words sit (on the picture, beside it, mostly text, none); and whether it has a meaningful figure such as a map or a labelled diagram.</p>
+        <p>Book facts are then counted from the labels with fixed thresholds: only pages of the book itself vote, the most common type gives the kind of book, and a count under 60% is flagged. A few odd pages can't drag the whole book. The labels also give the pages to import: from the first two book pages in a row to the last one.</p>
+      </div>
+      <div class="panel">
+        <h3>3b · Plain-question reading</h3>
+        <p>Six pages at 1000 px, their text, and the measured numbers. Four questions in the same plain words the user sees: what is this book mostly; does it ask the reader to write or mark answers (colouring doesn't count); where are the words on a page; are there pictures with labels that explain something. Each answer cites the pages it comes from and gives one sentence a teacher can check.</p>
+        <p>This reading is the second opinion. Its sentence is shown to the user when it's asked about a fact.</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>4 · The rulebook: facts to settings</h3>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Setting</th><th>Decided by</th><th>Rule</th><th>After import</th></tr></thead>
+        <tbody>
+          <tr><td>Kind of book (preset)</td><td>Kind of book</td><td>Story → Storybook, school book → Textbook, information → Reference.</td><td>Can change</td></tr>
+          <tr><td>Page layout</td><td>Kind of book, where the words sit, text layer</td><td>Information → one column. School book → rebuilt by AI. Story with words on the pictures → keep the printed page (words rebuilt on top if the PDF has no real text). Words beside the pictures → picture beside the words. Mostly words → rebuilt to fit the screen.</td><td>Can change</td></tr>
+          <tr><td>Pictures across two pages</td><td>Measured only</td><td>Join facing pages when pictures cross the gutter on at least a quarter of the pairs. Wide pages already hold both sides.</td><td><span class="pill w">Fixed</span></td></tr>
+          <tr><td>Maps and labelled drawings</td><td>Labelled pictures, measured diagrams, text layer</td><td>Keep each figure together with its labels when the PDF has real text and either reading or the scan found labelled pictures.</td><td><span class="pill w">Fixed</span></td></tr>
+          <tr><td>Interactive activities</td><td>Kind of book, exercises</td><td>On only for a school book with exercises. The Storybook and Reference presets remove exercise sections, so turning activities on there would delete them.</td><td>Can change</td></tr>
+          <tr><td>How each page is split</td><td>Kind of book, exercises, layout</td><td>Split into reading and tasks for a school book with exercises, unless the printed page is kept.</td><td>Can change</td></tr>
+          <tr><td>Pages to import</td><td>Page labels</td><td>Leave out opening and end pages that aren't the book itself, when the labels show where it starts and ends.</td><td><span class="pill w">Fixed</span></td></tr>
+        </tbody>
+      </table></div>
+      <p class="note">The server sends the settings for all 81 combinations of the four facts, so when the user answers a question the screen updates the picks without running the rules in the browser.</p>
+    </div>
+
+    <div class="two">
+      <div class="panel">
+        <h3>When the user is asked</h3>
+        <p>A fact is put to the user only when both are true:</p>
+        <ul class="plain">
+          <li>another answer would change a setting for this book, and</li>
+          <li>the two readings disagree, or the label reading saw fewer than two pages of the book itself (for example a PDF that is only a foreword).</li>
+        </ul>
+        <p>Nothing is pre-picked. When the readings disagree their answers are tagged "Our guess" and "Other possibility". The AI's own confidence is not used: in the experiments it flagged none of 7 wrong facts, while disagreement between the two readings caught 5 of 5.</p>
+      </div>
+      <div class="panel">
+        <h3>What is kept</h3>
+        <ul class="plain">
+          <li>The book's config gets the confirmed settings, the same way the manual wizard writes them.</li>
+          <li><code>setup-recommendation.json</code> in the book folder keeps the measured facts, both readings, the questions asked, and every AI prompt and response, so nothing is hidden.</li>
+          <li>AI answers are cached by their exact input, so checking the same PDF again is instant and free.</li>
+          <li>Any provider that accepts images works: the calls go through ADT's own AI client. The model is set by <code>ADT_SETUP_RECOMMENDER_MODEL</code>, or the app's default model.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
 
   <section>
     <span class="eyebrow">Time</span>
@@ -80,8 +187,8 @@ ul.plain{margin:0;padding-left:18px;color:var(--ink-2);display:flex;flex-directi
 
   <section>
     <span class="eyebrow">Book length</span>
-    <h2>A 400-page book takes 6 to 15 seconds</h2>
-    <p class="find">Long books are read on a fixed sample of about 40 pages, so AI time grows only a little. The scan reads every page and grows with length: 2 to 7 ms per page here, up to about 30 ms per page on picture books whose pages each have their own images.</p>
+    <h2>A 400-page book takes 6 to 15 seconds on this machine</h2>
+    <p class="find">Long books are read on a fixed sample of about 40 pages, so AI time grows only a little. The scan reads every page and grows with length: 2 to 7 ms per page at 400 pages here, up to about 30 ms per page on picture books whose pages each have their own images.</p>
     <div class="panel">
       <div class="legend"><span><i class="line" style="background:var(--s1)"></i>Total, gpt-5.4-mini</span><span><i class="line" style="background:var(--s2)"></i>Total, gpt-5.4</span><span><i class="line" style="background:var(--s5)"></i>Scan only</span></div>
       <div class="chart" id="scaleChart"></div>
@@ -92,7 +199,7 @@ ul.plain{margin:0;padding-left:18px;color:var(--ink-2);display:flex;flex-directi
   <section>
     <span class="eyebrow">Network</span>
     <h2>On a slow connection, sending the pages is the slowest part</h2>
-    <p class="find">Each book sends 0.7 to 2.6 MB of small page pictures to the AI. On a 1 Mbit/s upload that adds 5 to 21 seconds, more than the AI itself. At 20 Mbit/s it is about 1 second.</p>
+    <p class="find">Each book sends 0.6 to 2.5 MB of small page pictures to the AI. On a 1 Mbit/s upload that adds 5 to 21 seconds, more than the AI itself. At 20 Mbit/s it is about 1 second.</p>
     <div class="panel"><div class="tablewrap"><table id="netTable"></table></div>
       <p class="note">Seconds to upload the request at a steady speed, on top of the times above. Measured sizes; speeds computed. Desktop app: the PDF itself stays on the machine, only the page pictures go to the AI provider.</p>
     </div>
@@ -119,7 +226,7 @@ ul.plain{margin:0;padding-left:18px;color:var(--ink-2);display:flex;flex-directi
   <section>
     <span class="eyebrow">Tokens</span>
     <h2>The question reading costs twice the page-label reading</h2>
-    <p class="find">Input tokens are 96% of the bill. The question reading sends 6 pages at 1000 px; the label reading sends every page of a short book at 512 px. Making the question pictures smaller is the cheapest saving to try, but it has to be checked for accuracy first.</p>
+    <p class="find">Input tokens are about 80% of the bill. The question reading sends 6 pages at 1000 px; the label reading sends every page of a short book at 512 px. Making the question pictures smaller is the cheapest saving to try, but it has to be checked for accuracy first.</p>
     <div class="panel">
       <div class="legend"><span><i style="background:var(--s3)"></i>Page-label reading</span><span><i style="background:var(--s4)"></i>Question reading</span></div>
       <div class="chart" id="tokChart"></div>
