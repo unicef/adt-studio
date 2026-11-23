@@ -9,6 +9,7 @@ const reasons: Record<ExtractionErrorCode, string> = {
   EXTRACTION_INPUTS_CHANGED: "The extraction settings or extraction contract differ.",
   EXTRACTION_ASSETS_INVALID: "Required original extraction data is missing or corrupt.",
   EXTRACTION_INPUT_INVALID: "The PDF or effective extraction inputs are invalid.",
+  EXTRACTION_RERUN_STALE: "The book changed after this Extract run was requested. Nothing was changed. Reload the book and try again.",
   UNSAFE_RESUME_UNAVAILABLE: "Extraction is reusable. Full downstream resume is blocked; only the explicit Sectioning–Storyboard range is supported. No downstream work was started.",
 }
 
@@ -17,7 +18,7 @@ export class ExtractionAdmissionError extends Error {
   readonly summary?: ExtractionResumeBlockedSummary
 
   constructor(readonly code: ExtractionErrorCode) {
-    super(`${code}: ${reasons[code]}${code === "BOOK_BUSY" || code === "UNSAFE_RESUME_UNAVAILABLE" || code === "EXTRACTION_INPUT_INVALID" ? "" : ` ${guidance}`}`)
+    super(`${code}: ${reasons[code]}${code === "BOOK_BUSY" || code === "UNSAFE_RESUME_UNAVAILABLE" || code === "EXTRACTION_INPUT_INVALID" || code === "EXTRACTION_RERUN_STALE" ? "" : ` ${guidance}`}`)
     this.name = "ExtractionAdmissionError"
     if (code === "UNSAFE_RESUME_UNAVAILABLE") {
       this.summary = ExtractionResumeBlockedSummary.parse({

@@ -5,6 +5,15 @@ import { z } from "zod"
 export const ExtractRerunAction = z.enum(["resume", "retry", "replace"])
 export type ExtractRerunAction = z.infer<typeof ExtractRerunAction>
 
+/** The `extraction` field of a Studio/API stage run, accepted only on a run
+ * from Extract to Extract: the action, bound to the extraction it applies to
+ * (the record's `attemptId`, or null when the book has none). */
+export const ExtractRerunRequest = z.object({
+  action: ExtractRerunAction,
+  attemptId: z.string().uuid().nullable(),
+}).strict()
+export type ExtractRerunRequest = z.infer<typeof ExtractRerunRequest>
+
 /** Why no action is offered. Stable identifiers for Studio to translate, never
  * prose and never book content. */
 export const ExtractRerunBlockedReason = z.enum([

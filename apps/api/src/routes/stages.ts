@@ -9,7 +9,7 @@ import { z } from "zod"
 import { createBookStorage, openBookDb, withBookWriter } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import type { ExtractRerunStatus } from "@adt/types"
-import { AuthoredRunOptions, OUTPUT_KIND_TO_STAGE, SourceGeneratorStep, OutputSkipRequest, OutputRunScope, StageName, STAGE_ORDER, STEP_TO_STAGE, PIPELINE, IMPORTED_ADT_LOCKED_STAGES, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
+import { ExtractRerunRequest, AuthoredRunOptions, OUTPUT_KIND_TO_STAGE, SourceGeneratorStep, OutputSkipRequest, OutputRunScope, StageName, STAGE_ORDER, STEP_TO_STAGE, PIPELINE, IMPORTED_ADT_LOCKED_STAGES, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
 import { assertStageRunModelCredentials } from "@adt/llm"
 import {
   loadBookConfig, AuthoredReplacementError,
@@ -42,8 +42,14 @@ const StageRunBody = z
     renderOnly: z.boolean().optional(),
     pageErrorPolicy: PageErrorPolicy.optional(),
     outputScope: OutputRunScope.optional(),
+    extraction: ExtractRerunRequest.optional(),
   })
   .strict()
+  // SPEC-0003 RAC-21: an Extract re-run never extends into later stages.
+  .refine((body) => !body.extraction || (body.fromStage === "extract" && body.toStage === "extract"), {
+    message: "extraction is accepted only on a run from extract to extract",
+    path: ["extraction"],
+  })
 
 /**
  * Does this rerun delete the `page-sectioning` history that section ids are
@@ -135,12 +141,18 @@ export function retireSectionIdsForClearedSectioning(
 /** Invalidate downstream execution status while retaining authored output.
  *  The returned function is idempotent — only runs once even if called multiple times.
  *  Exported so tests can pin the preserve-retirement-clear boundary. */
-export function makeBeforeRun(label: string, fromStage: StageName, toStage: StageName, booksDir: string, outputScope?: OutputRunScope, configPath?: string): () => void {
+export function makeBeforeRun(label: string, fromStage: StageName, toStage: StageName, booksDir: string, outputScope?: OutputRunScope, configPath?: string, extraction?: ExtractRerunRequest): () => void {
   let ran = false
   return () => {
     if (ran) return
     requireExistingBook(label, booksDir)
-    prepareSectioningRun(label, booksDir, fromStage, toStage, configPath)
+    prepareSectioningRun(label, booksDir, fromStage, toStage, configPath, extraction)
+    // A resume that passed admission (RAC-21) runs on the book as it is: no
+    // data, section id or step record is cleared.
+    if (fromStage === "extract" && extraction?.action === "resume") {
+      ran = true
+      return
+    }
     const storage = createBookStorage(label, booksDir)
     try {
       if (fromStage === "extract" && storage.getPages().length) {
@@ -229,7 +241,7 @@ export function createStageRoutes(
       })
     }
 
-    const { fromStage, toStage, renderOnly, pageErrorPolicy, outputScope, replaceManual, protectedReplacements } = parsed.data
+    const { fromStage, toStage, renderOnly, pageErrorPolicy, outputScope, replaceManual, protectedReplacements, extraction } = parsed.data
     const credentials = readProviderCredentials(c)
 
     const fromIndex = STAGE_ORDER.indexOf(fromStage)
@@ -268,7 +280,7 @@ export function createStageRoutes(
     const activeRun = stageService.getStatus(label).active
     if (activeRun?.status !== "running" && activeRun?.status !== "cancelling") {
       withBookWriter(path.join(path.resolve(booksDir), parseBookLabel(label)), () => {
-        prepareSectioningRun(label, booksDir, fromStage, toStage, configPath)
+        prepareSectioningRun(label, booksDir, fromStage, toStage, configPath, extraction)
         const storage = createBookStorage(label, booksDir)
         try {
           admitSectioningRun(storage, label, booksDir, { fromStage, toStage, replaceManual, protectedReplacements, outputScope }, configPath, promptsDir)
@@ -276,7 +288,7 @@ export function createStageRoutes(
         finally { storage.close() }
       })
     }
-    const prepare = makeBeforeRun(label, fromStage, toStage, booksDir, outputScope, configPath)
+    const prepare = makeBeforeRun(label, fromStage, toStage, booksDir, outputScope, configPath, extraction)
     const clearData = () => {
       const storage = createBookStorage(label, booksDir)
       try {
@@ -299,6 +311,7 @@ export function createStageRoutes(
       protectedReplacements,
       renderOnly,
       pageErrorPolicy,
+      extraction,
       // Queued jobs clear data when they start executing
       beforeRun: clearData,
     })

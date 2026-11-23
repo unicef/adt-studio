@@ -159,12 +159,12 @@ import type { ElevenLabsVoiceSettingsOverrides } from "@adt/llm"
 import { loadStyleguideContent } from "./styleguide.js"
 import { createTTSSynthesizer, createAzureTTSSynthesizer, createGeminiTTSSynthesizer, createElevenLabsTTSSynthesizer } from "@adt/llm"
 import type { TTSSynthesizer } from "@adt/llm"
-import { PIPELINE, STAGE_ORDER, PositionedTextOutput, isTtsExcluded, voiceSlotEntryId, resolveEntryVoiceSlot, sortSpeechEntries } from "@adt/types"
+import { PIPELINE, STAGE_ORDER, PositionedTextOutput, ImageClassificationOutput, isTtsExcluded, voiceSlotEntryId, resolveEntryVoiceSlot, sortSpeechEntries } from "@adt/types"
 import type { PageErrorPolicy, PageErrorAction } from "@adt/types"
 import { beginSpeechRun, endSpeechRun } from "./speech-progress.js"
 import type {
   AppConfig,
-  ImageClassificationOutput,
+  BookMetadata,
   QuizGenerationOutput,
   WebRenderingOutput,
   ImageCaptioningOutput,
@@ -956,7 +956,7 @@ export function createStageRunner(): StageRunner {
     run(label, options, progress) {
       const { bookDir } = resolveBookPaths(label, options.booksDir)
       return withBookWriter(bookDir, async () => {
-        prepareSectioningRun(label, options.booksDir, options.fromStage as StageName, options.toStage as StageName, options.configPath)
+        prepareSectioningRun(label, options.booksDir, options.fromStage as StageName, options.toStage as StageName, options.configPath, options.extraction)
         const storage = createBookStorage(label, options.booksDir)
         try {
           admitSectioningRun(storage, label, options.booksDir, options, options.configPath, options.promptsDir)
@@ -1152,6 +1152,90 @@ async function generateAndStoreBookOutline(
   }
 }
 
+/** Step 1 of a first extraction: read the PDF into pages, images and fonts. */
+async function runPdfExtraction(
+  label: string,
+  options: StageRunOptions,
+  config: AppConfig,
+  storage: Storage,
+  progress: StageRunProgress
+): Promise<void> {
+  const { booksDir } = options
+  const pdfPath = path.join(path.resolve(booksDir), label, `${label}.pdf`)
+  console.log(`[stage-run] ${label}: extracting PDF from ${pdfPath}`)
+  await extractPDF(
+    {
+      pdfPath,
+      startPage: config.start_page,
+      endPage: config.end_page,
+      spreadMode: config.spread_mode,
+      spreadPairs: config.spread_pairs,
+      ...figureExtractionFlags(config),
+      removeWatermarks: config.remove_watermarks === true,
+      fixedLayout: isFixedLayoutBook(config),
+      fontsCacheDir: resolveFontsCacheDir(booksDir),
+    },
+    storage,
+    progress
+  )
+  console.log(`[stage-run] ${label}: PDF extraction complete`)
+}
+
+/** Step 1 of a resume (SPEC-0003 RAC-21): keep the pages the book has. The PDF
+ * and the extraction record are not read, so an older book without a record
+ * and a book whose spreads were re-applied resume too. Returns the steps that
+ * were done or skipped when the resume began; those do not run again. */
+function resumeExtraction(label: string, storage: Storage, progress: StageRunProgress): ReadonlySet<string> {
+  const settled = new Set(storage.getStepRuns().filter((run) => run.status === "done" || run.status === "skipped").map((run) => run.step))
+  if (storage.getPages().length === 0) throw new Error("No extracted pages are available to resume Extract.")
+  console.log(`[stage-run] ${label}: resuming Extract on the existing pages (settled steps: ${[...settled].join(", ") || "none"})`)
+  if (!settled.has("extract")) {
+    progress.emit({ type: "step-start", step: "extract" })
+    progress.emit({ type: "step-complete", step: "extract" })
+  }
+  return settled
+}
+
+/** The pages each image pass handles; null when the pass does not run. */
+interface ImagePassPages {
+  filter: PageData[] | null
+  meaningfulness: PageData[] | null
+  segmentation: PageData[] | null
+  cropping: PageData[] | null
+}
+
+/** A first extraction (`settled` null) runs the four passes on every page. A
+ * resume (SPEC-0003 RAC-21) starts from each page's current image list, which
+ * carries manual keep/prune decisions and the segmented/cropped entries, and
+ * never rebuilds one: only pages without a valid list (`fresh`) are filtered.
+ * Meaningfulness leaves no per-page record, so an unfinished pass re-judges
+ * every page and a finished one only the fresh pages. Segmentation and
+ * cropping skip a page that has its own record, however it was made, so no
+ * pass segments its own segments or crops its own crops. */
+function planImagePasses(
+  storage: Storage,
+  pages: PageData[],
+  results: Map<string, ImageClassificationOutput>,
+  settled: ReadonlySet<string> | null,
+): ImagePassPages {
+  if (!settled) return { filter: pages, meaningfulness: pages, segmentation: pages, cropping: pages }
+  const fresh: PageData[] = []
+  for (const page of pages) {
+    const list = ImageClassificationOutput.safeParse(storage.getLatestNodeData("image-filtering", page.pageId)?.data)
+    if (list.success) results.set(page.pageId, list.data)
+    else fresh.push(page)
+  }
+  const runs = (step: StepName) => !settled.has(step) || fresh.length > 0
+  // Any version counts, including one a manual segment apply wrote.
+  const without = (node: string) => pages.filter((page) => storage.getSelectedNodeVersion(node, page.pageId) === null)
+  return {
+    filter: runs("image-filtering") ? fresh : null,
+    meaningfulness: !settled.has("image-meaningfulness") ? pages : fresh.length > 0 ? fresh : null,
+    segmentation: runs("image-segmentation") ? without("image-segmentation") : null,
+    cropping: runs("image-cropping") ? without("image-cropping") : null,
+  }
+}
+
 async function runExtractStep(
   label: string,
   options: StageRunOptions,
@@ -1162,27 +1246,13 @@ async function runExtractStep(
   const storage = createBookStorage(label, booksDir)
 
   try {
-    const pdfPath = path.join(path.resolve(booksDir), label, `${label}.pdf`)
     const config = loadBookConfig(label, booksDir, configPath)
 
-    // Step 1: Extract PDF
-    console.log(`[stage-run] ${label}: extracting PDF from ${pdfPath}`)
-    await extractPDF(
-      {
-        pdfPath,
-        startPage: config.start_page,
-        endPage: config.end_page,
-        spreadMode: config.spread_mode,
-        spreadPairs: config.spread_pairs,
-        ...figureExtractionFlags(config),
-        removeWatermarks: config.remove_watermarks === true,
-        fixedLayout: isFixedLayoutBook(config),
-        fontsCacheDir: resolveFontsCacheDir(booksDir),
-      },
-      storage,
-      progress
-    )
-    console.log(`[stage-run] ${label}: PDF extraction complete`)
+    // Step 1: Extract PDF, or on a resume keep the existing pages. The steps
+    // below are shared: a resume only skips the ones already done or skipped.
+    const settled = options.extraction?.action === "resume" ? resumeExtraction(label, storage, progress) : null
+    if (!settled) await runPdfExtraction(label, options, config, storage, progress)
+    const pending = (step: StepName) => !settled?.has(step)
 
     // Step 2: Extract Metadata
     const metadataConfig = buildMetadataConfig(config)
@@ -1222,57 +1292,65 @@ async function runExtractStep(
     })
 
     const pages = storage.getPages()
-    const metadataPages = pages.slice(0, DEFAULT_METADATA_PAGES)
-    const pageInputs = metadataPages.map((page) => ({
-      pageNumber: page.pageNumber,
-      text: page.text,
-      imageBase64: storage.getPageImageBase64(page.pageId),
-    }))
+    let metadataResult: BookMetadata | null | undefined
+    if (pending("metadata")) {
+      const metadataPages = pages.slice(0, DEFAULT_METADATA_PAGES)
+      const pageInputs = metadataPages.map((page) => ({
+        pageNumber: page.pageNumber,
+        text: page.text,
+        imageBase64: storage.getPageImageBase64(page.pageId),
+      }))
 
-    console.log(`[stage-run] ${label}: extracting metadata from ${metadataPages.length} pages`)
-    progress.emit({ type: "step-start", step: "metadata" })
-    const metadataResult = await extractMetadata(
-      pageInputs,
-      metadataConfig,
-      metadataModel
-    )
-    storage.putNodeData("metadata", "book", metadataResult)
-    progress.emit({ type: "step-complete", step: "metadata" })
-    console.log(`[stage-run] ${label}: metadata complete (lang=${metadataResult.language_code})`)
+      console.log(`[stage-run] ${label}: extracting metadata from ${metadataPages.length} pages`)
+      progress.emit({ type: "step-start", step: "metadata" })
+      metadataResult = await extractMetadata(
+        pageInputs,
+        metadataConfig,
+        metadataModel
+      )
+      storage.putNodeData("metadata", "book", metadataResult)
+      progress.emit({ type: "step-complete", step: "metadata" })
+      console.log(`[stage-run] ${label}: metadata complete (lang=${metadataResult.language_code})`)
+    } else {
+      // Later steps read the stored result, as the book-summary route does.
+      metadataResult = storage.getLatestNodeData("metadata", "book")?.data as BookMetadata | null | undefined
+    }
 
     // Step 3: Book summary from raw page text (no sectioning required). Written
     // in the book's detected language (just extracted above), not English.
-    progress.emit({ type: "step-start", step: "book-summary" })
-    try {
-      const summaryLanguage = normalizeLocale(
-        config.editing_language ?? metadataResult.language_code ?? "en"
-      )
-      const bookSummaryConfig = buildBookSummaryConfig(config, summaryLanguage)
-      const summaryModel = createLLMModel({
-        modelId: bookSummaryConfig.modelId,
-        cacheDir,
-        promptEngine,
-        rateLimiter,
-        onLog: onLlmLog,
-        providerCredentials: llmCredentials,
-        signal: options.signal,
-      })
-      const summaryPages = pages.map((page) => ({
-        pageNumber: page.pageNumber,
-        text: page.text,
-      }))
-      const summaryResult = await generateBookSummary(summaryPages, bookSummaryConfig, summaryModel)
-      storage.putNodeData("book-summary", "book", summaryResult)
-      progress.emit({ type: "step-complete", step: "book-summary" })
-      console.log(`[stage-run] ${label}: book summary complete`)
-    } catch (err) {
-      // A cancel aborts the summary LLM call — re-throw without emitting
-      // step-error so the run tears down cleanly rather than showing a failure.
-      if (isCancellation(err, [options.signal])) throw err
-      const msg = toErrorMessage(err)
-      console.error(`[stage-run] ${label}: book summary failed: ${msg}`)
-      progress.emit({ type: "step-error", step: "book-summary", error: msg })
-      throw err
+    if (pending("book-summary")) {
+      progress.emit({ type: "step-start", step: "book-summary" })
+      try {
+        const summaryLanguage = normalizeLocale(
+          config.editing_language ?? metadataResult?.language_code ?? "en"
+        )
+        const bookSummaryConfig = buildBookSummaryConfig(config, summaryLanguage)
+        const summaryModel = createLLMModel({
+          modelId: bookSummaryConfig.modelId,
+          cacheDir,
+          promptEngine,
+          rateLimiter,
+          onLog: onLlmLog,
+          providerCredentials: llmCredentials,
+          signal: options.signal,
+        })
+        const summaryPages = pages.map((page) => ({
+          pageNumber: page.pageNumber,
+          text: page.text,
+        }))
+        const summaryResult = await generateBookSummary(summaryPages, bookSummaryConfig, summaryModel)
+        storage.putNodeData("book-summary", "book", summaryResult)
+        progress.emit({ type: "step-complete", step: "book-summary" })
+        console.log(`[stage-run] ${label}: book summary complete`)
+      } catch (err) {
+        // A cancel aborts the summary LLM call — re-throw without emitting
+        // step-error so the run tears down cleanly rather than showing a failure.
+        if (isCancellation(err, [options.signal])) throw err
+        const msg = toErrorMessage(err)
+        console.error(`[stage-run] ${label}: book summary failed: ${msg}`)
+        progress.emit({ type: "step-error", step: "book-summary", error: msg })
+        throw err
+      }
     }
 
     // Step 4: Build one book-wide semantic outline before page sectioning.
@@ -1287,15 +1365,17 @@ async function runExtractStep(
       providerCredentials: llmCredentials,
       signal: options.signal,
     })
-    await generateAndStoreBookOutline(
-      label,
-      pages,
-      storage,
-      outlineConfig,
-      outlineModel,
-      progress,
-      options.signal,
-    )
+    if (pending("book-outline")) {
+      await generateAndStoreBookOutline(
+        label,
+        pages,
+        storage,
+        outlineConfig,
+        outlineModel,
+        progress,
+        options.signal,
+      )
+    }
 
     // Step 5: Per-page image classification runs as four sequential passes,
     // each with its own progress reporting so the UI reflects real timing.
@@ -1359,29 +1439,33 @@ async function runExtractStep(
       stepController,
     })
 
-    await runFilterPass(
-      label, pages, storage, imageClassifyConfig,
-      effectiveConcurrency, pageResults, pageFailureDeps, progress
-    )
+    const passPages = planImagePasses(storage, pages, pageResults, settled)
 
-    if (!stepController.signal.aborted) {
+    if (passPages.filter) {
+      await runFilterPass(
+        label, passPages.filter, storage, imageClassifyConfig,
+        effectiveConcurrency, pageResults, pageFailureDeps, progress
+      )
+    }
+
+    if (passPages.meaningfulness && !stepController.signal.aborted) {
       await runMeaningfulnessPass(
-        label, pages, storage, meaningfulnessConfig, meaningfulnessModel,
+        label, passPages.meaningfulness, storage, meaningfulnessConfig, meaningfulnessModel,
         resolveFigureExtractionMode(config) === "auto",
         effectiveConcurrency, pageResults, pageFailureDeps, progress
       )
     }
 
-    if (!stepController.signal.aborted) {
+    if (passPages.segmentation && !stepController.signal.aborted) {
       await runSegmentationPass(
-        label, pages, storage, segmentationConfig, segmentationModel,
+        label, passPages.segmentation, storage, segmentationConfig, segmentationModel,
         effectiveConcurrency, pageResults, progress, options.signal
       )
     }
 
-    if (!stepController.signal.aborted) {
+    if (passPages.cropping && !stepController.signal.aborted) {
       await runCroppingPass(
-        label, pages, storage, croppingConfig, croppingModel,
+        label, passPages.cropping, storage, croppingConfig, croppingModel,
         effectiveConcurrency, pageResults, progress, options.signal
       )
     }
@@ -4204,7 +4288,6 @@ async function runSegmentationPass(
           config,
           model,
         )
-        const segVersion = storage.putNodeData("image-segmentation", page.pageId, segmentationResult)
         const segDims = new Map(images.map((img) => [img.imageId, { width: img.width, height: img.height }]))
         const applied = applySegmentation(
           segmentationResult,
@@ -4212,37 +4295,46 @@ async function runSegmentationPass(
           segDims,
         )
         const srcMeta = new Map(images.map((img) => [img.imageId, img]))
-        for (const seg of applied) {
-          const src = srcMeta.get(seg.sourceImageId)
-          const bounds = src?.bounds
-            ? segmentBoundsOnPage(src.bounds, src.width, src.height, seg)
-            : undefined
-          storage.putSegmentedImage({
-            sourceImageId: seg.sourceImageId,
-            segmentIndex: seg.segmentIndex,
-            pageId: page.pageId,
-            version: segVersion,
-            buffer: seg.buffer,
-            width: seg.width,
-            height: seg.height,
-            bounds,
-          })
-          existing.images.push({
-            imageId: getSegmentedImageId(seg.sourceImageId, seg.segmentIndex, segVersion),
-            isPruned: false,
-          })
-        }
-        if (applied.length > 0) {
-          const segmentedSourceIds = new Set(applied.map((s) => s.sourceImageId))
-          for (const sourceId of segmentedSourceIds) {
-            const origEntry = existing.images.find((i) => i.imageId === sourceId)
-            if (origEntry) {
-              origEntry.isPruned = true
-              origEntry.reason = "segmented"
-            }
+        // The page's record, its images and its list commit together. A resumed
+        // run (SPEC-0003 RAC-21) skips a page that has the record, so a kill
+        // must never leave the record without the rest. The shared list is
+        // replaced only after the commit.
+        const updated: ImageClassificationOutput = { ...existing, images: existing.images.map((entry) => ({ ...entry })) }
+        storage.transaction(() => {
+          const segVersion = storage.putNodeData("image-segmentation", page.pageId, segmentationResult)
+          for (const seg of applied) {
+            const src = srcMeta.get(seg.sourceImageId)
+            const bounds = src?.bounds
+              ? segmentBoundsOnPage(src.bounds, src.width, src.height, seg)
+              : undefined
+            storage.putSegmentedImage({
+              sourceImageId: seg.sourceImageId,
+              segmentIndex: seg.segmentIndex,
+              pageId: page.pageId,
+              version: segVersion,
+              buffer: seg.buffer,
+              width: seg.width,
+              height: seg.height,
+              bounds,
+            })
+            updated.images.push({
+              imageId: getSegmentedImageId(seg.sourceImageId, seg.segmentIndex, segVersion),
+              isPruned: false,
+            })
           }
-          storage.putNodeData("image-filtering", page.pageId, existing)
-        }
+          if (applied.length > 0) {
+            const segmentedSourceIds = new Set(applied.map((s) => s.sourceImageId))
+            for (const sourceId of segmentedSourceIds) {
+              const origEntry = updated.images.find((i) => i.imageId === sourceId)
+              if (origEntry) {
+                origEntry.isPruned = true
+                origEntry.reason = "segmented"
+              }
+            }
+            storage.putNodeData("image-filtering", page.pageId, updated)
+          }
+        })
+        if (applied.length > 0) results.set(page.pageId, updated)
       }
     } catch (err) {
       if (isCancellation(err, [runSignal])) throw err
@@ -4318,33 +4410,38 @@ async function runCroppingPass(
           config,
           model,
         )
-        const croppingVersion = storage.putNodeData("image-cropping", page.pageId, croppingResult)
         const applied = applyCrops(
           croppingResult,
           (imageId) => storage.getImageBase64(imageId)
         )
-        for (const crop of applied) {
-          storage.putCroppedImage({
-            imageId: crop.imageId,
-            pageId: page.pageId,
-            version: croppingVersion,
-            buffer: crop.buffer,
-            width: crop.width,
-            height: crop.height,
-          })
-          const origEntry = existing.images.find((i) => i.imageId === crop.imageId)
-          if (origEntry) {
-            origEntry.isPruned = true
-            origEntry.reason = "cropped"
+        // One commit per page, as in the segmentation pass.
+        const updated: ImageClassificationOutput = { ...existing, images: existing.images.map((entry) => ({ ...entry })) }
+        storage.transaction(() => {
+          const croppingVersion = storage.putNodeData("image-cropping", page.pageId, croppingResult)
+          for (const crop of applied) {
+            storage.putCroppedImage({
+              imageId: crop.imageId,
+              pageId: page.pageId,
+              version: croppingVersion,
+              buffer: crop.buffer,
+              width: crop.width,
+              height: crop.height,
+            })
+            const origEntry = updated.images.find((i) => i.imageId === crop.imageId)
+            if (origEntry) {
+              origEntry.isPruned = true
+              origEntry.reason = "cropped"
+            }
+            updated.images.push({
+              imageId: getCroppedImageId(crop.imageId, croppingVersion),
+              isPruned: false,
+            })
           }
-          existing.images.push({
-            imageId: getCroppedImageId(crop.imageId, croppingVersion),
-            isPruned: false,
-          })
-        }
-        if (applied.length > 0) {
-          storage.putNodeData("image-filtering", page.pageId, existing)
-        }
+          if (applied.length > 0) {
+            storage.putNodeData("image-filtering", page.pageId, updated)
+          }
+        })
+        if (applied.length > 0) results.set(page.pageId, updated)
       }
     } catch (err) {
       if (isCancellation(err, [runSignal])) throw err
