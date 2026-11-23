@@ -19,7 +19,7 @@
       "id": "genre",
       "value": "textbook",
       "secondOpinion": "reference",
-      "reason": "These pages present factual chapters about ancient Egypt and show no reader tasks or story characters followed from page to page.",
+      "reason": "These pages give factual information about ancient Egypt in chapters and do not show reader tasks or a single unfolding story.",
       "evidencePages": [
         3,
         4,
@@ -35,7 +35,7 @@
       "id": "exercises",
       "value": "none",
       "secondOpinion": "none",
-      "reason": "The shown interior pages only contain explanatory text and pictures, with no questions, blanks, or write-in activities.",
+      "reason": "The shown interior pages contain explanatory text and pictures only, with no questions, blanks, or answer spaces.",
       "evidencePages": [
         3,
         4,
@@ -51,7 +51,7 @@
       "id": "composition",
       "value": "text-beside-art",
       "secondOpinion": "text-beside-art",
-      "reason": "On the shown interior pages, the words are placed in separate white areas above or beside pictures rather than printed across the pictures.",
+      "reason": "On these pages the words are placed in separate white areas above or beside the pictures rather than printed over the images.",
       "evidencePages": [
         3,
         4,
@@ -2318,16 +2318,16 @@
   ],
   "secondOpinion": true,
   "timings": {
-    "profileMs": 312.4313129999973,
-    "factsMs": 0.5184709999994084,
-    "questionsMs": 5620.8805710000015,
-    "labelsMs": 6380.496317000001,
-    "totalMs": 6693.688621999998,
+    "profileMs": 391.03463400001056,
+    "factsMs": 0.3090070000034757,
+    "questionsMs": 7398.751567999992,
+    "labelsMs": 5656.552681999994,
+    "totalMs": 8320.079190000004,
     "uploadBytes": 1532059
   },
   "usage": {
     "inputTokens": 11196,
-    "outputTokens": 446,
+    "outputTokens": 443,
     "calls": 2
   }
 }

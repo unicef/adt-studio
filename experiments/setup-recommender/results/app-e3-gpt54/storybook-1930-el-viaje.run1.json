@@ -18,24 +18,19 @@
     {
       "id": "genre",
       "value": "story",
-      "secondOpinion": "story",
-      "reason": "These pages call it a novela, describe protagonists and adventures, and say it is the first part of a trilogy.",
-      "evidencePages": [
-        3,
-        4,
-        6,
-        7
-      ],
+      "secondOpinion": "reference",
+      "reason": "The shown pages are prose sections like 'La historia que nos une' and a prólogo that describe the book and its educational purpose rather than tell the story itself.",
+      "evidencePages": [],
       "matters": true,
       "affectsLocked": false,
       "ask": true,
-      "askReason": "few-body-pages"
+      "askReason": "readings-disagree"
     },
     {
       "id": "exercises",
       "value": "none",
       "secondOpinion": "none",
-      "reason": "The shown pages are continuous prose and show no numbered questions, blanks, or answer spaces.",
+      "reason": "The visible pages contain continuous paragraphs only, with no numbered items, blanks, or answer-writing prompts.",
       "evidencePages": [
         2,
         3,
@@ -51,7 +46,7 @@
       "id": "composition",
       "value": "text-mostly",
       "secondOpinion": "text-mostly",
-      "reason": "The visible pages are dominated by blocks of text with little or no picture area.",
+      "reason": "These pages are dominated by blocks of text on plain backgrounds, with little or no artwork.",
       "evidencePages": [
         2,
         3,
@@ -67,7 +62,7 @@
       "id": "diagrams",
       "value": "none",
       "secondOpinion": "none",
-      "reason": "No shown page contains maps, charts, labeled drawings, or other explanatory diagrams.",
+      "reason": "No maps, charts, labelled drawings, or other explanatory diagrams are visible on the shown pages.",
       "evidencePages": [
         2,
         3,
@@ -2215,12 +2210,7 @@
     }
   },
   "settingEvidence": {
-    "preset": [
-      3,
-      4,
-      6,
-      7
-    ],
+    "preset": [],
     "renderStrategy": [
       2,
       3,
@@ -2288,16 +2278,16 @@
   ],
   "secondOpinion": true,
   "timings": {
-    "profileMs": 41.25940400000036,
-    "factsMs": 0.604670000000624,
-    "questionsMs": 4462.940727999998,
-    "labelsMs": 3524.815211000001,
-    "totalMs": 4595.992545999998,
+    "profileMs": 39.90135200000077,
+    "factsMs": 0.4048380000022007,
+    "questionsMs": 5674.539899999996,
+    "labelsMs": 3727.6735210000043,
+    "totalMs": 5806.1256580000045,
     "uploadBytes": 939940
   },
   "usage": {
     "inputTokens": 9264,
-    "outputTokens": 380,
+    "outputTokens": 399,
     "calls": 2
   }
 }

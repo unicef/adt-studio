@@ -1,0 +1,322 @@
+<title>Auto Mode E3 Costs</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column; headline numbers, then time, scaling, network, cost and tokens, each a chart with its finding above it. */
+:root{
+  --bg:#f3f5f7;--surface:#ffffff;--line:#d9dee5;--grid:#e8ecf0;--ink:#141a22;--ink-2:#4a5563;--ink-3:#7b8594;
+  --accent:#1d5fd1;--good:#1d7a46;--good-soft:#dff2e7;--warn:#a35a00;--warn-soft:#fbeed9;
+  --s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#6250d6;--s5:#8a857a;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;--body:"Instrument Sans",ui-sans-serif,system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0f1318;--surface:#171c23;--line:#2b333e;--grid:#222a33;--ink:#e9edf2;--ink-2:#aab3c0;--ink-3:#7a8493;--accent:#7aa8ff;--good:#5fd08f;--good-soft:#16301f;--warn:#f0b05a;--warn-soft:#33260f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#9085e9;--s5:#8b8577;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1318;--surface:#171c23;--line:#2b333e;--grid:#222a33;--ink:#e9edf2;--ink-2:#aab3c0;--ink-3:#7a8493;--accent:#7aa8ff;--good:#5fd08f;--good-soft:#16301f;--warn:#f0b05a;--warn-soft:#33260f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#9085e9;--s5:#8b8577;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 56px}
+main{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:44px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:34px;line-height:1.1}
+h2{font-size:23px}
+h3{font-size:16px}
+p{margin:0;color:var(--ink-2);max-width:70ch}
+section{display:flex;flex-direction:column;gap:14px}
+.eyebrow{font:500 12px/1 var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
+.lede{font-size:17px}
+code{font-family:var(--mono);font-size:13px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.tile .k{font-size:13px;color:var(--ink-2)}
+.tile .v{font:600 30px/1.1 var(--display);font-variant-numeric:tabular-nums;color:var(--ink)}
+.tile .v small{font:500 14px var(--body);color:var(--ink-2)}
+.tile .n{font-size:12px;color:var(--ink-3)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.chart{position:relative;overflow-x:auto}
+.chart svg{display:block;width:100%;height:auto}
+.chart text{font:12px var(--body);fill:var(--ink-2)}
+.chart .val{fill:var(--ink);font-weight:500}
+.chart .axis{stroke:var(--line)}
+.chart .grid{stroke:var(--grid)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.legend i.line{height:3px;border-radius:2px}
+.find{font-size:15px;color:var(--ink)}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 10px;border-top:1px solid var(--line)}
+thead th{border-top:0;font-weight:600;font-size:13px;color:var(--ink-2)}
+td.r,th.r{text-align:right}
+.pill{display:inline-block;font:500 11px/1.7 var(--mono);padding:0 7px;border-radius:99px;background:var(--good-soft);color:var(--good)}
+.pill.w{background:var(--warn-soft);color:var(--warn)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.note{font-size:13px;color:var(--ink-3)}
+ul.plain{margin:0;padding-left:18px;color:var(--ink-2);display:flex;flex-direction:column;gap:6px;max-width:72ch}
+#tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);font:12px/1.4 var(--body);padding:6px 8px;border-radius:6px;max-width:260px;z-index:20}
+</style>
+
+<div id="tip" hidden></div>
+<main>
+  <header style="display:flex;flex-direction:column;gap:12px">
+    <span class="eyebrow">Issue #333 · auto mode · engine E3 · measured 2026-11-23</span>
+    <h1>What auto mode costs: time, money and data</h1>
+    <p class="lede">Engine E3 measures the PDF, reads it twice with AI at the same time, and picks settings with a fixed rulebook. Every number here comes from real runs inside ADT Studio on the 6 PoC books (7 to 12 pages, 4 runs per model) and on test books of 12 to 400 pages.</p>
+  </header>
+
+  <section>
+    <div class="tiles" id="tiles"></div>
+    <p class="note">Prices: OpenAI standard tier, USD per 1M tokens: gpt-5.4 $2.50 in / $15 out, gpt-5.4-mini $0.75 in / $4.50 out. Running the same PDF again costs nothing: answers are cached on disk.</p>
+  </section>
+
+  <section>
+    <span class="eyebrow">Time</span>
+    <h2>The user waits 3 seconds with mini, 6.5 with gpt-5.4</h2>
+    <p class="find" id="timeFind"></p>
+    <div class="panel">
+      <div class="legend"><span><i style="background:var(--s1)"></i>gpt-5.4-mini</span><span><i style="background:var(--s2)"></i>gpt-5.4</span></div>
+      <div class="chart" id="timeChart"></div>
+      <p class="note">Median of 4 runs per book, from upload received to picks ready (scan + the slower of the two AI readings). The scan is under 0.6 s on these books. The browser round trip on this machine added under 0.5 s.</p>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Book length</span>
+    <h2>A 400-page book takes 6 to 15 seconds</h2>
+    <p class="find">Long books are read on a fixed sample of about 40 pages, so AI time grows only a little. The scan reads every page and grows with length: 2 to 7 ms per page here, up to about 30 ms per page on picture books whose pages each have their own images.</p>
+    <div class="panel">
+      <div class="legend"><span><i class="line" style="background:var(--s1)"></i>Total, gpt-5.4-mini</span><span><i class="line" style="background:var(--s2)"></i>Total, gpt-5.4</span><span><i class="line" style="background:var(--s5)"></i>Scan only</span></div>
+      <div class="chart" id="scaleChart"></div>
+      <p class="note">Test books built by repeating the pages of Egypt (school book, many pictures). Repeated pages share their images, which makes the scan faster than a real book of that length. With unshared images, 150 pages scanned in 4.1 s (27 ms per page), so a real 400-page picture book could need about 11 s of scan.</p>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Network</span>
+    <h2>On a slow connection, sending the pages is the slowest part</h2>
+    <p class="find">Each book sends 0.7 to 2.6 MB of small page pictures to the AI. On a 1 Mbit/s upload that adds 5 to 21 seconds, more than the AI itself. At 20 Mbit/s it is about 1 second.</p>
+    <div class="panel"><div class="tablewrap"><table id="netTable"></table></div>
+      <p class="note">Seconds to upload the request at a steady speed, on top of the times above. Measured sizes; speeds computed. Desktop app: the PDF itself stays on the machine, only the page pictures go to the AI provider.</p>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Money</span>
+    <h2>About 1 cent per book with mini, 3 cents with gpt-5.4</h2>
+    <p class="find" id="costFind"></p>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="panel">
+        <h3>Cost per book</h3>
+        <div class="chart" id="costChart"></div>
+        <p class="note">Average over all runs. E0 is today's one-call approach (PR #930's recommender, Victor's PoC) on the same books with gpt-5.4-mini.</p>
+      </div>
+      <div class="panel">
+        <h3>Cost for many books</h3>
+        <div class="tablewrap"><table id="manyTable"></table></div>
+        <p class="note">400-page books cost more because about 40 pages are read instead of 7 to 12. Output is estimated at 430 tokens per book (measured average 400 to 410).</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Tokens</span>
+    <h2>The question reading costs twice the page-label reading</h2>
+    <p class="find">Input tokens are 96% of the bill. The question reading sends 6 pages at 1000 px; the label reading sends every page of a short book at 512 px. Making the question pictures smaller is the cheapest saving to try, but it has to be checked for accuracy first.</p>
+    <div class="panel">
+      <div class="legend"><span><i style="background:var(--s3)"></i>Page-label reading</span><span><i style="background:var(--s4)"></i>Question reading</span></div>
+      <div class="chart" id="tokChart"></div>
+      <p class="note">Input tokens per book, one run with gpt-5.4-mini (gpt-5.4 counts are the same within 2 tokens).</p>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Accuracy at that price</span>
+    <h2>Both models picked every setting right, or asked</h2>
+    <div class="panel"><div class="tablewrap"><table id="accTable"></table></div>
+      <p class="note">Against the PoC answer key, 23 settings per run. "Caught by a question" means the wrong pick depended on a fact the user was asked about. These 6 books were also used to write the rules, so this is an upper bound until the unseen-books test (T1).</p>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">What this suggests</span>
+    <h2>Use gpt-5.4-mini for auto mode</h2>
+    <ul class="plain">
+      <li>On these books mini was as accurate as gpt-5.4, twice as fast and a third of the price. Today the route uses the app's default model (gpt-5.4); one line changes that.</li>
+      <li>For slow connections, send smaller page pictures: the question reading at 1000 px is the biggest part of the upload and of the bill. To test for accuracy before changing.</li>
+      <li>The scan is cheap but runs on every page. Saving it into the book and reusing it in Extract (test T6) would pay it back.</li>
+    </ul>
+    <h3 style="margin-top:8px">Not measured yet</h3>
+    <ul class="plain">
+      <li>A slow laptop: all times are from one desktop machine (WSL).</li>
+      <li>Real long books: the 50 to 400 page books are repeated pages of a short book.</li>
+      <li>Other AI providers (test T4): prices and speed will differ.</li>
+      <li>Time a person spends on the review screen (test T5).</li>
+    </ul>
+  </section>
+</main>
+
+<script type="application/json" id="data">/*DATA*/</script>
+<script>
+(function () {
+  const D = JSON.parse(document.getElementById("data").textContent)
+  const NS = "http://www.w3.org/2000/svg"
+  const BOOK = {
+    "textbook-praticas-de-alfabetizacao-e-de-matematica": "Práticas (school book)",
+    "storybook-colouring-my-school": "My School (colouring)",
+    "storybook-hyena-and-raven": "Hyena & Raven (story)",
+    "storybook-1930-el-viaje": "El Viaje (foreword only)",
+    "reference-reimagining-target-aware-molecular": "Research paper",
+    "textbook-egito-antigo": "Egypt (school book)",
+  }
+  const books = Object.keys(BOOK)
+  const median = (xs) => { const s = [...xs].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2 }
+  const avg = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length
+  const runs = (m) => D.e3.filter((r) => r.model === m)
+  const mini = runs("gpt-5.4-mini"), big = runs("gpt-5.4")
+  const fmtS = (ms) => (ms / 1000).toFixed(1) + " s"
+  const cents = (usd) => (usd * 100).toFixed(2) + "¢"
+
+  // Tooltip
+  const tip = document.getElementById("tip")
+  function hover(el, text) {
+    el.addEventListener("mousemove", (e) => { tip.textContent = text; tip.hidden = false; tip.style.left = Math.min(e.clientX + 12, innerWidth - 270) + "px"; tip.style.top = e.clientY + 12 + "px" })
+    el.addEventListener("mouseleave", () => { tip.hidden = true })
+  }
+  function svg(w, h) { const s = document.createElementNS(NS, "svg"); s.setAttribute("viewBox", `0 0 ${w} ${h}`); s.setAttribute("role", "img"); return s }
+  function el(tag, attrs, parent, text) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; parent.appendChild(e); return e }
+  // Bar with a 4px rounded data end (right side), square at the baseline.
+  function hbar(p, x, y, w, h, fill) {
+    const r = Math.min(4, w / 2, h / 2)
+    return el("path", { d: `M${x},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${y + h - r} Q${x + w},${y + h} ${x + w - r},${y + h} H${x} Z`, fill }, p)
+  }
+
+  // Tiles
+  const tiles = [
+    ["Wait for picks, mini", fmtS(median(mini.map((r) => r.totalMs))), `median, ${mini.length} runs; gpt-5.4 ${fmtS(median(big.map((r) => r.totalMs)))}`],
+    ["Cost per book, mini", cents(avg(mini.map((r) => r.usd))), `gpt-5.4 ${cents(avg(big.map((r) => r.usd)))}; E0 today ${cents(avg(D.e0.map((r) => r.usd)))}`],
+    ["1,000 books, mini", "$" + (avg(mini.map((r) => r.usd)) * 1000).toFixed(0), `gpt-5.4 $${(avg(big.map((r) => r.usd)) * 1000).toFixed(0)}, books of 7 to 12 pages`],
+    ["Questions per book", avg(mini.map((r) => r.asked)).toFixed(1), "mini; most books get none"],
+  ]
+  document.getElementById("tiles").innerHTML = tiles.map(([k, v, n]) => `<div class="tile"><span class="k">${k}</span><span class="v">${v}</span><span class="n">${n}</span></div>`).join("")
+
+  // Time per book: grouped horizontal bars
+  ;(function () {
+    const W = 760, rowH = 46, L = 190, R = 60, H = books.length * rowH + 30
+    const s = svg(W, H), max = 9
+    const x = (ms) => L + ((W - L - R) * ms) / (max * 1000)
+    for (let t = 0; t <= max; t += 3) { el("line", { x1: x(t * 1000), x2: x(t * 1000), y1: 0, y2: H - 22, class: "grid" }, s); el("text", { x: x(t * 1000), y: H - 6, "text-anchor": "middle" }, s, t + " s") }
+    books.forEach((b, i) => {
+      const y0 = i * rowH + 6
+      el("text", { x: 0, y: y0 + 20 }, s, BOOK[b])
+      ;[["gpt-5.4-mini", "var(--s1)"], ["gpt-5.4", "var(--s2)"]].forEach(([m, c], j) => {
+        const rs = D.e3.filter((r) => r.model === m && r.book === b)
+        const med = median(rs.map((r) => r.totalMs))
+        const y = y0 + j * 17
+        const bar = hbar(s, L, y, x(med) - L, 15, c)
+        hover(bar, `${BOOK[b]}, ${m}: median ${fmtS(med)} (runs ${rs.map((r) => (r.totalMs / 1000).toFixed(1)).join(", ")} s). Scan ${rs[0].scanMs} ms. Questions asked: ${rs[0].asked}.`)
+        el("text", { x: x(med) + 6, y: y + 12, class: "val" }, s, fmtS(med))
+      })
+    })
+    document.getElementById("timeChart").appendChild(s)
+    const slow = books.map((b) => [b, median(D.e3.filter((r) => r.model === "gpt-5.4-mini" && r.book === b).map((r) => r.totalMs))]).sort((a, b) => b[1] - a[1])[0]
+    document.getElementById("timeFind").textContent = `With gpt-5.4-mini every book was ready in ${fmtS(Math.min(...mini.map((r) => r.totalMs)))} to ${fmtS(Math.max(...mini.map((r) => r.totalMs)))}; the slowest was ${BOOK[slow[0]]}. gpt-5.4 took ${fmtS(Math.min(...big.map((r) => r.totalMs)))} to ${fmtS(Math.max(...big.map((r) => r.totalMs)))}. The old one-call approach (E0) took ${fmtS(avg(D.e0.map((r) => r.ms)))} on average with mini.`
+  })()
+
+  // Scaling: lines over page count (Egypt)
+  ;(function () {
+    const W = 760, H = 280, L = 44, R = 110, T = 12, B = 34
+    const s = svg(W, H)
+    const pages = [12, 50, 150, 400]
+    const x = (p) => L + ((W - L - R) * pages.indexOf(p)) / (pages.length - 1)
+    const max = 16, y = (ms) => T + (H - T - B) * (1 - ms / (max * 1000))
+    for (let t = 0; t <= max; t += 4) { el("line", { x1: L, x2: W - R, y1: y(t * 1000), y2: y(t * 1000), class: "grid" }, s); el("text", { x: L - 8, y: y(t * 1000) + 4, "text-anchor": "end" }, s, t + " s") }
+    pages.forEach((p) => el("text", { x: x(p), y: H - 10, "text-anchor": "middle" }, s, p + " pages"))
+    const eg = (m) => D.scaling.find((r) => r.model === m && r.book === "textbook-egito-antigo").rows
+    const series = [
+      ["gpt-5.4-mini", "var(--s1)", eg("gpt-5.4-mini").map((r) => [r.pages, r.totalMs, r])],
+      ["gpt-5.4", "var(--s2)", eg("gpt-5.4").map((r) => [r.pages, r.totalMs, r])],
+      ["Scan only", "var(--s5)", eg("gpt-5.4").map((r) => [r.pages, r.scanMs, r])],
+    ]
+    series.forEach(([name, c, pts]) => {
+      el("path", { d: pts.map(([p, ms], i) => `${i ? "L" : "M"}${x(p)},${y(ms)}`).join(" "), fill: "none", stroke: c, "stroke-width": 2 }, s)
+      pts.forEach(([p, ms, r]) => {
+        el("circle", { cx: x(p), cy: y(ms), r: 4, fill: c, stroke: "var(--surface)", "stroke-width": 2 }, s)
+        const hit = el("circle", { cx: x(p), cy: y(ms), r: 12, fill: "transparent" }, s)
+        hover(hit, `${name}, ${p} pages: ${fmtS(ms)}. Scan ${fmtS(r.scanMs)}, label reading ${fmtS(r.labelsMs)}, question reading ${fmtS(r.questionsMs)}, ${r.uploadKB} KB sent.`)
+      })
+      const [lp, lms] = pts[pts.length - 1]
+      el("text", { x: x(lp) + 10, y: y(lms) + 4, class: "val" }, s, fmtS(lms))
+    })
+    document.getElementById("scaleChart").appendChild(s)
+  })()
+
+  // Network table
+  ;(function () {
+    const rows = [
+      ...books.map((b) => { const r = D.e3.find((x) => x.book === b); return [BOOK[b], r.pages, r.uploadKB] }),
+      ...D.scaling.filter((r) => r.model === "gpt-5.4-mini").flatMap((sc) => sc.rows.filter((r) => r.pages === 400).map((r) => [`${sc.book === "textbook-egito-antigo" ? "Egypt" : "Hyena & Raven"} as a 400-page test book`, 400, r.uploadKB])),
+    ]
+    const sec = (kb, mbps) => ((kb * 1024 * 8) / (mbps * 1e6)).toFixed(1)
+    document.getElementById("netTable").innerHTML =
+      `<thead><tr><th>Book</th><th class="r">Pages</th><th class="r">Sent</th><th class="r">1 Mbit/s</th><th class="r">5 Mbit/s</th><th class="r">20 Mbit/s</th></tr></thead><tbody>` +
+      rows.map(([n, p, kb]) => `<tr><td>${n}</td><td class="r">${p}</td><td class="r">${(kb / 1024).toFixed(1)} MB</td><td class="r">+${sec(kb, 1)} s</td><td class="r">+${sec(kb, 5)} s</td><td class="r">+${sec(kb, 20)} s</td></tr>`).join("") + "</tbody>"
+  })()
+
+  // Cost bars
+  ;(function () {
+    const items = [
+      ["E0 today, gpt-5.4-mini", avg(D.e0.map((r) => r.usd)), "var(--s5)", `${D.e0.length} runs, 1 call, ${Math.round(avg(D.e0.map((r) => r.tokensIn)))} tokens in`],
+      ["E3, gpt-5.4-mini", avg(mini.map((r) => r.usd)), "var(--s1)", `${mini.length} runs, 2 calls, ${Math.round(avg(mini.map((r) => r.tokensIn)))} tokens in`],
+      ["E3, gpt-5.4", avg(big.map((r) => r.usd)), "var(--s2)", `${big.length} runs, 2 calls, ${Math.round(avg(big.map((r) => r.tokensIn)))} tokens in`],
+    ]
+    const W = 760, L = 190, R = 70, rowH = 34, H = items.length * rowH + 24, max = 0.035
+    const s = svg(W, H)
+    const x = (u) => L + ((W - L - R) * u) / max
+    for (const t of [0, 0.01, 0.02, 0.03]) { el("line", { x1: x(t), x2: x(t), y1: 0, y2: H - 20, class: "grid" }, s); el("text", { x: x(t), y: H - 5, "text-anchor": "middle" }, s, t * 100 + "¢") }
+    items.forEach(([n, u, c, d], i) => {
+      const y = i * rowH + 6
+      el("text", { x: 0, y: y + 14 }, s, n)
+      hover(hbar(s, L, y, x(u) - L, 18, c), `${n}: ${cents(u)} per book on average (${d}).`)
+      el("text", { x: x(u) + 6, y: y + 14, class: "val" }, s, cents(u))
+    })
+    document.getElementById("costChart").appendChild(s)
+    const e0 = avg(D.e0.map((r) => r.usd)), m = avg(mini.map((r) => r.usd))
+    document.getElementById("costFind").textContent = `E3 makes two AI calls instead of one, yet with mini it costs about the same as today's single call (${cents(m)} against ${cents(e0)}): it sends smaller pictures and asks for short answers. gpt-5.4 costs ${(avg(big.map((r) => r.usd)) / m).toFixed(1)} times as much for the same picks on these books.`
+  })()
+
+  // Cost for many books
+  ;(function () {
+    const perShort = { mini: avg(mini.map((r) => r.usd)), big: avg(big.map((r) => r.usd)) }
+    const long = (m) => avg(D.scaling.filter((r) => r.model === m).map((sc) => sc.rows.find((r) => r.pages === 400).usd))
+    const perLong = { mini: long("gpt-5.4-mini"), big: long("gpt-5.4") }
+    const money = (u) => (u < 0.1 ? cents(u) : "$" + u.toFixed(u < 10 ? 2 : 0))
+    const rows = [["1 book", 1], ["100 books", 100], ["1,000 books", 1000], ["10,000 books", 10000]]
+    document.getElementById("manyTable").innerHTML =
+      `<thead><tr><th>Books</th><th class="r">mini, short</th><th class="r">mini, 400 pages</th><th class="r">gpt-5.4, short</th><th class="r">gpt-5.4, 400 pages</th></tr></thead><tbody>` +
+      rows.map(([n, k]) => `<tr><td>${n}</td><td class="r">${money(perShort.mini * k)}</td><td class="r">${money(perLong.mini * k)}</td><td class="r">${money(perShort.big * k)}</td><td class="r">${money(perLong.big * k)}</td></tr>`).join("") + "</tbody>"
+  })()
+
+  // Tokens per reading: stacked bars
+  ;(function () {
+    const W = 760, L = 190, R = 70, rowH = 30, H = books.length * rowH + 26, max = 12000
+    const s = svg(W, H)
+    const x = (t) => L + ((W - L - R) * t) / max
+    for (let t = 0; t <= max; t += 4000) { el("line", { x1: x(t), x2: x(t), y1: 0, y2: H - 20, class: "grid" }, s); el("text", { x: x(t), y: H - 5, "text-anchor": "middle" }, s, t / 1000 + "k") }
+    books.forEach((b, i) => {
+      const r = D.split.find((x) => x.model === "gpt-5.4-mini" && x.book === b)
+      const y = i * rowH + 6
+      el("text", { x: 0, y: y + 13 }, s, BOOK[b])
+      const a = r.labels.inputTokens, q = r.questions.inputTokens
+      const seg1 = el("rect", { x: L, y, width: x(a) - L - 1, height: 18, fill: "var(--s3)" }, s)
+      hover(seg1, `${BOOK[b]}: page-label reading ${a} tokens in, ${r.labels.outputTokens} out`)
+      const seg2 = hbar(s, x(a) + 1, y, x(a + q) - x(a) - 1, 18, "var(--s4)")
+      hover(seg2, `${BOOK[b]}: question reading ${q} tokens in, ${r.questions.outputTokens} out`)
+      el("text", { x: x(a + q) + 6, y: y + 13, class: "val" }, s, ((a + q) / 1000).toFixed(1) + "k")
+    })
+    document.getElementById("tokChart").appendChild(s)
+  })()
+
+  // Accuracy table (counts filled at build time from the run logs)
+  document.getElementById("accTable").innerHTML =
+    `<thead><tr><th>Model</th><th class="r">Runs</th><th class="r">Settings right</th><th class="r">Wrong but caught by a question</th><th class="r">Wrong and not asked</th><th class="r">Questions per book</th></tr></thead><tbody>` +
+    D.accuracy.map((a) => `<tr><td>${a.model}</td><td class="r">${a.runs}</td><td class="r">${a.right}/${a.total}</td><td class="r">${a.caught}</td><td class="r"><span class="pill">${a.silent}</span></td><td class="r">${(avg(runs(a.model).map((r) => r.asked))).toFixed(1)}</td></tr>`).join("") + "</tbody>"
+})()
+</script>

@@ -23,7 +23,7 @@
       "id": "genre",
       "value": "story",
       "secondOpinion": "story",
-      "reason": "These pages tell a sequence of events about Hyena and Raven from friendship to the ending.",
+      "reason": "The pages tell a sequence of events about Hyena and Raven from friendship to a final outcome.",
       "evidencePages": [
         2,
         3,
@@ -55,7 +55,7 @@
       "id": "composition",
       "value": "text-beside-art",
       "secondOpinion": "text-beside-art",
-      "reason": "On each shown page, the illustration is on one side and the words are in a separate white area beside it.",
+      "reason": "On each shown page, the picture is on one side and the words are in a separate white area beside it.",
       "evidencePages": [
         2,
         3,
@@ -71,7 +71,7 @@
       "id": "diagrams",
       "value": "none",
       "secondOpinion": "none",
-      "reason": "The pictures are story illustrations of Hyena and Raven, not labelled diagrams, maps, or charts.",
+      "reason": "The pictures are story illustrations of Hyena and Raven, not labelled maps, charts, or explanatory diagrams.",
       "evidencePages": [
         2,
         3,
@@ -2325,16 +2325,16 @@
   ],
   "secondOpinion": true,
   "timings": {
-    "profileMs": 89.59802499999932,
-    "factsMs": 0.6233199999987846,
-    "questionsMs": 4963.264186,
-    "labelsMs": 4535.489261999999,
-    "totalMs": 5224.813222000001,
+    "profileMs": 82.87734199999977,
+    "factsMs": 0.3339990000022226,
+    "questionsMs": 5319.046945000002,
+    "labelsMs": 5024.055809999998,
+    "totalMs": 5573.8853970000055,
     "uploadBytes": 945491
   },
   "usage": {
     "inputTokens": 10027,
-    "outputTokens": 479,
+    "outputTokens": 481,
     "calls": 2
   }
 }

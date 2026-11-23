@@ -19,7 +19,7 @@
       "id": "genre",
       "value": "reference",
       "secondOpinion": "reference",
-      "reason": "These pages are a scientific article/report with sections, equations, figures, and tables, not a story or school lessons.",
+      "reason": "These pages are a technical research-style report with sections, equations, figures, and tables rather than lessons or a story.",
       "evidencePages": [
         2,
         3,
@@ -35,7 +35,7 @@
       "id": "exercises",
       "value": "none",
       "secondOpinion": "none",
-      "reason": "The shown pages contain continuous explanatory text, figures, and tables, with no questions, blanks, or answer-writing tasks.",
+      "reason": "The shown pages contain explanatory text, figures, and tables, with no questions, blanks, or write-in tasks for the reader.",
       "evidencePages": [
         2,
         3,
@@ -51,7 +51,7 @@
       "id": "composition",
       "value": "text-beside-art",
       "secondOpinion": "text-mostly",
-      "reason": "Most shown pages are dominated by dense blocks of text, while pictures and figures take only part of the page.",
+      "reason": "Most pages are dense with continuous text and equations, while pictures and figures take only part of the page.",
       "evidencePages": [
         3,
         4,
@@ -66,7 +66,7 @@
       "id": "diagrams",
       "value": "many",
       "secondOpinion": "some",
-      "reason": "Several pages include labelled figures, charts, and comparison plots, but not every shown page has them.",
+      "reason": "Page 3 has a labeled workflow diagram, page 6 has labeled charts, and page 4 includes labeled figure panels.",
       "evidencePages": [
         3,
         4,
@@ -2296,16 +2296,16 @@
   ],
   "secondOpinion": true,
   "timings": {
-    "profileMs": 174.61913300000015,
-    "factsMs": 1.4368429999994987,
-    "questionsMs": 5224.605969,
-    "labelsMs": 3783.091386,
-    "totalMs": 5602.233758999999,
+    "profileMs": 173.99221599999873,
+    "factsMs": 1.1797570000053383,
+    "questionsMs": 6141.549383000005,
+    "labelsMs": 4004.626952999999,
+    "totalMs": 6518.559596000006,
     "uploadBytes": 1166537
   },
   "usage": {
     "inputTokens": 9600,
-    "outputTokens": 370,
+    "outputTokens": 378,
     "calls": 2
   }
 }

@@ -195,6 +195,8 @@ export async function recommendSetup(opts: RecommendSetupOptions): Promise<Setup
       inputTokens: (labels?.usage.inputTokens ?? 0) + (questions?.usage.inputTokens ?? 0),
       outputTokens: (labels?.usage.outputTokens ?? 0) + (questions?.usage.outputTokens ?? 0),
       calls: (labels ? 1 : 0) + (questions ? 1 : 0),
+      labels: labels ? labels.usage : null,
+      questions: questions ? questions.usage : null,
     },
   }
 }

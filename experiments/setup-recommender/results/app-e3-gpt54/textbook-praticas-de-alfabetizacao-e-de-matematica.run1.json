@@ -19,7 +19,7 @@
       "id": "genre",
       "value": "textbook",
       "secondOpinion": "textbook",
-      "reason": "The pages teach about personal documents and numbers and repeatedly give classroom tasks under “PRATICANDO”.",
+      "reason": "These pages teach about personal documents and numbers and include sections titled “PRATICANDO” with student tasks.",
       "evidencePages": [
         2,
         3,
@@ -35,7 +35,7 @@
       "id": "exercises",
       "value": "many",
       "secondOpinion": "many",
-      "reason": "All shown pages include questions, blanks, or instructions for students to answer or fill in.",
+      "reason": "All shown pages include questions, blanks, or forms for the reader to complete.",
       "evidencePages": [
         2,
         3,
@@ -51,7 +51,7 @@
       "id": "composition",
       "value": "text-beside-art",
       "secondOpinion": "text-mostly",
-      "reason": "These pages are mostly text and blank answer lines, with only a small ID image on page 2 and a small boxed form on page 6.",
+      "reason": "The pages are mostly text and answer lines, with only small images or form boxes.",
       "evidencePages": [
         2,
         6,
@@ -66,7 +66,7 @@
       "id": "diagrams",
       "value": "some",
       "secondOpinion": "none",
-      "reason": "The visible images are an ID card example and a form to complete, not labelled explanatory diagrams, charts, or maps.",
+      "reason": "The visible visuals are an ID card image and a registration form, not labelled explanatory diagrams, maps, or charts.",
       "evidencePages": [
         2,
         3,
@@ -2290,16 +2290,16 @@
   ],
   "secondOpinion": true,
   "timings": {
-    "profileMs": 505.67377799999997,
-    "factsMs": 2.488287999999784,
-    "questionsMs": 5793.493579,
-    "labelsMs": 4249.297028999999,
-    "totalMs": 6701.8562680000005,
+    "profileMs": 518.2344740000001,
+    "factsMs": 2.4925359999999728,
+    "questionsMs": 6096.193562,
+    "labelsMs": 4530.578406999999,
+    "totalMs": 7024.483453999999,
     "uploadBytes": 674588
   },
   "usage": {
     "inputTokens": 9628,
-    "outputTokens": 366,
+    "outputTokens": 351,
     "calls": 2
   }
 }

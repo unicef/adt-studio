@@ -107,7 +107,14 @@ export const SetupRecommendation = z.object({
     totalMs: z.number(),
     uploadBytes: z.number(),
   }),
-  usage: z.object({ inputTokens: z.number(), outputTokens: z.number(), calls: z.number().int() }),
+  usage: z.object({
+    inputTokens: z.number(),
+    outputTokens: z.number(),
+    calls: z.number().int(),
+    /** Per reading, null when it did not run. */
+    labels: z.object({ inputTokens: z.number(), outputTokens: z.number() }).nullable(),
+    questions: z.object({ inputTokens: z.number(), outputTokens: z.number() }).nullable(),
+  }),
 })
 export type SetupRecommendation = z.infer<typeof SetupRecommendation>
 

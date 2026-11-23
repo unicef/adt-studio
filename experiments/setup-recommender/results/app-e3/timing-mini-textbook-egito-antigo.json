@@ -1,0 +1,54 @@
+{
+  "source": "textbook-egito-antigo.pdf",
+  "model": "openai:gpt-5.4-mini",
+  "rows": [
+    {
+      "pages": 12,
+      "scanMs": 423,
+      "scanMsPerPage": 35.3,
+      "readingMs": 3727,
+      "labelsMs": 3424,
+      "questionsMs": 3140,
+      "totalMs": 4150,
+      "uploadKB": 1437,
+      "extraAt1MbpsS": 11.8,
+      "tokensIn": 11495
+    },
+    {
+      "pages": 50,
+      "scanMs": 557,
+      "scanMsPerPage": 11.1,
+      "readingMs": 4965,
+      "labelsMs": 4963,
+      "questionsMs": 3419,
+      "totalMs": 5522,
+      "uploadKB": 1979,
+      "extraAt1MbpsS": 16.2,
+      "tokensIn": 15268
+    },
+    {
+      "pages": 150,
+      "scanMs": 1178,
+      "scanMsPerPage": 7.9,
+      "readingMs": 4984,
+      "labelsMs": 4981,
+      "questionsMs": 3172,
+      "totalMs": 6162,
+      "uploadKB": 2121,
+      "extraAt1MbpsS": 17.4,
+      "tokensIn": 15224
+    },
+    {
+      "pages": 400,
+      "scanMs": 2777,
+      "scanMsPerPage": 6.9,
+      "readingMs": 6156,
+      "labelsMs": 6149,
+      "questionsMs": 2661,
+      "totalMs": 8933,
+      "uploadKB": 2572,
+      "extraAt1MbpsS": 21.1,
+      "tokensIn": 19585
+    }
+  ]
+}

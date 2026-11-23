@@ -1,0 +1,1278 @@
+{
+ "prices": {
+  "gpt-5.4": {
+   "in": 2.5,
+   "out": 15
+  },
+  "gpt-5.4-mini": {
+   "in": 0.75,
+   "out": 4.5
+  }
+ },
+ "e3": [
+  {
+   "book": "reference-reimagining-target-aware-molecular",
+   "run": 1,
+   "model": "gpt-5.4-mini",
+   "pages": 7,
+   "asked": 0,
+   "scanMs": 170,
+   "labelsMs": 1979,
+   "questionsMs": 2506,
+   "totalMs": 2874,
+   "uploadKB": 1139,
+   "tokensIn": 9602,
+   "tokensOut": 370,
+   "usd": 0.0088665
+  },
+  {
+   "book": "reference-reimagining-target-aware-molecular",
+   "run": 2,
+   "model": "gpt-5.4-mini",
+   "pages": 7,
+   "asked": 0,
+   "scanMs": 162,
+   "labelsMs": 2244,
+   "questionsMs": 3496,
+   "totalMs": 3856,
+   "uploadKB": 1139,
+   "tokensIn": 9602,
+   "tokensOut": 360,
+   "usd": 0.0088215
+  },
+  {
+   "book": "reference-reimagining-target-aware-molecular",
+   "run": 3,
+   "model": "gpt-5.4-mini",
+   "pages": 7,
+   "asked": 0,
+   "scanMs": 162,
+   "labelsMs": 2591,
+   "questionsMs": 2767,
+   "totalMs": 3127,
+   "uploadKB": 1139,
+   "tokensIn": 9602,
+   "tokensOut": 374,
+   "usd": 0.0088845
+  },
+  {
+   "book": "storybook-1930-el-viaje",
+   "run": 1,
+   "model": "gpt-5.4-mini",
+   "pages": 8,
+   "asked": 3,
+   "scanMs": 40,
+   "labelsMs": 2216,
+   "questionsMs": 2211,
+   "totalMs": 2342,
+   "uploadKB": 918,
+   "tokensIn": 9266,
+   "tokensOut": 389,
+   "usd": 0.0087
+  },
+  {
+   "book": "storybook-1930-el-viaje",
+   "run": 2,
+   "model": "gpt-5.4-mini",
+   "pages": 8,
+   "asked": 3,
+   "scanMs": 37,
+   "labelsMs": 1935,
+   "questionsMs": 2249,
+   "totalMs": 2374,
+   "uploadKB": 918,
+   "tokensIn": 9266,
+   "tokensOut": 392,
+   "usd": 0.0087135
+  },
+  {
+   "book": "storybook-1930-el-viaje",
+   "run": 3,
+   "model": "gpt-5.4-mini",
+   "pages": 8,
+   "asked": 3,
+   "scanMs": 36,
+   "labelsMs": 1841,
+   "questionsMs": 2062,
+   "totalMs": 2184,
+   "uploadKB": 918,
+   "tokensIn": 9266,
+   "tokensOut": 375,
+   "usd": 0.008637
+  },
+  {
+   "book": "storybook-colouring-my-school",
+   "run": 1,
+   "model": "gpt-5.4-mini",
+   "pages": 9,
+   "asked": 0,
+   "scanMs": 91,
+   "labelsMs": 2232,
+   "questionsMs": 2502,
+   "totalMs": 2735,
+   "uploadKB": 1215,
+   "tokensIn": 8507,
+   "tokensOut": 387,
+   "usd": 0.00812175
+  },
+  {
+   "book": "storybook-colouring-my-school",
+   "run": 2,
+   "model": "gpt-5.4-mini",
+   "pages": 9,
+   "asked": 0,
+   "scanMs": 83,
+   "labelsMs": 2131,
+   "questionsMs": 2245,
+   "totalMs": 2467,
+   "uploadKB": 1215,
+   "tokensIn": 8507,
+   "tokensOut": 389,
+   "usd": 0.00813075
+  },
+  {
+   "book": "storybook-colouring-my-school",
+   "run": 3,
+   "model": "gpt-5.4-mini",
+   "pages": 9,
+   "asked": 0,
+   "scanMs": 86,
+   "labelsMs": 2295,
+   "questionsMs": 2536,
+   "totalMs": 2773,
+   "uploadKB": 1215,
+   "tokensIn": 8507,
+   "tokensOut": 387,
+   "usd": 0.00812175
+  },
+  {
+   "book": "storybook-hyena-and-raven",
+   "run": 1,
+   "model": "gpt-5.4-mini",
+   "pages": 12,
+   "asked": 0,
+   "scanMs": 83,
+   "labelsMs": 2299,
+   "questionsMs": 2488,
+   "totalMs": 2741,
+   "uploadKB": 923,
+   "tokensIn": 10029,
+   "tokensOut": 469,
+   "usd": 0.00963225
+  },
+  {
+   "book": "storybook-hyena-and-raven",
+   "run": 2,
+   "model": "gpt-5.4-mini",
+   "pages": 12,
+   "asked": 0,
+   "scanMs": 67,
+   "labelsMs": 2263,
+   "questionsMs": 2277,
+   "totalMs": 2502,
+   "uploadKB": 923,
+   "tokensIn": 10029,
+   "tokensOut": 464,
+   "usd": 0.00960975
+  },
+  {
+   "book": "storybook-hyena-and-raven",
+   "run": 3,
+   "model": "gpt-5.4-mini",
+   "pages": 12,
+   "asked": 0,
+   "scanMs": 68,
+   "labelsMs": 2311,
+   "questionsMs": 2391,
+   "totalMs": 2616,
+   "uploadKB": 923,
+   "tokensIn": 10029,
+   "tokensOut": 475,
+   "usd": 0.00965925
+  },
+  {
+   "book": "textbook-egito-antigo",
+   "run": 1,
+   "model": "gpt-5.4-mini",
+   "pages": 11,
+   "asked": 1,
+   "scanMs": 382,
+   "labelsMs": 3350,
+   "questionsMs": 3111,
+   "totalMs": 4011,
+   "uploadKB": 1496,
+   "tokensIn": 11198,
+   "tokensOut": 437,
+   "usd": 0.010365
+  },
+  {
+   "book": "textbook-egito-antigo",
+   "run": 2,
+   "model": "gpt-5.4-mini",
+   "pages": 11,
+   "asked": 1,
+   "scanMs": 297,
+   "labelsMs": 3738,
+   "questionsMs": 3895,
+   "totalMs": 4667,
+   "uploadKB": 1496,
+   "tokensIn": 11198,
+   "tokensOut": 444,
+   "usd": 0.0103965
+  },
+  {
+   "book": "textbook-egito-antigo",
+   "run": 3,
+   "model": "gpt-5.4-mini",
+   "pages": 11,
+   "asked": 0,
+   "scanMs": 302,
+   "labelsMs": 3274,
+   "questionsMs": 3204,
+   "totalMs": 3987,
+   "uploadKB": 1496,
+   "tokensIn": 11198,
+   "tokensOut": 449,
+   "usd": 0.010419
+  },
+  {
+   "book": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+   "run": 1,
+   "model": "gpt-5.4-mini",
+   "pages": 7,
+   "asked": 0,
+   "scanMs": 509,
+   "labelsMs": 2411,
+   "questionsMs": 2541,
+   "totalMs": 3456,
+   "uploadKB": 659,
+   "tokensIn": 9630,
+   "tokensOut": 369,
+   "usd": 0.008883
+  },
+  {
+   "book": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+   "run": 2,
+   "model": "gpt-5.4-mini",
+   "pages": 7,
+   "asked": 0,
+   "scanMs": 376,
+   "labelsMs": 2145,
+   "questionsMs": 2063,
+   "totalMs": 2784,
+   "uploadKB": 659,
+   "tokensIn": 9630,
+   "tokensOut": 360,
+   "usd": 0.0088425
+  },
+  {
+   "book": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+   "run": 3,
+   "model": "gpt-5.4-mini",
+   "pages": 7,
+   "asked": 0,
+   "scanMs": 370,
+   "labelsMs": 2061,
+   "questionsMs": 2547,
+   "totalMs": 3261,
+   "uploadKB": 659,
+   "tokensIn": 9630,
+   "tokensOut": 336,
+   "usd": 0.0087345
+  },
+  {
+   "book": "reference-reimagining-target-aware-molecular",
+   "run": 1,
+   "model": "gpt-5.4",
+   "pages": 7,
+   "asked": 0,
+   "scanMs": 174,
+   "labelsMs": 4005,
+   "questionsMs": 6142,
+   "totalMs": 6519,
+   "uploadKB": 1139,
+   "tokensIn": 9600,
+   "tokensOut": 378,
+   "usd": 0.02967
+  },
+  {
+   "book": "reference-reimagining-target-aware-molecular",
+   "run": 2,
+   "model": "gpt-5.4",
+   "pages": 7,
+   "asked": 0,
+   "scanMs": 170,
+   "labelsMs": 4127,
+   "questionsMs": 6180,
+   "totalMs": 6553,
+   "uploadKB": 1139,
+   "tokensIn": 9600,
+   "tokensOut": 371,
+   "usd": 0.029565
+  },
+  {
+   "book": "reference-reimagining-target-aware-molecular",
+   "run": 3,
+   "model": "gpt-5.4",
+   "pages": 7,
+   "asked": 0,
+   "scanMs": 178,
+   "labelsMs": 4125,
+   "questionsMs": 6201,
+   "totalMs": 6594,
+   "uploadKB": 1139,
+   "tokensIn": 9600,
+   "tokensOut": 378,
+   "usd": 0.02967
+  },
+  {
+   "book": "storybook-1930-el-viaje",
+   "run": 1,
+   "model": "gpt-5.4",
+   "pages": 8,
+   "asked": 3,
+   "scanMs": 40,
+   "labelsMs": 3728,
+   "questionsMs": 5675,
+   "totalMs": 5806,
+   "uploadKB": 918,
+   "tokensIn": 9264,
+   "tokensOut": 399,
+   "usd": 0.029145
+  },
+  {
+   "book": "storybook-1930-el-viaje",
+   "run": 2,
+   "model": "gpt-5.4",
+   "pages": 8,
+   "asked": 3,
+   "scanMs": 38,
+   "labelsMs": 3833,
+   "questionsMs": 5901,
+   "totalMs": 6026,
+   "uploadKB": 918,
+   "tokensIn": 9264,
+   "tokensOut": 399,
+   "usd": 0.029145
+  },
+  {
+   "book": "storybook-1930-el-viaje",
+   "run": 3,
+   "model": "gpt-5.4",
+   "pages": 8,
+   "asked": 3,
+   "scanMs": 40,
+   "labelsMs": 4350,
+   "questionsMs": 6529,
+   "totalMs": 6659,
+   "uploadKB": 918,
+   "tokensIn": 9264,
+   "tokensOut": 394,
+   "usd": 0.02907
+  },
+  {
+   "book": "storybook-colouring-my-school",
+   "run": 1,
+   "model": "gpt-5.4",
+   "pages": 9,
+   "asked": 0,
+   "scanMs": 92,
+   "labelsMs": 5088,
+   "questionsMs": 6322,
+   "totalMs": 6568,
+   "uploadKB": 1215,
+   "tokensIn": 8505,
+   "tokensOut": 405,
+   "usd": 0.0273375
+  },
+  {
+   "book": "storybook-colouring-my-school",
+   "run": 2,
+   "model": "gpt-5.4",
+   "pages": 9,
+   "asked": 0,
+   "scanMs": 86,
+   "labelsMs": 4673,
+   "questionsMs": 6101,
+   "totalMs": 6337,
+   "uploadKB": 1215,
+   "tokensIn": 8505,
+   "tokensOut": 397,
+   "usd": 0.0272175
+  },
+  {
+   "book": "storybook-colouring-my-school",
+   "run": 3,
+   "model": "gpt-5.4",
+   "pages": 9,
+   "asked": 1,
+   "scanMs": 83,
+   "labelsMs": 5016,
+   "questionsMs": 5949,
+   "totalMs": 6171,
+   "uploadKB": 1215,
+   "tokensIn": 8505,
+   "tokensOut": 396,
+   "usd": 0.0272025
+  },
+  {
+   "book": "storybook-hyena-and-raven",
+   "run": 1,
+   "model": "gpt-5.4",
+   "pages": 12,
+   "asked": 0,
+   "scanMs": 83,
+   "labelsMs": 5024,
+   "questionsMs": 5319,
+   "totalMs": 5574,
+   "uploadKB": 923,
+   "tokensIn": 10027,
+   "tokensOut": 481,
+   "usd": 0.0322825
+  },
+  {
+   "book": "storybook-hyena-and-raven",
+   "run": 2,
+   "model": "gpt-5.4",
+   "pages": 12,
+   "asked": 0,
+   "scanMs": 68,
+   "labelsMs": 4930,
+   "questionsMs": 5853,
+   "totalMs": 6084,
+   "uploadKB": 923,
+   "tokensIn": 10027,
+   "tokensOut": 487,
+   "usd": 0.0323725
+  },
+  {
+   "book": "storybook-hyena-and-raven",
+   "run": 3,
+   "model": "gpt-5.4",
+   "pages": 12,
+   "asked": 0,
+   "scanMs": 68,
+   "labelsMs": 5053,
+   "questionsMs": 4982,
+   "totalMs": 5210,
+   "uploadKB": 923,
+   "tokensIn": 10027,
+   "tokensOut": 481,
+   "usd": 0.0322825
+  },
+  {
+   "book": "textbook-egito-antigo",
+   "run": 1,
+   "model": "gpt-5.4",
+   "pages": 11,
+   "asked": 1,
+   "scanMs": 391,
+   "labelsMs": 5657,
+   "questionsMs": 7399,
+   "totalMs": 8320,
+   "uploadKB": 1496,
+   "tokensIn": 11196,
+   "tokensOut": 443,
+   "usd": 0.034635
+  },
+  {
+   "book": "textbook-egito-antigo",
+   "run": 2,
+   "model": "gpt-5.4",
+   "pages": 11,
+   "asked": 1,
+   "scanMs": 295,
+   "labelsMs": 5713,
+   "questionsMs": 6042,
+   "totalMs": 6835,
+   "uploadKB": 1496,
+   "tokensIn": 11196,
+   "tokensOut": 435,
+   "usd": 0.034515
+  },
+  {
+   "book": "textbook-egito-antigo",
+   "run": 3,
+   "model": "gpt-5.4",
+   "pages": 11,
+   "asked": 1,
+   "scanMs": 291,
+   "labelsMs": 5929,
+   "questionsMs": 6171,
+   "totalMs": 6952,
+   "uploadKB": 1496,
+   "tokensIn": 11196,
+   "tokensOut": 443,
+   "usd": 0.034635
+  },
+  {
+   "book": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+   "run": 1,
+   "model": "gpt-5.4",
+   "pages": 7,
+   "asked": 0,
+   "scanMs": 518,
+   "labelsMs": 4531,
+   "questionsMs": 6096,
+   "totalMs": 7024,
+   "uploadKB": 659,
+   "tokensIn": 9628,
+   "tokensOut": 351,
+   "usd": 0.029335
+  },
+  {
+   "book": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+   "run": 2,
+   "model": "gpt-5.4",
+   "pages": 7,
+   "asked": 0,
+   "scanMs": 375,
+   "labelsMs": 4174,
+   "questionsMs": 5854,
+   "totalMs": 6579,
+   "uploadKB": 659,
+   "tokensIn": 9628,
+   "tokensOut": 357,
+   "usd": 0.029425
+  },
+  {
+   "book": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+   "run": 3,
+   "model": "gpt-5.4",
+   "pages": 7,
+   "asked": 0,
+   "scanMs": 374,
+   "labelsMs": 3866,
+   "questionsMs": 6021,
+   "totalMs": 6744,
+   "uploadKB": 659,
+   "tokensIn": 9628,
+   "tokensOut": 356,
+   "usd": 0.02941
+  },
+  {
+   "book": "reference-reimagining-target-aware-molecular",
+   "run": 4,
+   "model": "gpt-5.4-mini",
+   "pages": 7,
+   "asked": 0,
+   "scanMs": 174,
+   "labelsMs": 2117,
+   "questionsMs": 2448,
+   "totalMs": 2823,
+   "uploadKB": 1139,
+   "tokensIn": 9602,
+   "tokensOut": 384,
+   "usd": 0.0089295
+  },
+  {
+   "book": "storybook-1930-el-viaje",
+   "run": 4,
+   "model": "gpt-5.4-mini",
+   "pages": 8,
+   "asked": 3,
+   "scanMs": 41,
+   "labelsMs": 2000,
+   "questionsMs": 2139,
+   "totalMs": 2271,
+   "uploadKB": 918,
+   "tokensIn": 9266,
+   "tokensOut": 396,
+   "usd": 0.0087315
+  },
+  {
+   "book": "storybook-colouring-my-school",
+   "run": 4,
+   "model": "gpt-5.4-mini",
+   "pages": 9,
+   "asked": 0,
+   "scanMs": 99,
+   "labelsMs": 2233,
+   "questionsMs": 2603,
+   "totalMs": 2857,
+   "uploadKB": 1215,
+   "tokensIn": 8507,
+   "tokensOut": 381,
+   "usd": 0.00809475
+  },
+  {
+   "book": "storybook-hyena-and-raven",
+   "run": 4,
+   "model": "gpt-5.4-mini",
+   "pages": 12,
+   "asked": 0,
+   "scanMs": 86,
+   "labelsMs": 2334,
+   "questionsMs": 2157,
+   "totalMs": 2421,
+   "uploadKB": 923,
+   "tokensIn": 10029,
+   "tokensOut": 463,
+   "usd": 0.00960525
+  },
+  {
+   "book": "textbook-egito-antigo",
+   "run": 4,
+   "model": "gpt-5.4-mini",
+   "pages": 11,
+   "asked": 0,
+   "scanMs": 320,
+   "labelsMs": 3179,
+   "questionsMs": 2750,
+   "totalMs": 3556,
+   "uploadKB": 1496,
+   "tokensIn": 11198,
+   "tokensOut": 445,
+   "usd": 0.010401
+  },
+  {
+   "book": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+   "run": 4,
+   "model": "gpt-5.4-mini",
+   "pages": 7,
+   "asked": 0,
+   "scanMs": 516,
+   "labelsMs": 2330,
+   "questionsMs": 2582,
+   "totalMs": 3509,
+   "uploadKB": 659,
+   "tokensIn": 9630,
+   "tokensOut": 353,
+   "usd": 0.008811
+  },
+  {
+   "book": "reference-reimagining-target-aware-molecular",
+   "run": 4,
+   "model": "gpt-5.4",
+   "pages": 7,
+   "asked": 0,
+   "scanMs": 177,
+   "labelsMs": 4173,
+   "questionsMs": 6389,
+   "totalMs": 6771,
+   "uploadKB": 1139,
+   "tokensIn": 9600,
+   "tokensOut": 376,
+   "usd": 0.02964
+  },
+  {
+   "book": "storybook-1930-el-viaje",
+   "run": 4,
+   "model": "gpt-5.4",
+   "pages": 8,
+   "asked": 3,
+   "scanMs": 41,
+   "labelsMs": 3872,
+   "questionsMs": 5341,
+   "totalMs": 5473,
+   "uploadKB": 918,
+   "tokensIn": 9264,
+   "tokensOut": 385,
+   "usd": 0.028935
+  },
+  {
+   "book": "storybook-colouring-my-school",
+   "run": 4,
+   "model": "gpt-5.4",
+   "pages": 9,
+   "asked": 0,
+   "scanMs": 98,
+   "labelsMs": 4313,
+   "questionsMs": 6077,
+   "totalMs": 6329,
+   "uploadKB": 1215,
+   "tokensIn": 8505,
+   "tokensOut": 409,
+   "usd": 0.0273975
+  },
+  {
+   "book": "storybook-hyena-and-raven",
+   "run": 4,
+   "model": "gpt-5.4",
+   "pages": 12,
+   "asked": 0,
+   "scanMs": 86,
+   "labelsMs": 4719,
+   "questionsMs": 5462,
+   "totalMs": 5722,
+   "uploadKB": 923,
+   "tokensIn": 10027,
+   "tokensOut": 482,
+   "usd": 0.0322975
+  },
+  {
+   "book": "textbook-egito-antigo",
+   "run": 4,
+   "model": "gpt-5.4",
+   "pages": 11,
+   "asked": 1,
+   "scanMs": 314,
+   "labelsMs": 5672,
+   "questionsMs": 6170,
+   "totalMs": 6971,
+   "uploadKB": 1496,
+   "tokensIn": 11196,
+   "tokensOut": 444,
+   "usd": 0.03465
+  },
+  {
+   "book": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+   "run": 4,
+   "model": "gpt-5.4",
+   "pages": 7,
+   "asked": 0,
+   "scanMs": 513,
+   "labelsMs": 4115,
+   "questionsMs": 5900,
+   "totalMs": 6823,
+   "uploadKB": 659,
+   "tokensIn": 9628,
+   "tokensOut": 362,
+   "usd": 0.0295
+  }
+ ],
+ "e0": [
+  {
+   "book": "reference-reimagining-target-aware-molecular",
+   "model": "gpt-5.4-mini",
+   "ms": 8436,
+   "tokensIn": 8892,
+   "tokensOut": 539,
+   "usd": 0.0090945
+  },
+  {
+   "book": "reference-reimagining-target-aware-molecular",
+   "model": "gpt-5.4-mini",
+   "ms": 8186,
+   "tokensIn": 8892,
+   "tokensOut": 511,
+   "usd": 0.0089685
+  },
+  {
+   "book": "reference-reimagining-target-aware-molecular",
+   "model": "gpt-5.4-mini",
+   "ms": 6957,
+   "tokensIn": 8892,
+   "tokensOut": 390,
+   "usd": 0.008424
+  },
+  {
+   "book": "storybook-1930-el-viaje",
+   "model": "gpt-5.4-mini",
+   "ms": 9939,
+   "tokensIn": 9175,
+   "tokensOut": 533,
+   "usd": 0.00927975
+  },
+  {
+   "book": "storybook-1930-el-viaje",
+   "model": "gpt-5.4-mini",
+   "ms": 6152,
+   "tokensIn": 9175,
+   "tokensOut": 492,
+   "usd": 0.00909525
+  },
+  {
+   "book": "storybook-1930-el-viaje",
+   "model": "gpt-5.4-mini",
+   "ms": 7399,
+   "tokensIn": 9175,
+   "tokensOut": 626,
+   "usd": 0.00969825
+  },
+  {
+   "book": "storybook-colouring-my-school",
+   "model": "gpt-5.4-mini",
+   "ms": 8906,
+   "tokensIn": 7621,
+   "tokensOut": 444,
+   "usd": 0.00771375
+  },
+  {
+   "book": "storybook-colouring-my-school",
+   "model": "gpt-5.4-mini",
+   "ms": 8568,
+   "tokensIn": 7621,
+   "tokensOut": 526,
+   "usd": 0.00808275
+  },
+  {
+   "book": "storybook-colouring-my-school",
+   "model": "gpt-5.4-mini",
+   "ms": 7485,
+   "tokensIn": 7621,
+   "tokensOut": 396,
+   "usd": 0.00749775
+  },
+  {
+   "book": "storybook-hyena-and-raven",
+   "model": "gpt-5.4-mini",
+   "ms": 7617,
+   "tokensIn": 8254,
+   "tokensOut": 478,
+   "usd": 0.0083415
+  },
+  {
+   "book": "storybook-hyena-and-raven",
+   "model": "gpt-5.4-mini",
+   "ms": 7181,
+   "tokensIn": 8254,
+   "tokensOut": 400,
+   "usd": 0.0079905
+  },
+  {
+   "book": "storybook-hyena-and-raven",
+   "model": "gpt-5.4-mini",
+   "ms": 6758,
+   "tokensIn": 8254,
+   "tokensOut": 399,
+   "usd": 0.007986
+  },
+  {
+   "book": "textbook-egito-antigo",
+   "model": "gpt-5.4-mini",
+   "ms": 18213,
+   "tokensIn": 8948,
+   "tokensOut": 478,
+   "usd": 0.008862
+  },
+  {
+   "book": "textbook-egito-antigo",
+   "model": "gpt-5.4-mini",
+   "ms": 17184,
+   "tokensIn": 8948,
+   "tokensOut": 428,
+   "usd": 0.008637
+  },
+  {
+   "book": "textbook-egito-antigo",
+   "model": "gpt-5.4-mini",
+   "ms": 18540,
+   "tokensIn": 8948,
+   "tokensOut": 484,
+   "usd": 0.008889
+  },
+  {
+   "book": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+   "model": "gpt-5.4-mini",
+   "ms": 7085,
+   "tokensIn": 8832,
+   "tokensOut": 520,
+   "usd": 0.008964
+  },
+  {
+   "book": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+   "model": "gpt-5.4-mini",
+   "ms": 7476,
+   "tokensIn": 8832,
+   "tokensOut": 581,
+   "usd": 0.0092385
+  },
+  {
+   "book": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+   "model": "gpt-5.4-mini",
+   "ms": 7469,
+   "tokensIn": 8832,
+   "tokensOut": 533,
+   "usd": 0.0090225
+  }
+ ],
+ "scaling": [
+  {
+   "book": "storybook-hyena-and-raven",
+   "model": "gpt-5.4",
+   "rows": [
+    {
+     "pages": 12,
+     "scanMs": 110,
+     "scanMsPerPage": 9.2,
+     "readingMs": 5579,
+     "labelsMs": 5075,
+     "questionsMs": 5387,
+     "totalMs": 5689,
+     "uploadKB": 923,
+     "extraAt1MbpsS": 7.6,
+     "tokensIn": 10027,
+     "usd": 0.0315175
+    },
+    {
+     "pages": 50,
+     "scanMs": 149,
+     "scanMsPerPage": 3,
+     "readingMs": 6417,
+     "labelsMs": 6416,
+     "questionsMs": 4573,
+     "totalMs": 6566,
+     "uploadKB": 1320,
+     "extraAt1MbpsS": 10.8,
+     "tokensIn": 13193,
+     "usd": 0.0394325
+    },
+    {
+     "pages": 150,
+     "scanMs": 307,
+     "scanMsPerPage": 2,
+     "readingMs": 6566,
+     "labelsMs": 6564,
+     "questionsMs": 5330,
+     "totalMs": 6872,
+     "uploadKB": 1281,
+     "extraAt1MbpsS": 10.5,
+     "tokensIn": 13287,
+     "usd": 0.0396675
+    },
+    {
+     "pages": 400,
+     "scanMs": 721,
+     "scanMsPerPage": 1.8,
+     "readingMs": 9775,
+     "labelsMs": 9773,
+     "questionsMs": 4949,
+     "totalMs": 10496,
+     "uploadKB": 1705,
+     "extraAt1MbpsS": 14,
+     "tokensIn": 17050,
+     "usd": 0.049075
+    }
+   ]
+  },
+  {
+   "book": "textbook-egito-antigo",
+   "model": "gpt-5.4",
+   "rows": [
+    {
+     "pages": 12,
+     "scanMs": 424,
+     "scanMsPerPage": 35.3,
+     "readingMs": 6314,
+     "labelsMs": 5583,
+     "questionsMs": 5727,
+     "totalMs": 6738,
+     "uploadKB": 1437,
+     "extraAt1MbpsS": 11.8,
+     "tokensIn": 11493,
+     "usd": 0.0351825
+    },
+    {
+     "pages": 50,
+     "scanMs": 554,
+     "scanMsPerPage": 11.1,
+     "readingMs": 8219,
+     "labelsMs": 8217,
+     "questionsMs": 6249,
+     "totalMs": 8773,
+     "uploadKB": 1979,
+     "extraAt1MbpsS": 16.2,
+     "tokensIn": 15266,
+     "usd": 0.044615
+    },
+    {
+     "pages": 150,
+     "scanMs": 1218,
+     "scanMsPerPage": 8.1,
+     "readingMs": 8050,
+     "labelsMs": 8047,
+     "questionsMs": 6173,
+     "totalMs": 9268,
+     "uploadKB": 2121,
+     "extraAt1MbpsS": 17.4,
+     "tokensIn": 15222,
+     "usd": 0.044505
+    },
+    {
+     "pages": 400,
+     "scanMs": 2775,
+     "scanMsPerPage": 6.9,
+     "readingMs": 12087,
+     "labelsMs": 12079,
+     "questionsMs": 5305,
+     "totalMs": 14862,
+     "uploadKB": 2572,
+     "extraAt1MbpsS": 21.1,
+     "tokensIn": 19583,
+     "usd": 0.0554075
+    }
+   ]
+  },
+  {
+   "book": "storybook-hyena-and-raven",
+   "model": "gpt-5.4-mini",
+   "rows": [
+    {
+     "pages": 12,
+     "scanMs": 111,
+     "scanMsPerPage": 9.2,
+     "readingMs": 2979,
+     "labelsMs": 2425,
+     "questionsMs": 2786,
+     "totalMs": 3089,
+     "uploadKB": 923,
+     "extraAt1MbpsS": 7.6,
+     "tokensIn": 10029,
+     "usd": 0.00945675
+    },
+    {
+     "pages": 50,
+     "scanMs": 147,
+     "scanMsPerPage": 2.9,
+     "readingMs": 3456,
+     "labelsMs": 3455,
+     "questionsMs": 2541,
+     "totalMs": 3603,
+     "uploadKB": 1320,
+     "extraAt1MbpsS": 10.8,
+     "tokensIn": 13195,
+     "usd": 0.01183125
+    },
+    {
+     "pages": 150,
+     "scanMs": 317,
+     "scanMsPerPage": 2.1,
+     "readingMs": 3355,
+     "labelsMs": 3353,
+     "questionsMs": 2335,
+     "totalMs": 3672,
+     "uploadKB": 1281,
+     "extraAt1MbpsS": 10.5,
+     "tokensIn": 13289,
+     "usd": 0.01190175
+    },
+    {
+     "pages": 400,
+     "scanMs": 718,
+     "scanMsPerPage": 1.8,
+     "readingMs": 5422,
+     "labelsMs": 5419,
+     "questionsMs": 2283,
+     "totalMs": 6140,
+     "uploadKB": 1705,
+     "extraAt1MbpsS": 14,
+     "tokensIn": 17052,
+     "usd": 0.014724
+    }
+   ]
+  },
+  {
+   "book": "textbook-egito-antigo",
+   "model": "gpt-5.4-mini",
+   "rows": [
+    {
+     "pages": 12,
+     "scanMs": 423,
+     "scanMsPerPage": 35.3,
+     "readingMs": 3727,
+     "labelsMs": 3424,
+     "questionsMs": 3140,
+     "totalMs": 4150,
+     "uploadKB": 1437,
+     "extraAt1MbpsS": 11.8,
+     "tokensIn": 11495,
+     "usd": 0.01055625
+    },
+    {
+     "pages": 50,
+     "scanMs": 557,
+     "scanMsPerPage": 11.1,
+     "readingMs": 4965,
+     "labelsMs": 4963,
+     "questionsMs": 3419,
+     "totalMs": 5522,
+     "uploadKB": 1979,
+     "extraAt1MbpsS": 16.2,
+     "tokensIn": 15268,
+     "usd": 0.013386
+    },
+    {
+     "pages": 150,
+     "scanMs": 1178,
+     "scanMsPerPage": 7.9,
+     "readingMs": 4984,
+     "labelsMs": 4981,
+     "questionsMs": 3172,
+     "totalMs": 6162,
+     "uploadKB": 2121,
+     "extraAt1MbpsS": 17.4,
+     "tokensIn": 15224,
+     "usd": 0.013353
+    },
+    {
+     "pages": 400,
+     "scanMs": 2777,
+     "scanMsPerPage": 6.9,
+     "readingMs": 6156,
+     "labelsMs": 6149,
+     "questionsMs": 2661,
+     "totalMs": 8933,
+     "uploadKB": 2572,
+     "extraAt1MbpsS": 21.1,
+     "tokensIn": 19585,
+     "usd": 0.01662375
+    }
+   ]
+  }
+ ],
+ "split": [
+  {
+   "book": "reference-reimagining-target-aware-molecular",
+   "model": "gpt-5.4-mini",
+   "labels": {
+    "inputTokens": 3008,
+    "outputTokens": 172
+   },
+   "questions": {
+    "inputTokens": 6594,
+    "outputTokens": 212
+   }
+  },
+  {
+   "book": "storybook-1930-el-viaje",
+   "model": "gpt-5.4-mini",
+   "labels": {
+    "inputTokens": 2673,
+    "outputTokens": 188
+   },
+   "questions": {
+    "inputTokens": 6593,
+    "outputTokens": 208
+   }
+  },
+  {
+   "book": "storybook-colouring-my-school",
+   "model": "gpt-5.4-mini",
+   "labels": {
+    "inputTokens": 2687,
+    "outputTokens": 198
+   },
+   "questions": {
+    "inputTokens": 5820,
+    "outputTokens": 183
+   }
+  },
+  {
+   "book": "storybook-hyena-and-raven",
+   "model": "gpt-5.4-mini",
+   "labels": {
+    "inputTokens": 3702,
+    "outputTokens": 268
+   },
+   "questions": {
+    "inputTokens": 6327,
+    "outputTokens": 195
+   }
+  },
+  {
+   "book": "textbook-egito-antigo",
+   "model": "gpt-5.4-mini",
+   "labels": {
+    "inputTokens": 3950,
+    "outputTokens": 249
+   },
+   "questions": {
+    "inputTokens": 7248,
+    "outputTokens": 196
+   }
+  },
+  {
+   "book": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+   "model": "gpt-5.4-mini",
+   "labels": {
+    "inputTokens": 3026,
+    "outputTokens": 159
+   },
+   "questions": {
+    "inputTokens": 6604,
+    "outputTokens": 194
+   }
+  },
+  {
+   "book": "reference-reimagining-target-aware-molecular",
+   "model": "gpt-5.4",
+   "labels": {
+    "inputTokens": 3007,
+    "outputTokens": 167
+   },
+   "questions": {
+    "inputTokens": 6593,
+    "outputTokens": 209
+   }
+  },
+  {
+   "book": "storybook-1930-el-viaje",
+   "model": "gpt-5.4",
+   "labels": {
+    "inputTokens": 2672,
+    "outputTokens": 188
+   },
+   "questions": {
+    "inputTokens": 6592,
+    "outputTokens": 197
+   }
+  },
+  {
+   "book": "storybook-colouring-my-school",
+   "model": "gpt-5.4",
+   "labels": {
+    "inputTokens": 2686,
+    "outputTokens": 196
+   },
+   "questions": {
+    "inputTokens": 5819,
+    "outputTokens": 213
+   }
+  },
+  {
+   "book": "storybook-hyena-and-raven",
+   "model": "gpt-5.4",
+   "labels": {
+    "inputTokens": 3701,
+    "outputTokens": 269
+   },
+   "questions": {
+    "inputTokens": 6326,
+    "outputTokens": 213
+   }
+  },
+  {
+   "book": "textbook-egito-antigo",
+   "model": "gpt-5.4",
+   "labels": {
+    "inputTokens": 3949,
+    "outputTokens": 249
+   },
+   "questions": {
+    "inputTokens": 7247,
+    "outputTokens": 195
+   }
+  },
+  {
+   "book": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+   "model": "gpt-5.4",
+   "labels": {
+    "inputTokens": 3025,
+    "outputTokens": 160
+   },
+   "questions": {
+    "inputTokens": 6603,
+    "outputTokens": 202
+   }
+  }
+ ],
+ "accuracy": [
+  {
+   "model": "gpt-5.4-mini",
+   "runs": 24,
+   "right": 92,
+   "total": 92,
+   "caught": 0,
+   "silent": 0
+  },
+  {
+   "model": "gpt-5.4",
+   "runs": 24,
+   "right": 91,
+   "total": 92,
+   "caught": 1,
+   "silent": 0
+  }
+ ]
+}

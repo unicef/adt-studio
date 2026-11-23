@@ -24,7 +24,7 @@
       "id": "genre",
       "value": "story",
       "secondOpinion": "story",
-      "reason": "The shown pages use simple narrative-style sentences describing a classroom and inviting the reader inside, rather than lessons or reference entries.",
+      "reason": "The shown pages use short rhyming narrative lines such as 'Let’s take a look' and 'What a lovely treat!' rather than lesson text or reference entries.",
       "evidencePages": [
         2,
         3,
@@ -40,7 +40,7 @@
       "id": "exercises",
       "value": "none",
       "secondOpinion": "none",
-      "reason": "The shown pages have no numbered questions, blanks, or instructions asking the reader to write answers.",
+      "reason": "The shown pages have pictures and read-aloud text, but no numbered questions, blanks, or instructions for the reader to answer.",
       "evidencePages": [
         2,
         3,
@@ -59,9 +59,9 @@
       "reason": "On the text pages, the words are printed inside white boxes laid over the full-page illustrations.",
       "evidencePages": [
         3,
+        4,
         5,
-        7,
-        8
+        7
       ],
       "matters": true,
       "affectsLocked": false,
@@ -72,7 +72,7 @@
       "id": "diagrams",
       "value": "none",
       "secondOpinion": "none",
-      "reason": "The pictures are ordinary illustrations of a classroom, bookshelves, and children, with no labels, charts, maps, or explanatory diagrams.",
+      "reason": "The pages show classroom and library illustrations, but no labelled maps, charts, or explanatory diagrams.",
       "evidencePages": [
         2,
         4,
@@ -2309,16 +2309,16 @@
   ],
   "secondOpinion": true,
   "timings": {
-    "profileMs": 98.22956000000067,
-    "factsMs": 0.42622600000049715,
-    "questionsMs": 5962.455122999999,
-    "labelsMs": 4402.12099,
-    "totalMs": 6214.400086000001,
+    "profileMs": 92.39548500000092,
+    "factsMs": 0.3972460000004503,
+    "questionsMs": 6322.120891000002,
+    "labelsMs": 5088.328366000002,
+    "totalMs": 6567.514114000001,
     "uploadBytes": 1244183
   },
   "usage": {
     "inputTokens": 8505,
-    "outputTokens": 396,
+    "outputTokens": 405,
     "calls": 2
   }
 }
