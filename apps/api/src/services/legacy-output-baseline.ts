@@ -1,9 +1,9 @@
 import { BookBusyError, withBookWriter, type Storage } from "@adt/storage"
-import { TranslatedImageAsset, type OutputStatus } from "@adt/types"
+import { LEGACY_OUTPUT_BASELINE_NODE, TranslatedImageAsset, type OutputStatus } from "@adt/types"
 import { inputSignature, buildEasyReadSourceBlocks, retainedEasyRead, retainedCoreTts } from "@adt/pipeline"
 import { outputLocation, outputReviewEntries, canReviewOutputCollection } from "./output-review.js"
 
-const migrationNode = "legacy-output-baseline"
+const migrationNode = LEGACY_OUTPUT_BASELINE_NODE
 
 export function legacyOutputBaselineRevision(storage: Storage): number {
   return storage.getLatestNodeData(migrationNode, "book")?.version ?? 0

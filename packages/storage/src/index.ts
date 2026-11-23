@@ -26,3 +26,4 @@ export { insertNodeVersion, readIdentityHistory, importHistoryReservations, hist
 export { HistoryRecoveryError, inspectHistoryRecovery, inspectHistoryRecoveryAsync, checkpointHistory, repairHistory, readHistoryRecoveryAudit } from "./history-recovery.js"
 
 export { readBookContentIdentity } from "./book-content-identity.js"
+export { inspectExtractOnly, type ExtractOnlyInspection } from "./extract-only.js"

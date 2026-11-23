@@ -67,19 +67,26 @@ function readDatabase<T>(bookDir: string, read: (db: sqlite.Database) => T): T {
 
 /** A recovered initial project may retain quarantined lock evidence. This
  * exempts only the typed audit and byte-verified locks, never ordinary content
- * or a retained extraction record. The normal file/DB emptiness checks remain. */
-function isInitialRecoveryEvidence(bookDir: string, name: string): boolean {
+ * or a retained extraction record. The normal file/DB emptiness checks remain.
+ * The Extract-only inspection alone passes `retainedRecord` to also accept the
+ * byte-verified extraction record a recovery copy keeps beside its audit. */
+export function isInitialRecoveryEvidence(bookDir: string, name: string, retainedRecord = false): boolean {
   if (!/^\.book-recovery-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(name)) return false
   try {
     const folder = path.join(bookDir, name)
     if (!fs.lstatSync(folder).isDirectory()) return false
     const entries = fs.readdirSync(folder)
-    if (!entries.includes("audit.json") || entries.some(entry => !["audit.json", "locks"].includes(entry))) return false
+    const allowed = ["audit.json", "locks", ...(retainedRecord ? [EXTRACTION_MANIFEST_FILE] : [])]
+    if (!entries.includes("audit.json") || entries.some(entry => !allowed.includes(entry))) return false
     const auditFile = path.join(folder, "audit.json"), stat = fs.lstatSync(auditFile)
     if (!stat.isFile() || stat.nlink !== 1) return false
     const audit = BookRecoveryCopyAudit.parse(JSON.parse(fs.readFileSync(auditFile, "utf8")))
     const files = new Map(audit.files.map(file => [file.path, file.sha256]))
     if (files.size !== audit.files.length) return false
+    if (entries.includes(EXTRACTION_MANIFEST_FILE)) {
+      const record = path.join(folder, EXTRACTION_MANIFEST_FILE), recordStat = fs.lstatSync(record)
+      if (!recordStat.isFile() || recordStat.nlink !== 1 || files.get(EXTRACTION_MANIFEST_FILE) !== extractionHash(fs.readFileSync(record))) return false
+    }
     const locks = path.join(folder, "locks")
     if (!entries.includes("locks")) return true
     if (!fs.lstatSync(locks).isDirectory()) return false
@@ -91,6 +98,14 @@ function isInitialRecoveryEvidence(bookDir: string, name: string): boolean {
     return fs.readdirSync(locks).every(entry =>
       (entry === ".book-writer.json" || entry.startsWith(".book-writer.json.") || entry.endsWith(".db.lock")) && verify(entry))
   } catch { return false }
+}
+
+/** Files of uploaded fonts named by any retained registry version. Throws when
+ * a version does not parse; callers treat that as unrecognized content. */
+export function registeredUploadFontFiles(db: sqlite.Database): Set<string> {
+  const rows = db.all("SELECT data FROM node_data WHERE node = ? AND item_id = ?", [FONT_REGISTRY_NODE, FONT_REGISTRY_ITEM_ID]) as Array<{ data: string }>
+  return new Set(rows.flatMap((row) => BookFontRegistry.parse(JSON.parse(row.data)).fonts
+    .filter((font) => font.source === "upload").flatMap((font) => font.faces.map((face) => face.file))))
 }
 
 function assertInitialDestination(bookDir: string, sourceHash: string): void {
@@ -143,9 +158,7 @@ function assertInitialDestination(bookDir: string, sourceHash: string): void {
   try {
     readDatabase(bookDir, (db) => {
       if (fontFiles.size) {
-        const rows = db.all("SELECT data FROM node_data WHERE node = ? AND item_id = ?", [FONT_REGISTRY_NODE, FONT_REGISTRY_ITEM_ID]) as Array<{ data: string }>
-        const registered = new Set(rows.flatMap((row) => BookFontRegistry.parse(JSON.parse(row.data)).fonts
-          .filter((font) => font.source === "upload").flatMap((font) => font.faces.map((face) => face.file))))
+        const registered = registeredUploadFontFiles(db)
         if ([...fontFiles].some((file) => !registered.has(file))) throw new ExtractionAdmissionError("EXTRACTION_LEGACY")
       }
       const tables = db.all("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'") as Array<{ name: string }>

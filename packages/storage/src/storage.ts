@@ -2,6 +2,7 @@ import type { IdentityHistoryRecord } from "@adt/types"
 import type { ExtractedPage } from "@adt/pdf"
 import type { LlmLogEntry } from "@adt/llm"
 import type { OutputInputEvidence, RenderMethodValue } from "@adt/types"
+import type { ExtractOnlyInspection } from "./extract-only.js"
 
 export interface PageData {
   pageId: string
@@ -79,6 +80,9 @@ export interface Storage {
   readonly bookDir?: string
   /** Existing durable book identity; reads never create a new identity. */
   getBookIdentity?(): string | null
+  /** SPEC-0003 RAC-20: read-only, fail-closed check that the book holds only
+   * Extract output and pre-Extract configuration. Never throws for a finding. */
+  inspectExtractOnly?(): ExtractOnlyInspection
   /** Run all storage operations in one SQLite transaction. Nested calls join
    *  the outer transaction. Any thrown error rolls the whole operation back. */
   transaction<T>(operation: () => T): T

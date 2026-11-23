@@ -14,6 +14,7 @@ import { historyBookId, insertNodeVersion, checkpointBeforeRetirement, readIdent
 import { parseHistoricalPayload } from "./history-integrity.js"
 import { assertHistoryEvidence } from "./history-schema.js"
 import { invalidateSectioningLifecycle } from "./sectioning-transition.js"
+import { inspectExtractOnly } from "./extract-only.js"
 
 const storageDirectories = new WeakMap<Storage, string>()
 
@@ -84,6 +85,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
   const storage: Storage = {
     bookDir: paths.bookDir,
     getBookIdentity: () => db.get("SELECT 1 FROM sqlite_master WHERE type='table' AND name='history_identity'") ? historyBookId(db) : null,
+    inspectExtractOnly: () => transaction(() => inspectExtractOnly(paths.bookDir, db), "DEFERRED"),
     transaction,
     readIdentityHistory: (nodes, itemId) => transaction(() => readIdentityHistory(db, nodes, itemId), "DEFERRED"),
     assertHistoryEvidence: () => transaction(() => assertHistoryEvidence(db), "DEFERRED"),

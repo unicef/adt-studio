@@ -597,6 +597,7 @@ export { assertReflowableSectioning, hasFixedLayoutSectioning } from "./render-s
 
 export { renderedTextIds, sourceTextIds, findIntroducedBlankContentId, findIntroducedDerivedIdCollision } from "./content-ids.js"
 export { effectiveSectioningMode, sectioningInvalidationSteps, assertSectioningReplacementSafe, prepareSectioningRun, completeSectioning } from "./sectioning-lifecycle.js"
+export { decideExtractRerun, readExtractRerunStatus, type ExtractRerunInput, type ExtractionRecordState } from "./extraction-rerun.js"
 export { SectioningSafetyError } from "./sectioning-errors.js"
 export { requiredPartRange, activeSectioningPages, partScopedPages } from "./sectioning-window.js"
 export { admitSectioningRun } from "./sectioning-admission.js"

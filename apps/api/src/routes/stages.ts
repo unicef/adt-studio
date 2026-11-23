@@ -8,6 +8,7 @@ import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { createBookStorage, openBookDb, withBookWriter } from "@adt/storage"
 import type { Storage } from "@adt/storage"
+import type { ExtractRerunStatus } from "@adt/types"
 import { AuthoredRunOptions, OUTPUT_KIND_TO_STAGE, SourceGeneratorStep, OutputSkipRequest, OutputRunScope, StageName, STAGE_ORDER, STEP_TO_STAGE, PIPELINE, IMPORTED_ADT_LOCKED_STAGES, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
 import { assertStageRunModelCredentials } from "@adt/llm"
 import {
@@ -18,6 +19,7 @@ import {
   activeSectioningPages, sectioningReplacementSignature, admitSectioningRun, storyboardCoverage,
   isFixedLayoutBook,
   prepareSectioningRun,
+  readExtractRerunStatus,
   collectSpentSectionIds,
   retireSectionIds,
   NOTHING_RETIRED,
@@ -518,11 +520,23 @@ export function createStageRoutes(
         protectedWork = records.filter(record => record.node !== "page-sectioning" || numbers.has(record.itemId))
           .map(record => ({ ...record, ...(record.node === "page-sectioning" ? { sectioningInputSignature: signature } : {}), pageNumber: numbers.get(record.itemId) }))
       }
+      // SPEC-0003 RAC-24: which Extract re-run actions this book allows. Read
+      // in the same admission; a failure here must not hide the rest of status.
+      let extractRerun: ExtractRerunStatus = { actions: [], attemptId: null, blockedReason: null }
+      if (storage) {
+        const runActive = active?.status === "running" || active?.status === "cancelling" || queuedStages.size > 0
+        try { extractRerun = readExtractRerunStatus(storage, runActive) }
+        catch (error) {
+          console.error(`[stages] ${safeLabel}: Extract re-run availability could not be read: ${error instanceof Error ? error.message : String(error)}`)
+          extractRerun = { actions: [], attemptId: null, blockedReason: "unrecognized-content" }
+        }
+      }
       return c.json({
         protectedWork,
         coverage,
         stages,
         steps,
+        extractRerun,
         sourceUpdateStages,
         error,
         stepErrors: hasStepErrors ? stepErrors : null,

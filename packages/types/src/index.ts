@@ -784,6 +784,8 @@ export { imageFileExtension, ImageAspectRatio, GeneratedImagePayload, ValidatedG
 export { OutputSource, OutputReference, OutputInputEvidence, OutputReview, OutputMetadata, OutputKind, OutputIdentity, OutputWarning, OutputLocation, OutputStatus, OutputSelection, OutputReviewRequest, OutputSummary, OutputScopeSummary, OutputSummaries, OutputStageSummaryResponse, BookWriterOwner, BookWriterReservation } from "./output-freshness.js"
 
 export { CATALOG_OUTPUT_NODES } from "./pipeline-effects.js"
+export { EXTRACT_OWNED_NODES, EXTRACT_RETAINED_CONFIG_NODES, LEGACY_OUTPUT_BASELINE_NODE } from "./pipeline-effects.js"
+export { ExtractRerunAction, ExtractRerunBlockedReason, ExtractRerunStatus } from "./extraction-rerun.js"
 
 export { OutputReplacement, OutputRunScope } from "./output-freshness.js"
 

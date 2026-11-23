@@ -1,5 +1,6 @@
 import { PIPELINE, STAGE_ORDER } from "./pipeline.js"
 import type { StageName, StepName } from "./pipeline.js"
+import { FONT_ASSIGNMENT_NODE, FONT_REGISTRY_NODE } from "./book-fonts.js"
 
 /** Content-addressed downstream outputs are retained until validated
  * publication. Invalidating completion never authorizes deleting their data. */
@@ -119,6 +120,23 @@ for (const stage of PIPELINE) {
     .filter((candidate) => candidate.dependsOn.includes(stage.name))
     .map((candidate) => candidate.name)
 }
+
+/** Written once per book when its retained outputs are first reviewed. */
+export const LEGACY_OUTPUT_BASELINE_NODE = "legacy-output-baseline"
+
+/** Every node_data node written by the Extract stage, by PDF extraction itself
+ * and by the Extract editing routes. With the retained configuration below it
+ * is all an Extract-only book may hold (SPEC-0003 RAC-20). `type-scale` and
+ * `typography` mirror the pipeline's node constants; a pipeline test pins them. */
+export const EXTRACT_OWNED_NODES: readonly string[] = [
+  ...STAGE_OUTPUT_NODES.extract,
+  "extraction-debug", "spread-suggestions", "font-profile", "type-scale",
+]
+
+/** Configuration and bookkeeping an Extract re-run keeps. */
+export const EXTRACT_RETAINED_CONFIG_NODES: readonly string[] = [
+  FONT_REGISTRY_NODE, FONT_ASSIGNMENT_NODE, "typography", LEGACY_OUTPUT_BASELINE_NODE,
+]
 
 /** Canonical invalidation/resource tags for each node type. */
 const NODE_CACHE_RESOURCES: Record<PipelineNodeName, readonly PipelineCacheResource[]> = {
