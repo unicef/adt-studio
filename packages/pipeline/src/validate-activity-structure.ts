@@ -581,20 +581,29 @@ function labelledByText(section: Element, el: Element): string {
     .trim()
 }
 
-/**
- * Why an element's aria-labelledby gives it no name, or null when it has none.
- * A broken reference used to read like a missing one, and in an ADT bundle the
- * identifier every element has is a data-id, so a data-id value is the usual
- * mistake: say so.
- */
+/** Why an element's aria-labelledby gives it no name, or null when it has none. */
 function labelledByProblem(section: Element, el: Element): string | null {
   const ref = attr(el, "aria-labelledby")?.trim()
   if (!ref) return null
-  const missing = ref.split(/\s+/).filter((id) => !elementById(section, id))
+  const ids = ref.split(/\s+/)
+  const missing = ids.filter((id) => !elementById(section, id))
   if (missing.length === 0) return `aria-labelledby="${ref}" points to an element with no visible text`
+  const empty = ids.filter((id) => {
+    const target = elementById(section, id)
+    return target && !DomUtils.textContent(target).replace(/\s+/g, " ").trim()
+  })
   const dataIds = missing.filter((id) => findAll(section, (n) => attr(n, "data-id") === id).length > 0)
-  return `aria-labelledby="${ref}" matches no id attribute inside the activity section` +
-    (dataIds.length > 0 ? ` (${dataIds.map((id) => `"${id}"`).join(", ")} is a data-id, not an id)` : "")
+  const quoted = (values: string[]) => values.map((id) => `"${id}"`).join(", ")
+  const missingRef = missing.join(" ")
+  const dataIdProblem = dataIds.length > 0
+    ? ` (${quoted(dataIds)} ${dataIds.length === 1 ? "is a data-id, not an id" : "are data-ids, not ids"})`
+    : ""
+  if (empty.length === 0) {
+    return `aria-labelledby="${missingRef}" matches no id attribute inside the activity section${dataIdProblem}`
+  }
+  return `aria-labelledby="${ref}" has broken references: ${quoted(missing)} ` +
+    `${missing.length === 1 ? "matches" : "match"} no id attribute inside the activity section${dataIdProblem}; ` +
+    `${quoted(empty)} ${empty.length === 1 ? "points" : "point"} to an element with no visible text`
 }
 
 /** True when the element carries an explicit, non-empty ARIA label. */
