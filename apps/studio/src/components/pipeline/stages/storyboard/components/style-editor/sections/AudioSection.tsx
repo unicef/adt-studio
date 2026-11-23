@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Loader2, Save } from "lucide-react"
 import { useLingui } from "@lingui/react/macro"
-import { api, apiErrorStatus } from "@/api/client"
+import { api, apiErrorCode } from "@/api/client"
 import { Button } from "@/components/ui/button"
 import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
 import { useElementContext } from "../element-context"
@@ -177,7 +177,10 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
       ])
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
-      setConflict(apiErrorStatus(err) === 409)
+      // A busy pipeline also answers 409, but retrying the same save is safe
+      // and keeps the draft. Only a moved or duplicated row needs a reload.
+      const code = apiErrorCode(err)
+      setConflict(code === "element-audio-conflict" || code === "element-audio-duplicate")
     } finally {
       setSaving(false)
     }

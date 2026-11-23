@@ -26,8 +26,8 @@ vi.mock("@/api/client", () => ({
     updateElementAudio: calls.updateElementAudio,
     getTextCatalog: calls.getTextCatalog,
   },
-  apiErrorStatus: (error: unknown) =>
-    (error as { status?: number } | null)?.status ?? null,
+  apiErrorCode: (error: unknown) =>
+    (error as { code?: string | null } | null)?.code ?? null,
 }))
 
 vi.mock("@/components/pipeline/components/VersionPicker", () => ({
@@ -136,6 +136,7 @@ describe("AudioSection (SPEC-0014)", () => {
     calls.updateElementAudio.mockRejectedValue(
       Object.assign(new Error("Element audio changed. Refresh before saving."), {
         status: 409,
+        code: "element-audio-conflict",
       }),
     )
 
@@ -154,6 +155,38 @@ describe("AudioSection (SPEC-0014)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Retry" }))
     await waitFor(() => expect(calls.getElementAudio).toHaveBeenCalledTimes(2))
     expect((textarea as HTMLTextAreaElement).value).toBe("Maga")
+  })
+
+  it("retries a busy-pipeline 409 without reloading or discarding the draft", async () => {
+    calls.getElementAudio.mockResolvedValue(
+      view([{ nodeId: "pg001_im001", text: "Mago", sourcePageId: "pg001" }]),
+    )
+    calls.updateElementAudio.mockRejectedValueOnce(
+      Object.assign(
+        new Error("A pipeline step is running. Keep your draft and retry after it stops."),
+        { status: 409 },
+      ),
+    )
+    calls.updateElementAudio.mockResolvedValueOnce(
+      view([{ nodeId: "pg001_im001", text: "Maga", sourcePageId: "pg001" }]),
+    )
+
+    render(<AudioSection dataId="pg001_im001" pageId="pg001" />, { wrapper: Providers })
+
+    const textarea = await screen.findByLabelText("Element audio script")
+    fireEvent.change(textarea, { target: { value: "Maga" } })
+    fireEvent.click(screen.getByRole("button", { name: /Save/ }))
+
+    await screen.findByText(
+      "A pipeline step is running. Keep your draft and retry after it stops.",
+    )
+    expect((textarea as HTMLTextAreaElement).value).toBe("Maga")
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }))
+    await waitFor(() => expect(calls.updateElementAudio).toHaveBeenCalledTimes(2))
+    expect((textarea as HTMLTextAreaElement).value).toBe("Maga")
+    // The destructive reload path is only for element-audio conflict codes.
+    expect(calls.getElementAudio).toHaveBeenCalledTimes(1)
   })
 
   it("retries a non-conflict save without discarding the draft", async () => {
