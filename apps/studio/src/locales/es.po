@@ -9186,6 +9186,9 @@ msgstr "Principal"
 msgid "Print a variable"
 msgstr "Imprimir una variable"
 
+msgid "Problems to fix"
+msgstr "Problemas por corregir"
+
 msgid "Process every page on this machine."
 msgstr "Procesar todas las páginas en esta máquina."
 
