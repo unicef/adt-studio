@@ -15,6 +15,7 @@ import { StageRunCard } from "../../components/StageRunCard"
 import { StageEmptyState } from "../../components/StageEmptyState"
 import { LandingPageWarning } from "../../components/LandingPageWarning"
 import type { PageSummaryItem } from "@/api/client"
+import { extractRerunBlockedMessage } from "@/lib/extract-rerun-messages"
 
 /** Returns true once the element has scrolled into view. */
 function useInView(): [React.RefObject<HTMLDivElement | null>, boolean] {
@@ -266,18 +267,12 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
       {showRunCard ? (
         <div className="flex flex-col gap-4">
           <MissingKeyNotice bookLabel={bookLabel} />
-          {hasPages && !extractRunning && !rerunAction && (
+          {hasPages && !extractRunning && !extractRerun?.actions.length && (
             <div className="mb-4">
               <LandingPageWarning
                 variant="prereq"
                 title={t`Re-extraction is not available in this version`}
-                description={
-                  <Trans>
-                    This book already has extracted pages, so extraction cannot run
-                    again here. Its content is preserved. To extract again, create a
-                    new book from the PDF.
-                  </Trans>
-                }
+                description={extractRerunBlockedMessage(extractRerun?.blockedReason)}
               />
             </div>
           )}

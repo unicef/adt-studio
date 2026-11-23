@@ -58,6 +58,12 @@ export interface FloatingSaveEntry {
    * dialog's re-run wording keys off `onSaveAndRerun`, not this.
    */
   onSaveStay?: () => void | Promise<void>
+  /**
+   * False when `onSaveStay` only saves although the bar offers a re-run (the
+   * run needs a confirmation the leave dialog cannot show, or is unavailable).
+   * The leave dialog then words its action as a plain save. Defaults to true.
+   */
+  rerunOnLeave?: boolean
   onReset?: () => void
   onDiscard?: () => void
   saveDisabledReason?: string
@@ -79,6 +85,7 @@ function signature(e: FloatingSaveEntry): string {
     e.onSave ? "1" : "0",
     e.onSaveAndRerun ? "1" : "0",
     e.onSaveStay ? "1" : "0",
+    e.rerunOnLeave === false ? "0" : "1",
     e.onReset ? "1" : "0",
     e.saveDisabledReason ?? "",
     e.rerunDisabledReason ?? "",
@@ -275,7 +282,7 @@ export function useFloatingSaveLeaveAction(): FloatingSaveLeaveAction {
   const canSave =
     entries.length > 0 &&
     entries.every((e) => !e.saveDisabledReason && (e.onSaveStay || e.onSave))
-  const willRerun = entries.some((e) => e.onSaveAndRerun)
+  const willRerun = entries.some((e) => e.onSaveAndRerun && e.rerunOnLeave !== false)
   const resetStageSet = new Set(entries.flatMap((e) => e.resetStages ?? []))
   const resetStages = STAGE_ORDER.filter((stage) => resetStageSet.has(stage))
   const saveAndStay = async () => {

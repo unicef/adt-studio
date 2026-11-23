@@ -6,7 +6,8 @@ import { QueryClient, QueryClientProvider, QueryObserver } from "@tanstack/react
 import { PIPELINE, type ExtractRerunStatus } from "@adt/types"
 
 vi.mock("@/api/client", () => ({ BASE_URL: "", api: { getStepStatus: vi.fn(), runStages: vi.fn(async () => ({})) } }))
-vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn() }))
+const router = vi.hoisted(() => ({ navigate: vi.fn() }))
+vi.mock("@tanstack/react-router", () => ({ useNavigate: () => router.navigate }))
 vi.mock("./use-api-key", () => ({ useApiKey: () => ({ ownCredentials: {} }) }))
 vi.mock("./use-books", () => ({ useBook: () => ({ data: undefined }) }))
 vi.mock("./use-page-mutations", () => ({ invalidateStoryboardDependents: vi.fn() }))
@@ -117,5 +118,38 @@ it("a dropped connection does not refetch the page list", async () => {
   try {
     await act(async () => { for (const listener of Events.current.listeners.get("error") ?? []) listener(new MessageEvent("error")) })
     expect(readPages).not.toHaveBeenCalled()
+  } finally { stop(); close() }
+})
+
+it.each(["retry", "replace"] as const)("RAC-24: queueRun empties the page list for a %s, which extracts every page again", async action => {
+  const { client, hook, close } = setup()
+  try {
+    client.setQueryData(pagesKey, pages)
+    const extraction = { action, attemptId: extractRerun.attemptId }
+    act(() => hook.result.current.queueRun({ fromStage: "extract", toStage: "extract", apiKey: "key", extraction, viewAfterStart: true }))
+    expect(client.getQueryData(pagesKey)).toEqual([])
+    expect(status(client).stages.extract).toBe("queued")
+    expect(status(client).steps).toMatchObject({ extract: "idle", metadata: "idle", "book-summary": "idle", "image-meaningfulness": "idle" })
+    // The view follows the run only once the server has accepted it.
+    expect(router.navigate).not.toHaveBeenCalled()
+    await waitFor(() => expect(router.navigate).toHaveBeenCalledExactlyOnceWith({ to: "/books/$label/$step", params: { label: "book", step: "extract" } }))
+    expect(vi.mocked(api.runStages).mock.calls[0].slice(0, 3)).toEqual(["book", "key", expect.objectContaining({ fromStage: "extract", toStage: "extract", extraction })])
+  } finally { close() }
+})
+
+it("RAC-24: a refused replace brings the page list back and does not leave the page", async () => {
+  const { client, hook, close } = setup()
+  vi.mocked(api.runStages).mockRejectedValueOnce(new Error("EXTRACTION_RERUN_STALE: The book changed after this Extract run was requested."))
+  const readPages = vi.fn(async () => pages)
+  const stop = new QueryObserver(client, { queryKey: pagesKey, queryFn: readPages, staleTime: Infinity }).subscribe(() => {})
+  try {
+    await waitFor(() => expect(client.getQueryData(pagesKey)).toEqual(pages))
+    readPages.mockClear()
+    const extraction = { action: "replace" as const, attemptId: extractRerun.attemptId }
+    act(() => hook.result.current.queueRun({ fromStage: "extract", toStage: "extract", apiKey: "key", extraction, viewAfterStart: true }))
+    expect(client.getQueryData(pagesKey)).toEqual([])
+    await waitFor(() => expect(readPages).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(client.getQueryData(pagesKey)).toEqual(pages))
+    expect(router.navigate).not.toHaveBeenCalled()
   } finally { stop(); close() }
 })

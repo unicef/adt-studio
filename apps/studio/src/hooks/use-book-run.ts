@@ -66,6 +66,12 @@ export interface QueueRunOptions {
    * from the settings/overview route, so the run progression stays visible.
    */
   viewAfter?: boolean
+  /**
+   * Like `viewAfter`, but only once the server has accepted the run. For a run
+   * the server may refuse (an Extract re-run bound to the book's state), so a
+   * refusal leaves the user where they are.
+   */
+  viewAfterStart?: boolean
 }
 
 /** Shape returned by the enriched GET /books/:label/step-status endpoint. */
@@ -82,6 +88,7 @@ interface StepStatusResponse {
   pendingDecisions?: PendingDecision[]
   coverage?: import("@adt/types").StoryboardCoverage
   extractRerun?: import("@adt/types").ExtractRerunStatus
+  extractRerunDiscards?: import("@adt/types").ExtractRerunDiscards | null
 }
 
 // ---------------------------------------------------------------------------
@@ -97,6 +104,8 @@ export interface BookRunContextValue {
   storyboardCoverage?: import("@adt/types").StoryboardCoverage
   /** Which Extract re-run actions the book allows (SPEC-0003 RAC-24). */
   extractRerun?: import("@adt/types").ExtractRerunStatus
+  /** What a replace would discard, while one is offered (SPEC-0003 RAC-23/24). */
+  extractRerunDiscards?: import("@adt/types").ExtractRerunDiscards | null
   /** Stage state: idle / queued / running / done / error */
   stageState(stage: string): StageState
   /** Step state: idle / running / done / error */
@@ -739,6 +748,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
 
       // A resume (SPEC-0003 RAC-21) clears nothing on the server: it runs only
       // the Extract steps that are not done or skipped, on the existing pages.
+      // A retry or replace (RAC-22/23) extracts again, like a first extraction.
       const resume = fromStage === "extract" && toStage === "extract" && options.extraction?.action === "resume"
 
       // Optimistically mark target stage(s) as queued and clear downstream
@@ -844,6 +854,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         try {
           // The Studio always opts into interactive page-error handling.
           await api.runStages(label, apiKey, { fromStage, toStage, renderOnly, pageErrorPolicy: "ask", replaceManual: options.replaceManual, protectedReplacements: options.protectedReplacements, extraction: options.extraction }, providerCredentials)
+          if (options.viewAfterStart) navigate({ to: "/books/$label/$step", params: { label, step: toStage } })
         } catch (error) {
           // The server refused to start (e.g. a model in the run's range has no
           // credential). Nothing ran, so say why instead of silently snapping
@@ -984,6 +995,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     sourceUpdateStages: data?.sourceUpdateStages ?? [],
     storyboardCoverage: data?.coverage,
     extractRerun: data?.extractRerun,
+    extractRerunDiscards: data?.extractRerunDiscards,
     bookLabel: label,
     stageState,
     stepState: stepStateAccessor,

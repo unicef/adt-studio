@@ -18,6 +18,7 @@ export function useStageSettingsBar({
   save,
   showSaveOnly = false,
   disabledReason,
+  rerun,
 }: {
   stage: StageName
   bookLabel: string
@@ -27,6 +28,14 @@ export function useStageSettingsBar({
   save: () => Promise<void>
   showSaveOnly?: boolean
   disabledReason?: string
+  /**
+   * The stage starts its own run after the settings are saved, in place of the
+   * plain stage run (Extract on a book that already has an extraction).
+   * `disabledReason` disables the re-run control only; Save keeps working.
+   * `manual` marks a run that must be asked for explicitly (it shows its own
+   * confirmation), so saving while leaving the page does not start it.
+   */
+  rerun?: { start: (options: { follow: boolean }) => void; disabledReason?: string; manual?: boolean }
 }) {
   const { t } = useLingui()
   const remount = useSettingsRemount()
@@ -50,6 +59,7 @@ export function useStageSettingsBar({
       // Settings may finish saving after navigation. Never queue the old
       // consent through a new book's run context or navigate back to it.
       if (!stillCurrent()) return false
+      if (rerun) { rerun.start({ follow: leave }); return true }
       queueRun({ fromStage: stage, toStage: stage, apiKey, ...options })
       if (leave) navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: stage }, ignoreBlocker: true })
       return true
@@ -58,6 +68,8 @@ export function useStageSettingsBar({
     if (saving) return false
     return confirmation.requestRun(apply, () => saveRef.current())
   }
+
+  const rerunOnLeave = rerun?.manual || rerun?.disabledReason ? false : undefined
 
   useRegisterDirtyTabs(`settings:${stage}`, stage, dirtyTabs)
 
@@ -70,12 +82,15 @@ export function useStageSettingsBar({
       await saveAndRun(true)
     },
     onSaveStay: async () => {
+      // A run that cannot start from here must not be queued just to be refused.
+      if (rerunOnLeave === false) return save()
       if (!await saveAndRun(false)) throw new Error("Run not confirmed")
     },
+    rerunOnLeave,
     onDiscard: remount,
     saveDisabledReason: disabledReason,
     rerunDisabledReason:
-      disabledReason ?? (hasStructuredTextProvider ? protectedStage ? confirmation.disabledReason : undefined : t`Add an API key to re-run`),
+      disabledReason ?? rerun?.disabledReason ?? (hasStructuredTextProvider ? protectedStage ? confirmation.disabledReason : undefined : t`Add an API key to re-run`),
   })
   return { content: <>{confirmation.notice}{confirmation.dialog}</>, busy: saving || confirmation.busy }
 }

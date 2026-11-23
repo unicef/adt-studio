@@ -12,6 +12,7 @@ import { useDirtyTabTracker } from "@/hooks/use-settings-dirty-tabs"
 import { useStepConfig } from "@/hooks/use-step-config"
 import { normalizeLocale } from "@/lib/languages"
 import { useLingui } from "@lingui/react/macro"
+import { useExtractRerun } from "./use-extract-rerun"
 
 const PROMPT_TABS = [
   "metadata-prompt",
@@ -166,6 +167,10 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
     ...(segmentationPromptDraft != null ? ["segmentation-prompt"] : []),
   ].filter((tabKey, i, all) => all.indexOf(tabKey) === i)
 
+  // A book that already has an extraction runs Extract again only as
+  // step-status offers (SPEC-0003 RAC-21–24). Save always works on its own, so
+  // settings can be saved on a book that cannot, or should not, re-run now.
+  const extractRerun = useExtractRerun(bookLabel)
   useStageSettingsBar({
     stage: "extract",
     bookLabel,
@@ -173,11 +178,15 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
     dirtyTabs,
     saving: updateConfig.isPending,
     save,
-    showSaveOnly: PROMPT_TABS.includes(tab),
+    showSaveOnly: tab === "general" || PROMPT_TABS.includes(tab),
+    rerun: extractRerun.action || extractRerun.blocked
+      ? { start: extractRerun.start, disabledReason: extractRerun.blockedReason, manual: extractRerun.action === "replace" }
+      : undefined,
   })
 
   return (
     <div className={tab === "metadata-prompt" || tab === "meaningfulness-prompt" || tab === "cropping-prompt" || tab === "segmentation-prompt" ? "h-full w-full" : "p-4 space-y-6"}>
+      {extractRerun.dialog}
       {tab === "general" && (
         <>
           {/* Editing Language */}

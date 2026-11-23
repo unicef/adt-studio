@@ -4194,6 +4194,9 @@ msgstr "Hidh poshtë"
 msgid "Discard & leave"
 msgstr "Hidh poshtë dhe dil"
 
+msgid "Discard and extract again"
+msgstr "Hidh poshtë dhe nxirr përsëri"
+
 msgid "Discard this draft and load the entire latest saved table of contents."
 msgstr "Hidhni poshtë këtë draft dhe ngarkoni të gjithë tabelën e fundit të ruajtur të përmbajtjes."
 
@@ -4524,6 +4527,9 @@ msgstr "Gjuha e redaktimit"
 
 msgid "Edits go to this Tailwind variant prefix"
 msgstr "Ndryshimet shkojnë tek ky prefiks i variantit Tailwind"
+
+msgid "Edits made in Extract are lost: image decisions, crops, segments, added images and book details."
+msgstr "Ndryshimet e bëra te Nxjerr humbasin: vendimet për imazhet, prerjet, segmentet, imazhet e shtuara dhe të dhënat e librit."
 
 msgid "Effort"
 msgstr "Përpjekje"
@@ -4896,6 +4902,9 @@ msgstr "Nxirr dhe filtro"
 msgid "Extract cannot run again on this book because it already has extracted pages or later work. To extract again, create a new book from the PDF."
 msgstr "Nxjerrja nuk mund të ekzekutohet përsëri në këtë libër, sepse ai ka tashmë faqe të nxjerra ose punë të mëvonshme. Për të nxjerrë përsëri, krijoni një libër të ri nga PDF-ja."
 
+msgid "Extract cannot run again on this book. To extract again, create a new book from the PDF."
+msgstr "Nxjerrja nuk mund të ekzekutohet përsëri në këtë libër. Për të nxjerrë përsëri, krijoni një libër të ri nga PDF-ja."
+
 msgid "Extract hasn't run yet"
 msgstr "Nxjerrja nuk është ekzekutuar ende"
 
@@ -4907,6 +4916,9 @@ msgstr "Nxjerrja fillon nga një PDF burimor"
 
 msgid "Extract text and images from each page of the PDF using AI-powered analysis."
 msgstr "Nxirrni tekst dhe imazhe nga çdo faqe e PDF-it duke përdorur analizë të bazuar në AI."
+
+msgid "Extract this book again?"
+msgstr "Të nxirret përsëri ky libër?"
 
 msgid "Extracted"
 msgstr "Nxjerrë"
@@ -4920,6 +4932,9 @@ msgstr "Nxjerrë nga dokumenti"
 #. placeholder {0}: String(count)
 msgid "Extracted Images ({0})"
 msgstr "Imazhe të nxjerra ({0})"
+
+msgid "Extracted pages"
+msgstr "Faqe të nxjerra"
 
 msgid "Extracted Text"
 msgstr "Tekst i nxjerrë"
@@ -5990,6 +6005,9 @@ msgstr "imazhe"
 msgid "Images"
 msgstr "Imazhe"
 
+msgid "Images added in Extract (crops, segments and uploads)"
+msgstr "Imazhe të shtuara te Nxjerr (prerje, segmente dhe ngarkime)"
+
 msgid "Images and other files"
 msgstr "Imazhe dhe skedarë të tjerë"
 
@@ -6007,6 +6025,9 @@ msgstr "Imazhet më të vogla se dimensioni juaj minimal anashkalojnë segmentim
 
 msgid "Images stay in the source language"
 msgstr "Imazhet mbeten në gjuhën burimore"
+
+msgid "Images taken from the PDF"
+msgstr "Imazhe të marra nga PDF-ja"
 
 msgid "Images with shortest side below min or longest side above max are pruned."
 msgstr "Imazhet me anën më të shkurtër nën minimum ose anën më të gjatë mbi maksimum hiqen."
@@ -12437,6 +12458,9 @@ msgstr "Eksporti u krijua, por {unreadableTotal} faqe mund të mos hapen në nj�
 msgid "The exported activity marker is missing."
 msgstr "Shënuesi i eksportuar i aktivitetit mungon."
 
+msgid "The extracted pages, their images and the edits made in Extract will be discarded. The PDF is then extracted again with the current settings."
+msgstr "Faqet e nxjerra, imazhet e tyre dhe ndryshimet e bëra te Nxjerr do të hidhen poshtë. Më pas PDF-ja nxirret përsëri me cilësimet aktuale."
+
 msgid "The file may be damaged or incomplete. Try downloading it again from the source."
 msgstr "Skedari mund të jetë i dëmtuar ose i paplotë. Provo ta shkarkosh sërish nga burimi."
 
@@ -12597,6 +12621,9 @@ msgstr "Id-të e elementeve të faqes nuk përputhen më me listat e faqeve në 
 
 msgid "The PDF or extraction settings are invalid. Check the file and settings before trying again."
 msgstr "PDF-ja ose cilësimet e nxjerrjes janë të pavlefshme. Kontrolloni skedarin dhe cilësimet përpara se të provoni përsëri."
+
+msgid "The PDF, settings, fonts and prompts are kept."
+msgstr "PDF-ja, cilësimet, fontet dhe promptet ruhen."
 
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "Procesi që bimët përdorin për të kthyer dritën e diellit, ujin dhe dioksidin e karbonit në ushqim."
@@ -12850,14 +12877,20 @@ msgstr "Ky arkiv është shumë i madh"
 msgid "This book already has a live link"
 msgstr "Ky libër tashmë ka një lidhje të drejtpërdrejtë"
 
-msgid "This book already has extracted pages, so extraction cannot run again here. Its content is preserved. To extract again, create a new book from the PDF."
-msgstr "Ky libër ka tashmë faqe të ekstraktuara, kështu që ekstraktimi nuk mund të ekzekutohet përsëri këtu. Përmbajtja e tij ruhet. Për të ekstraktuar përsëri, krijoni një libër të ri nga PDF-ja."
+#~ msgid "This book already has extracted pages, so extraction cannot run again here. Its content is preserved. To extract again, create a new book from the PDF."
+#~ msgstr "Ky libër ka tashmë faqe të ekstraktuara, kështu që ekstraktimi nuk mund të ekzekutohet përsëri këtu. Përmbajtja e tij ruhet. Për të ekstraktuar përsëri, krijoni një libër të ri nga PDF-ja."
 
-msgid "This book already has extracted pages. Re-extracting an existing book is not available in this version; to extract again, create a new book from the PDF. This book's content is preserved."
-msgstr "Ky libër ka tashmë faqe të ekstraktuara. Riekstraktimi i një libri ekzistues nuk është i disponueshëm në këtë version; për të ekstraktuar përsëri, krijoni një libër të ri nga PDF-ja. Përmbajtja e këtij libri ruhet."
+#~ msgid "This book already has extracted pages. Re-extracting an existing book is not available in this version; to extract again, create a new book from the PDF. This book's content is preserved."
+#~ msgstr "Ky libër ka tashmë faqe të ekstraktuara. Riekstraktimi i një libri ekzistues nuk është i disponueshëm në këtë version; për të ekstraktuar përsëri, krijoni një libër të ri nga PDF-ja. Përmbajtja e këtij libri ruhet."
+
+msgid "This book already has work from Sectioning or later stages, so Extract cannot run again on it. To extract again, create a new book from the PDF."
+msgstr "Ky libër ka tashmë punë nga Seksionimi ose nga fazat e mëvonshme, prandaj nxjerrja nuk mund të ekzekutohet përsëri në të. Për të nxjerrë përsëri, krijoni një libër të ri nga PDF-ja."
 
 msgid "This book has {pageCount} pages."
 msgstr "Ky libër ka {pageCount} faqe."
+
+msgid "This book has been split into parts. Its extraction stays fixed so the parts can be merged back into it."
+msgstr "Ky libër është ndarë në pjesë. Nxjerrja e tij mbetet e pandryshuar që pjesët të mund të bashkohen sërish në të."
 
 msgid "This book has changed since this screen loaded, so the run was not started. Reload the book and try again."
 msgstr "Ky libër ka ndryshuar që kur u ngarkua ky ekran, prandaj ekzekutimi nuk u nis. Ringarkoni librin dhe provoni sërish."
@@ -12873,6 +12906,9 @@ msgstr "Ky libër nuk ka një regjistër të verifikuar të nxjerrjes. Përmbajt
 
 msgid "This book is a part — its page range is fixed to the assigned subset and cannot be changed."
 msgstr "Ky libër është një pjesë: intervali i faqeve është fiks, i përket nëngrupit të caktuar dhe nuk mund të ndryshohet."
+
+msgid "This book is a part of a larger book. Its extraction is complete and stays fixed so the parts can be merged."
+msgstr "Ky libër është pjesë e një libri më të madh. Nxjerrja e tij ka përfunduar dhe mbetet e pandryshuar që pjesët të mund të bashkohen."
 
 msgid "This book is a part. Export it as a <0>Completed Part</0> and send the file back to the coordinator to merge into the source book."
 msgstr "Ky libër është një pjesë. Eksportojeni si <0>Pjesa e përfunduar</0> dhe dërgojeni skedarin te koordinatori për ta bashkuar në librin burim."
@@ -12911,6 +12947,9 @@ msgstr "Ky libër shfaqet me strukturë fikse, kështu që ruan fontet origjinal
 
 msgid "This book was already shared — another window may have done it. Use \"Update site\" to push your latest changes to the link you already have."
 msgstr "Ky libër ishte tashmë i ndarë — mund ta ketë bërë një dritare tjetër. Përdorni \"Përditëso faqen\" për të dërguar ndryshimet tuaja të fundit te lidhja që keni tashmë."
+
+msgid "This book was not created from a PDF, so there is nothing to extract again."
+msgstr "Ky libër nuk është krijuar nga një PDF, prandaj nuk ka asgjë për të nxjerrë përsëri."
 
 msgid "This book's configuration is invalid or unreadable. Check its config.yaml file, then open the book again."
 msgstr "Konfigurimi i këtij libri është i pavlefshëm ose nuk mund të lexohet. Kontrolloni skedarin config.yaml dhe hapeni librin përsëri."
@@ -14075,6 +14114,9 @@ msgstr "Prisni që operacioni aktual të përfundojë, pastaj provoni sërish im
 msgid "Wait for the current operation to finish."
 msgstr "Prisni derisa të përfundojë veprimi aktual."
 
+msgid "Wait for the current run to finish before running Extract again."
+msgstr "Prisni që ekzekutimi aktual të përfundojë përpara se ta ekzekutoni përsëri nxjerrjen."
+
 msgid "Waiting"
 msgstr "Në pritje"
 
@@ -14303,6 +14345,9 @@ msgstr "Mbulim i gjerë shumëgjuhësh me zëra neural për shumë lokale."
 
 msgid "Width"
 msgstr "Gjerësi"
+
+msgid "Will be discarded"
+msgstr "Do të hidhet poshtë"
 
 msgid "Windows"
 msgstr "Dritaret"

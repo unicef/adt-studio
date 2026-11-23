@@ -4192,6 +4192,9 @@ msgstr "Discard"
 msgid "Discard & leave"
 msgstr "Discard & leave"
 
+msgid "Discard and extract again"
+msgstr "Discard and extract again"
+
 msgid "Discard this draft and load the entire latest saved table of contents."
 msgstr "Discard this draft and load the entire latest saved table of contents."
 
@@ -4522,6 +4525,9 @@ msgstr "Editing Language"
 
 msgid "Edits go to this Tailwind variant prefix"
 msgstr "Edits go to this Tailwind variant prefix"
+
+msgid "Edits made in Extract are lost: image decisions, crops, segments, added images and book details."
+msgstr "Edits made in Extract are lost: image decisions, crops, segments, added images and book details."
 
 msgid "Effort"
 msgstr "Effort"
@@ -4894,6 +4900,9 @@ msgstr "Extract & filter"
 msgid "Extract cannot run again on this book because it already has extracted pages or later work. To extract again, create a new book from the PDF."
 msgstr "Extract cannot run again on this book because it already has extracted pages or later work. To extract again, create a new book from the PDF."
 
+msgid "Extract cannot run again on this book. To extract again, create a new book from the PDF."
+msgstr "Extract cannot run again on this book. To extract again, create a new book from the PDF."
+
 msgid "Extract hasn't run yet"
 msgstr "Extract hasn't run yet"
 
@@ -4905,6 +4914,9 @@ msgstr "Extract starts from a source PDF"
 
 msgid "Extract text and images from each page of the PDF using AI-powered analysis."
 msgstr "Extract text and images from each page of the PDF using AI-powered analysis."
+
+msgid "Extract this book again?"
+msgstr "Extract this book again?"
 
 msgid "Extracted"
 msgstr "Extracted"
@@ -4918,6 +4930,9 @@ msgstr "Extracted from the document"
 #. placeholder {0}: String(count)
 msgid "Extracted Images ({0})"
 msgstr "Extracted Images ({0})"
+
+msgid "Extracted pages"
+msgstr "Extracted pages"
 
 msgid "Extracted Text"
 msgstr "Extracted Text"
@@ -5988,6 +6003,9 @@ msgstr "images"
 msgid "Images"
 msgstr "Images"
 
+msgid "Images added in Extract (crops, segments and uploads)"
+msgstr "Images added in Extract (crops, segments and uploads)"
+
 msgid "Images and other files"
 msgstr "Images and other files"
 
@@ -6005,6 +6023,9 @@ msgstr "Images smaller than your minimum dimension skip segmentation - saving co
 
 msgid "Images stay in the source language"
 msgstr "Images stay in the source language"
+
+msgid "Images taken from the PDF"
+msgstr "Images taken from the PDF"
 
 msgid "Images with shortest side below min or longest side above max are pruned."
 msgstr "Images with shortest side below min or longest side above max are pruned."
@@ -12435,6 +12456,9 @@ msgstr "The export was built, but {unreadableTotal} page(s) may not open in an E
 msgid "The exported activity marker is missing."
 msgstr "The exported activity marker is missing."
 
+msgid "The extracted pages, their images and the edits made in Extract will be discarded. The PDF is then extracted again with the current settings."
+msgstr "The extracted pages, their images and the edits made in Extract will be discarded. The PDF is then extracted again with the current settings."
+
 msgid "The file may be damaged or incomplete. Try downloading it again from the source."
 msgstr "The file may be damaged or incomplete. Try downloading it again from the source."
 
@@ -12595,6 +12619,9 @@ msgstr "The page’s element ids no longer match the page lists in manifest.json
 
 msgid "The PDF or extraction settings are invalid. Check the file and settings before trying again."
 msgstr "The PDF or extraction settings are invalid. Check the file and settings before trying again."
+
+msgid "The PDF, settings, fonts and prompts are kept."
+msgstr "The PDF, settings, fonts and prompts are kept."
 
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "The process plants use to turn sunlight, water, and carbon dioxide into food."
@@ -12848,14 +12875,20 @@ msgstr "This archive is too large"
 msgid "This book already has a live link"
 msgstr "This book already has a live link"
 
-msgid "This book already has extracted pages, so extraction cannot run again here. Its content is preserved. To extract again, create a new book from the PDF."
-msgstr "This book already has extracted pages, so extraction cannot run again here. Its content is preserved. To extract again, create a new book from the PDF."
+#~ msgid "This book already has extracted pages, so extraction cannot run again here. Its content is preserved. To extract again, create a new book from the PDF."
+#~ msgstr "This book already has extracted pages, so extraction cannot run again here. Its content is preserved. To extract again, create a new book from the PDF."
 
-msgid "This book already has extracted pages. Re-extracting an existing book is not available in this version; to extract again, create a new book from the PDF. This book's content is preserved."
-msgstr "This book already has extracted pages. Re-extracting an existing book is not available in this version; to extract again, create a new book from the PDF. This book's content is preserved."
+#~ msgid "This book already has extracted pages. Re-extracting an existing book is not available in this version; to extract again, create a new book from the PDF. This book's content is preserved."
+#~ msgstr "This book already has extracted pages. Re-extracting an existing book is not available in this version; to extract again, create a new book from the PDF. This book's content is preserved."
+
+msgid "This book already has work from Sectioning or later stages, so Extract cannot run again on it. To extract again, create a new book from the PDF."
+msgstr "This book already has work from Sectioning or later stages, so Extract cannot run again on it. To extract again, create a new book from the PDF."
 
 msgid "This book has {pageCount} pages."
 msgstr "This book has {pageCount} pages."
+
+msgid "This book has been split into parts. Its extraction stays fixed so the parts can be merged back into it."
+msgstr "This book has been split into parts. Its extraction stays fixed so the parts can be merged back into it."
 
 msgid "This book has changed since this screen loaded, so the run was not started. Reload the book and try again."
 msgstr "This book has changed since this screen loaded, so the run was not started. Reload the book and try again."
@@ -12871,6 +12904,9 @@ msgstr "This book has no verified extraction record. Saved content is retained. 
 
 msgid "This book is a part — its page range is fixed to the assigned subset and cannot be changed."
 msgstr "This book is a part — its page range is fixed to the assigned subset and cannot be changed."
+
+msgid "This book is a part of a larger book. Its extraction is complete and stays fixed so the parts can be merged."
+msgstr "This book is a part of a larger book. Its extraction is complete and stays fixed so the parts can be merged."
 
 msgid "This book is a part. Export it as a <0>Completed Part</0> and send the file back to the coordinator to merge into the source book."
 msgstr "This book is a part. Export it as a <0>Completed Part</0> and send the file back to the coordinator to merge into the source book."
@@ -12909,6 +12945,9 @@ msgstr "This book renders fixed-layout, so it keeps the original PDF fonts. Atta
 
 msgid "This book was already shared — another window may have done it. Use \"Update site\" to push your latest changes to the link you already have."
 msgstr "This book was already shared — another window may have done it. Use \"Update site\" to push your latest changes to the link you already have."
+
+msgid "This book was not created from a PDF, so there is nothing to extract again."
+msgstr "This book was not created from a PDF, so there is nothing to extract again."
 
 msgid "This book's configuration is invalid or unreadable. Check its config.yaml file, then open the book again."
 msgstr "This book's configuration is invalid or unreadable. Check its config.yaml file, then open the book again."
@@ -14073,6 +14112,9 @@ msgstr "Wait for the current operation to finish, then try the import again."
 msgid "Wait for the current operation to finish."
 msgstr "Wait for the current operation to finish."
 
+msgid "Wait for the current run to finish before running Extract again."
+msgstr "Wait for the current run to finish before running Extract again."
+
 msgid "Waiting"
 msgstr "Waiting"
 
@@ -14301,6 +14343,9 @@ msgstr "Wide multilingual coverage with neural voices for many locales."
 
 msgid "Width"
 msgstr "Width"
+
+msgid "Will be discarded"
+msgstr "Will be discarded"
 
 msgid "Windows"
 msgstr "Windows"
