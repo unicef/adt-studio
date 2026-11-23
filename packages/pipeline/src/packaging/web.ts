@@ -2717,6 +2717,7 @@ export function generateOfflinePreloader(
       "speech_texts.json",
       "audios.json",
       "audio_voices.json",
+      "element_audio.json",
       "videos.json",
       "images.json",
       "glossary.json",

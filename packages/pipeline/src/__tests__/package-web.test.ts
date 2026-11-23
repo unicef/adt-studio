@@ -1973,6 +1973,15 @@ describe("packageAdtWeb", () => {
       fs.readFileSync(path.join(localeDir, "timecode", "timecode_output.json"), "utf-8"),
     ) as Record<string, unknown>
     expect(Object.keys(timecodes)).toEqual([])
+
+    // The offline preloader must inline the manifest too, or a file:// export
+    // silently loses the authored audio.
+    const preloader = fs.readFileSync(
+      path.join(bookDir, "adt", "assets", "offline-preloader.js"),
+      "utf-8",
+    )
+    expect(preloader).toContain("element_audio.json")
+    expect(preloader).toContain("pg001_im001")
   })
 
   it("AC-14/AC-24: a legacy image id ending _audio is not remapped", async () => {
@@ -2091,8 +2100,13 @@ describe("packageAdtWeb", () => {
       pg003_im007_audio: "pg003_im007_audio--secondary.mp3",
     })
 
-    // No authored artifact -> no manifest.
+    // No authored artifact -> no manifest, and nothing for the preloader.
     expect(fs.existsSync(path.join(localeDir, "element_audio.json"))).toBe(false)
+    const preloader = fs.readFileSync(
+      path.join(bookDir, "adt", "assets", "offline-preloader.js"),
+      "utf-8",
+    )
+    expect(preloader).not.toContain("element_audio.json")
 
     // The caption keeps its word timings.
     const timecodes = JSON.parse(
