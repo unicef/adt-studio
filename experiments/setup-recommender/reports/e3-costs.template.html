@@ -51,6 +51,18 @@ td.r,th.r{text-align:right}
 .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:12px}
 .note{font-size:13px;color:var(--ink-3)}
 ul.plain{margin:0;padding-left:18px;color:var(--ink-2);display:flex;flex-direction:column;gap:6px;max-width:72ch}
+.books{display:flex;flex-direction:column;gap:14px}
+.book{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;grid-template-columns:150px minmax(0,1fr);gap:16px}
+.book .cover img{width:150px;border-radius:6px;border:1px solid var(--line);display:block}
+.bookbody{display:flex;flex-direction:column;gap:8px;min-width:0}
+.bookbody .meta{font-size:13px;color:var(--ink-3)}
+table.runs{min-width:720px;font-size:13px}
+table.runs th{font-weight:500;color:var(--ink-2);white-space:nowrap}
+table.runs td.c,table.runs th.c{text-align:center}
+table.runs td.odd{background:var(--warn-soft);color:var(--warn);font-weight:600}
+table.runs td.ask,table.runs td.meta{color:var(--ink-3);font-size:12px}
+details summary{cursor:pointer;font-size:13px;color:var(--accent)}
+@media (max-width:640px){.book{grid-template-columns:1fr}.book .cover img{width:120px}}
 #tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);font:12px/1.4 var(--body);padding:6px 8px;border-radius:6px;max-width:260px;z-index:20}
 </style>
 
@@ -59,7 +71,7 @@ ul.plain{margin:0;padding-left:18px;color:var(--ink-2);display:flex;flex-directi
   <header style="display:flex;flex-direction:column;gap:12px">
     <span class="eyebrow">Issue #333 · auto mode · engine E3 · measured 2026-11-23</span>
     <h1>Auto mode: how it works and what it costs</h1>
-    <p class="lede">Engine E3 measures the PDF, reads it twice with AI at the same time, and picks settings with a fixed rulebook. Every number here comes from real runs inside ADT Studio on the 6 PoC books (7 to 12 pages, 4 runs per model) and on test books of 12 to 400 pages.</p>
+    <p class="lede">Engine E3 measures the PDF, reads it twice with AI at the same time, and picks settings with a fixed rulebook. Every number here comes from real runs inside ADT Studio on the 6 PoC books (7 to 12 pages, 4 runs per model), on test books of 12 to 400 pages, and on your 14 books (3 runs per model).</p>
   </header>
 
   <section>
@@ -174,6 +186,7 @@ ul.plain{margin:0;padding-left:18px;color:var(--ink-2);display:flex;flex-directi
   </section>
 
 
+<!--BOOKS-->
   <section>
     <span class="eyebrow">Time</span>
     <h2>The user waits 3 seconds with mini, 6.5 with gpt-5.4</h2>
