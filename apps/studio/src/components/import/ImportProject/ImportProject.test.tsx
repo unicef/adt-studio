@@ -163,6 +163,10 @@ describe("ImportProject", () => {
     expect(screen.getByText("Partly included")).toBeTruthy()
     expect(screen.getByText("Kept where nothing changed since export. The rest is generated again.")).toBeTruthy()
     expect(screen.getByText(/can’t tell whether its pages changed/)).toBeTruthy()
+    const steps = [...screen.getByText("Listed under Features").closest("ol")!.querySelectorAll("li")]
+    expect(steps.length).toBeGreaterThan(2)
+    expect(steps.slice(0, -1).every((step) => step.classList.contains("border-b"))).toBe(true)
+    expect(steps.at(-1)!.classList.contains("border-b")).toBe(false)
     fireEvent.click(screen.getByRole("button", { name: "Import as new project" }))
 
     expect(importProject).not.toHaveBeenCalled()
