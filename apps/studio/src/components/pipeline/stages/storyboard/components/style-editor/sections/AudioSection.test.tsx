@@ -129,7 +129,7 @@ describe("AudioSection (SPEC-0014)", () => {
     })
   })
 
-  it("surfaces a save conflict instead of silently losing the draft", async () => {
+  it("surfaces a save conflict and reloads the stored row on Retry", async () => {
     calls.getElementAudio.mockResolvedValue(
       view([{ nodeId: "pg001_im001", text: "Mago", sourcePageId: "pg001" }]),
     )
@@ -150,11 +150,43 @@ describe("AudioSection (SPEC-0014)", () => {
     expect((textarea as HTMLTextAreaElement).value).toBe("Maga")
 
     calls.getElementAudio.mockResolvedValueOnce(
-      view([{ nodeId: "pg001_im001", text: "Maga", sourcePageId: "pg001" }]),
+      view([{ nodeId: "pg001_im001", text: "Maga (other session)", sourcePageId: "pg001" }]),
     )
     fireEvent.click(screen.getByRole("button", { name: "Retry" }))
     await waitFor(() => expect(calls.getElementAudio).toHaveBeenCalledTimes(2))
-    expect((textarea as HTMLTextAreaElement).value).toBe("Maga")
+    // The conflict path is destructive by design: Retry reloads the stored row.
+    expect((textarea as HTMLTextAreaElement).value).toBe("Maga (other session)")
+  })
+
+  it("reloads the stored row on a duplicate-nodeId conflict", async () => {
+    calls.getElementAudio.mockResolvedValue(
+      view([{ nodeId: "pg001_im001", text: "Mago", sourcePageId: "pg001" }]),
+    )
+    calls.updateElementAudio.mockRejectedValue(
+      Object.assign(
+        new Error(
+          "Element pg001_im001 is authored under multiple pages (pg001, pg002). Resolve the duplicate before saving.",
+        ),
+        { status: 409, code: "element-audio-duplicate" },
+      ),
+    )
+
+    render(<AudioSection dataId="pg001_im001" pageId="pg001" />, { wrapper: Providers })
+
+    const textarea = await screen.findByLabelText("Element audio script")
+    fireEvent.change(textarea, { target: { value: "Maga" } })
+    fireEvent.click(screen.getByRole("button", { name: /Save/ }))
+
+    await screen.findByText(
+      "Element pg001_im001 is authored under multiple pages (pg001, pg002). Resolve the duplicate before saving.",
+    )
+    calls.getElementAudio.mockResolvedValueOnce(
+      view([{ nodeId: "pg001_im001", text: "Mago", sourcePageId: "pg001" }]),
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }))
+    await waitFor(() => expect(calls.getElementAudio).toHaveBeenCalledTimes(2))
+    expect(calls.updateElementAudio).toHaveBeenCalledTimes(1)
+    expect((textarea as HTMLTextAreaElement).value).toBe("Mago")
   })
 
   it("retries a busy-pipeline 409 without reloading or discarding the draft", async () => {

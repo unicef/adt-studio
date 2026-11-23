@@ -62,8 +62,9 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
   const [saving, setSaving] = useState(false)
   const [restoring, setRestoring] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // A 409 means the stored row moved: only then does Retry reload (discarding
-  // the draft). Any other failure retries the save with the draft intact.
+  // Only an element-audio conflict (moved or duplicated row) makes Retry
+  // reload and discard the draft. A busy pipeline also answers 409, but it
+  // retries the save instead; see routes/element-audio.ts for the two codes.
   const [conflict, setConflict] = useState(false)
   const [saved, setSaved] = useState(false)
   const draftRef = useRef({ dataId, dirty: false, versions: query.data?.versions ?? {} })
