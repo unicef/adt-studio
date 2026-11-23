@@ -8,7 +8,7 @@ import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { createBookStorage, openBookDb, withBookWriter, ExtractionAdmissionError } from "@adt/storage"
 import type { Storage } from "@adt/storage"
-import type { ExtractRerunStatus } from "@adt/types"
+import type { ExtractRerunDiscards, ExtractRerunStatus } from "@adt/types"
 import { ExtractRerunRequest, AuthoredRunOptions, OUTPUT_KIND_TO_STAGE, SourceGeneratorStep, OutputSkipRequest, OutputRunScope, StageName, STAGE_ORDER, STEP_TO_STAGE, PIPELINE, IMPORTED_ADT_LOCKED_STAGES, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
 import { assertStageRunModelCredentials } from "@adt/llm"
 import {
@@ -148,9 +148,9 @@ export function makeBeforeRun(label: string, fromStage: StageName, toStage: Stag
     requireExistingBook(label, booksDir)
     prepareSectioningRun(label, booksDir, fromStage, toStage, configPath, extraction)
     // A resume that passed admission (RAC-21) runs on the book as it is: no
-    // data, section id or step record is cleared. An admitted retry (RAC-22)
-    // is validated only: the reset in the runner owns every change it makes.
-    if (fromStage === "extract" && (extraction?.action === "resume" || extraction?.action === "retry")) {
+    // data, section id or step record is cleared. An admitted retry or replace
+    // (RAC-22/23) is validated only: the reset in the runner owns every change.
+    if (fromStage === "extract" && extraction) {
       ran = true
       return
     }
@@ -550,12 +550,16 @@ export function createStageRoutes(
           extractRerun = { actions: [], attemptId: null, contentToken: null, blockedReason: "unrecognized-content" }
         }
       }
+      // What the confirmation of a replace must state (RAC-23/24).
+      const extractRerunDiscards: ExtractRerunDiscards | null = extractRerun.actions.includes("replace")
+        ? storage?.countExtractDiscards?.() ?? null : null
       return c.json({
         protectedWork,
         coverage,
         stages,
         steps,
         extractRerun,
+        extractRerunDiscards,
         sourceUpdateStages,
         error,
         stepErrors: hasStepErrors ? stepErrors : null,

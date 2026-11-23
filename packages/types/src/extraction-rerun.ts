@@ -57,3 +57,14 @@ export const ExtractRerunStatus = z.object({
   blockedReason: ExtractRerunBlockedReason.nullable(),
 }).strict()
 export type ExtractRerunStatus = z.infer<typeof ExtractRerunStatus>
+
+/** What a replace would discard, reported beside `extractRerun` by step-status
+ * while `replace` is offered (RAC-23/24) so the confirmation can state it.
+ * `extractedImages` came from the PDF, page renders included; `addedImages`
+ * are the crops, segments and uploads made in Extract. */
+export const ExtractRerunDiscards = z.object({
+  pages: z.number().int().nonnegative(),
+  extractedImages: z.number().int().nonnegative(),
+  addedImages: z.number().int().nonnegative(),
+}).strict()
+export type ExtractRerunDiscards = z.infer<typeof ExtractRerunDiscards>

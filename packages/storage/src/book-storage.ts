@@ -129,6 +129,15 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       return null
     }, "DEFERRED"),
 
+    countExtractDiscards: () => transaction(() => {
+      const count = (sql: string) => (db.get(`SELECT COUNT(*) AS n FROM ${sql}`) as { n: number }).n
+      return {
+        pages: count("pages"),
+        extractedImages: count("images WHERE source IN ('page', 'extract')"),
+        addedImages: count("images WHERE source IN ('crop', 'segment', 'upload')"),
+      }
+    }, "DEFERRED"),
+
     clearNodesByType(nodes: string[], itemId?: string): void {
       if (nodes.length === 0) return
       if (STAGE_OUTPUT_NODES.sectioning.some((node) => nodes.includes(node))) {

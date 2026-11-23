@@ -1,7 +1,7 @@
 import type { IdentityHistoryRecord } from "@adt/types"
 import type { ExtractedPage } from "@adt/pdf"
 import type { LlmLogEntry } from "@adt/llm"
-import type { OutputInputEvidence, RenderMethodValue } from "@adt/types"
+import type { ExtractRerunDiscards, OutputInputEvidence, RenderMethodValue } from "@adt/types"
 import type { ExtractOnlyInspection } from "./extract-only.js"
 
 export interface PageData {
@@ -97,6 +97,8 @@ export interface Storage {
   /** Reset step 5: the first thing a completed reset should not have left
    * behind (a table, node or file name, never book content), or null. */
   findExtractResetLeftover?(): string | null
+  /** RAC-24: how much a replace would discard, by cheap counts. */
+  countExtractDiscards?(): ExtractRerunDiscards
   /** Run all storage operations in one SQLite transaction. Nested calls join
    *  the outer transaction. Any thrown error rolls the whole operation back. */
   transaction<T>(operation: () => T): T

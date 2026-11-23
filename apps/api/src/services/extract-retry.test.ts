@@ -315,7 +315,7 @@ describe("SPEC-0003 Extract retry", { timeout: 60_000 }, () => {
     // An action the book does not offer is stale too: nothing can resume or replace a failed extraction.
     for (const action of ["resume", "replace"]) {
       const before = snapshot(b)
-      expect(await refusal(await server(b.root).post(extractRun({ ...b.retry(), action })))).toMatchObject({ status: 409, code: action === "resume" ? "EXTRACTION_RERUN_STALE" : "EXTRACTION_INCOMPLETE" })
+      expect(await refusal(await server(b.root).post(extractRun({ ...b.retry(), action })))).toMatchObject({ status: 409, code: "EXTRACTION_RERUN_STALE" })
       expect(snapshot(b)).toEqual(before)
     }
     // Once the extraction is complete a retry no longer applies, whatever it is bound to.
