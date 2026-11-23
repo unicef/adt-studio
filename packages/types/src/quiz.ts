@@ -118,7 +118,7 @@ export function assertQuizIdCapacity(allocated: number, requested: number): void
  * a partially stamped array can otherwise give a legacy positional fallback
  * the same ID as an explicit entry.
  */
-export function resolveQuizId(quiz: Quiz, index: number): string {
+export function resolveQuizId(quiz: Pick<Quiz, "quizId">, index: number): string {
   const id = quiz.quizId ?? formatQuizId(index + 1)
   if (!QuizId.safeParse(id).success) throw new QuizIdentityError(`Invalid quiz id: ${id}`)
   return id

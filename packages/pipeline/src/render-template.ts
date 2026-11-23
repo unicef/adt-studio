@@ -1,5 +1,5 @@
 import { Liquid } from "liquidjs"
-import type { SectionRendering } from "@adt/types"
+import { isHeadingRole, type SectionRendering } from "@adt/types"
 import { validateSectionHtml } from "./validate-html.js"
 import { validateTypographyHierarchy } from "./validate-typography-hierarchy.js"
 import type {
@@ -15,6 +15,156 @@ function subtreeHasImage(node: RenderNode): boolean {
     if (subtreeHasImage(child)) return true
   }
   return false
+}
+
+/** Heading level of the tag `_render_node.liquid` emits for a `heading` container led by this child. */
+const TEMPLATE_ROLE_LEVELS: Record<string, number> = {
+  chapter_title: 1,
+  section_heading: 2,
+  subheading: 3,
+}
+/** The template's tag when the leading child has no level of its own. */
+const FALLBACK_HEADING_LEVEL = 2
+
+/**
+ * Level a child would need in a heading container, mirroring the template's
+ * own role → tag rule; `null` for a child that fits any tag: a plain child, or
+ * a `heading` leaf without `heading_level` (the validator accepts any level).
+ */
+function headingChildLevel(node: RenderNode): number | null {
+  if (node.role && Object.hasOwn(TEMPLATE_ROLE_LEVELS, node.role)) {
+    return TEMPLATE_ROLE_LEVELS[node.role]
+  }
+  if (node.heading_level !== undefined) return node.heading_level
+  return null
+}
+
+/**
+ * Split each `heading` container whose single tag cannot fit all of its
+ * heading children (#812).
+ *
+ * The template renders a heading container as one `<hN>`, with N taken from
+ * its first child, and every child inline in it. A title plus a subtitle
+ * (or a unit title plus a lesson title) then puts the second heading inside
+ * the wrong level, and the typography validator fails the page.
+ *
+ * Only such containers are split: consecutive children of the same level stay
+ * together in one container (one tag), and a child that is not a heading is
+ * lifted out to render as its own block. Containers that render correctly
+ * today are returned unchanged. Leaf ids, text and order are preserved.
+ */
+export function splitMixedHeadingContainers(nodes: RenderNode[]): RenderNode[] {
+  return nodes.flatMap(splitNode)
+}
+
+function splitNode(node: RenderNode): RenderNode[] {
+  if (!node.children) return [node]
+  const children = splitMixedHeadingContainers(node.children)
+  if (node.structure !== "heading" || children.length === 0) {
+    return [{ ...node, children }]
+  }
+
+  const tagLevel = headingChildLevel(children[0]) ?? FALLBACK_HEADING_LEVEL
+  const fits = children.every((child) => {
+    const level = headingChildLevel(child)
+    return level === null || level === tagLevel
+  })
+  if (fits) return [{ ...node, children }]
+
+  const out: RenderNode[] = []
+  let part = 0
+  let run: RenderNode[] = []
+  let runLevel: number | null = null
+  const flush = () => {
+    if (run.length === 0) return
+    part += 1
+    out.push({ ...node, node_id: `${node.node_id}_part${part}`, children: run })
+    run = []
+    runLevel = null
+  }
+  for (const child of children) {
+    const level = headingChildLevel(child)
+    // A `heading` leaf without a level fits any tag, so it stays in the current
+    // run. Lifted out of a container nested in a list item or table cell, it
+    // would render as a <span>, outside any heading, and fail validation.
+    if (level === null && child.role !== "heading") {
+      flush()
+      out.push(child)
+      continue
+    }
+    if (level !== null && level !== runLevel) flush()
+    run.push(child)
+    if (level !== null) runLevel = level
+  }
+  flush()
+  return out
+}
+
+/** A leaf the templates render as `<h1>`–`<h6>`: they decide by role alone. */
+function isHeadingLeaf(node: RenderNode): boolean {
+  return isHeadingRole(node.role)
+}
+
+/** Containers whose leaves the templates render inline inside `<p>`/`<pre>`, which cannot hold a heading. */
+const PHRASING_CONTAINERS = new Set(["paragraph", "preformatted"])
+/** Containers whose leaves render inline but whose element (`<li>`, `<td>`) may hold a heading. */
+const FLOW_INLINE_CONTAINERS = new Set(["list_item", "table_cell", "activity_option"])
+
+/**
+ * Make heading leaves renderable as semantic `<h1>`–`<h6>` wherever sectioning
+ * placed them. The templates render the leaves of paragraph-like containers
+ * inline as `<span>`s, so a heading leaf nested there would fail the
+ * typography-hierarchy validator:
+ *
+ * - `paragraph` / `preformatted` are split around their heading leaves, which
+ *   are hoisted to siblings (a heading cannot live inside `<p>` or `<pre>`).
+ * - `list_item` / `table_cell` / `activity_option` keep the heading in place,
+ *   wrapped in an anonymous node so `_render_inline` hands it to the block
+ *   partial (`<li>` and `<td>` accept headings).
+ *
+ * Only the template input changes; leaf ids, text and order are preserved.
+ */
+export function normalizeHeadingPlacement(nodes: RenderNode[]): RenderNode[] {
+  return nodes.flatMap(normalizeNode)
+}
+
+function normalizeNode(node: RenderNode): RenderNode[] {
+  if (!node.children) return [node]
+  const children = normalizeHeadingPlacement(node.children)
+  const structure = node.structure ?? ""
+
+  if (PHRASING_CONTAINERS.has(structure) && children.some(isHeadingLeaf)) {
+    const out: RenderNode[] = []
+    let run: RenderNode[] = []
+    const flush = () => {
+      if (run.length === 0) return
+      out.push({ ...node, node_id: `${node.node_id}_part${out.length + 1}`, children: run })
+      run = []
+    }
+    for (const child of children) {
+      if (isHeadingLeaf(child)) {
+        flush()
+        out.push(child)
+      } else {
+        run.push(child)
+      }
+    }
+    flush()
+    return out
+  }
+
+  if (FLOW_INLINE_CONTAINERS.has(structure)) {
+    return [
+      {
+        ...node,
+        children: children.map((child) =>
+          isHeadingLeaf(child) ? { node_id: `${child.node_id}_block`, children: [child] } : child,
+        ),
+      },
+    ]
+  }
+
+  return [{ ...node, children }]
 }
 
 /**
@@ -87,7 +237,10 @@ export async function renderSectionTemplate(
   const imageUrlPrefix = `/api/books/${input.label}/images`
   const { section, context: renderContext } = input
 
-  const { image_nodes, text_nodes } = partitionNodes(renderContext.nodes)
+  // Order matters: hoist nested heading leaves first, so a heading lifted into
+  // a `heading` container is seen when that container is split by level.
+  const nodes = splitMixedHeadingContainers(normalizeHeadingPlacement(renderContext.nodes))
+  const { image_nodes, text_nodes } = partitionNodes(nodes)
 
   const templateContext: Record<string, unknown> = {
     section_id: section.sectionId,
@@ -96,7 +249,7 @@ export async function renderSectionTemplate(
     text_color: section.textColor,
     label: input.label,
     image_url_prefix: imageUrlPrefix,
-    nodes: renderContext.nodes,
+    nodes,
     image_nodes,
     text_nodes,
     leaf_texts: renderContext.leaf_texts,

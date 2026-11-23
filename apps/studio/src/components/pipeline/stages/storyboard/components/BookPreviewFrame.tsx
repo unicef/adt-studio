@@ -2,6 +2,7 @@ import { useRef, useMemo, useEffect, useState, useCallback, forwardRef, useImper
 import DOMPurify from "dompurify"
 import { BASE_URL, getBookFontFileUrl } from "@/api/client"
 import { useBookFonts } from "@/hooks/use-book-fonts"
+import { useBookTextDirection } from "@/hooks/use-book-text-direction"
 import type { DeviceView } from "./style-editor/device-breakpoint"
 import {
   getDeviceFrame,
@@ -26,6 +27,7 @@ import {
   weightToToken,
 } from "./iframe-computed-styles"
 import { INTERACTIVE_SCRIPT, INTERACTIVE_STYLES } from "./iframe-interactive"
+import { applyStoryboardImageCachePolicy, toStoredImageSources } from "./storyboard-image-cache"
 import {
   anchorKey,
   anchorSelector,
@@ -34,7 +36,7 @@ import {
   resolveVisibleTarget,
   type ActivityAnchor,
 } from "./activity-link"
-import { primaryFontFamily, googleFontsCss2Url, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
+import { primaryFontFamily, googleFontsCss2Url, FIXED_LAYOUT_MAX_SCALE, type TextDirection } from "@adt/types"
 
 export type { ComputedTypographyStyles }
 
@@ -111,6 +113,14 @@ export interface BookPreviewFrameHandle {
   getDocument: () => Document | null
 }
 
+/** Set, or clear, the writing direction on a preview document's root element. */
+function applyTextDirection(doc: Document | null | undefined, direction: TextDirection): void {
+  const root = doc?.documentElement
+  if (!root) return
+  if (direction === "rtl") root.dir = "rtl"
+  else root.removeAttribute("dir")
+}
+
 export interface BookPreviewFrameProps {
   html: string
   /** Book label — used to load the correct Tailwind CSS and font assets from the API */
@@ -167,6 +177,8 @@ export interface BookPreviewFrameProps {
   /** Fires once the iframe has loaded, fonts are ready, and content injected —
    *  useful for revealing the frame after a loading skeleton. */
   onReady?: () => void
+  /** Reports each displayed selection after layout, without remounting the editor. */
+  onContentReady?: () => void
   /** Lightweight read-only mode for tiny previews: don't block first paint on
    *  web-font loading and skip LaTeX→MathML conversion. Approximate but fast. */
   thumbnail?: boolean
@@ -211,6 +223,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   onLinkHover,
   bodyFontFamily,
   onReady,
+  onContentReady,
   thumbnail = false,
   autoRefreshCss = false,
 }, ref) {
@@ -278,7 +291,8 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       // edits in a session. They're stripped only at API persist time.
       stripTransientAttributes(doc)
       const wrapper = doc.getElementById("content")
-      const html = wrapper ? serializeContentWrapper(wrapper) : doc.body.innerHTML
+      // The preview shows images through display-only links; save the stored form.
+      const html = toStoredImageSources(wrapper ? serializeContentWrapper(wrapper) : doc.body.innerHTML)
       el.setAttribute("data-adt-selected", "true")
       return demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current)
     },
@@ -291,7 +305,8 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       else el.style.removeProperty(property)
       stripTransientAttributes(doc)
       const wrapper = doc.getElementById("content")
-      const html = wrapper ? serializeContentWrapper(wrapper) : doc.body.innerHTML
+      // The preview shows images through display-only links; save the stored form.
+      const html = toStoredImageSources(wrapper ? serializeContentWrapper(wrapper) : doc.body.innerHTML)
       el.setAttribute("data-adt-selected", "true")
       return demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current)
     },
@@ -363,6 +378,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
     },
   }))
   const [iframeReady, setIframeReady] = useState(false)
+  const [loadedPreview, setLoadedPreview] = useState<{ doc: Document; shell: string } | null>(null)
   const [scale, setScale] = useState(1)
   const [contentHeight, setContentHeight] = useState(800)
   /**
@@ -397,6 +413,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   // Convert LaTeX to MathML for display via the API — the underlying data stays as LaTeX.
   // Start with sanitized HTML immediately, then update when the API responds.
   const [displayHtml, setDisplayHtml] = useState(sanitizedHtml)
+  const [importedContentClasses, setImportedContentClasses] = useState<string[]>([])
   useEffect(() => {
     setDisplayHtml(sanitizedHtml)
     if (thumbnail) return // skip math conversion round-trip for tiny previews
@@ -415,6 +432,35 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       .catch(() => {}) // fallback: display without math conversion
     return () => { cancelled = true }
   }, [sanitizedHtml, assetsPrefix, thumbnail])
+
+  // Imported ADTs may carry a book-specific stylesheet. Load it into the
+  // editable iframe, but intentionally leave imported scripts for the final
+  // packaged Preview where they cannot interfere with editor interactions.
+  useEffect(() => {
+    const controller = new AbortController()
+    fetch(`${assetsPrefix}/assets/imported-presentation.json`, { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data: { stylesheets?: unknown; contentClasses?: unknown } | null) => {
+        const doc = iframeRef.current?.contentDocument
+        if (!doc?.head || !Array.isArray(data?.stylesheets)) return
+        doc.querySelectorAll("link[data-adt-imported-presentation]").forEach((node) => node.remove())
+        for (const asset of data.stylesheets) {
+          if (typeof asset !== "string") continue
+          const link = doc.createElement("link")
+          link.rel = "stylesheet"
+          link.href = `${BASE_URL}/books/${encodeURIComponent(bookLabel)}/adt/${asset}`
+          link.dataset.adtImportedPresentation = "true"
+          doc.head.appendChild(link)
+        }
+        setImportedContentClasses(
+          Array.isArray(data.contentClasses)
+            ? data.contentClasses.filter((value): value is string => typeof value === "string")
+            : [],
+        )
+      })
+      .catch(() => {})
+    return () => controller.abort()
+  }, [assetsPrefix, bookLabel, iframeReady])
   latestHtmlRef.current = displayHtml
   sourceHtmlRef.current = html
   sanitizedHtmlRef.current = sanitizedHtml
@@ -438,9 +484,12 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   // anyway because DOMPurify strips the <script> tags before innerHTML
   // injection.) The shared script exposes window.__adtRunAutoFit so
   // injectContent can trigger another pass after content swaps.
-  // eslint-disable-next-line lingui/no-unlocalized-strings
   const autoFitScript = `<script src="${assetsPrefix}/assets/auto-fit.js"></script>`
   const { data: bookFontsData } = useBookFonts(bookLabel)
+  const textDirection = useBookTextDirection(bookLabel)
+  // Read by the iframe's load handler, which is attached once and outlives renders.
+  const textDirectionRef = useRef(textDirection)
+  textDirectionRef.current = textDirection
   // Attached book fonts are injected into the live iframe head by an effect
   // below — NOT baked into `srcdoc` — so attaching a font (which refetches this
   // data) doesn't change `srcdoc` and reload the iframe. A reload would discard
@@ -481,7 +530,6 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
     if (!bodyFontFamily) return ""
     const url = googleFontsCss2Url([primaryFontFamily(bodyFontFamily)])
     const link = url ? `\n  <link href="${url}" rel="stylesheet">` : ""
-    // eslint-disable-next-line lingui/no-unlocalized-strings
     return `${link}\n  <style>\n    body, p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, select { font-family: ${bodyFontFamily}; }\n  </style>`
   }, [bodyFontFamily])
   // Stable shell — loaded once, never changes.
@@ -546,7 +594,9 @@ ${autoFitScript}
         )
         return
       }
-      callbacksRef.current.onTextChanged?.(dataId, newText, reconstructed)
+      // The edited element's innerHTML comes from the live preview, so any image
+      // inside it carries the display-only link; save the stored form.
+      callbacksRef.current.onTextChanged?.(dataId, newText, toStoredImageSources(reconstructed))
     } else if (type === "deselect") {
       callbacksRef.current.onSelectElement?.("", {} as DOMRect)
     }
@@ -595,13 +645,22 @@ ${autoFitScript}
     // (script re-insertion doesn't run them) but they keep the DOM
     // structure consistent with what the shell expects.
     const scriptEls = Array.from(doc.body.querySelectorAll("script"))
-    const normalizedHtml = promoteFirstHeadingToH1(newHtml)
+    const currentBookImagePrefix = `${BASE_URL}/books/${encodeURIComponent(bookLabel)}/images/`
+    // Normalize first so sections saved with an old session's port still load.
+    const normalizedHtml = promoteFirstHeadingToH1(toStoredImageSources(newHtml)).replace(
+      /src=(["'])\/api\/books\/[^/"']+\/images\//g,
+      `src=$1${currentBookImagePrefix}`,
+    )
+    const cacheSafeHtml = applyStoryboardImageCachePolicy(normalizedHtml)
     // Mirror the packaged page shell closely: a page-level <main> containing
     // either the existing #content wrapper or a generated one.
-    const hasOwnMain = /^\s*<main\b/.test(normalizedHtml)
-    const hasOwnWrapper = /^\s*<div\b[^>]*\bid="content"/.test(normalizedHtml)
-    const contentHtml = hasOwnWrapper ? normalizedHtml : `<div id="content">${normalizedHtml}</div>`
-    doc.body.innerHTML = hasOwnMain ? normalizedHtml : `<main class="w-full">${contentHtml}</main>`
+    const hasOwnMain = /^\s*<main\b/.test(cacheSafeHtml)
+    const hasOwnWrapper = /^\s*<div\b[^>]*\bid="content"/.test(cacheSafeHtml)
+    const importedClassName = importedContentClasses.join(" ")
+    const contentHtml = hasOwnWrapper
+      ? cacheSafeHtml
+      : `<div id="content"${importedClassName ? ` class="${importedClassName}"` : ""}>${cacheSafeHtml}</div>`
+    doc.body.innerHTML = hasOwnMain ? cacheSafeHtml : `<main class="w-full">${contentHtml}</main>`
     for (const s of scriptEls) {
       doc.body.appendChild(s)
     }
@@ -609,6 +668,7 @@ ${autoFitScript}
     // Inject original LaTeX texts so startEditing can swap MathML → LaTeX
     const textsEl = doc.createElement("script")
     textsEl.id = "adt-original-texts"
+    // eslint-disable-next-line lingui/no-unlocalized-strings -- Executable iframe state, not user-visible copy.
     textsEl.textContent = `window.__origTexts=${JSON.stringify(originalTextsRef.current)};`
     doc.body.appendChild(textsEl)
 
@@ -641,7 +701,6 @@ ${autoFitScript}
     const runFit = () => {
       const w = iframe?.contentWindow as (Window & { __adtRunAutoFit?: () => void }) | null
       if (typeof w?.__adtRunAutoFit !== "function") {
-        // eslint-disable-next-line no-console, lingui/no-unlocalized-strings
         console.warn("[BookPreviewFrame] __adtRunAutoFit is not defined on iframe contentWindow — auto-fit script did not load/execute. assetsPrefix:", assetsPrefix)
         return
       }
@@ -675,7 +734,7 @@ ${autoFitScript}
   // here — collapsing to 800 first causes a layout jump on every commit.
   useEffect(() => {
     if (readyRef.current) injectContent(displayHtml)
-  }, [displayHtml, applyBodyBackground])
+  }, [displayHtml, applyBodyBackground, importedContentClasses])
 
   // Re-stamp the selection attribute after every body rebuild. Must run
   // after the inject effect above (declaration order matters).
@@ -730,6 +789,37 @@ ${autoFitScript}
     if (doc.documentElement) doc.documentElement.style.overflow = value
     if (doc.body) doc.body.style.overflow = value
   }, [deviceView, iframeReady, viewportSizedContent])
+
+  // Fixed-layout pages overlay positioned text on top of full-page images
+  // via DOM order. The editable-mode `img[data-id] { z-index: 1 }` rule (used
+  // for image-selection outlines in reflowable books) would lift those images
+  // above the text and bury it — neutralise the z-index for fixed-layout pages.
+  useEffect(() => {
+    const doc = iframeRef.current?.contentDocument
+    if (!doc?.head) return
+    const styleId = "adt-fixed-layout-styles"
+    let styleEl = doc.getElementById(styleId) as HTMLStyleElement | null
+    if (!fixedLayoutSize) {
+      styleEl?.remove()
+      return
+    }
+    if (!styleEl) {
+      styleEl = doc.createElement("style")
+      styleEl.id = styleId
+      doc.head.appendChild(styleEl)
+    }
+    styleEl.textContent = `body[data-editable="true"] img[data-id] { z-index: auto; }`
+  }, [fixedLayoutSize, iframeReady])
+
+  // Lay the page out in the book's writing direction, as the packaged reader
+  // does (`<html dir="rtl">` for Urdu, Arabic, …), so alignment, lists, tables
+  // and side-by-side blocks preview the way they will be read. Set on the live
+  // document rather than in `srcdoc` so it never reloads the iframe. This
+  // effect covers a direction that resolves or changes after the document
+  // loaded; the load handler in `initIframe` covers every (re)load.
+  useEffect(() => {
+    applyTextDirection(iframeRef.current?.contentDocument, textDirection)
+  }, [textDirection, iframeReady])
 
   // Inject/update the attached book fonts (Google <link> + uploaded @font-face)
   // into the live iframe head. Done here rather than in `srcdoc` so attaching a
@@ -918,11 +1008,18 @@ ${selectors}:hover {
 
     const onLoad = () => {
       const doc = iframe.contentDocument
+      const shell = iframe.srcdoc
       if (!doc) return
+      // Every load starts from a bare `<html>`. The shell is re-read whenever
+      // `srcdoc` changes (a book font change, say) while `iframeReady` stays
+      // true, so no effect re-runs to restore the direction.
+      applyTextDirection(doc, textDirectionRef.current)
       const start = () => {
+        if (iframeRef.current !== iframe || iframe.contentDocument !== doc) return
         readyRef.current = true
         setIframeReady(true)
         injectContent(latestHtmlRef.current)
+        setLoadedPreview({ doc, shell })
       }
       // Thumbnails render read-only at tiny scale — don't block first paint on
       // web-font loading (fonts swap in a beat later, invisible at that size).
@@ -950,6 +1047,30 @@ ${selectors}:hover {
   useEffect(() => {
     onScaleChange?.(scale)
   }, [scale, onScaleChange])
+
+  // A reused editor iframe does not load again on section navigation. Wait for
+  // the current injected content's fonts/layout, and cancel an obsolete callback.
+  useEffect(() => {
+    if (!iframeReady || !onContentReady || loadedPreview?.shell !== srcdoc) return
+    const doc = loadedPreview.doc
+    if (iframeRef.current?.contentDocument !== doc) return
+    let cancelled = false
+    let firstFrame = 0
+    let secondFrame = 0
+    void Promise.resolve(doc?.fonts?.ready).then(() => {
+      if (cancelled) return
+      firstFrame = requestAnimationFrame(() => {
+        secondFrame = requestAnimationFrame(() => {
+          if (!cancelled && iframeRef.current?.contentDocument === doc) onContentReady()
+        })
+      })
+    })
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(firstFrame)
+      cancelAnimationFrame(secondFrame)
+    }
+  }, [iframeReady, displayHtml, onContentReady, loadedPreview, srcdoc])
 
   // Keep onReady in a ref so the reveal effect can fire it without re-running
   // (and re-POSTing the CSS recompile) on every render.

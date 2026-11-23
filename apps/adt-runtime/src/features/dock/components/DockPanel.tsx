@@ -4,6 +4,7 @@ import { Sheet, SheetContent } from "@/shared/ui/sheet"
 import { useIsMobile } from "@/shared/hooks/use-is-mobile"
 import { useDockContext } from "@/features/dock/context/dock-context"
 import { getChromePortalContainer } from "@/shared/lib/chrome-portal"
+import { useRemountOnPageSwap } from "@/features/dock/hooks/useRemountOnPageSwap"
 
 interface DockPanelProps {
   open: boolean
@@ -40,6 +41,9 @@ function DockPanel({
   persistent = false,
 }: DockPanelProps) {
   const isMobile = useIsMobile()
+  // Persistent panels ignore outside presses anyway, and the mobile sheet is
+  // a modal with its own backdrop, so only the desktop popover needs it.
+  const swap = useRemountOnPageSwap(open && !isMobile && !persistent)
 
   if (isMobile && mobileVariant === "inline") {
     if (!open) return null
@@ -106,6 +110,10 @@ function DockPanel({
       }}
     >
       <PopoverContent
+        key={swap.key}
+        ref={swap.ref}
+        initialFocus={swap.remounted ? false : undefined}
+        style={swap.remounted ? { animation: "none" } : undefined}
         data-dock-panel=""
         side={side}
         align="center"

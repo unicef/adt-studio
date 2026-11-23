@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { openBookDb, createBookStorage } from "@adt/storage"
-import { zipSync } from "fflate"
+import { openBookDb, createBookStorage, writeSectioningLifecycle } from "@adt/storage"
+import { unzipSync, zipSync } from "fflate"
 import { SCHEMA_VERSION } from "@adt/types"
 import { getSourceGenerationUpdates, keepSourceGeneration } from "@adt/pipeline"
 import type { StageName } from "@adt/types"
@@ -15,7 +15,10 @@ import type {
 import { createBookEventBus } from "../services/book-event-bus.js"
 import { createPageErrorDecisions } from "../services/page-error-decisions.js"
 import { createBookRoutes } from "./books.js"
+import { createDebugRoutes } from "./debug.js"
 import { createStageRoutes } from "./stages.js"
+import { ADT_IMPORT_IN_PROGRESS_MARKER } from "../services/adt-import/marker.js"
+import { getBook } from "../services/book-service.js"
 import { errorHandler } from "../middleware/error-handler.js"
 import { bookWriterMiddleware } from "../middleware/book-writer.js"
 import { Hono } from "hono"
@@ -36,7 +39,8 @@ beforeEach(() => {
 
 afterEach(() => {
   fs.rmSync(tmpDir, { recursive: true, force: true })
-})
+  fs.rmSync(`${tmpDir}-web-assets`, { recursive: true, force: true })
+}, 60_000)
 
 function createTestBook(label: string): void {
   const bookDir = path.join(tmpDir, label)
@@ -291,7 +295,7 @@ describe("PUT /books/:label/config", () => {
   it("acknowledges effective settings before the next save, including inherited clears and map deletions", async () => {
     createTestBook("receipt")
     fs.writeFileSync(globalConfigPath, "toc_generation:\n  model: openai:gpt-4o-mini\n  max_retries: 3\nsection_types:\n  keep: Keep\n  remove: Remove\nstructure_types: {}\nrole_types: {}\n")
-    const app = createBookRoutes(tmpDir, undefined, globalConfigPath)
+    const app = createBookRoutes(tmpDir, undefined, globalConfigPath).route("/", createDebugRoutes(tmpDir, tmpDir, globalConfigPath))
     const save = (config: Record<string, unknown>) => app.request("/books/receipt/config", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ config, includeEffectiveConfig: true }) })
     const first = await save({ toc_generation: { max_retries: 4 }, section_types: { remove: null, added: "New" } })
     expect(first.status).toBe(200)
@@ -310,6 +314,8 @@ describe("PUT /books/:label/config", () => {
     const cleared = await save({})
     expect(cleared.status).toBe(200)
     expect((await cleared.json()).activeConfig).toMatchObject({ hasBookOverride: false, merged: { toc_generation: { max_retries: 3 } } })
+    expect((await (await app.request("/books/receipt/debug/config")).json()).hasBookOverride).toBe(false)
+    expect((await (await app.request("/books/receipt/config")).json()).config).toEqual({})
   })
 
   it("writes config overrides and returns them", async () => {
@@ -764,8 +770,12 @@ function addPagesAndRenderings(label: string, count: number): void {
         },
         images: [],
       })
+      storage.putNodeData("page-sectioning", pageId, { reasoning: "fixture", sections: [{
+        sectionId: `${pageId}_sec001`, sectionType: "text", pageNumber: i,
+        backgroundColor: "white", textColor: "black", isPruned: false, nodes: [],
+      }] })
       storage.putNodeData("web-rendering", pageId, {
-        sections: [{ html: `<p>Rendered page ${i}</p>` }],
+        sections: [{ sectionId: `${pageId}_sec001`, sectionIndex: 0, sectionType: "text", reasoning: "fixture", html: `<section data-section-id="${pageId}_sec001"><p>Rendered page ${i}</p></section>` }],
       })
     }
   } finally {
@@ -848,6 +858,7 @@ describe("POST /books/:label/stages/run", () => {
       },
     }
 
+    writeSectioningLifecycle(path.join(tmpDir, label), "dynamic", true)
     const app = createStageRoutes(stageService, mockEventBus, mockDecisions, tmpDir, "", "", globalConfigPath)
     const res = await app.request(`/books/${label}/stages/run`, {
       method: "POST",
@@ -871,7 +882,7 @@ describe("POST /books/:label/stages/run", () => {
       expect(verifyStorage.getLatestNodeData("web-rendering", "pg001")).not.toBeNull()
       const runs = new Map(verifyStorage.getStepRuns().map((r) => [r.step, r.status]))
       expect(runs.get("page-sectioning")).toBe("done")
-      expect(runs.has("web-rendering")).toBe(false)
+      expect(runs.get("web-rendering")).toBe("done")
     } finally {
       verifyStorage.close()
     }
@@ -1064,6 +1075,60 @@ describe("POST /books/:label/stages/run", () => {
       gemini: { apiKey: "gm-test" },
       ollama: { baseUrl: "http://localhost:11434/v1" },
     })
+  })
+
+  it("blocks imported source regeneration but allows downstream feature runs", async () => {
+    const label = "imported-html-stage-run"
+    createTestBook(label)
+    fs.writeFileSync(
+      path.join(tmpDir, label, ".adt-import-current.json"),
+      JSON.stringify({ version: 1, revisionId: "test", importedAt: new Date().toISOString() }),
+    )
+    let started = false
+    const stageService: StageService = {
+      getStatus: () => ({ active: null, queue: [] }),
+      getQueuedStages: () => [],
+      startStageRun: () => {
+        started = true
+        return { status: "started" as const, id: "unexpected" }
+      },
+    }
+    const app = createStageRoutes(stageService, mockEventBus, mockDecisions, tmpDir, "", "")
+
+    const res = await app.request(`/books/${label}/stages/run`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-OpenAI-Key": "sk-test",
+      },
+      body: JSON.stringify({ fromStage: "sectioning", toStage: "storyboard" }),
+    })
+
+    expect(res.status).toBe(409)
+    expect(await res.text()).toContain("imported HTML")
+    expect(started).toBe(false)
+
+    const storyboardRes = await app.request(`/books/${label}/stages/run`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-OpenAI-Key": "sk-test",
+      },
+      body: JSON.stringify({ fromStage: "storyboard", toStage: "storyboard" }),
+    })
+    expect(storyboardRes.status).toBe(409)
+    expect(started).toBe(false)
+
+    const packageRes = await app.request(`/books/${label}/stages/run`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-OpenAI-Key": "sk-test",
+      },
+      body: JSON.stringify({ fromStage: "speech", toStage: "package" }),
+    })
+    expect(packageRes.status).toBe(200)
+    expect(started).toBe(true)
   })
 })
 
@@ -1417,7 +1482,7 @@ describe("GET /books/:label/step-status", () => {
     expect(body.stages.extract).toBe("done")
   })
 
-  it("marks preview done when adt directory exists", async () => {
+  it("does not claim preview completion from an empty adt directory", async () => {
     createTestBook("preview-done")
     fs.mkdirSync(path.join(tmpDir, "preview-done", "adt"), { recursive: true })
 
@@ -1425,7 +1490,7 @@ describe("GET /books/:label/step-status", () => {
     const res = await app.request("/books/preview-done/step-status")
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.stages.preview).toBe("done")
+    expect(body.stages.preview).toBeUndefined()
   })
 
   it("returns 400 for invalid book labels", async () => {
@@ -1464,11 +1529,11 @@ describe("GET /books/:label/export-project", () => {
     expect(res.status).toBe(404)
   })
 
-  it("returns 500 when web assets directory is missing (prepare-export)", async () => {
+  it("returns 500 when a generated ADT export is missing web assets", async () => {
     createTestBook("missing-assets-export")
     addPagesAndRenderings("missing-assets-export", 1)
     const app = createBookRoutes(tmpDir, path.join(tmpDir, "no-web-assets"))
-    const res = await app.request("/books/missing-assets-export/prepare-export", { method: "POST" })
+    const res = await app.request("/books/missing-assets-export/prepare-export?format=adt", { method: "POST" })
     expect(res.status).toBe(500)
   })
 })
@@ -1546,7 +1611,7 @@ describe("GET /books/:label/export-webpub", () => {
   })
 })
 
-function createProjectZip(label: string, options?: { omitPdf?: boolean; omitDb?: boolean; corruptDb?: boolean }): Buffer {
+function createProjectZip(label: string, options?: { omitPdf?: boolean; omitDb?: boolean; corruptDb?: boolean; extraFiles?: Record<string, Uint8Array> }): Buffer {
   const files: Record<string, Uint8Array> = {}
 
   if (!options?.omitDb) {
@@ -1582,11 +1647,140 @@ function createProjectZip(label: string, options?: { omitPdf?: boolean; omitDb?:
   }
 
   files["images/img1.png"] = new Uint8Array([0x89, 0x50, 0x4e, 0x47])
+  Object.assign(files, options?.extraFiles)
 
   return Buffer.from(zipSync(files))
 }
 
+function createExportedAdtZip(options: {
+  lineage?: {
+    originProjectId: string
+    sourceFingerprint: string | null
+  }
+  sectionId?: string
+  unsupportedStructure?: boolean
+  editingContractVersion?: number
+  runtimeFeatures?: Record<string, boolean>
+  omitToc?: boolean
+  omitTranslation?: boolean
+  omitEditingContract?: boolean
+  omitManifest?: boolean
+  sectionType?: string
+  activityInventory?: Array<{ sectionId: string; href: string; type: string }>
+  extraSectionHtml?: string
+  agentGuideVersion?: number
+  omitClaudeGuide?: boolean
+} = {}): Buffer {
+  const encode = (value: unknown) => new TextEncoder().encode(JSON.stringify(value))
+  const fingerprint = "0".repeat(64)
+  const sectionId = options.sectionId ?? "pg001_sec001"
+  return Buffer.from(zipSync({
+    ...(!options.omitManifest ? { "manifest.json": encode({
+      formatVersion: 1,
+      ...(!options.omitEditingContract ? { editingContract: {
+        version: options.editingContractVersion ?? 1,
+        pageOrder: [{ sectionId, href: "index.html" }],
+        pageDataIds: {
+          "index.html": ["pg001_im001", "pg001_n001"],
+        },
+        ...(options.activityInventory !== undefined
+          ? { activities: options.activityInventory }
+          : {}),
+      } } : {}),
+      book: { label: "exported-book", title: "Exported Book" },
+      ...(options.lineage ? {
+        lineage: {
+          originProjectId: options.lineage.originProjectId,
+          sourceKind: "pdf",
+          sourceFingerprint: options.lineage.sourceFingerprint,
+          publicationId: "acbba0ff-799d-4208-97a6-b107fc1c7991",
+          exportedAt: "2026-08-06T12:00:00.000Z",
+        },
+      } : {}),
+      languages: { source: "en", output: options.omitTranslation ? ["en"] : ["en", "es"] },
+      baselines: {
+        glossary: 1,
+        tocGeneration: options.omitToc ? null : 1,
+        textCatalogTranslations: options.omitTranslation ? {} : { es: 1 },
+      },
+      textCatalog: { version: 1, idFingerprint: fingerprint },
+      translatableText: { idFingerprint: fingerprint },
+    }) } : {}),
+    "assets/config.json": encode({
+      title: "Exported Book",
+      bundleVersion: "1",
+      languages: {
+        available: options.omitTranslation ? ["en"] : ["en", "es"],
+        default: "en",
+      },
+      features: { readAloud: true, ...options.runtimeFeatures },
+    }),
+    "assets/scorm.js": new TextEncoder().encode("void window.parent.API"),
+    ...(options.agentGuideVersion !== undefined ? {
+      "AGENTS.md": new TextEncoder().encode(
+        `<!-- adt-studio-agent-guide: ${options.agentGuideVersion} -->\n# Existing guide`,
+      ),
+      ...(!options.omitClaudeGuide ? {
+        "CLAUDE.md": new TextEncoder().encode(
+          `<!-- adt-studio-agent-guide: ${options.agentGuideVersion} -->\n# Existing guide`,
+        ),
+      } : {}),
+    } : {}),
+    "content/pages.json": encode([
+      { section_id: sectionId, href: "index.html", page_number: 1 },
+    ]),
+    "content/toc.json": encode(options.omitToc ? [] : [
+      { section_id: sectionId, href: "index.html", title: "Start", chapter_id: "c1" },
+    ]),
+    "content/i18n/en/texts.json": encode({ pg001_n001: "Hello" }),
+    "content/i18n/en/audios.json": encode({ pg001_n001: "hello.mp3" }),
+    "content/i18n/en/audio/hello.mp3": new TextEncoder().encode("audio"),
+    ...(!options.omitTranslation ? {
+      "content/i18n/es/texts.json": encode({ pg001_n001: "Hola" }),
+    } : {}),
+    "images/pg001_im001.png": new Uint8Array([0x89, 0x50, 0x4e, 0x47]),
+    "index.html": new TextEncoder().encode(
+      options.unsupportedStructure
+        ? `<!doctype html><article><p>Hello</p></article>`
+        : `<!doctype html><main><div id="content"><section data-section-id="${sectionId}" data-section-type="${options.sectionType ?? "content"}"><img data-id="pg001_im001" src="images/pg001_im001.png" alt=""><p data-id="pg001_n001">Hello</p>${options.extraSectionHtml ?? ""}</section></div></main>`,
+    ),
+  }))
+}
+
 describe("POST /books/preview-import", () => {
+  // F2: ADT bundle limits must never apply to a project backup.
+  it("previews a project backup with an image over the ADT preview-image limit", async () => {
+    const bigImage = new Uint8Array(11 * 1024 * 1024)
+    const zip = createProjectZip("big-image", { extraFiles: { "images/big_scan.png": bigImage } })
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append("zip", new Blob([zip], { type: "application/zip" }), "big-image.zip")
+    const res = await app.request("/books/preview-import", { method: "POST", body: formData })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({ label: "big-image", imageCount: 2, validationError: null })
+  })
+
+  it("reads an ADT bundle with a stray Thumbs.db as an ADT bundle, not a backup", async () => {
+    const files = unzipSync(new Uint8Array(createExportedAdtZip()))
+    files["Thumbs.db"] = new Uint8Array([1, 2, 3])
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append("zip", new Blob([Buffer.from(zipSync(files))], { type: "application/zip" }), "thumbs.zip")
+    const res = await app.request("/books/preview-import", { method: "POST", body: formData })
+    expect(await res.json()).toMatchObject({ isAdtBundle: true })
+  })
+
+  it("previews an ADT bundle with an oversized image by leaving that image out", async () => {
+    const files = unzipSync(new Uint8Array(createExportedAdtZip()))
+    files["images/huge_photo.png"] = new Uint8Array(11 * 1024 * 1024)
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append("zip", new Blob([Buffer.from(zipSync(files))], { type: "application/zip" }), "huge.zip")
+    const res = await app.request("/books/preview-import", { method: "POST", body: formData })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({ isAdtBundle: true })
+  })
+
   it("returns preview for a valid project ZIP", async () => {
     const zip = createProjectZip("preview-test")
     const app = createBookRoutes(tmpDir)
@@ -1602,6 +1796,316 @@ describe("POST /books/preview-import", () => {
     expect(body.hasSourcePdf).toBe(true)
     expect(body.imageCount).toBe(1)
     expect(body.validationError).toBeNull()
+  })
+
+  it("returns an exported ADT preview through the shared import endpoint", async () => {
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append(
+      "zip",
+      new Blob([createExportedAdtZip()], { type: "application/zip" }),
+      "exported-book.zip",
+    )
+
+    const res = await app.request("/books/preview-import", {
+      method: "POST",
+      body: formData,
+    })
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({
+      isAdtBundle: true,
+      label: "exported-book",
+      title: "Exported Book",
+      sourceLanguage: "en",
+      outputLanguages: ["es"],
+      pageCount: 1,
+      tocEntryCount: 1,
+      translationLanguageCount: 1,
+      runtimeFeatures: { readAloud: true },
+    })
+  })
+
+  it("asks for review when an external activity is not in the export inventory", async () => {
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append(
+      "zip",
+      new Blob([createExportedAdtZip({
+        editingContractVersion: 2,
+        activityInventory: [],
+        sectionType: "activity_custom_crossword",
+        extraSectionHtml: '<button aria-label="Check crossword">Check</button>',
+      })], { type: "application/zip" }),
+      "external-activity.zip",
+    )
+
+    const res = await app.request("/books/preview-import", { method: "POST", body: formData })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body).toMatchObject({
+      activityReview: {
+        needsReviewCount: 1,
+        activityCount: 1,
+        quizCount: 0,
+        items: [expect.objectContaining({
+          sectionId: "pg001_sec001",
+          detectedType: "activity_custom_crossword",
+          kind: "custom",
+          status: "needs-review",
+          reasons: expect.arrayContaining(["missing-declaration"]),
+        })],
+      },
+    })
+    expect(body.activityReview.items[0].previewHtml).toContain(
+      "data:image/png;base64,iVBORw==",
+    )
+    expect(body.agentGuide.activityPrompt).toContain("<activity_review_candidates_json>")
+    expect(body.agentGuide.activityPrompt).toContain("pg001_sec001")
+    expect(body.agentGuide.activityPrompt).toContain("data-adt-non-activity")
+    // Classifying is a move between the two lists. Saying only "update" let an
+    // agent add a section to nonActivities while leaving it in activities,
+    // which the bundle reader then rejects as a conflicting classification.
+    expect(body.agentGuide.activityPrompt).toContain("remove its entry from editingContract.activities")
+    expect(body.agentGuide.activityPrompt).toContain("remove its entry from editingContract.nonActivities")
+    expect(body.agentGuide.activityPrompt).toContain("no section id is listed in both")
+  })
+
+  it("reports unsupported exported HTML before import", async () => {
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append(
+      "zip",
+      new Blob([createExportedAdtZip({ unsupportedStructure: true })], { type: "application/zip" }),
+      "unsupported-export.zip",
+    )
+
+    const res = await app.request("/books/preview-import", { method: "POST", body: formData })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body).toMatchObject({
+      isAdtBundle: true,
+      compatibility: {
+        supported: false,
+        issues: expect.arrayContaining([
+          expect.objectContaining({ code: "missing-content-root", pageHref: "index.html" }),
+          expect.objectContaining({ code: "missing-section", pageHref: "index.html" }),
+        ]),
+      },
+      agentGuide: {
+        status: "missing",
+        currentVersion: 3,
+        files: {
+          agentsMd: { present: false, current: false },
+          claudeMd: { present: false, current: false },
+        },
+      },
+    })
+    expect(body.agentGuide.currentGuide).toContain("<!-- adt-studio-agent-guide: 3 -->")
+    // A readable numbered list, not raw validator JSON: people read this
+    // request in the review before handing it to an assistant.
+    expect(body.agentGuide.repairPrompt).toContain("<problems>")
+    expect(body.agentGuide.repairPrompt).toMatch(/^ {3}problem: .*\(missing-content-root\)$/m)
+    expect(body.agentGuide.repairPrompt).not.toContain('"code":')
+    // Addressed to the AI assistant: it reports back, the person's steps stay in the UI.
+    expect(body.agentGuide.repairPrompt).toContain("Reply with what you changed")
+    expect(body.agentGuide.repairPrompt).not.toMatch(/choose (that|the) ZIP/i)
+    // A new ZIP named after the upload, beside the bundle: never the input itself
+    // or an archive left inside the bundle folder.
+    expect(body.agentGuide.repairPrompt).toMatch(/Save the result as [^ ]+-fixed\.zip next to the unzipped bundle folder/)
+    expect(body.agentGuide.repairPrompt).toContain("Do not overwrite the input ZIP")
+    // Guards against a repair that creates new problems, like an added image without a data-id.
+    expect(body.agentGuide.repairPrompt).toContain("Do not introduce new problems.")
+    expect(body.agentGuide.repairPrompt).toContain("<img> without a new book-wide unique data-id")
+    expect(body.agentGuide.repairPrompt).toContain("<current_adt_agent_guide>")
+  })
+
+  it("recognizes current and partially installed assistant guides", async () => {
+    const preview = async (agentGuideVersion: number, omitClaudeGuide: boolean) => {
+      const app = createBookRoutes(tmpDir)
+      const formData = new FormData()
+      formData.append(
+        "zip",
+        new Blob([createExportedAdtZip({
+          unsupportedStructure: true,
+          agentGuideVersion,
+          omitClaudeGuide,
+        })], { type: "application/zip" }),
+        "guided-export.zip",
+      )
+      const response = await app.request("/books/preview-import", { method: "POST", body: formData })
+      expect(response.status).toBe(200)
+      return response.json()
+    }
+
+    const current = await preview(3, false)
+    expect(current.agentGuide).toMatchObject({
+      status: "current",
+      files: {
+        agentsMd: { version: 3, current: true },
+        claudeMd: { version: 3, current: true },
+      },
+    })
+    expect(current.agentGuide.repairPrompt).not.toContain(
+      "<current_adt_agent_guide>",
+    )
+
+    const partial = await preview(3, true)
+    expect(partial.agentGuide).toMatchObject({
+      status: "partial",
+      files: {
+        agentsMd: { version: 3, current: true },
+        claudeMd: { present: false, current: false },
+      },
+    })
+
+    // Exports made before the repair rules (version 2) get the current guide
+    // in their repair request.
+    const outdated = await preview(2, false)
+    expect(outdated.agentGuide).toMatchObject({
+      status: "outdated",
+      files: {
+        agentsMd: { version: 2, current: false },
+        claudeMd: { version: 2, current: false },
+      },
+    })
+    expect(outdated.agentGuide.repairPrompt).toContain("<current_adt_agent_guide>")
+
+    const newer = await preview(4, false)
+    expect(newer.agentGuide).toMatchObject({
+      status: "current",
+      currentVersion: 3,
+      files: {
+        agentsMd: { version: 4, current: true },
+        claudeMd: { version: 4, current: true },
+      },
+    })
+  })
+
+  it("reports a newer editing contract before import", async () => {
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append(
+      "zip",
+      new Blob([createExportedAdtZip({ editingContractVersion: 3 })], { type: "application/zip" }),
+      "future-export.zip",
+    )
+
+    const res = await app.request("/books/preview-import", { method: "POST", body: formData })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({
+      isAdtBundle: true,
+      compatibility: {
+        supported: false,
+        issues: expect.arrayContaining([
+          expect.objectContaining({
+            code: "unsupported-editing-contract",
+            pageHref: "manifest.json",
+            detail: "3",
+          }),
+        ]),
+      },
+    })
+  })
+
+  // F26: the preview and the import agree on a bundle with no index.html.
+  it("imports a bundle without index.html that the preview approved", async () => {
+    const renamed: Record<string, Uint8Array> = {}
+    for (const [name, bytes] of Object.entries(unzipSync(new Uint8Array(createExportedAdtZip())))) {
+      const text = /\.(?:html|json)$/.test(name)
+      renamed[name.replaceAll("index.html", "pg001_sec001.html")] = text
+        ? new TextEncoder().encode(new TextDecoder().decode(bytes).replaceAll("index.html", "pg001_sec001.html"))
+        : bytes
+    }
+    expect(renamed["index.html"]).toBeUndefined()
+    const zip = Buffer.from(zipSync(renamed))
+    const app = createBookRoutes(tmpDir)
+    const send = (route: string, mode?: string) => {
+      const formData = new FormData()
+      formData.append("zip", new Blob([zip], { type: "application/zip" }), "no-entry.zip")
+      if (mode) formData.append("mode", mode)
+      return app.request(route, { method: "POST", body: formData })
+    }
+    const preview = await send("/books/preview-import")
+    expect(await preview.json()).toMatchObject({ isAdtBundle: true, compatibility: { supported: true } })
+    const imported = await send("/books/import-adt", "new-project")
+    expect(imported.status).toBe(201)
+  })
+
+  it("recovers an older manifest without the Studio editing contract", async () => {
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append(
+      "zip",
+      new Blob([createExportedAdtZip({ omitEditingContract: true })], { type: "application/zip" }),
+      "legacy-export.zip",
+    )
+
+    const preview = await app.request("/books/preview-import", { method: "POST", body: formData })
+    expect(preview.status).toBe(200)
+    expect(await preview.json()).toMatchObject({
+      isAdtBundle: true,
+      legacyRecovery: true,
+      compatibility: {
+        supported: true,
+        issues: [],
+      },
+    })
+
+    const importForm = new FormData()
+    importForm.append(
+      "zip",
+      new Blob([createExportedAdtZip({ omitEditingContract: true })], { type: "application/zip" }),
+      "legacy-export.zip",
+    )
+    importForm.append("mode", "new-project")
+    const imported = await app.request("/books/import-adt", { method: "POST", body: importForm })
+    expect(imported.status).toBe(201)
+    expect(await imported.json()).toMatchObject({
+      label: "exported-book",
+      sourceKind: "imported-adt",
+      workingSource: "imported-adt",
+      hasSourcePdf: false,
+    })
+  })
+
+  it("recovers a recognized legacy Studio export without a manifest", async () => {
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append(
+      "zip",
+      new Blob([createExportedAdtZip({ omitManifest: true })], { type: "application/zip" }),
+      "legacy-export.zip",
+    )
+
+    const preview = await app.request("/books/preview-import", { method: "POST", body: formData })
+    expect(preview.status).toBe(200)
+    expect(await preview.json()).toMatchObject({
+      isAdtBundle: true,
+      legacyRecovery: true,
+      label: "Exported-Book",
+      title: "Exported Book",
+      sourceLanguage: "en",
+      outputLanguages: ["es"],
+      compatibility: { supported: true, issues: [] },
+    })
+  })
+
+  it("does not misreport an incomplete legacy export as a missing project database", async () => {
+    const encode = (value: unknown) => new TextEncoder().encode(JSON.stringify(value))
+    const zip = Buffer.from(zipSync({
+      "legacy/content/pages.json": encode([{ section_id: "pg001_sec001", href: "index.html" }]),
+      "legacy/index.html": new TextEncoder().encode("<!doctype html>"),
+    }))
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append("zip", new Blob([zip], { type: "application/zip" }), "legacy.zip")
+
+    const preview = await app.request("/books/preview-import", { method: "POST", body: formData })
+    expect(preview.status).toBe(400)
+    const message = await preview.text()
+    expect(message).toContain("Legacy ADT export is missing assets/config.json")
+    expect(message).not.toContain("expected a .db")
   })
 
   it("returns 400 for non-ZIP data", async () => {
@@ -1640,9 +2144,248 @@ describe("POST /books/preview-import", () => {
     const res = await app.request("/books/preview-import", { method: "POST", body: formData })
     expect(res.status).toBe(400)
   })
+
+  it("reports every problem in a broken manifest, not just the first", async () => {
+    const files = unzipSync(new Uint8Array(createExportedAdtZip({
+      activityInventory: [{ sectionId: "pg001_sec001", href: "index.html", type: "activity_open_ended_answer" }],
+    })))
+    const manifest = JSON.parse(new TextDecoder().decode(files["manifest.json"]))
+    // Listed twice: once conflicting with activities, once as a duplicate.
+    manifest.editingContract.nonActivities = [
+      { sectionId: "pg001_sec001", href: "index.html" },
+      { sectionId: "pg001_sec001", href: "index.html" },
+    ]
+    files["manifest.json"] = new TextEncoder().encode(JSON.stringify(manifest))
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append("zip", new Blob([zipSync(files)], { type: "application/zip" }), "broken.zip")
+
+    const res = await app.request("/books/preview-import", { method: "POST", body: formData })
+
+    expect(res.status).toBe(400)
+    const lines = (await res.json()).error.split("\n")
+    expect(lines[0]).toBe("Archive file has an invalid shape: manifest.json has 2 problems")
+    expect(lines.slice(1)).toEqual(expect.arrayContaining([
+      expect.stringMatching(/^- manifest\.json at editingContract\.nonActivities\.0\.sectionId: Section cannot be both/),
+      expect.stringMatching(/^- manifest\.json at editingContract\.nonActivities\.1\.sectionId: Duplicate non-activity section id/),
+    ]))
+  })
+
+  it("names the book it could still read when an ADT export's manifest is broken", async () => {
+    // A section in both activities and nonActivities: the strict reader
+    // rejects the manifest, but the title, cover and counts are still there.
+    const files = unzipSync(new Uint8Array(createExportedAdtZip({
+      activityInventory: [{ sectionId: "pg001_sec001", href: "index.html", type: "activity_open_ended_answer" }],
+    })))
+    const manifest = JSON.parse(new TextDecoder().decode(files["manifest.json"]))
+    manifest.editingContract.nonActivities = [{ sectionId: "pg001_sec001", href: "index.html" }]
+    files["manifest.json"] = new TextEncoder().encode(JSON.stringify(manifest))
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append("zip", new Blob([zipSync(files)], { type: "application/zip" }), "broken.zip")
+
+    const res = await app.request("/books/preview-import", { method: "POST", body: formData })
+
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.error).toContain("cannot be both an activity and a non-activity")
+    expect(body.code).toBe("adt-unreadable")
+    expect(body.details).toMatchObject({
+      title: "Exported Book",
+      pageCount: 1,
+      imageCount: 1,
+      tocEntryCount: 1,
+      sourceLanguage: "en",
+      outputLanguages: ["es"],
+    })
+    // Display only: the import itself still refuses the archive.
+    const importForm = new FormData()
+    importForm.append("zip", new Blob([zipSync(files)], { type: "application/zip" }), "broken.zip")
+    importForm.append("activityDecisions", "[]")
+    const imported = await app.request("/books/import-adt", { method: "POST", body: importForm })
+    expect(imported.status).toBe(400)
+  })
+})
+
+describe("POST /books/import-adt", () => {
+  it("rejects HTML outside the supported round-trip structure", async () => {
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append(
+      "zip",
+      new Blob([createExportedAdtZip({ unsupportedStructure: true })], { type: "application/zip" }),
+      "unsupported-export.zip",
+    )
+    const res = await app.request("/books/import-adt", { method: "POST", body: formData })
+    expect(res.status).toBe(400)
+    expect(await res.text()).toContain("supported import structure")
+    expect(fs.existsSync(path.join(tmpDir, "exported-book"))).toBe(false)
+  })
+
+  it("creates a regular project from an exported ADT", async () => {
+    const webAssetsDir = `${tmpDir}-web-assets`
+    fs.mkdirSync(webAssetsDir, { recursive: true })
+    fs.mkdirSync(path.join(webAssetsDir, "libs/fontawesome/css"), { recursive: true })
+    fs.writeFileSync(path.join(webAssetsDir, "libs/fontawesome/css/all.min.css"), "/* test icons */")
+    for (const file of ["base.bundle.min.js", "base.bundle.local.js", "activities.bundle.local.js"]) {
+      fs.writeFileSync(path.join(webAssetsDir, file), "void 0")
+    }
+    fs.writeFileSync(path.join(webAssetsDir, "fonts.css"), "body { font-family: serif; }")
+    fs.writeFileSync(path.join(webAssetsDir, "tailwind_css.css"), "@tailwind utilities;")
+    const app = createBookRoutes(tmpDir, webAssetsDir)
+    const formData = new FormData()
+    formData.append(
+      "zip",
+      new Blob([createExportedAdtZip()], { type: "application/zip" }),
+      "exported-book.zip",
+    )
+    const res = await app.request("/books/import-adt", { method: "POST", body: formData })
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    expect(body).toMatchObject({
+      label: "exported-book",
+      title: "Exported Book",
+      hasSourcePdf: false,
+      sourceKind: "imported-adt",
+      workingSource: "imported-adt",
+    })
+    const bookDir = path.join(tmpDir, "exported-book")
+    expect(fs.existsSync(path.join(bookDir, ADT_IMPORT_IN_PROGRESS_MARKER))).toBe(false)
+    expect(fs.existsSync(path.join(bookDir, ".adt-import-current.json"))).toBe(true)
+    expect(fs.readdirSync(path.join(bookDir, ".adt-imports"))).toHaveLength(1)
+
+    const importedStorage = createBookStorage("exported-book", tmpDir)
+    expect(importedStorage.getLatestNodeData("web-rendering", "pg001")?.data)
+      .toMatchObject({
+        sections: [expect.objectContaining({
+          html: expect.stringContaining("/api/books/exported-book/images/pg001_im001"),
+        })],
+      })
+    importedStorage.close()
+
+    const booksRes = await app.request("/books")
+    expect((await booksRes.json()).map((book: { label: string }) => book.label)).toEqual(["exported-book"])
+
+    expect(fs.existsSync(path.join(bookDir, "adt"))).toBe(false)
+    const prepareRes = await app.request("/books/exported-book/prepare-export?format=adt", {
+      method: "POST",
+    })
+    expect(prepareRes.status).toBe(200)
+    expect(fs.readFileSync(path.join(bookDir, "adt", "pg001_sec001.html"), "utf8")).toContain("Hello")
+    expect(fs.readFileSync(path.join(bookDir, "adt", "assets", "scorm.js"), "utf8"))
+      .toContain("SCORM 1.2 adapter")
+    const reexportedManifest = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "manifest.json"), "utf8"),
+    )
+    expect(reexportedManifest.lineage).toMatchObject({
+      originProjectId: body.projectId,
+      sourceKind: "imported-adt",
+    })
+
+    const secondFormData = new FormData()
+    secondFormData.append(
+      "zip",
+      new Blob([createExportedAdtZip()], { type: "application/zip" }),
+      "exported-book.zip",
+    )
+    // Older clients may still send a destination. The server deliberately
+    // ignores it and creates an isolated project.
+    secondFormData.append("mode", "revision")
+    secondFormData.append("targetLabel", "exported-book")
+    const secondResponse = await app.request("/books/import-adt", {
+      method: "POST",
+      body: secondFormData,
+    })
+    expect(secondResponse.status).toBe(201)
+    const secondBook = await secondResponse.json()
+    expect(secondBook).toMatchObject({
+      label: "exported-book-2",
+      sourceKind: "imported-adt",
+    })
+    expect(secondBook.projectId).not.toBe(body.projectId)
+    expect(getBook("exported-book", tmpDir).projectId).toBe(body.projectId)
+  })
+
+  it("requires and persists a decision for an ambiguous external activity", async () => {
+    const zip = createExportedAdtZip({
+      editingContractVersion: 2,
+      activityInventory: [],
+      sectionType: "content",
+      extraSectionHtml: '<input type="text" aria-label="Answer" />',
+    })
+    const app = createBookRoutes(tmpDir)
+    const unresolvedForm = new FormData()
+    unresolvedForm.append("zip", new Blob([zip], { type: "application/zip" }), "candidate.zip")
+    const unresolved = await app.request("/books/import-adt", {
+      method: "POST",
+      body: unresolvedForm,
+    })
+    expect(unresolved.status).toBe(400)
+    expect(await unresolved.text()).toContain("Review these activities before importing")
+
+    const resolvedForm = new FormData()
+    resolvedForm.append("zip", new Blob([zip], { type: "application/zip" }), "candidate.zip")
+    resolvedForm.append("activityDecisions", JSON.stringify([{
+      sectionId: "pg001_sec001",
+      type: "activity_fill_in_the_blank",
+    }]))
+    const resolved = await app.request("/books/import-adt", {
+      method: "POST",
+      body: resolvedForm,
+    })
+    expect(resolved.status).toBe(201)
+
+    const storage = createBookStorage("exported-book", tmpDir)
+    expect(storage.getLatestNodeData("web-rendering", "pg001")?.data).toMatchObject({
+      sections: [expect.objectContaining({
+        sectionType: "activity_fill_in_the_blank",
+        html: expect.stringContaining('data-section-type="activity_fill_in_the_blank"'),
+      })],
+    })
+    expect(storage.getLatestNodeData("imported-activity-review", "book")?.data).toMatchObject({
+      version: 1,
+      decisions: [{ sectionId: "pg001_sec001", type: "activity_fill_in_the_blank" }],
+    })
+    storage.close()
+  })
 })
 
 describe("POST /books/import", () => {
+  it("reports a full disk as such, not as a damaged archive", async () => {
+    const zip = createProjectZip("full-disk")
+    const app = createBookRoutes(tmpDir)
+    const realWrite = fs.writeFileSync
+    const spy = vi.spyOn(fs, "writeFileSync").mockImplementation(((file: fs.PathOrFileDescriptor, ...rest: unknown[]) => {
+      if (String(file).includes("images")) throw Object.assign(new Error("no space"), { code: "ENOSPC" })
+      return (realWrite as (...args: unknown[]) => void)(file, ...rest)
+    }) as typeof fs.writeFileSync)
+    try {
+      const formData = new FormData()
+      formData.append("zip", new Blob([zip], { type: "application/zip" }), "full-disk.zip")
+      const res = await app.request("/books/import", { method: "POST", body: formData })
+      expect(res.status).toBe(507)
+      expect(await res.text()).toContain("Not enough disk space")
+    } finally {
+      spy.mockRestore()
+    }
+    expect(fs.existsSync(path.join(tmpDir, "full-disk"))).toBe(false)
+  })
+
+  // F3: a backup with more entries than the old 10,000 cap imports.
+  it("imports a backup with more than 10,000 entries and writes every file", async () => {
+    const extraFiles: Record<string, Uint8Array> = {}
+    for (let i = 0; i < 10_050; i++) extraFiles[`audio/clip-${i}.mp3`] = new Uint8Array([i % 256])
+    const zip = createProjectZip("many-files", { extraFiles })
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append("zip", new Blob([zip], { type: "application/zip" }), "many-files.zip")
+    const res = await app.request("/books/import", { method: "POST", body: formData })
+    expect(res.status).toBe(201)
+    const label = (await res.json()).label as string
+    expect(fs.readdirSync(path.join(tmpDir, label, "audio"))).toHaveLength(10_050)
+    expect(fs.readFileSync(path.join(tmpDir, label, "audio", "clip-300.mp3"))[0]).toBe(300 % 256)
+  }, 120_000)
+
   it("imports a valid project ZIP", async () => {
     const zip = createProjectZip("import-test")
     const app = createBookRoutes(tmpDir)
@@ -1681,6 +2424,44 @@ describe("POST /books/import", () => {
     expect(text).toContain("Invalid project archive")
   })
 
+  // F6: a book created by ADT import has no source PDF; its backup must restore.
+  it("restores a PDF-less backup of a book created by ADT import, and the preview agrees", async () => {
+    const identity = new TextEncoder().encode(JSON.stringify({
+      version: 1,
+      projectId: "02428003-16c2-4959-b931-a31d1642797c",
+      sourceKind: "imported-adt",
+      sourceFingerprint: "8".repeat(64),
+      createdAt: "2026-11-15T19:52:38.546Z",
+    }))
+    const zip = createProjectZip("imported-book", {
+      omitPdf: true,
+      extraFiles: {
+        ".adt-project.json": identity,
+        ".adt-import-current.json": new TextEncoder().encode(JSON.stringify({ version: 1, revisionId: "rev" })),
+      },
+    })
+    const app = createBookRoutes(tmpDir)
+    const send = (route: string) => {
+      const formData = new FormData()
+      formData.append("zip", new Blob([zip], { type: "application/zip" }), "imported-book.zip")
+      return app.request(route, { method: "POST", body: formData })
+    }
+    const preview = await send("/books/preview-import")
+    expect(await preview.json()).toMatchObject({ hasSourcePdf: false, validationError: null })
+    const imported = await send("/books/import")
+    expect(imported.status).toBe(201)
+    expect(await imported.json()).toMatchObject({ label: "imported-book", sourceKind: "imported-adt" })
+  })
+
+  it("flags a PDF-less backup of an ordinary book in the preview, not only on import", async () => {
+    const zip = createProjectZip("no-pdf-preview", { omitPdf: true })
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append("zip", new Blob([zip], { type: "application/zip" }), "no-pdf.zip")
+    const res = await app.request("/books/preview-import", { method: "POST", body: formData })
+    expect(await res.json()).toMatchObject({ validationError: expect.stringContaining(".pdf") })
+  })
+
   it("returns 400 for non-ZIP data", async () => {
     const app = createBookRoutes(tmpDir)
     const formData = new FormData()
@@ -1701,19 +2482,15 @@ describe("POST /books/import", () => {
 })
 
 describe("GET /books/:label/export-adt", () => {
-  it("returns ZIP of the adt/ directory", async () => {
+  it("rejects an index-only bundle instead of downloading an incomplete ZIP", async () => {
     createTestBook("adt-export")
     addPagesAndRenderings("adt-export", 1)
     const adtDir = path.join(tmpDir, "adt-export", "adt")
     fs.mkdirSync(adtDir, { recursive: true })
     fs.writeFileSync(path.join(adtDir, "index.html"), "<html></html>")
-    const app = createBookRoutes(tmpDir)
+    const app = new Hono().onError(errorHandler).route("/", createBookRoutes(tmpDir))
     const res = await app.request("/books/adt-export/export-adt")
-    expect(res.status).toBe(200)
-    expect(res.headers.get("Content-Type")).toBe("application/zip")
-    const disposition = res.headers.get("Content-Disposition") ?? ""
-    expect(disposition).toContain('filename="adt-export-adt.zip"')
-    expect(disposition).toContain("filename*=UTF-8''")
+    expect(res.status).toBe(409)
   })
 
   it("returns 404 for missing book", async () => {
@@ -2055,6 +2832,13 @@ describe("book admission before the first extraction", () => {
     expect(started).toEqual(["fresh"])
   })
 
+  it("admits the collection-level ADT import instead of resolving it as a book label", async () => {
+    const form = new FormData()
+    form.append("zip", new File([new Uint8Array([1, 2, 3])], "not-an-adt.zip"))
+    const res = await lifecycleApp([]).request("/books/import-adt", { method: "POST", body: form })
+    expect(res.status).toBe(400)
+  })
+
   it("still rejects a folder recreated without its database or source PDF", async () => {
     const started: string[] = []
     const app = lifecycleApp(started)
@@ -2105,4 +2889,15 @@ describe("book admission before the first extraction", () => {
     try { expect(retained.getLatestNodeData("metadata", "book")).toEqual(before) }
     finally { retained.close() }
   })
+})
+
+it.each(["[broken", "- a\n- b", "not a mapping"])("config GET returns the shared localizable error for malformed overrides: %s", async raw => {
+  createTestBook("bad-config")
+  const file = path.join(tmpDir, "bad-config", "config.yaml")
+  fs.writeFileSync(file, raw)
+  const app = new Hono().onError(errorHandler).route("/", createBookRoutes(tmpDir))
+  const response = await app.request("/books/bad-config/config")
+  expect(response.status).toBe(409)
+  expect(await response.json()).toMatchObject({ code: "BOOK_CONFIG_INVALID" })
+  expect(fs.readFileSync(file, "utf8")).toBe(raw)
 })

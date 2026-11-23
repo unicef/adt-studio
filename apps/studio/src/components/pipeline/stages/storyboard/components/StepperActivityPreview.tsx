@@ -15,9 +15,11 @@ import { IPadFrame } from "./style-editor/device-frames/ipad-frame"
 export function StepperActivityPreview({
   src,
   deviceView,
+  onReady,
 }: {
   src: string
   deviceView: DeviceView
+  onReady?: () => void
 }) {
   const { t } = useLingui()
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -37,7 +39,10 @@ export function StepperActivityPreview({
     return (
       <div className="flex justify-center">
         <iframe
+          key={src}
           src={src}
+          onLoad={onReady}
+          onError={onReady}
           title={t`Step-by-step activity preview`}
           className="rounded border bg-white"
           style={{ width: DEVICE_WIDTHS.desktop, maxWidth: "100%", height: "80vh" }}
@@ -53,7 +58,10 @@ export function StepperActivityPreview({
   const scale = availableWidth ? Math.min(1, availableWidth / frame.chromeWidth) : 1
   const iframeNode = (
     <iframe
-      src={src}
+      key={src}
+          src={src}
+          onLoad={onReady}
+          onError={onReady}
       title={t`Step-by-step activity preview`}
       className="bg-white"
       style={{

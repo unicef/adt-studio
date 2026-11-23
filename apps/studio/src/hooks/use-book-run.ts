@@ -1,4 +1,6 @@
+import { createPagePublicationRefresh } from "./page-publication-refresh"
 import { refreshRunStatus, reconcileRunPublication } from "./run-query-invalidation"
+import { sectioningErrorMessage, needsHistoryRecovery } from "@/lib/sectioning-error"
 import { useEffect, useCallback, useRef, createContext, useContext, useState } from "react"
 import { useQueryClient, useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
@@ -14,7 +16,15 @@ import {
   type PageDetail,
   type PendingDecision,
 } from "@/api/client"
-import { STEP_TO_STAGE, PIPELINE, getStageClearOrder, getStageRerunClearNodes, PAGE_PROGRESS_STEPS } from "@adt/types"
+import {
+  STEP_TO_STAGE,
+  PIPELINE,
+  getStageClearOrder,
+  getStageRerunClearNodes,
+  PAGE_PROGRESS_STEPS,
+  STAGE_ORDER,
+  IMPORTED_ADT_LOCKED_STAGES,
+} from "@adt/types"
 import type { StageName } from "@adt/types"
 import { isStageComplete } from "./run-state"
 import { playCompletionSound, playErrorSound } from "@/lib/completion-sound"
@@ -24,6 +34,7 @@ import { aiEditNoticeFor, type AiEditOutcomeNotice } from "@/components/pipeline
 import { bookTasksKey } from "./use-book-tasks"
 import { invalidateStoryboardDependents } from "./use-page-mutations"
 import { useApiKey } from "./use-api-key"
+import { useBook } from "./use-books"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -67,6 +78,7 @@ interface StepStatusResponse {
   runRevision?: string
   publicationAgeMs?: number
   pendingDecisions?: PendingDecision[]
+  coverage?: import("@adt/types").StoryboardCoverage
 }
 
 // ---------------------------------------------------------------------------
@@ -74,8 +86,12 @@ interface StepStatusResponse {
 // ---------------------------------------------------------------------------
 
 export interface BookRunContextValue {
+  /** Book this run state belongs to (optional so partial test doubles stay valid). */
+  bookLabel?: string
   /** Retained generator content affected by a source edit; independent of run state. */
   sourceUpdateStages?: string[]
+  /** Actual saved-output coverage, independent of the last attempt. */
+  storyboardCoverage?: import("@adt/types").StoryboardCoverage
   /** Stage state: idle / queued / running / done / error */
   stageState(stage: string): StageState
   /** Step state: idle / running / done / error */
@@ -146,12 +162,15 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   // Held in a ref so the always-on SSE effect can navigate (from a toast action)
   // without listing navigate as a dependency and re-subscribing.
   const navigateRef = useRef(navigate)
+  const { data: runBook } = useBook(label)
+  const workingSourceRef = useRef(runBook?.workingSource)
+  workingSourceRef.current = runBook?.workingSource
   navigateRef.current = navigate
 
   // Primary source of truth: enriched step-status from the server
   const { data, isPending } = useQuery<StepStatusResponse>({
     queryKey: stepStatusKey(label),
-    queryFn: () => api.getStepStatus(label),
+    queryFn: ({ signal }) => api.getStepStatus(label, signal),
     enabled: !!label,
     refetchInterval: (query) => {
       if (["running", "cancelling"].includes(query.state.data?.runStatus ?? "")) return 2000
@@ -211,14 +230,26 @@ export function useBookRunStatus(label: string): BookRunContextValue {
 
     const url = `${BASE_URL}/books/${label}/stages/status`
     const es = new EventSource(url)
+    const pagePublications = createPagePublicationRefresh(queryClient, label)
 
-    // Refetch on (re)connection to catch up on any missed events
+    // The server emits ready after registering this listener, including on an
+    // otherwise idle stream. Catch up page availability as well as run status.
     es.addEventListener("open", () => {
       void refreshRunStatus(queryClient, label, false)
+    })
+    es.addEventListener("ready", (event) => {
+      const snapshot = JSON.parse(event.data)
+      void refreshRunStatus(queryClient, label, false)
+      if (["running", "cancelling"].includes(snapshot.runStatus)) {
+        const pages = { queryKey: ["books", label, "pages"] }
+        void queryClient.cancelQueries(pages).then(() => queryClient.invalidateQueries(pages))
+      }
     })
 
     es.addEventListener("progress", (e) => {
       const d = JSON.parse(e.data)
+      if (d.error) d.error = sectioningErrorMessage(d.error, d.code)
+      if (d.message) d.message = sectioningErrorMessage(d.message, d.code)
       const pipelineStep = d.step as string
       const uiStage = (STEP_TO_STAGE as Record<string, string>)[pipelineStep]
       if (!uiStage) return
@@ -228,10 +259,11 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       // Only cancel if we already have baseline data; otherwise the initial
       // fetch (on page load) would be killed and the UI would stay idle.
       if (queryClient.getQueryData(stepStatusKey(label))) {
-        queryClient.cancelQueries({ queryKey: stepStatusKey(label) })
+        queryClient.cancelQueries({ queryKey: stepStatusKey(label), exact: true })
       }
 
       if (d.type === "step-start") {
+        if (pipelineStep === "web-rendering") pagePublications.reset()
         // Fresh attempt at this step — reset its error toast/beep dedup so a new
         // failure notifies again, and clear any stale error state in the cache.
         errorCountByStepRef.current.delete(pipelineStep)
@@ -296,7 +328,9 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         // Progressively refresh page data during storyboard steps so the UI
         // can show sections/renderings as they complete (throttled to ~2s).
         // Invalidates both the page list (sidebar) and individual page details.
-        if ((PAGE_PROGRESS_STEPS as ReadonlySet<string>).has(pipelineStep) && (totalPages ?? 0) > 0) {
+        if (pipelineStep === "web-rendering" && typeof d.publishedPageId === "string") {
+          pagePublications.request()
+        } else if ((PAGE_PROGRESS_STEPS as ReadonlySet<string>).has(pipelineStep) && (totalPages ?? 0) > 0) {
           const now = Date.now()
           if (now - lastPageInvalidateRef.current > 2000) {
             lastPageInvalidateRef.current = now
@@ -317,7 +351,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         // The step finished — its failure toast/beep dedup no longer applies.
         errorCountByStepRef.current.delete(pipelineStep)
         // Mark step as done/skipped, recompute stage state
-        const nextStepState: StepState = d.type === "step-skip" ? "skipped" : "done"
+        const nextStepState: StepState = d.outputComplete === false ? "idle" : d.type === "step-skip" ? "skipped" : "done"
         // Only chime on the transition into done — not on every trailing
         // step event for a stage that's already complete (which would
         // re-register the same completion and beep repeatedly).
@@ -347,7 +381,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
             ? "done"
             : anyError
               ? "error"
-              : old.stages[uiStage]
+              : d.outputComplete === false ? "idle" : old.stages[uiStage]
           const stages = { ...old.stages, [uiStage]: nextStageState }
 
           // Recompute the run-level error banner from the remaining step errors.
@@ -427,6 +461,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
 
     // A queued run has started executing — full refetch to reconcile
     es.addEventListener("queue-next", () => {
+      pagePublications.reset()
       progressRef.current.clear()
       lastPageInvalidateRef.current = 0
       errorCountByStepRef.current.clear()
@@ -436,6 +471,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
 
     // Run completed — full refetch to reconcile with DB
     es.addEventListener("complete", () => {
+      pagePublications.reset()
       progressRef.current.clear()
       errorCountByStepRef.current.clear()
       runErrorNotifiedRef.current = false
@@ -448,6 +484,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     // Cancellation finished unwinding — reset in-flight steps to idle and clear
     // the "cancelling…" state. No error toast/beep: this was deliberate.
     es.addEventListener("cancelled", () => {
+      pagePublications.reset()
       progressRef.current.clear()
       errorCountByStepRef.current.clear()
       runErrorNotifiedRef.current = false
@@ -493,9 +530,10 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       // carry no `data`. Only treat events WITH data as a real run error, so a
       // network blip never toasts or beeps.
       if (me.data) {
+        pagePublications.reset()
         try {
           const d = JSON.parse(me.data)
-          const runError = d.error ?? i18n._(msg`Step run failed`)
+          const runError = sectioningErrorMessage(d.error, d.code) ?? i18n._(msg`Step run failed`)
           queryClient.setQueryData<StepStatusResponse>(stepStatusKey(label), (old) => {
             if (!old) return old
             return { ...old, error: runError }
@@ -555,7 +593,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
               ? { kind: eventTaskKind, pageId: eventPageId }
               : undefined
           if (completedTask?.kind === "package-adt") {
-            queryClient.invalidateQueries({ queryKey: ["books", label, "step-status"] })
+            queryClient.invalidateQueries({ queryKey: ["books", label, "step-status"], exact: true })
             queryClient.invalidateQueries({ queryKey: ["package-adt-status", label] })
             queryClient.invalidateQueries({ queryKey: ["debug", "accessibility", label] })
             queryClient.invalidateQueries({ queryKey: ["debug", "versions", label, "accessibility-assessment", "book"] })
@@ -602,13 +640,13 @@ export function useBookRunStatus(label: string): BookRunContextValue {
           }
           if (completedTask?.kind === "book-summary") {
             // Refresh the book detail so the banner shows the new summary.
-            queryClient.invalidateQueries({ queryKey: ["books", label] })
+            queryClient.invalidateQueries({ queryKey: ["books", label], exact: true })
           }
           // Always refetch tasks so we pick up the final state even if we missed start
           queryClient.invalidateQueries({ queryKey: bookTasksKey(label) })
         } else if (d.type === "task-error") {
           if (idx !== -1) {
-            tasks[idx] = { ...tasks[idx], status: "failed", error: d.error, completedAt: Date.now() }
+            tasks[idx] = { ...tasks[idx], status: "failed", error: sectioningErrorMessage(d.error), completedAt: Date.now() }
           }
         } else if (d.type === "task-progress") {
           if (idx !== -1) {
@@ -623,7 +661,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         // The server may have changed step status before reporting the task
         // error. Refresh it even if task-start was missed and polling had
         // stopped because the cached pipeline previously looked complete.
-        queryClient.invalidateQueries({ queryKey: ["books", label, "step-status"] })
+        queryClient.invalidateQueries({ queryKey: ["books", label, "step-status"], exact: true })
         if (eventTaskKind === "re-render") {
           if (eventPageId) {
             queryClient.invalidateQueries({ queryKey: ["books", label, "pages", eventPageId] })
@@ -643,14 +681,16 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         if (!aiEditNotice) playCompletionSound()
         announceRef.current(aiEditNotice ? aiEditNoticeMessage(aiEditNotice) : taskCompleteMessage(kind))
       } else if (d.type === "task-error") {
+        const taskError = sectioningErrorMessage(d.error)
         announceRef.current(
-          d.error ? i18n._(msg`Task failed: ${d.error}`) : i18n._(msg`Task failed`),
+          taskError ? i18n._(msg`Task failed: ${taskError}`) : i18n._(msg`Task failed`),
           "assertive",
         )
       }
     })
 
     return () => {
+      pagePublications.dispose()
       es.close()
     }
   }, [label, queryClient])
@@ -661,6 +701,21 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   const queueRun = useCallback(
     (options: QueueRunOptions) => {
       const { fromStage, toStage, apiKey, renderOnly, viewAfter } = options
+      // The API rejects these with 409. Stopping here keeps the optimistic
+      // "queued" state and downstream cache clear from flashing before the
+      // rejection lands.
+      if (workingSourceRef.current === "imported-adt") {
+        const locked = STAGE_ORDER
+          .slice(
+            STAGE_ORDER.indexOf(fromStage as StageName),
+            STAGE_ORDER.indexOf(toStage as StageName) + 1,
+          )
+          .filter((stage) => IMPORTED_ADT_LOCKED_STAGES.has(stage))
+        if (locked.length > 0) {
+          toast.error(i18n._(msg`${getStageLabelI18n(locked[0])} cannot be regenerated while imported HTML is this project's source.`))
+          return
+        }
+      }
       const providerCredentials: StageRunProviderCredentials = {
         ...options.providerCredentials,
         values: storedProviderCredentials,
@@ -784,7 +839,18 @@ export function useBookRunStatus(label: string): BookRunContextValue {
             detail
               ? i18n._(msg`Could not start ${getStageLabelI18n(fromStage)}: ${detail}`)
               : i18n._(msg`Could not start ${getStageLabelI18n(fromStage)}.`),
-            { id: `run-start:${label}:${fromStage}`, duration: 12_000 },
+            {
+              id: `run-start:${label}:${fromStage}`,
+              duration: 12_000,
+              // Damaged history blocks the run until it is recovered; take the
+              // user straight to the book's History recovery settings.
+              action: needsHistoryRecovery(detail)
+                ? {
+                    label: i18n._(msg`Inspect history`),
+                    onClick: () => navigate({ to: "/books/$label/$step/settings", params: { label, step: "book" }, search: { tab: "history" } }),
+                  }
+                : undefined,
+            },
           )
           announceRef.current(i18n._(msg`${getStageLabelI18n(fromStage)} did not start`), "assertive")
           // The optimistic wipe above emptied the page caches for a run that
@@ -825,14 +891,14 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       if (progress) return progress
       if (data?.steps?.[step] !== "running") return undefined
       const message = data?.stepMessages?.[step]
-      return message ? { message } : undefined
+      return message ? { message: sectioningErrorMessage(message) } : undefined
     },
     [data?.stepMessages, data?.steps, progressTick]
   )
 
   const stepErrorAccessor = useCallback(
     (step: string): string | undefined => {
-      return data?.stepErrors?.[step]
+      return sectioningErrorMessage(data?.stepErrors?.[step])
     },
     [data]
   )
@@ -901,11 +967,13 @@ export function useBookRunStatus(label: string): BookRunContextValue {
 
   return {
     sourceUpdateStages: data?.sourceUpdateStages ?? [],
+    storyboardCoverage: data?.coverage,
+    bookLabel: label,
     stageState,
     stepState: stepStateAccessor,
     stepProgress: stepProgressAccessor,
     stepError: stepErrorAccessor,
-    error: data?.error ?? null,
+    error: sectioningErrorMessage(data?.error ?? undefined) ?? null,
     isRunning,
     isCancelling,
     isStatusLoading: isPending,

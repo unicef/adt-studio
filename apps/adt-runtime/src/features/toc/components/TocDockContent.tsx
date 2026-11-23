@@ -1,5 +1,5 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import {
   currentSectionIdAtom,
@@ -8,7 +8,7 @@ import {
   type PageEntry,
   type TocEntry,
 } from "@/features/navigation/state/nav.atoms";
-import { activeNavTabAtom } from "@/shared/state/ui.atoms";
+import { activeNavTabAtom, tocSearchTermAtom } from "@/shared/state/ui.atoms";
 import { followedPeerAtom } from "@/features/comments/state/follow.atoms";
 import { useTranslation } from "@/features/language/hooks/useTranslation";
 import { cn } from "@/shared/lib/utils";
@@ -17,7 +17,7 @@ import { DockContent } from "@/features/dock/components/DockLayout";
 import { navigateToPage, prefetchPage } from "@/features/navigation/lib/page-swap"
 
 export function TocContent() {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useAtom(tocSearchTermAtom);
   const toc = useAtomValue(tocAtom);
   const pages = useAtomValue(pagesAtom);
   const currentSectionId = useAtomValue(currentSectionIdAtom);

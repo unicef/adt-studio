@@ -1,3 +1,5 @@
+import { hasRenderableContent } from "./renderable-content.js"
+import { SectioningSafetyError } from "./sectioning-errors.js"
 import {
   type AppConfig,
   type ContentNodeData,
@@ -5,6 +7,7 @@ import {
   type PageSectioningSection,
   type SectionRendering,
   type BookTypography,
+  type TextDirection,
   type WebRenderingOutput,
   DEFAULT_LLM_MAX_RETRIES,
   DEFAULT_LLM_MODEL_ID,
@@ -109,6 +112,14 @@ export interface RenderSectionInput {
   bookFonts?: BookFontPromptEntry[]
   /** Book typography (editable size-per-role map), shared with every page. */
   typography?: BookTypography
+  /**
+   * The direction the book's pages are written in, from `resolvePageDirection()`.
+   * Only `"rtl"` (the source language is right-to-left) changes anything here:
+   * it switches on the prompt block and the stored rewrite. `"ltr"` (a
+   * left-to-right book with a right-to-left translation) and `undefined` leave
+   * the prompts and the generated HTML untouched (SPEC-0024).
+   */
+  pageDirection?: TextDirection
   /** Optional user instructions appended to the LLM prompt during re-render */
   userPrompt?: string
 }
@@ -128,6 +139,14 @@ export interface RenderPageInput {
   bookFonts?: BookFontPromptEntry[]
   /** Book typography (editable size-per-role map), shared with every page. */
   typography?: BookTypography
+  /**
+   * The direction the book's pages are written in, from `resolvePageDirection()`.
+   * Only `"rtl"` (the source language is right-to-left) changes anything here:
+   * it switches on the prompt block and the stored rewrite. `"ltr"` (a
+   * left-to-right book with a right-to-left translation) and `undefined` leave
+   * the prompts and the generated HTML untouched (SPEC-0024).
+   */
+  pageDirection?: TextDirection
   /** Optional user instructions appended to the LLM prompt during re-render */
   userPrompt?: string
 }
@@ -339,13 +358,17 @@ export async function renderPage(
 
     const section = input.sectioning.sections[i]
 
-    // Skip pruned sections
-    if (section.isPruned) continue
+    // Match coverage for structurally empty/pruned content. Missing images
+    // remain required by coverage even if no bytes can be sent to the renderer.
+    if (!hasRenderableContent(section)) continue
 
     const context = buildRenderContext(section, input.images, input.label)
 
-    // Skip sections with no renderable content
-    if (context.leaf_texts.length === 0 && context.image_refs.length === 0) continue
+    // Required content whose image bytes are unavailable is incomplete, not an
+    // empty page. Keep prior output and let the caller report the failed page.
+    if (context.leaf_texts.length === 0 && context.image_refs.length === 0) {
+      throw new SectioningSafetyError("STORYBOARD_PAGE_INPUT_MISSING", `${input.pageId}; Required image content is unavailable. Existing output is retained.`)
+    }
 
     const config = resolveConfig(section.sectionType)
 
@@ -366,6 +389,7 @@ export async function renderPage(
       styleguide: input.styleguide,
       bookFonts: input.bookFonts,
       typography: input.typography,
+      pageDirection: input.pageDirection,
       userPrompt: input.userPrompt,
     }
 

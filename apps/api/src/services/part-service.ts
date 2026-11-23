@@ -1,8 +1,8 @@
+import { insertNodeVersion, readIdentityHistory, importHistoryReservations, historyBookId } from "@adt/storage"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import yaml from "js-yaml"
-import { unzipSync } from "fflate"
 import { HTTPException } from "hono/http-exception"
 import type sqlite from "node-sqlite3-wasm"
 import {
@@ -11,6 +11,7 @@ import {
   PartManifest,
   PartsLedger,
   PIPELINE,
+  IDENTITY_HISTORY_NODES,
   type AppConfig,
   type PartRange,
 } from "@adt/types"
@@ -21,11 +22,17 @@ import {
   hashPdfBytes,
 } from "@adt/types/fingerprint"
 import { renderPdfCover, countPdfPages } from "@adt/pdf"
-import { CURRENT_VERSION_ORDER, openBookDb, resolveBookPaths } from "@adt/storage"
+import { CURRENT_VERSION_ORDER, openBookDb, resolveBookPaths, withBookWriter, invalidateSectioningLifecycle } from "@adt/storage"
 import { loadBookConfig } from "@adt/pipeline"
 import { createZipStreamFromEntries } from "./zip-util.js"
 import { getBookConfig, readPartInfo, type BookSummary } from "./book-service.js"
 import type { ExportResult } from "./export-service.js"
+import {
+  ArchiveSafetyError,
+  inspectArchivePaths,
+  unzipArchiveSafely,
+} from "./archive-safety.js"
+import { ensureProjectIdentity } from "./project-identity.js"
 
 /**
  * A merge carries only the statuses in the stage that owns `book-outline`, and
@@ -70,9 +77,13 @@ function throwInvalid(message: string): never {
 
 function unzipBuffer(zipBuffer: Buffer): Record<string, Uint8Array> {
   try {
-    return unzipSync(zipBuffer)
-  } catch {
-    throwInvalid("That file isn't a valid .zip archive.")
+    return unzipArchiveSafely(zipBuffer)
+  } catch (error) {
+    throwInvalid(
+      error instanceof ArchiveSafetyError
+        ? error.message
+        : "That file isn't a valid .zip archive.",
+    )
   }
 }
 
@@ -383,8 +394,17 @@ function parseManifest(entries: Record<string, Uint8Array>): PartManifest {
 
 /** A part archive carries part.json at the root; project archives carry a .db. */
 export function isPartArchive(zipBuffer: Buffer): boolean {
-  const entries = unzipBuffer(zipBuffer)
-  return "part.json" in entries && !findRootEntry(Object.keys(entries), ".db")
+  let paths: string[]
+  try {
+    paths = inspectArchivePaths(zipBuffer)
+  } catch (error) {
+    throwInvalid(
+      error instanceof ArchiveSafetyError
+        ? error.message
+        : "That file isn't a valid .zip archive.",
+    )
+  }
+  return paths.includes("part.json") && !findRootEntry(paths, ".db")
 }
 
 export function previewImportPart(zipBuffer: Buffer): PartImportPreview {
@@ -429,6 +449,7 @@ export function importPart(zipBuffer: Buffer, booksDir: string): BookSummary {
     // Remember this book is a part (used for the badge and re-export).
     fs.writeFileSync(path.join(bookDir, "part.json"), Buffer.from(entries["part.json"]))
 
+    const identity = ensureProjectIdentity(bookDir, { sourceKind: "pdf" })
     const nowIso = new Date().toISOString()
     return {
       label: targetLabel,
@@ -438,6 +459,10 @@ export function importPart(zipBuffer: Buffer, booksDir: string): BookSummary {
       languageCode: null,
       pageCount: 0,
       hasSourcePdf: true,
+      projectId: identity.projectId,
+      sourceKind: identity.sourceKind,
+      workingSource: identity.sourceKind,
+      sourceFingerprint: identity.sourceFingerprint,
       needsRebuild: false,
       rebuildReason: null,
       completedStages: [],
@@ -613,6 +638,11 @@ export function previewMerge(
   try {
     const manifest = parseManifest(entries)
 
+    // A project archive is not a new source of truth for contradictory bytes.
+    // Validate all incoming reservations before touching target config or files.
+    // Imported retired versions reserve IDs without selecting historical content.
+    readIdentityHistory(part.db, IDENTITY_HISTORY_NODES)
+
     const target = resolvedFingerprint(safeTarget, booksDir, configPath)
     const incoming = resolvedFingerprint(part.rawLabel, part.booksRoot, configPath)
     const identityMatch = target.identityHash === incoming.identityHash
@@ -699,6 +729,17 @@ export function mergePart(
   options: MergeOptions = {},
   configPath?: string,
 ): MergeResult {
+  const { bookDir } = resolveBookPaths(targetLabel, booksDir)
+  return withBookWriter(bookDir, () => mergeAdmittedPart(targetLabel, booksDir, zipBuffer, options, configPath))
+}
+
+function mergeAdmittedPart(
+  targetLabel: string,
+  booksDir: string,
+  zipBuffer: Buffer,
+  options: MergeOptions = {},
+  configPath?: string,
+): MergeResult {
   const safeTarget = parseBookLabel(targetLabel)
   const resolvedDir = path.resolve(booksDir)
   const targetPaths = resolveBookPaths(safeTarget, resolvedDir)
@@ -706,6 +747,8 @@ export function mergePart(
   const { part, entries, cleanup } = openPartProject(zipBuffer)
   try {
     const manifest = parseManifest(entries)
+    const incomingHistory = readIdentityHistory(part.db, IDENTITY_HISTORY_NODES)
+    const incomingHistoryBookId = historyBookId(part.db)
 
     const target = resolvedFingerprint(safeTarget, booksDir, configPath)
     const incoming = resolvedFingerprint(part.rawLabel, part.booksRoot, configPath)
@@ -782,6 +825,7 @@ export function mergePart(
 
     const targetDb = openBookDb(targetPaths.dbPath)
     try {
+      invalidateSectioningLifecycle(targetPaths.bookDir, DOWNSTREAM_STEPS)
       targetDb.exec("BEGIN IMMEDIATE")
 
       for (const p of pages) {
@@ -804,16 +848,14 @@ export function mergePart(
         const key = `${row.node} ${row.item_id}`
         const nextVersion = (maxVersions.get(key) ?? 0) + 1
         maxVersions.set(key, nextVersion)
-        targetDb.run(
-          "INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, ?)",
-          [row.node, row.item_id, nextVersion, row.data],
-        )
+        insertNodeVersion(targetDb, row.node, row.item_id, nextVersion, row.data, "part-import")
         targetDb.run(
           `INSERT INTO node_current (node, item_id, version) VALUES (?, ?, ?)
            ON CONFLICT (node, item_id) DO UPDATE SET version = excluded.version`,
           [row.node, row.item_id, nextVersion],
         )
       }
+      importHistoryReservations(targetDb, incomingHistory, incomingHistoryBookId)
 
       // Book-level metadata (title/authors/publisher/language/cover) is the one
       // book-level node a part can carry authoritatively: it's extracted from the

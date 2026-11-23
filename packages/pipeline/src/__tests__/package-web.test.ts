@@ -1,12 +1,14 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { runInNewContext } from "node:vm"
 import { JSDOM } from "jsdom"
 import type { Storage, PageData } from "@adt/storage"
+import { AdtRoundTripManifest } from "@adt/types"
 import {
   computePackagingInputHash,
+  buildImageMap,
   buildGlossaryJson,
   injectWebpubStyles,
   packageAdtWeb,
@@ -20,7 +22,9 @@ import {
   containsMathContent,
 } from "../packaging/web.js"
 import { packageWebpub, nestTocEntries, injectActivitiesBundle } from "../packaging/webpub.js"
+import { packageFilesAvailable } from "../packaging/bundle-files.js"
 import { resolveReadingOrder } from "../reading-order.js"
+import { adtTextFingerprint } from "../adt-round-trip/manifest.js"
 
 /**
  * Read the bundle's first reading-order page. Goes through pages.json rather
@@ -99,6 +103,8 @@ function readyCoreTtsCatalog(...ids: string[]) {
 
 function createWebAssets(webAssetsDir: string): void {
   fs.mkdirSync(webAssetsDir, { recursive: true })
+  fs.mkdirSync(path.join(webAssetsDir, "libs/fontawesome/css"), { recursive: true })
+  fs.writeFileSync(path.join(webAssetsDir, "libs/fontawesome/css/all.min.css"), ".icon { display: inline; }")
   // Pre-built runtime bundles. In production these come from
   // apps/adt-runtime/build.config.mjs; in tests we write them directly so
   // buildJsBundle's "copy from webAssetsDir" path is exercised without
@@ -178,6 +184,54 @@ describe("renderPageHtml", () => {
     }
     expect(window.activityAnswerTextIds).toEqual({})
     plain.window.close()
+  })
+
+  it("marks a right-to-left book on the root element and leaves other books untouched", () => {
+    const rootTag = (language: string) =>
+      renderPageHtml({
+        content: "<p>متن</p>", language, sectionId: "pg001",
+        pageTitle: "Test", pageIndex: 1, hasMath: false, bundleVersion: "1",
+      }).match(/<html[^>]*>/)?.[0]
+
+    expect(rootTag("ur")).toBe('<html lang="ur" dir="rtl">')
+    expect(rootTag("ur-PK")).toBe('<html lang="ur-PK" dir="rtl">')
+    expect(rootTag("ar")).toBe('<html lang="ar" dir="rtl">')
+    // Left-to-right pages are emitted exactly as before.
+    expect(rootTag("en")).toBe('<html lang="en">')
+    expect(rootTag("hi")).toBe('<html lang="hi">')
+  })
+
+  describe("direction-neutral pages (SPEC-0024)", () => {
+    const page = (language: string, outputLanguages: string[] | undefined, content: string) =>
+      renderPageHtml({
+        content, language, outputLanguages, sectionId: "pg001",
+        pageTitle: "Test", pageIndex: 1, hasMath: false, bundleVersion: "1",
+      })
+    const english = '<section><p class="text-left" data-id="t1">Hello</p><p class="text-right" data-id="t2">Signed</p></section>'
+
+    it("AC-8: leaves a book with no right-to-left language exactly as it was", () => {
+      const single = page("en", ["en"], english)
+      expect(single).toContain('class="text-left"')
+      expect(single).toContain('class="text-right"')
+      expect(page("en", ["en", "fr"], english)).toBe(single)
+      expect(page("en", undefined, english)).toBe(single)
+    })
+
+    it("AC-8: converts alignment when a left-to-right book has a right-to-left translation", () => {
+      const html = page("en", ["en", "ur"], english)
+      expect(html).toContain('class="text-start" data-id="t1"')
+      expect(html).toContain('class="text-end" data-id="t2"')
+      expect(html).not.toMatch(/text-(left|right)/)
+      // The page itself is still rendered left to right.
+      expect(html).toContain('<html lang="en">')
+    })
+
+    it("AC-8: converts a right-to-left book's pages and drops their redundant dir", () => {
+      const html = page("ur", ["ur", "en"], '<section dir="rtl"><p class="text-right" data-id="t1">متن</p></section>')
+      expect(html).toContain('<html lang="ur" dir="rtl">')
+      expect(html).toContain('class="text-start" data-id="t1"')
+      expect(html).not.toMatch(/<section[^>]*\bdir=/)
+    })
   })
 
   it("does not emit font preload links (fonts are declared in fonts.css)", () => {
@@ -426,6 +480,53 @@ describe("renderPageHtml", () => {
     expect((html.match(/<h1\b/g) ?? [])).toHaveLength(1)
     expect(html).not.toContain('id="page-heading"')
   })
+
+  it("injects the sr-only h1 fallback on fixed-layout pages too", () => {
+    const html = renderPageHtml({
+      content:
+        '<div id="content" data-section-type="fixed-layout-page" style="position:relative;width:800px;height:600px"><img src="images/pg001_im001.png" alt=""><p data-id="pg001_t1" style="position:absolute;left:10px;top:10px">Hello</p></div>',
+      language: "en",
+      sectionId: "pg001",
+      pageTitle: "Book Title",
+      pageHeading: "Lesson heading",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+      fixedViewport: { width: 800, height: 600 },
+    })
+
+    expect((html.match(/<h1\b/g) ?? [])).toHaveLength(1)
+    expect(html).toContain('<h1 class="sr-only" id="page-heading">Lesson heading</h1>')
+    // The fixed-layout shell is otherwise unchanged: bare <main>, fixed viewport
+    // meta, and the heading sits inside <main> ahead of #content.
+    expect(html).toContain("<main>")
+    expect(html).not.toContain('<main class="w-full">')
+    expect(html).toContain('content="width=800, height=600"')
+    const mainAt = html.indexOf("<main>")
+    const headingAt = html.indexOf('id="page-heading"')
+    const contentAt = html.indexOf('id="content"')
+    expect(headingAt).toBeGreaterThan(mainAt)
+    expect(headingAt).toBeLessThan(contentAt)
+  })
+
+  it("does not duplicate the h1 on a fixed-layout page that already has one", () => {
+    const html = renderPageHtml({
+      content:
+        '<div id="content" data-section-type="fixed-layout-page" style="position:relative;width:800px;height:600px"><h1 data-id="pg001_t1" style="position:absolute;left:10px;top:10px">Visible heading</h1></div>',
+      language: "en",
+      sectionId: "pg001",
+      pageTitle: "Book Title",
+      pageHeading: "Lesson heading",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+      fixedViewport: { width: 800, height: 600 },
+    })
+
+    expect((html.match(/<h1\b/g) ?? [])).toHaveLength(1)
+    expect(html).toContain("<h1 data-id=\"pg001_t1\"")
+    expect(html).not.toContain('id="page-heading"')
+  })
 })
 
 describe("resolveReflowableFontChain", () => {
@@ -508,6 +609,7 @@ describe("renderQuizHtml", () => {
     )
 
     expect(html).toContain('<section')
+    expect(html).toContain('data-section-id="qz001"')
     expect(html).not.toContain('role="activity"')
   })
 
@@ -568,11 +670,105 @@ describe("packageAdtWeb", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true })
   })
 
+  it.each([false, true])("bounds caption inventory reads and refreshes shared image owners (fixed=%s)", async (fixedLayout) => {
+    const bookDir = path.join(tmpDir, "caption-book")
+    const webAssetsDir = path.join(tmpDir, "web-assets")
+    fs.mkdirSync(path.join(bookDir, "images"), { recursive: true })
+    createWebAssets(webAssetsDir)
+    const imageIds = ["shared", "decoration", "fallback"]
+    for (const id of imageIds) fs.writeFileSync(path.join(bookDir, "images", `${id}.png`), `image-${id}`)
+    const pages = Array.from({ length: 24 }, (_, index) => ({ pageId: `pg${String(index + 1).padStart(3, "0")}`, pageNumber: index + 1, text: "Page" }))
+    const sourceNode = fixedLayout ? "fixed-layout-sectioning" : "page-sectioning"
+    const nodeData: Record<string, Record<string, unknown>> = { [sourceNode]: {}, "web-rendering": {}, "image-captioning": {
+      pg001: { captions: [{ imageId: "shared", caption: "Owner description" }, { imageId: "decoration", caption: "Decorative owner", decorative: true }] },
+      pg024: { captions: [{ imageId: "shared", caption: "Obsolete local description" }, { imageId: "fallback", caption: "Local fallback" }] },
+    } }
+    for (const page of pages) {
+      nodeData[sourceNode][page.pageId] = { reasoning: "source", sections: [{ sectionId: `${page.pageId}_sec001`, sectionType: "content", nodes: [], backgroundColor: "#fff", textColor: "#000", pageNumber: page.pageNumber, isPruned: false }] }
+      nodeData["web-rendering"][page.pageId] = { sections: [{ sectionIndex: 0, sectionType: "content", reasoning: "rendered", html: imageIds.map(id => `<img data-id="${id}" src="/api/books/caption-book/images/${id}">`).join("") }] }
+    }
+    const storage = createMockStorage(pages, nodeData)
+    storage.getImageMeta = id => imageIds.includes(id) ? { pageId: "pg001", relativePath: `images/${id}.png` } : null
+    const reads = vi.spyOn(storage, "getLatestNodeData")
+    const options = { bookDir, label: "caption-book", language: "en", outputLanguages: ["en"], title: "Book", webAssetsDir, fixedLayout }
+    try {
+      await packageAdtWeb(storage, options)
+      // Bound full-book storage work, independently of device speed or page HTML.
+      expect(reads.mock.calls.filter(([node]) => node === "web-rendering").length).toBeLessThan(pages.length * 16)
+      const lastPage = path.join(bookDir, "adt/pg024_sec001.html")
+      const first = fs.readFileSync(lastPage, "utf8")
+      expect(first).toContain('alt="Owner description"')
+      expect(first).not.toContain("Obsolete local description")
+      expect(first).toContain('alt="Local fallback"')
+      expect(first).toContain('aria-hidden="true"')
+
+      // A new build must read current captions, including an owner outside the
+      // mandatory part window. No snapshot can survive into the next build.
+      nodeData["image-captioning"].pg001 = { captions: [{ imageId: "shared", caption: "Updated owner" }, { imageId: "decoration", caption: "Now informative", decorative: false }] }
+      fs.writeFileSync(path.join(bookDir, "part.json"), JSON.stringify({ adtPart: 1, sourceLabel: "caption-book", title: null, range: { startPage: 24, endPage: 24 }, pageCount: 24, fingerprint: {}, identityHash: "identity", semanticsHash: "semantics", createdAt: "2026-11-13T00:00:00Z", partLabelSuggestion: "part" }))
+      reads.mockClear()
+      await packageAdtWeb(storage, options)
+      expect(reads.mock.calls.filter(([node]) => node === "web-rendering").length).toBeLessThan(pages.length * 16)
+      const next = fs.readFileSync(lastPage, "utf8")
+      expect(next).toContain('alt="Updated owner"')
+      expect(next).toContain('alt="Now informative"')
+      expect(next).not.toContain('aria-hidden="true"')
+      expect(next).toContain('alt="Local fallback"')
+      expect(JSON.parse(fs.readFileSync(path.join(bookDir, "adt/content/pages.json"), "utf8"))).toHaveLength(1)
+      for (const id of imageIds) expect(fs.readFileSync(path.join(bookDir, "images", `${id}.png`), "utf8")).toBe(`image-${id}`)
+    } finally { reads.mockRestore() }
+  })
+
+  it("refuses a package with only unsafe section ids before publishing page files", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+    const storage = createMockStorage(
+      [{ pageId: "pg001", pageNumber: 1, text: "Page" }],
+      {
+        "web-rendering": {
+          pg001: {
+            sections: [{ sectionIndex: 0, sectionType: "content", reasoning: "", html: "<p>Page</p>" }],
+          },
+        },
+        "page-sectioning": {
+          pg001: {
+            reasoning: "",
+            sections: [{
+              sectionId: "../../other-book/adt/index",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: false,
+            }],
+          },
+        },
+      },
+    )
+
+    await expect(packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book",
+      webAssetsDir,
+    })).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+    expect(fs.existsSync(path.join(tmpDir, "other-book", "adt", "index.html"))).toBe(false)
+  })
+
   it("uses a safe default locale, avoids page-number carryover, and escapes inline answer JSON", async () => {
     const bookDir = path.join(tmpDir, "book")
     const webAssetsDir = path.join(tmpDir, "assets-web")
     fs.mkdirSync(bookDir, { recursive: true })
     createWebAssets(webAssetsDir)
+    fs.copyFileSync(
+      path.resolve(process.cwd(), "assets", "AGENTS.md.liquid"),
+      path.join(tmpDir, "AGENTS.md.liquid"),
+    )
 
     const pages: PageData[] = [
       { pageId: "pg001", pageNumber: 1, text: "Page one" },
@@ -665,6 +861,16 @@ describe("packageAdtWeb", () => {
     expect(configJson.languages.available).toEqual(["fr"])
     expect(configJson.languages.default).toBe("fr")
 
+    // F4: the deselected source language ships only what re-import needs.
+    const sourceLocaleDir = path.join(bookDir, "adt", "content", "i18n", "en")
+    expect(fs.readdirSync(sourceLocaleDir).sort()).toEqual(
+      expect.arrayContaining(["texts.json"]),
+    )
+    for (const name of ["audio", "audios.json", "speech_texts.json", "timecode", "video", "videos.json", "images.json", "freshness.json"]) {
+      expect(fs.existsSync(path.join(sourceLocaleDir, name))).toBe(false)
+    }
+    expect(fs.existsSync(path.join(bookDir, "adt", "content", "i18n", "fr", "audios.json"))).toBe(true)
+
     const pageHtml = readFirstPage(path.join(bookDir, "adt"))
     expect((pageHtml.match(/<main\b/g) ?? [])).toHaveLength(1)
     expect(pageHtml).toContain("window.correctAnswers = JSON.parse(")
@@ -697,6 +903,58 @@ describe("packageAdtWeb", () => {
     const manifest = fs.readFileSync(manifestPath, "utf-8")
     expect(manifest).toContain("ADL SCORM")
     expect(manifest).toContain("index.html")
+
+    const roundTripManifest = AdtRoundTripManifest.parse(JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "manifest.json"), "utf-8"),
+    ))
+    expect(roundTripManifest).toMatchObject({
+      formatVersion: 1,
+      editingContract: { version: 2 },
+      book: { label: "book", title: "Book Title" },
+      languages: { source: "en", output: ["fr"] },
+      baselines: {
+        glossary: null,
+        tocGeneration: null,
+        textCatalogTranslations: { fr: 1 },
+      },
+      textCatalog: { version: null },
+    })
+    expect(roundTripManifest.frozen?.sourceTextsFingerprint).toMatch(/^[a-f0-9]{64}$/)
+    expect(roundTripManifest.frozen?.pageHtmlFingerprints["pg001_sec001.html"]).toMatch(/^[a-f0-9]{64}$/)
+    // F12: every shipped image alt is fingerprinted, so an alt edit is visible on import.
+    const shippedAlts = new Map<string, string>()
+    for (const page of ["pg001_sec001.html", "pg002_sec001.html"]) {
+      const html = fs.readFileSync(path.join(bookDir, "adt", page), "utf-8")
+      for (const match of html.matchAll(/<img[^>]*?data-id="([^"]+)"[^>]*?alt="([^"]*)"/g)) {
+        if (!shippedAlts.has(match[1])) shippedAlts.set(match[1], match[2])
+      }
+    }
+    expect(roundTripManifest.frozen?.imageAltFingerprints).toEqual(Object.fromEntries(
+      [...shippedAlts].map(([id, alt]) => [id, adtTextFingerprint(alt)]),
+    ))
+    // Every shipped text is fingerprinted per locale, matching texts.json.
+    for (const language of ["en", "fr"]) {
+      const texts = JSON.parse(fs.readFileSync(
+        path.join(bookDir, "adt", "content", "i18n", language, "texts.json"),
+        "utf-8",
+      )) as Record<string, string>
+      expect(roundTripManifest.frozen?.textFingerprints?.[language]).toEqual(Object.fromEntries(
+        Object.entries(texts).map(([id, text]) => [id, adtTextFingerprint(text)]),
+      ))
+    }
+    const agentsGuide = fs.readFileSync(path.join(bookDir, "adt", "AGENTS.md"), "utf-8")
+    expect(agentsGuide).toContain("<!-- adt-studio-agent-guide: 3 -->")
+    expect(agentsGuide).toContain("### Repairing a bundle ADT Studio rejected")
+    expect(agentsGuide).toContain("editing contract version `2`")
+    expect(agentsGuide).toContain("activity_custom_<descriptive_slug>")
+    expect(agentsGuide).toContain("editingContract.nonActivities")
+    expect(agentsGuide).toContain('data-adt-non-activity="true"')
+    expect(agentsGuide).toContain("Adding, removing, or reordering pages")
+    expect(agentsGuide).toContain("activity_multiple_choice")
+    expect(agentsGuide).toContain("Choose exactly one answer from several options.")
+    expect(agentsGuide).toContain("Audit every page for learning activities")
+    expect(agentsGuide).toContain("Do not add custom stylesheet files")
+    expect(fs.readFileSync(path.join(bookDir, "adt", "CLAUDE.md"), "utf-8")).toBe(agentsGuide)
   })
 
   it("packages persisted Easy Read entries for the source language", async () => {
@@ -787,6 +1045,13 @@ describe("packageAdtWeb", () => {
       fs.readFileSync(path.join(bookDir, "adt", "assets", "config.json"), "utf-8"),
     ) as { features: { easyRead: boolean } }
     expect(configJson.features.easyRead).toBe(true)
+
+    const roundTripManifest = AdtRoundTripManifest.parse(JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "manifest.json"), "utf-8"),
+    ))
+    expect(roundTripManifest.frozen?.sourceTextsFingerprint).toMatch(/^[a-f0-9]{64}$/)
+    expect(roundTripManifest.textCatalog.idFingerprint)
+      .not.toBe(roundTripManifest.translatableText.idFingerprint)
   })
 
   it("inserts quiz pages even when the anchor page has no rendered sections", async () => {
@@ -890,7 +1155,20 @@ describe("packageAdtWeb", () => {
 
     const quizHtml = readFirstPage(path.join(bookDir, "adt"))
     expect((quizHtml.match(/<main\b/g) ?? [])).toHaveLength(1)
+    expect(quizHtml).toContain('data-section-id="qz001"')
     expect(quizHtml).not.toContain('role="activity"')
+
+    const roundTripManifest = AdtRoundTripManifest.parse(JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "manifest.json"), "utf-8"),
+    ))
+    expect(roundTripManifest.editingContract?.pageDataIds?.["qz001.html"])
+      .toEqual(expect.arrayContaining(["qz001", "qz001_que", "qz001_o0", "qz001_o1"]))
+    expect(roundTripManifest.editingContract?.activities).toEqual([{
+      sectionId: "qz001",
+      href: "qz001.html",
+      type: "activity_quiz",
+    }])
+    expect(roundTripManifest.editingContract?.nonActivities).toEqual([])
 
     // SCORM adapter should include the quiz activity ID
     const scorm = fs.readFileSync(path.join(bookDir, "adt", "assets", "scorm.js"), "utf-8")
@@ -1180,6 +1458,27 @@ describe("packageAdtWeb", () => {
       label: "Mateo",
       audios: { pg001_t001: "pg001_t001--secondary.mp3" },
     })
+    const packaged = path.join(bookDir, "adt")
+    const second = path.join(packaged, "content/i18n/en/audio/pg001_t001--secondary.mp3")
+    const voiceFile = path.join(packaged, "content/i18n/en/audio_voices.json")
+    const voiceBytes = fs.readFileSync(voiceFile), secondBytes = fs.readFileSync(second)
+    expect(packageFilesAvailable(packaged)).toBe(true)
+    for (const fault of ["missing", "empty", "symlink", "unsafe"] as const) {
+      fs.unlinkSync(second)
+      if (fault === "empty") fs.writeFileSync(second, "")
+      if (fault === "symlink") fs.symlinkSync(path.join(audioDir, "pg001_t001--secondary.mp3"), second)
+      if (fault === "unsafe") {
+        fs.writeFileSync(second, secondBytes)
+        fs.writeFileSync(voiceFile, JSON.stringify({ ...audioVoices, voices: { ...audioVoices.voices,
+          secondary: { ...audioVoices.voices.secondary, audios: { pg001_t001: "../../../../../outside.mp3" } } } }))
+      }
+      expect(packageFilesAvailable(packaged), fault).toBe(false)
+      fs.rmSync(second, { force: true }); fs.writeFileSync(second, secondBytes); fs.writeFileSync(voiceFile, voiceBytes)
+      expect(packageFilesAvailable(packaged), `restored ${fault}`).toBe(true)
+    }
+    fs.unlinkSync(voiceFile)
+    expect(packageFilesAvailable(packaged)).toBe(true)
+    fs.writeFileSync(voiceFile, voiceBytes)
     const voiceTimecodes = JSON.parse(
       fs.readFileSync(
         path.join(bookDir, "adt", "content", "i18n", "en", "timecode", "timecode_voices.json"),
@@ -2035,6 +2334,7 @@ describe("packageAdtWeb", () => {
     expect(result.warnings).toEqual([
       { kind: "orphaned-rendering", pageId: "pg002", sectionIndex: 0 },
       { kind: "orphaned-rendering", pageId: "pg002", sectionIndex: 1 },
+      { kind: "missing-storyboard", pageId: "pg002" },
     ])
   })
 
@@ -2563,6 +2863,8 @@ describe("packageAdtWeb", () => {
     const runtimeDir = path.join(monorepoTmp, "apps", "adt-runtime")
     fs.mkdirSync(bookDir, { recursive: true })
     fs.mkdirSync(webAssetsDir, { recursive: true })
+  fs.mkdirSync(path.join(webAssetsDir, "libs/fontawesome/css"), { recursive: true })
+  fs.writeFileSync(path.join(webAssetsDir, "libs/fontawesome/css/all.min.css"), ".icon { display: inline; }")
     fs.mkdirSync(runtimeDir, { recursive: true })
 
     // Required non-bundle assets
@@ -2622,6 +2924,8 @@ describe("packageAdtWeb", () => {
     const runtimeDir = path.join(monorepoTmp, "apps", "adt-runtime")
     fs.mkdirSync(bookDir, { recursive: true })
     fs.mkdirSync(webAssetsDir, { recursive: true })
+  fs.mkdirSync(path.join(webAssetsDir, "libs/fontawesome/css"), { recursive: true })
+  fs.writeFileSync(path.join(webAssetsDir, "libs/fontawesome/css/all.min.css"), ".icon { display: inline; }")
     fs.mkdirSync(runtimeDir, { recursive: true })
 
     fs.writeFileSync(path.join(webAssetsDir, "fonts.css"), "body { font-family: serif; }")
@@ -2707,7 +3011,38 @@ describe("packageAdtWeb", () => {
   })
 })
 
+describe("buildImageMap", () => {
+  it("maps every image format supported by imported ADTs", () => {
+    const imagesDir = fs.mkdtempSync(path.join(os.tmpdir(), "image-map-"))
+    try {
+      for (const file of ["one.png", "two.jpeg", "three.webp", "four.gif", "five.svg", "SIX.JPG"]) {
+        fs.writeFileSync(path.join(imagesDir, file), "image")
+      }
+      expect(Object.fromEntries(buildImageMap(imagesDir))).toEqual({
+        one: "one.png",
+        two: "two.jpeg",
+        three: "three.webp",
+        four: "four.gif",
+        five: "five.svg",
+        SIX: "SIX.JPG",
+      })
+    } finally {
+      fs.rmSync(imagesDir, { recursive: true, force: true })
+    }
+  })
+})
+
 describe("rewriteImageUrls", () => {
+  it("resolves portable old-label image URLs locally without changing external URLs", () => {
+    const html = '<img src="/api/books/original/images/img1"><img src="https://example.test/api/books/original/images/img1">'
+    const preview = rewriteImageUrls(html, "copy", new Map()).html
+    expect(preview).toContain('src="/api/books/copy/images/img1"')
+    expect(preview).toContain('src="https://example.test/api/books/original/images/img1"')
+    const packaged = rewriteImageUrls(html, "copy", new Map([["img1", "image.png"]]))
+    expect(packaged.html).toContain('src="images/image.png"')
+    expect(packaged.html).toContain('src="https://example.test/api/books/original/images/img1"')
+    expect(packaged.referencedImages).toEqual(["img1"])
+  })
   it("rewrites src URL from API path to local images/ path", () => {
     const html = `<img src="/api/books/mybook/images/abc123">`
     const imageMap = new Map([["abc123", "photo.jpg"]])
@@ -3275,7 +3610,7 @@ describe("packageWebpub", () => {
     })
   }
 
-  function setupBook() {
+  function setupBook(html = "<div>First page</div>") {
     const bookDir = path.join(tmpDir, "book")
     const webAssetsDir = path.join(tmpDir, "assets-web")
     fs.mkdirSync(bookDir, { recursive: true })
@@ -3293,7 +3628,7 @@ describe("packageWebpub", () => {
               sectionIndex: 0,
               sectionType: "content",
               reasoning: "ok",
-              html: "<div>First page</div>",
+              html,
             },
           ],
         },
@@ -3327,6 +3662,57 @@ describe("packageWebpub", () => {
     return { bookDir, webAssetsDir, storage }
   }
 
+  it("names a missing page document and retains the prior package", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage, "Prior book")
+    const prior = fs.readFileSync(path.join(bookDir, "adt/index.html"))
+    let document = ""
+    const promise = packageAdtWeb(storage, {
+      bookDir, webAssetsDir, label: "book", language: "en", outputLanguages: ["en"], title: "Damaged book",
+      preparePublication: async stagingRoot => {
+        const staged = path.join(stagingRoot, "adt")
+        document = JSON.parse(fs.readFileSync(path.join(staged, "content/pages.json"), "utf8"))[0].href
+        fs.unlinkSync(path.join(staged, document))
+      },
+    })
+    await expect(promise).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+    const error = await promise.catch(error => error as Error)
+    expect(error.message).toBe(`PACKAGE_FILES_INCOMPLETE: ${JSON.stringify({ document, member: document })}`)
+    expect(error.message).not.toContain(bookDir)
+    expect(fs.readFileSync(path.join(bookDir, "adt/index.html"))).toEqual(prior)
+  })
+
+  it.each([
+    ["image", '<img src="images/missing.png">', "images/missing.png"],
+    ["root-absolute image", '<img src="/api/books/book/images/pg001_im009">', "/api/books/book/images/pg001_im009"],
+    ["stylesheet", '<link rel="stylesheet" href="assets/missing.css">', "assets/missing.css"],
+    ["background image", '<p style="background-image: url(images/missing-bg.png)">Text</p>', "images/missing-bg.png"],
+  ])("builds the package and reports a missing %s in book content instead of refusing", async (_kind, markup, reference) => {
+    const { bookDir, webAssetsDir, storage } = setupBook(`<div>First page${markup}</div>`)
+    const result = await packageAdtWeb(storage, {
+      bookDir, webAssetsDir, label: "book", language: "en", outputLanguages: ["en"], title: "Book with a gap",
+    })
+    // The page is published as written; only that resource is absent.
+    expect(result.warnings).toContainEqual({ kind: "missing-asset", pageId: "pg001", document: "pg001_sec001.html", reference })
+    expect(fs.readFileSync(path.join(bookDir, "adt/pg001_sec001.html"), "utf8")).toContain("First page")
+    expect(JSON.parse(fs.readFileSync(path.join(bookDir, "adt/content/pages.json"), "utf8"))).toEqual([expect.objectContaining({ href: "pg001_sec001.html" })])
+  })
+
+  it("cancellation at package publication retains the previous bundle and removes only its staging", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage, "Prior book")
+    const prior = fs.readFileSync(path.join(bookDir, "adt/index.html"))
+    const abort = new AbortController()
+    let committed = false
+    await expect(packageAdtWeb(storage, {
+      bookDir, webAssetsDir, label: "book", language: "en", outputLanguages: ["en"], title: "Cancelled book", signal: abort.signal,
+      preparePublication: async () => { abort.abort(); return () => { committed = true } },
+    })).rejects.toThrow()
+    expect(committed).toBe(false)
+    expect(fs.readFileSync(path.join(bookDir, "adt/index.html"))).toEqual(prior)
+    expect(fs.readdirSync(path.join(bookDir, ".adt-package-work")).filter(name => name.startsWith("build-"))).toEqual([])
+  })
+
   it("disables showNavigationControls and showTutorial in config", async () => {
     const { bookDir, webAssetsDir, storage } = setupBook()
     await buildAdtFirst(bookDir, webAssetsDir, storage)
@@ -3349,8 +3735,9 @@ describe("packageWebpub", () => {
   it("drops SCORM/non-reader files and omits them from manifest resources", async () => {
     const { bookDir, webAssetsDir, storage } = setupBook()
     await buildAdtFirst(bookDir, webAssetsDir, storage)
-    // packageAdtWeb emits imsmanifest.xml; add a stray AGENTS.md too.
+    // packageAdtWeb emits imsmanifest.xml; add stray AI instruction files too.
     fs.writeFileSync(path.join(bookDir, "adt", "AGENTS.md"), "stray")
+    fs.writeFileSync(path.join(bookDir, "adt", "CLAUDE.md"), "stray")
     expect(fs.existsSync(path.join(bookDir, "adt", "imsmanifest.xml"))).toBe(true)
 
     packageWebpub(storage, {
@@ -3364,12 +3751,14 @@ describe("packageWebpub", () => {
 
     expect(fs.existsSync(path.join(bookDir, "webpub", "imsmanifest.xml"))).toBe(false)
     expect(fs.existsSync(path.join(bookDir, "webpub", "AGENTS.md"))).toBe(false)
+    expect(fs.existsSync(path.join(bookDir, "webpub", "CLAUDE.md"))).toBe(false)
     const manifest = JSON.parse(
       fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
     )
     const hrefs = manifest.resources.map((r: { href: string }) => r.href)
     expect(hrefs).not.toContain("imsmanifest.xml")
     expect(hrefs).not.toContain("AGENTS.md")
+    expect(hrefs).not.toContain("CLAUDE.md")
   })
 
   it("labels resources by MIME type and excludes reading-order docs", async () => {

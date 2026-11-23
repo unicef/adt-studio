@@ -1,8 +1,8 @@
 import type { ReactNode } from "react"
 import { Trans, Plural, useLingui } from "@lingui/react/macro"
-import { Check, RotateCcw, Sparkles, LayoutGrid, Rows3, ArrowRight, ArrowUpRight, Pin, Plus, Globe, MessageSquare } from "lucide-react"
+import { Check, RotateCcw, Sparkles, LayoutGrid, Rows3, ArrowRight, ArrowUpRight, Pin, Plus, Globe, MessageSquare, DownloadCloud } from "lucide-react"
 import { CORE_STAGE_ORDER } from "@adt/types"
-import { STAGES } from "@/components/pipeline/stage-config"
+import { STAGES, isImportedAdtStageAvailable } from "@/components/pipeline/stage-config"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { cn } from "@/lib/utils"
 import { BookCover } from "../../BookCover"
@@ -47,6 +47,17 @@ export function CommentsBadge({ count }: { count: number }) {
       <span className="sr-only">
         <Plural value={count} one="# open comment" other="# open comments" />
       </span>
+    </span>
+  )
+}
+
+/** Where the book came from, not a state to act on, so it sits quietly in the byline rather than
+ *  in a corner badge. Only re-imported ADT exports wear it: their pipeline runs from imported HTML. */
+export function ImportedMark({ className }: { className?: string }) {
+  return (
+    <span className={cn("inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-muted-foreground", className)}>
+      <DownloadCloud className="size-3" aria-hidden />
+      <Trans>Imported</Trans>
     </span>
   )
 }
@@ -98,7 +109,7 @@ const OPTIONAL: StageDef[] = STAGES.filter(
   (stage) => stage.slug !== "book" && !CORE_STAGE_SET.has(stage.slug),
 )
 
-export type Status = "new" | "in-progress" | "ready" | "rebuild"
+export type Status = "new" | "in-progress" | "ready" | "rebuild" | "unverified"
 
 export interface Progress {
   status: Status
@@ -111,17 +122,19 @@ export interface Progress {
 
 export function progressFor(vm: BookVM): Progress {
   const done = new Set(vm.discs.map((d) => d.slug))
-  const baseSteps = BASE.map((stage) => ({ stage, done: done.has(stage.slug) }))
-  const baseFrontier = BASE.find((s) => !done.has(s.slug)) ?? null
+  // A re-imported ADT starts from its HTML: the PDF stages are not part of its base, not unfinished.
+  const base = vm.imported ? BASE.filter((stage) => isImportedAdtStageAvailable(stage.slug)) : BASE
+  const baseSteps = base.map((stage) => ({ stage, done: done.has(stage.slug) }))
+  const baseFrontier = base.find((s) => !done.has(s.slug)) ?? null
   const baseComplete = !baseFrontier
   const optional = OPTIONAL.map((stage) => ({ stage, done: done.has(stage.slug) }))
   const optionalDone = optional.filter((o) => o.done)
-  const status: Status = vm.needsRebuild ? "rebuild" : vm.isNew ? "new" : !baseComplete ? "in-progress" : "ready"
+  const status: Status = vm.needsRebuild ? "rebuild" : vm.isNew ? "new" : vm.raw.storyboardVerificationPending ? "unverified" : !baseComplete ? "in-progress" : "ready"
   return { status, baseSteps, baseFrontier, baseComplete, optional, optionalDone }
 }
 
 export function isActive(vm: BookVM): boolean {
-  return ["in-progress", "rebuild"].includes(progressFor(vm).status)
+  return ["in-progress", "rebuild", "unverified"].includes(progressFor(vm).status)
 }
 
 export function pickResume<T extends BookVM>(sortedByRecency: T[]): T | undefined {
@@ -154,6 +167,9 @@ export function StageBar({ vm, labels = false, className }: { vm: BookVM; labels
     const extra = Math.max(0, p.optionalDone.length - max)
     return (
       <div className={cn("flex items-center gap-1", className)}>
+        {vm.raw.storyboardVerificationPending && <span className="text-xs text-muted-foreground"><Trans>Open the book to verify Storyboard and Preview</Trans></span>}
+        {!vm.raw.storyboardVerificationPending && vm.raw.previewStatus === "unverified" && <span className="text-xs text-muted-foreground"><Trans>Open the book to verify Preview</Trans></span>}
+        {vm.raw.storyboardNeedsReview && <span title={t`Storyboard needs review`} className="text-xs text-amber-700"><Trans>Storyboard needs review</Trans></span>}
         {p.baseComplete ? (
           <span title={t`Base ready`} className="grid size-5 place-items-center rounded-full bg-stage-validation/12 text-stage-validation">
             <Check className="size-3" strokeWidth={2.5} />
@@ -174,6 +190,9 @@ export function StageBar({ vm, labels = false, className }: { vm: BookVM; labels
   const extra = Math.max(0, p.optionalDone.length - 7)
   return (
     <div className={className}>
+      {vm.raw.storyboardVerificationPending && <p className="mb-1 text-xs text-muted-foreground"><Trans>Open the book to verify Storyboard and Preview</Trans></p>}
+      {!vm.raw.storyboardVerificationPending && vm.raw.previewStatus === "unverified" && <p className="mb-1 text-xs text-muted-foreground"><Trans>Open the book to verify Preview</Trans></p>}
+      {vm.raw.storyboardNeedsReview && <p className="mb-1 text-xs text-amber-700"><Trans>Storyboard needs review</Trans></p>}
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1">
           {p.baseSteps.map(({ stage, done }) => {
@@ -243,6 +262,7 @@ export function FrontierChip({ vm, className }: { vm: BookVM; className?: string
         <Trans>Needs rebuild</Trans>
       </span>
     )
+  if (p.status === "unverified") return <span className={cn(base, "bg-muted text-muted-foreground", className)}><Trans>Not yet verified</Trans></span>
   if (p.status === "ready")
     return (
       <span className={cn(base, "bg-stage-validation-50 text-stage-validation", className)}>
@@ -301,8 +321,9 @@ export function GridCard({
       </div>
       <div className="mt-2.5">
         <div className="truncate text-[13px] font-semibold leading-tight">{vm.displayTitle}</div>
-        <div className="mt-0.5 truncate text-[11.5px] text-muted-foreground">
-          {vm.authors} · {vm.pagesText}
+        <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11.5px] text-muted-foreground">
+          {vm.imported && <ImportedMark />}
+          <span className="truncate">{vm.authors} · {vm.pagesText}</span>
         </div>
         <div className="mt-2 flex items-center justify-between gap-2">
           <FrontierChip vm={vm} />
@@ -342,7 +363,7 @@ export function filterBooks(books: BookVM[], f: Filter): BookVM[] {
 export function sortByStatus(books: BookVM[]): BookVM[] {
   const rank = (vm: BookVM) => {
     const s = progressFor(vm).status
-    return s === "rebuild" ? 0 : s === "in-progress" ? 1 : s === "new" ? 2 : 3
+    return s === "rebuild" ? 0 : (s === "in-progress" || s === "unverified") ? 1 : s === "new" ? 2 : 3
   }
   return [...books].sort(
     (a, b) => rank(a) - rank(b) || new Date(b.raw.modifiedAt).getTime() - new Date(a.raw.modifiedAt).getTime(),
@@ -443,7 +464,12 @@ export function ShelfCard({
         {pinned && <Pin className="mt-[3px] size-3 shrink-0 fill-current text-muted-foreground" />}
         <div className="min-w-0">
           <div className="truncate text-[13px] font-semibold leading-tight">{vm.displayTitle}</div>
-          {showAuthor && <div className="truncate text-[11.5px] text-muted-foreground">{vm.authors}</div>}
+          {(showAuthor || vm.imported) && (
+            <div className="flex min-w-0 items-center gap-1.5 text-[11.5px] text-muted-foreground">
+              {vm.imported && <ImportedMark />}
+              {showAuthor && <span className="truncate">{vm.authors}</span>}
+            </div>
+          )}
           {(elevated || progress) && <StageBar vm={vm} className="mt-2.5" />}
         </div>
       </div>
@@ -491,6 +517,9 @@ export function StatusLabel({ vm, className }: { vm: BookVM; className?: string 
   } else if (p.status === "rebuild") {
     text = t`Needs rebuild`
     color = "text-stage-toc"
+  } else if (p.status === "unverified") {
+    text = t`Not yet verified`
+    color = "text-muted-foreground"
   } else if (p.status === "ready") {
     text = t`Ready`
     color = "text-stage-validation"
@@ -590,7 +619,10 @@ export function LibraryTable({ books, onOpen }: { books: BookVM[]; onOpen: (labe
                   </div>
                   <div className="min-w-0">
                     <div className="truncate font-semibold leading-tight">{vm.displayTitle}</div>
-                    <div className="truncate text-[11.5px] text-muted-foreground">{vm.authors}</div>
+                    <div className="flex min-w-0 items-center gap-1.5 text-[11.5px] text-muted-foreground">
+                      {vm.imported && <ImportedMark />}
+                      <span className="truncate">{vm.authors}</span>
+                    </div>
                   </div>
                 </button>
               </td>

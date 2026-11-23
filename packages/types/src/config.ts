@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { SectioningMode } from "./sectioning-lifecycle.js"
 import { QualifiedModelId } from "./model-id.js"
 import { ImageFilters } from "./image-filtering.js"
 import { SpeechConfig } from "./speech.js"
@@ -9,7 +10,7 @@ import { REFLOWABLE_FONT_SETTINGS } from "./reflowable-fonts.js"
 
 export const DEFAULT_LLM_MAX_RETRIES = 5
 export const DEFAULT_LLM_MODEL_ID = "openai:gpt-5.4"
-export const DEFAULT_IMAGE_GENERATION_MODEL_ID = "openai:gpt-image-2"
+export const DEFAULT_IMAGE_GENERATION_MODEL_ID = "openai:gpt-image-2.6-flare"
 export const DEFAULT_OPENAI_TTS_MODEL_ID = "gpt-4o-mini-tts"
 export const DEFAULT_ELEVENLABS_TTS_MODEL_ID = "eleven_multilingual_v2"
 // Rachel — a stable ElevenLabs premade voice ID, used when no voice is
@@ -165,7 +166,7 @@ export type EasyReadConfig = z.infer<typeof EasyReadConfig>
 
 export const PageSectioningConfig = StepConfig.extend({
   max_refinements: z.number().int().min(0).optional(),
-  mode: z.enum(["page", "dynamic"]).catch("dynamic").optional(),
+  mode: SectioningMode.optional(),
 })
 export type PageSectioningConfig = z.infer<typeof PageSectioningConfig>
 
@@ -364,9 +365,13 @@ export const AppConfig = z
      */
     vector_text_grouping: z.boolean().optional(),
     /**
-     * Detect repeated identical text stamps (e.g. a diagonal "FOR ONLINE
-     * READING ONLY" on every page) and remove them from page renders,
-     * figure crops, reflowable text, and positioned text. Off by default.
+     * Detect a watermark repeated across the document (e.g. a diagonal "FOR
+     * ONLINE READING ONLY" on every page) and remove it. A text stamp is
+     * removed from page renders, figure crops, reflowable text, and
+     * positioned text; a stamp baked into the pixels of flattened or scanned
+     * page images is removed from page renders and from the extracted
+     * images, which are re-encoded. Off unless set; the book wizard sets it
+     * on for new books.
      */
     remove_watermarks: z.boolean().optional(),
     apply_body_background: z.boolean().optional(),

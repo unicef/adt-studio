@@ -1,17 +1,22 @@
 import { SourceGeneratorStep } from "@adt/types"
 import { putSourceNodeData, preserveRenderedOwnership, withSourceGenerationTracking, markSourceGenerationNeedsUpdate } from "@adt/pipeline"
+import { captureStoryboardSource, publishSynchronizedStoryboardText } from "@adt/pipeline"
 import { cloneRenderedIdentities, stampRenderedOwner } from "@adt/pipeline"
 import { stampManualEdits } from "@adt/pipeline"
 import { AuthoredSaveGuard } from "@adt/types"
+import { RenderingSave, StoryboardSave, StoryboardSaveResult, AiSectionEdit } from "@adt/types"
+import { invalidPublicOutputIdentity } from "@adt/pipeline"
 import { assertAuthoredIdle } from "../services/authored-output-service.js"
 import { captureOutputReferences } from "@adt/pipeline"
 import { scopeLegacyActivityIds, getRenderSectioning, resolveRenderedSection, renderedSectionId, withLegacyRenderingOwnership, renderingOwnershipSynchronization } from "@adt/pipeline"
+import { currentStoryboardCoverageByPage } from "../services/storyboard-read-model.js"
 import { catalogOutputs, editSourceSignature, assertEditSource, assertEditVersion } from "../services/catalog-output-service.js"
 import { OutputEditGuard } from "@adt/types"
 import { outputEvidence } from "@adt/pipeline"
 import { restoreSpeechOutput } from "@adt/storage"
 import { reconcileTextCatalog, assignActivityIds, buildTextCatalogSnapshot, findIntroducedCatalogConflict, buildImageInventory, inputSignature } from "@adt/pipeline"
 import { randomUUID } from "node:crypto"
+import { bookWriterMiddleware } from "../middleware/book-writer.js"
 import crypto from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
@@ -47,7 +52,7 @@ import type { ContentNodeData, ExtractionWarning } from "@adt/types"
 import { classifyExtractionWarning, flattenVisibleSectioningText } from "../services/extraction-warning.js"
 import { openBookDb } from "@adt/storage"
 import { createBookStorage } from "@adt/storage"
-import { readCurrentNodeRow, CURRENT_VERSION_ORDER } from "@adt/storage"
+import { readCurrentNodeRow, readCurrentNodeRows } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import {
   detectSpreads,
@@ -69,7 +74,7 @@ import {
   SectionIdExhaustedError,
 } from "@adt/pipeline"
 import { samplePageEdges, extractPages, computeGroups, countPdfPages } from "@adt/pdf"
-import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
+import { reRenderPage, reRenderPages, aiEditSection } from "../services/page-edit-service.js"
 import {
   getBookStyleguidesDir,
   getGeneratedStyleguideName,
@@ -82,6 +87,7 @@ import {
   getSegmentedImageId,
   segmentBoundsOnPage,
   loadBookConfig,
+  resolveBookLanguage,
   applyCrop,
   generateStyleguide,
   buildBookFontsPromptContext,
@@ -98,6 +104,8 @@ import { AiProviderError, assertModelCredentials, createLLMModel, createPromptEn
 import type { ResolvedCredentials } from "@adt/llm"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
 import { retireWithPreservedRecordings, DETACHED_AUDIO_DIR } from "../services/detached-audio.js"
+import { getImportedAdtPresentationAssets } from "../services/adt-import/presentation.js"
+import { isImportedAdtProject } from "../services/adt-import/source.js"
 
 /**
  * Lazily-initialized shared Playwright renderer for section screenshots.
@@ -106,6 +114,24 @@ import { retireWithPreservedRecordings, DETACHED_AUDIO_DIR } from "../services/d
  * screenshot call opens its own browser context inside it.
  */
 let sharedScreenshotRendererPromise: Promise<ScreenshotRenderer> | null = null
+
+/** Where the screenshot browser loads an imported ADT's presentation assets.
+ * The request's Host header is client-controlled and also feeds the page's
+ * CSP, so the origin is always this server's own loopback listener. */
+function importedAdtBaseHref(requestUrl: string, label: string, localPort?: number): string {
+  const url = new URL(requestUrl)
+  url.protocol = "http:"
+  url.hostname = "127.0.0.1"
+  if (localPort) url.port = String(localPort)
+  const booksSegment = "/books/"
+  const booksIndex = url.pathname.indexOf(booksSegment)
+  const routePrefix = booksIndex >= 0 ? url.pathname.slice(0, booksIndex) : ""
+  url.pathname = `${routePrefix}/books/${encodeURIComponent(label)}/adt/`
+  url.search = ""
+  url.hash = ""
+  return url.href
+}
+
 function getSharedScreenshotRenderer(): Promise<ScreenshotRenderer> {
   if (!sharedScreenshotRendererPromise) {
     sharedScreenshotRendererPromise = createScreenshotRenderer().catch((err) => {
@@ -510,6 +536,64 @@ function clearCaptionData(storage: Storage): void {
   storage.clearNodesByType(["accessibility-assessment"])
 }
 
+/** The page's current image-filtering list; 409 when Extract hasn't made one. */
+function readPageImageList(storage: Storage, pageId: string): { version: number; data: ImageClassificationOutput } {
+  const row = storage.getLatestNodeData("image-filtering", pageId)
+  const parsed = ImageClassificationOutput.safeParse(row?.data)
+  if (!row || !parsed.success) {
+    throw new HTTPException(409, { message: `Page ${pageId} has no extracted image list yet. Run Extract first.` })
+  }
+  return { version: row.version, data: parsed.data }
+}
+
+/** Append an image, unpruned, to the page's current image-filtering list as a
+ *  new version. Returns that version (or the current one if already listed). */
+function addImageToPageList(storage: Storage, pageId: string, imageId: string): number {
+  return storage.transaction(() => {
+    const current = readPageImageList(storage, pageId)
+    if (current.data.images.some((img) => img.imageId === imageId)) return current.version
+    return storage.putNodeData("image-filtering", pageId, {
+      ...current.data,
+      images: [...current.data.images, { imageId, isPruned: false }],
+    })
+  })
+}
+
+/** `addToPage` on the crop/upload routes is checked before anything is
+ *  written, so a refused add leaves no image behind. */
+function assertPageImageList(safeLabel: string, booksDir: string, pageId: string): void {
+  const storage = createBookStorage(safeLabel, booksDir)
+  try {
+    readPageImageList(storage, pageId)
+  } finally {
+    storage.close()
+  }
+}
+
+/** Add an image created earlier in this request to its page's image list. If
+ *  that fails, remove the image again (row + file) so the failed add leaves
+ *  nothing unreferenced behind and a retry starts clean. */
+function addCreatedImageToPage(
+  storage: Storage,
+  db: ReturnType<typeof openBookDb>,
+  bookDir: string,
+  image: { imageId: string; pageId: string; relativePath: string; createdHere: boolean },
+): number {
+  try {
+    return addImageToPageList(storage, image.pageId, image.imageId)
+  } catch (err) {
+    if (image.createdHere) {
+      try {
+        db.run("DELETE FROM images WHERE image_id = ?", [image.imageId])
+        fs.rmSync(path.join(bookDir, image.relativePath), { force: true })
+      } catch {
+        // Best effort — report the original failure.
+      }
+    }
+    throw err
+  }
+}
+
 const RestorableNode = z.enum([
   "tts",
   "image-translation",
@@ -604,6 +688,11 @@ function saveStoryboardNode(
       [PageSectioningOutput.parse(data)], () => itemId,
       (before, after) => !renderingChanged && inputSignature(before.sections) === inputSignature(after.sections),
     )[0] : data
+    const identities = node === "page-sectioning" ? PageSectioningOutput.parse(saved).sections.map(section => section.sectionId)
+      : WebRenderingOutput.parse(saved).sections.flatMap(section => renderedSectionId(section) ?? section.sectionId ?? [])
+    if (invalidPublicOutputIdentity(storage, itemId, identities) !== undefined) {
+      throw new HTTPException(409, { message: "STORYBOARD_INPUT_CHANGED: Section identities must be safe, unique and owned by this page." })
+    }
     if (node === "page-sectioning") {
       const before = PageSectioningOutput.safeParse(storage.getLatestNodeData(node, itemId)?.data)
       const after = PageSectioningOutput.parse(saved)
@@ -642,7 +731,7 @@ function saveStoryboardNode(
     // HTML it has already mirrored, or has queued a targeted re-render for. The
     // storyboard is current (or seconds from it) and only its dependents are
     // behind, so resetting the stage would take the editor away for nothing.
-    if (node === "page-sectioning") {
+    if (node === "page-sectioning" && inputSignature(priorSectioning?.success ? priorSectioning.data.sections : undefined) !== inputSignature(PageSectioningOutput.parse(saved).sections)) {
       markStoryboardChainStale(storage, { includeStoryboard: !renderingInSync })
     }
     return nextVersion
@@ -784,9 +873,20 @@ function cloneNodesWithFreshContainerIds(
  * Indices address the current source order; they never establish ownership. */
 function loadEditableRendering(storage: Storage, pageId: string, sectioning: PageSectioningOutput): WebRenderingOutput | null {
   const row = storage.getLatestNodeData("web-rendering", pageId)
-  if (!row) return null
+  if (row?.data == null) return null
   const parsed = WebRenderingOutput.safeParse(row.data)
   if (!parsed.success) throw new HTTPException(409, { message: "Rendering is invalid. Restore matching versions before editing sections." })
+  const fixed = storage.getLatestNodeData("fixed-layout-sectioning", pageId)
+  if (fixed?.data != null) {
+    const positioned = PageSectioningOutput.safeParse(fixed.data)
+    const projected = withLegacyRenderingOwnership(storage, pageId, parsed.data)
+    if (!positioned.success || projected.sections.some(entry => !resolveRenderedSection(entry, positioned.data.sections, projected.sections))) {
+      throw new HTTPException(409, { message: "Section ownership is ambiguous. The existing content has been preserved." })
+    }
+    // Fixed HTML belongs to the independently published positioned tree.
+    // Semantic edits cannot clone/remap/drop that pair by semantic array index.
+    return null
+  }
   const seen = new Set<string>()
   const sections = withLegacyRenderingOwnership(storage, pageId, parsed.data).sections.map(entry => {
     const owner = renderedSectionId(entry)
@@ -808,6 +908,8 @@ export function createPageRoutes(
   taskService?: TaskService
 ): Hono {
   const app = new Hono()
+  app.use("/books/:label/*", bookWriterMiddleware(booksDir))
+  app.use("/books/:label", bookWriterMiddleware(booksDir))
 
   // GET /books/:label/pages — List pages with pipeline status
   app.get("/books/:label/pages", (c) => {
@@ -824,6 +926,7 @@ export function createPageRoutes(
     }
 
     const db = openBookDb(dbPath)
+    let inventoryStorage: Storage | undefined
     try {
       const pages = db.all(
         "SELECT page_id, page_number, text FROM pages ORDER BY page_number"
@@ -833,14 +936,7 @@ export function createPageRoutes(
       // per page so we can compute per-section activity flags.
       const rendered = new Set<string>()
       const renderingByPage = new Map<string, { version: number; activityBySectionIndex: Map<number, boolean> }>()
-      const renderRows = db.all(
-        `SELECT nd.item_id AS item_id, nd.version AS version, nd.data AS data
-         FROM node_data nd
-         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
-         WHERE nd.node = ?
-         ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
-        ["web-rendering"]
-      ) as Array<{ item_id: string; version: number; data: string | null }>
+      const renderRows = readCurrentNodeRows(db, "web-rendering")
       const seenRenderings = new Set<string>()
       for (const row of renderRows) {
         if (seenRenderings.has(row.item_id)) continue
@@ -871,14 +967,7 @@ export function createPageRoutes(
 
       // Check which pages have image-captioning output
       const captioned = new Set<string>()
-      const captionRows = db.all(
-        `SELECT nd.item_id AS item_id, nd.data AS data
-         FROM node_data nd
-         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
-         WHERE nd.node = ?
-         ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
-        ["image-captioning"]
-      ) as Array<{ item_id: string; data: string | null }>
+      const captionRows = readCurrentNodeRows(db, "image-captioning")
       const seenCaptions = new Set<string>()
       for (const row of captionRows) {
         if (seenCaptions.has(row.item_id)) continue
@@ -890,18 +979,11 @@ export function createPageRoutes(
       // through Storyboard or Glossary. Captions must discover these before a
       // caption exists, even on pages with no retained extracted images.
       const imageIdsByPage = new Map<string, Set<string>>()
-      const imageRows = db.all(
-        `SELECT nd.item_id AS item_id, nd.data AS data
-         FROM node_data nd
-         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
-         WHERE nd.node = ?
-         ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
-        ["image-filtering"]
-      ) as Array<{ item_id: string; data: string }>
+      const imageRows = readCurrentNodeRows(db, "image-filtering")
       for (const row of imageRows) {
         if (!imageIdsByPage.has(row.item_id)) {
           try {
-            const parsed = JSON.parse(row.data)
+            const parsed = JSON.parse(row.data ?? "null")
             const images = parsed.images as Array<{ imageId: string }>
             // Exclude page image from count
             imageIdsByPage.set(row.item_id, new Set(images
@@ -912,16 +994,21 @@ export function createPageRoutes(
           }
         }
       }
-      const inventoryStorage = createBookStorage(safeLabel, booksDir)
-      try {
-        for (const image of inventoryStorage.readSnapshot(() => buildImageInventory(inventoryStorage))) {
-          if (!image.pageId || !image.available) continue
-          const ids = imageIdsByPage.get(image.pageId) ?? new Set<string>()
-          ids.add(image.id)
-          imageIdsByPage.set(image.pageId, ids)
+      const storage = inventoryStorage = createBookStorage(safeLabel, booksDir)
+      // This read-only list tolerates damaged page JSON just like coverage.
+      // Keep the complete-inventory contract of catalog mutation callers intact.
+      const inventoryView: Storage = { ...storage, getLatestNodeData(node, itemId) {
+        try { return storage.getLatestNodeData(node, itemId) }
+        catch (error) {
+          if (error instanceof SyntaxError && node === "web-rendering") return null
+          throw error
         }
-      } finally {
-        inventoryStorage.close()
+      } }
+      for (const image of storage.readSnapshot(() => buildImageInventory(inventoryView))) {
+        if (!image.pageId || !image.available) continue
+        const ids = imageIdsByPage.get(image.pageId) ?? new Set<string>()
+        ids.add(image.id)
+        imageIdsByPage.set(image.pageId, ids)
       }
 
       // Get section counts, pruned indices, sectionIds, and flattened text per page from page-sectioning node data
@@ -930,19 +1017,12 @@ export function createPageRoutes(
       const sectionsByPage = new Map<string, PageSummarySection[]>()
       const sectioningVersions = new Map<string, number>()
       const structuredText = new Map<string, string>()
-      const structuringRows = db.all(
-        `SELECT nd.item_id AS item_id, nd.version AS version, nd.data AS data
-         FROM node_data nd
-         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
-         WHERE nd.node = ?
-         ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
-        ["page-sectioning"]
-      ) as Array<{ item_id: string; version: number; data: string }>
+      const structuringRows = readCurrentNodeRows(db, "page-sectioning")
       for (const row of structuringRows) {
         if (sectionCounts.has(row.item_id)) continue
         sectioningVersions.set(row.item_id, row.version)
         try {
-          const parsed = JSON.parse(row.data)
+          const parsed = JSON.parse(row.data ?? "null")
           const rawSections = parsed.sections as Array<{
             sectionId?: string
             sectionType?: string
@@ -1010,6 +1090,10 @@ export function createPageRoutes(
         }
       }
 
+      const coverage = currentStoryboardCoverageByPage(storage, path.dirname(dbPath), pages.map(page => page.page_id))
+      for (const page of pages) {
+        if (coverage.get(page.page_id)!.rendered === 0) rendered.delete(page.page_id)
+      }
       const result: PageSummary[] = pages.map((p) => ({
         pageId: p.page_id,
         pageNumber: p.page_number,
@@ -1031,7 +1115,7 @@ export function createPageRoutes(
 
       return c.json(result)
     } finally {
-      db.close()
+      try { inventoryStorage?.close() } finally { db.close() }
     }
   })
 
@@ -1347,86 +1431,88 @@ export function createPageRoutes(
     const desiredIds = new Set(desiredGroups.map(idOf))
 
     const storage = createBookStorage(safeLabel, booksDir)
-    const currentIds = new Set(storage.getPages().map((p) => p.pageId))
+    try {
+      const currentIds = new Set(storage.getPages().map((p) => p.pageId))
 
-    const toAdd = desiredGroups.filter((g) => !currentIds.has(idOf(g)))
-    const toRemove = [...currentIds].filter((id) => !desiredIds.has(id))
+      const toAdd = desiredGroups.filter((g) => !currentIds.has(idOf(g)))
+      const toRemove = [...currentIds].filter((id) => !desiredIds.has(id))
 
-    if (toAdd.length > 0) {
-      const autoFigureMode = resolveFigureExtractionMode(config) === "auto"
-      const newPages = await extractPages({
-        pdfBuffer,
-        groups: toAdd,
-        ...figureExtractionFlags(config),
-        removeWatermarks: config.remove_watermarks === true,
-        fixedLayout: isFixedLayoutBook(config),
-      })
-      const imageClassifyConfig = {
-        ...buildImageClassifyConfig(config),
-        getImageBytes: (imageId: string) =>
-          Buffer.from(storage.getImageBase64(imageId), "base64"),
-      }
-      for (const page of newPages) {
-        withSourceGenerationTracking(storage, () => {
-          storage.putExtractedPage(page)
-          storage.putNodeData("positioned-text", page.pageId, page.positionedText)
-          if (page.extractionDebug) {
-            storage.putNodeData("extraction-debug", page.pageId, page.extractionDebug)
-          }
-          const classified = classifyPageImages(
-            page.pageId,
-            storage.getPageImages(page.pageId),
-            imageClassifyConfig,
-          )
-          storage.putNodeData(
-            "image-filtering",
-            page.pageId,
-            autoFigureMode
-              ? deduplicateAutoFigureCandidates(classified, page.extractionDebug)
-              : classified,
-          )
+      if (toAdd.length > 0) {
+        const autoFigureMode = resolveFigureExtractionMode(config) === "auto"
+        const newPages = await extractPages({
+          pdfBuffer,
+          groups: toAdd,
+          ...figureExtractionFlags(config),
+          removeWatermarks: config.remove_watermarks === true,
+          fixedLayout: isFixedLayoutBook(config),
         })
+        const imageClassifyConfig = {
+          ...buildImageClassifyConfig(config),
+          getImageBytes: (imageId: string) =>
+            Buffer.from(storage.getImageBase64(imageId), "base64"),
+        }
+        for (const page of newPages) {
+          withSourceGenerationTracking(storage, () => {
+            storage.putExtractedPage(page)
+            storage.putNodeData("positioned-text", page.pageId, page.positionedText)
+            if (page.extractionDebug) {
+              storage.putNodeData("extraction-debug", page.pageId, page.extractionDebug)
+            }
+            const classified = classifyPageImages(
+              page.pageId,
+              storage.getPageImages(page.pageId),
+              imageClassifyConfig,
+            )
+            storage.putNodeData(
+              "image-filtering",
+              page.pageId,
+              autoFigureMode
+                ? deduplicateAutoFigureCandidates(classified, page.extractionDebug)
+                : classified,
+            )
+          })
+        }
       }
-    }
-    // Retire before deleting, and in one pass so the whole reconcile costs a
-    // single `toc-generation` version. `deletePage` drops the page's entire
-    // node_data history, including the sectioning the id factory reads its
-    // high-water mark from — so a page later re-created under the same id
-    // restarts at `_sec001`. Any `toc-generation` entry, sign-language video or
-    // speech manifest entry still pointing at an id that page spent would then
-    // silently reattach to unrelated content, which is exactly what id
-    // immutability prevents everywhere else. The speech manifests are the ones
-    // `deletePage` cannot reach on its own: they are keyed by language, not by
-    // page.
-    const spentOnRemovedPages = toRemove.flatMap((id) => [
-      ...collectSpentSectionIds(storage, id),
-    ])
-    const { retired, preserved } = retireWithPreservedRecordings(
-      storage,
-      path.join(path.resolve(booksDir), safeLabel),
-      () => retireSectionIds(storage, spentOnRemovedPages)
-    )
-    // Preserve before `deletePage`, for the same reason retirement runs before it.
-    // Un-applying the spread re-creates these pages under their old ids with no
-    // history to allocate past, so they re-mint `_sec001` and Speech regenerates
-    // straight over any recording left at `audio/<lang>/${sectionId}_ans_*`. The
-    // manifest entry is gone by then, so nothing downstream could rescue it.
-    if (retired.detachedRecordings.length > 0) {
-      console.warn(
-        `[pages] ${safeLabel}: detached ${retired.detachedRecordings.length} uploaded audio recording(s) from removed page(s); ${preserved.length} file(s) backed up to ${DETACHED_AUDIO_DIR}/ so a later re-section cannot overwrite the backups.`
+      // Retire before deleting, and in one pass so the whole reconcile costs a
+      // single `toc-generation` version. `deletePage` drops the page's entire
+      // node_data history, including the sectioning the id factory reads its
+      // high-water mark from — so a page later re-created under the same id
+      // restarts at `_sec001`. Any `toc-generation` entry, sign-language video or
+      // speech manifest entry still pointing at an id that page spent would then
+      // silently reattach to unrelated content, which is exactly what id
+      // immutability prevents everywhere else. The speech manifests are the ones
+      // `deletePage` cannot reach on its own: they are keyed by language, not by
+      // page.
+      const spentOnRemovedPages = toRemove.flatMap((id) => [
+        ...collectSpentSectionIds(storage, id),
+      ])
+      const { retired, preserved } = retireWithPreservedRecordings(
+        storage,
+        path.join(path.resolve(booksDir), safeLabel),
+        () => retireSectionIds(storage, spentOnRemovedPages)
       )
-    }
-    // A later extraction/retirement failure may leave an earlier page published.
-    // Reset with each committed membership change, never only on HTTP success.
-    for (const id of toRemove) withSourceGenerationTracking(storage, () => {
-      storage.deletePage(id)
-    })
+      // Preserve before `deletePage`, for the same reason retirement runs before it.
+      // Un-applying the spread re-creates these pages under their old ids with no
+      // history to allocate past, so they re-mint `_sec001` and Speech regenerates
+      // straight over any recording left at `audio/<lang>/${sectionId}_ans_*`. The
+      // manifest entry is gone by then, so nothing downstream could rescue it.
+      if (retired.detachedRecordings.length > 0) {
+        console.warn(
+          `[pages] ${safeLabel}: detached ${retired.detachedRecordings.length} uploaded audio recording(s) from removed page(s); ${preserved.length} file(s) backed up to ${DETACHED_AUDIO_DIR}/ so a later re-section cannot overwrite the backups.`
+        )
+      }
+      // A later extraction/retirement failure may leave an earlier page published.
+      // Reset with each committed membership change, never only on HTTP success.
+      for (const id of toRemove) withSourceGenerationTracking(storage, () => {
+        storage.deletePage(id)
+      })
 
-    return c.json({
-      merged: toAdd.length,
-      removed: toRemove.length,
-      pageCount: storage.getPages().length,
-    })
+      return c.json({
+        merged: toAdd.length,
+        removed: toRemove.length,
+        pageCount: storage.getPages().length,
+      })
+    } finally { storage.close() }
   })
 
   // GET /books/:label/pages/:pageId/sections/:sectionIndex/screenshot — Rendered section as PNG
@@ -1492,6 +1578,7 @@ export function createPageRoutes(
       const storage = createBookStorage(safeLabel, booksDir)
       const images = new Map<string, { base64: string }>()
       let typographyCss = ""
+      let language: string
       try {
         for (const id of referencedImageIds) {
           try {
@@ -1501,16 +1588,37 @@ export function createPageRoutes(
           }
         }
         typographyCss = resolveTypographyCss(storage)
+        language = resolveBookLanguage(storage, loadBookConfig(safeLabel, booksDir, configPath))
       } finally {
         storage.close()
       }
 
+      const importedPresentation = isImportedAdtProject(bookDir)
+        ? getImportedAdtPresentationAssets(safeLabel, booksDir)
+        : null
       const screenshotHtml = await buildScreenshotHtml({
         sectionHtml,
         label: safeLabel,
         images,
         webAssetsDir,
         typographyCss,
+        language,
+        ...(importedPresentation
+          ? {
+              baseHref: importedAdtBaseHref(
+                c.req.url,
+                safeLabel,
+                (c.env as { incoming?: { socket?: { localPort?: number } } } | undefined)?.incoming?.socket?.localPort,
+              ),
+              stylesheets: [...new Set([
+                "content/tailwind_output.css",
+                "assets/libs/fontawesome/css/all.min.css",
+                "assets/fonts.css",
+                ...importedPresentation.stylesheets,
+              ])],
+              contentClassName: importedPresentation.contentClasses.join(" "),
+            }
+          : {}),
       })
 
       // Cache key incorporates HTML + viewport so cache invalidates whenever
@@ -1570,7 +1678,7 @@ export function createPageRoutes(
         const remap = sectionReorderMap(previous.success ? previous.data : undefined, parsed.data)
         if (remap) migrateEditableActivities(storage, pageId, { mapIndex: remap })
         return saved
-      })
+      }, [pageId])
       return c.json({ version })
     } finally {
       storage.close()
@@ -1612,11 +1720,9 @@ export function createPageRoutes(
     const safeLabel = parseBookLabel(label)
 
     const body = await c.req.json()
-    const parsed = WebRenderingOutput.safeParse(body)
+    const parsed = RenderingSave.safeParse(body)
     if (!parsed.success) {
-      throw new HTTPException(400, {
-        message: `Invalid web-rendering data: ${parsed.error.message}`,
-      })
+      return c.json({ code: "STORYBOARD_REQUEST_INVALID", error: "STORYBOARD_REQUEST_INVALID: Invalid edit request" }, 400)
     }
 
     const storage = createBookStorage(safeLabel, booksDir)
@@ -1627,7 +1733,11 @@ export function createPageRoutes(
         throw new HTTPException(404, { message: `Page not found: ${pageId}` })
       }
 
-      const version = storage.transaction(() => saveStoryboardNode(storage, "web-rendering", pageId, parsed.data))
+      const version = storage.transaction(() => {
+        assertNoActivePipelineRun(storage)
+        assertEditVersion(storage.getSelectedNodeVersion("web-rendering", pageId) ?? undefined, parsed.data.baseVersion)
+        return saveStoryboardNode(storage, "web-rendering", pageId, WebRenderingOutput.parse(parsed.data))
+      })
       return c.json({ version })
     } finally {
       storage.close()
@@ -1656,18 +1766,9 @@ export function createPageRoutes(
     const safeLabel = parseBookLabel(label)
 
     const body = await c.req.json()
-    const parsed = z
-      .object({
-        sectioning: PageSectioningOutput.omit({ source: true }).optional(),
-        baseVersion: AuthoredSaveGuard.shape.baseVersion.optional(),
-        rendering: WebRenderingOutput.optional(),
-        renderingInSync: z.boolean().default(false),
-      })
-      .safeParse(body)
+    const parsed = StoryboardSave.safeParse(body)
     if (!parsed.success) {
-      throw new HTTPException(400, {
-        message: `Invalid storyboard save: ${parsed.error.message}`,
-      })
+      return c.json({ code: "STORYBOARD_REQUEST_INVALID", error: "STORYBOARD_REQUEST_INVALID: Invalid edit request" }, 400)
     }
     const { sectioning, rendering, renderingInSync } = parsed.data
     if (!sectioning && !rendering) {
@@ -1702,23 +1803,34 @@ export function createPageRoutes(
       // Rendering, sectioning, downstream invalidations, and step status are a
       // single editor save. If any statement fails, none of them may survive.
       const previousSectioning = sectioning ? PageSectioningOutput.safeParse(storage.getLatestNodeData("page-sectioning", pageId)?.data) : null
-      const { renderingVersion, sectioningVersion } = withSourceGenerationTracking(storage, () => {
-        const saved = {
-          renderingVersion: rendering
-            ? saveStoryboardNode(storage, "web-rendering", pageId, rendering)
-            : null,
-          sectioningVersion: sectioning
-            ? saveStoryboardNode(storage, "page-sectioning", pageId, sectioning, { renderingInSync })
-            : null,
-        }
+      const saved = withSourceGenerationTracking(storage, () => {
+        assertNoActivePipelineRun(storage)
+        if (rendering) assertEditVersion(storage.getSelectedNodeVersion("web-rendering", pageId) ?? undefined, parsed.data.renderingBaseVersion!)
+        const synchronized = sectioning && rendering && renderingInSync
+        const priorSource = synchronized ? captureStoryboardSource(storage, pageId) : undefined
+        const oldRendering = synchronized ? WebRenderingOutput.safeParse(storage.getLatestNodeData("web-rendering", pageId)?.data) : undefined
+        const priorRendering = oldRendering?.success ? withLegacyRenderingOwnership(storage, pageId, oldRendering.data) : undefined
+        if (rendering) saveStoryboardNode(storage, "web-rendering", pageId, rendering)
+        if (sectioning) saveStoryboardNode(storage, "page-sectioning", pageId, sectioning, { renderingInSync })
         if (sectioning) {
           const remap = sectionReorderMap(previousSectioning?.success ? previousSectioning.data : undefined, sectioning)
           if (remap) migrateEditableActivities(storage, pageId, { mapIndex: remap })
         }
-        return saved
-      })
+        if (synchronized) publishSynchronizedStoryboardText(storage, pageId, priorSource,
+          previousSectioning?.success ? previousSectioning.data : undefined, priorRendering)
+        const sourceRow = storage.getLatestNodeData("page-sectioning", pageId)
+        const renderingRow = storage.getLatestNodeData("web-rendering", pageId)
+        const canonicalSource = PageSectioningOutput.safeParse(sourceRow?.data)
+        const canonicalRendering = WebRenderingOutput.safeParse(renderingRow?.data)
+        return StoryboardSaveResult.parse({
+          sectioningVersion: sourceRow?.version ?? null,
+          renderingVersion: renderingRow?.version ?? null,
+          sectioning: canonicalSource.success ? canonicalSource.data : null,
+          rendering: canonicalRendering.success ? canonicalRendering.data : null,
+        })
+      }, [pageId])
 
-      return c.json({ sectioningVersion, renderingVersion })
+      return c.json(saved)
     } finally {
       storage.close()
     }
@@ -1770,7 +1882,7 @@ export function createPageRoutes(
         }
         clearRestoredNodeDependents(storage, node, itemId, previousVersion)
         return c.json({ node, itemId, version: storage.getCurrentNodeVersion(node, itemId) ?? version })
-      })
+      }, ["page-sectioning", "web-rendering", "image-filtering", "image-captioning"].includes(node) ? [itemId] : undefined)
     } finally {
       storage.close()
     }
@@ -1825,18 +1937,16 @@ export function createPageRoutes(
 
   // POST /books/:label/pages/re-render — Re-render a set of pages as one task.
   // This is used by cross-page edits: the Storyboard step stays running until
-  // every affected page succeeds, and any failure makes the whole stage stale.
+  // requested pages settle; successful ordinary pages remain published on failure.
   app.post("/books/:label/pages/re-render", async (c) => {
     const safeLabel = parseBookLabel(c.req.param("label"))
     const credentials = readProviderCredentials(c)
-    // Fail before the batch starts: a partially re-rendered book is worse than
-    // a rejected request, and the model decides which credential is required.
-    assertModelCredentials(
-      "structured-text",
-      loadBookConfig(safeLabel, booksDir, configPath).default_model
-        ?? DEFAULT_LLM_MODEL_ID,
-      credentials,
-    )
+    // Validate credentials once, before submitting work. Per-page missing input
+    // is isolated by the admitted renderer so runnable neighbors can publish.
+    const config = loadBookConfig(safeLabel, booksDir, configPath)
+    if (!isFixedLayoutBook(config)) {
+      assertModelCredentials("structured-text", config.default_model ?? DEFAULT_LLM_MODEL_ID, credentials)
+    }
 
     const parsed = z
       .object({ pageIds: z.array(z.string().min(1)).min(1).max(100) })
@@ -1855,17 +1965,7 @@ export function createPageRoutes(
         if (!existingPageIds.has(pageId)) {
           throw new HTTPException(404, { message: `Page not found: ${pageId}` })
         }
-        const sectioningRow = storage.getLatestNodeData("page-sectioning", pageId)
-        if (!sectioningRow) {
-          throw new HTTPException(400, {
-            message: `Page must have page-sectioning data before re-rendering: ${pageId}`,
-          })
-        }
-        if (!PageSectioningOutput.safeParse(sectioningRow.data).success) {
-          throw new HTTPException(400, {
-            message: `Invalid page-sectioning data: ${pageId}`,
-          })
-        }
+
       }
 
       assertNoActivePipelineRun(storage)
@@ -1885,20 +1985,9 @@ export function createPageRoutes(
 
     const runReRenders = async () => {
       try {
-        const results = []
-        for (const pageId of pageIds) {
-          results.push(
-            await reRenderPage({
-              label: safeLabel,
-              pageId,
-              booksDir,
-              promptsDir,
-              webAssetsDir,
-              configPath,
-              credentials,
-            })
-          )
-        }
+        const results = await reRenderPages(pageIds.map((pageId) => ({
+          label: safeLabel, pageId, booksDir, promptsDir, webAssetsDir, configPath, credentials,
+        })))
 
         const completedStorage = createBookStorage(safeLabel, booksDir)
         try {
@@ -2052,20 +2141,18 @@ export function createPageRoutes(
     const credentials = readProviderCredentials(c)
 
     const body = await c.req.json()
-    const guard = AuthoredSaveGuard.safeParse(body)
-    if (!guard.success) throw new HTTPException(400, { message: "baseVersion is required for AI edits" })
+    const guard = AiSectionEdit.safeParse(body)
+    if (!guard.success) return c.json({ code: "STORYBOARD_REQUEST_INVALID", error: "STORYBOARD_REQUEST_INVALID: Invalid edit request" }, 400)
     const checkBase = () => {
       const storage = createBookStorage(safeLabel, booksDir)
       try {
         assertAuthoredIdle(storage)
         assertEditVersion(storage.getLatestNodeData("page-sectioning", pageId)?.version, guard.data.baseVersion)
+        assertEditVersion(storage.getSelectedNodeVersion("web-rendering", pageId) ?? undefined, guard.data.renderingBaseVersion)
       } finally { storage.close() }
     }
     checkBase()
-    const instruction = body?.instruction
-    if (!instruction || typeof instruction !== "string") {
-      throw new HTTPException(400, { message: "Missing instruction in request body" })
-    }
+    const { instruction, currentHtml } = guard.data
 
     // Submit as task if TaskService is available
     if (taskService) {
@@ -2094,7 +2181,7 @@ export function createPageRoutes(
             pageId,
             sectionIndex: idx,
             instruction,
-            currentHtml: typeof body.currentHtml === "string" ? body.currentHtml : undefined,
+            currentHtml,
             booksDir,
             promptsDir,
             webAssetsDir,
@@ -2143,7 +2230,7 @@ export function createPageRoutes(
       pageId,
       sectionIndex: idx,
       instruction,
-      currentHtml: typeof body.currentHtml === "string" ? body.currentHtml : undefined,
+      currentHtml,
       booksDir,
       promptsDir,
       webAssetsDir,
@@ -2151,6 +2238,7 @@ export function createPageRoutes(
       credentials,
     })
 
+    checkBase()
     return c.json(result)
   })
 
@@ -2684,7 +2772,7 @@ export function createPageRoutes(
             // Extract inner content from remove section's <section> tag and append into keep section's <section>
             const innerContentMatch = removeEntry.html.match(/<section[^>]*>([\s\S]*)<\/section>/)
             const innerContent = innerContentMatch ? innerContentMatch[1] : removeEntry.html
-            keepEntry.html = keepEntry.html.replace(/<\/section>\s*$/, `${innerContent}</section>`)
+            keepEntry.html = keepEntry.html.replace(/<\/section>\s*$/, () => `${innerContent}</section>`)
           }
 
           // Remove the removeIdx rendering entry
@@ -3150,6 +3238,9 @@ export function createPageRoutes(
     }
     validateImageId(pageId)
     validateImageId(sourceImageId)
+    // `addToPage`: also add the crop to the page's image list in this request.
+    const addToPage = formData.get("addToPage") === "true"
+    if (addToPage) assertPageImageList(safeLabel, booksDir, pageId)
 
     const buffer = Buffer.from(await imageFile.arrayBuffer())
     const hash = crypto.createHash("sha256").update(buffer).digest("hex").slice(0, 16)
@@ -3189,6 +3280,9 @@ export function createPageRoutes(
         height = buffer.readUInt32BE(20)
       }
 
+      // A failed add only removes a row this request created, never one the
+      // upsert below overwrote.
+      const createdHere = db.all("SELECT 1 FROM images WHERE image_id = ?", [newImageId]).length === 0
       db.run(
         `INSERT INTO images (image_id, page_id, path, hash, width, height, source)
          VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -3204,13 +3298,19 @@ export function createPageRoutes(
 
       // Clear caption data since the image content changed
       const storage = createBookStorage(safeLabel, booksDir)
+      let imageFilteringVersion: number | undefined
       try {
+        if (addToPage) {
+          imageFilteringVersion = addCreatedImageToPage(storage, db, bookDir, {
+            imageId: newImageId, pageId, relativePath: `images/${filename}`, createdHere,
+          })
+        }
         clearCaptionData(storage)
       } finally {
         storage.close()
       }
 
-      return c.json({ imageId: newImageId, width, height })
+      return c.json({ imageId: newImageId, width, height, ...(imageFilteringVersion !== undefined && { imageFilteringVersion }) })
     } finally {
       db.close()
     }
@@ -3239,6 +3339,9 @@ export function createPageRoutes(
       throw new HTTPException(400, { message: "Missing pageId" })
     }
     validateImageId(pageId)
+    // `addToPage`: also add the upload to the page's image list in this request.
+    const addToPage = formData.get("addToPage") === "true"
+    if (addToPage) assertPageImageList(safeLabel, booksDir, pageId)
 
     const buffer = Buffer.from(await imageFile.arrayBuffer())
     const hash = crypto.createHash("sha256").update(buffer).digest("hex").slice(0, 16)
@@ -3290,13 +3393,20 @@ export function createPageRoutes(
 
       // Clear caption data since a new image was added
       const storage = createBookStorage(safeLabel, booksDir)
+      let imageFilteringVersion: number | undefined
       try {
+        if (addToPage) {
+          // Plain INSERT above: the row is always this request's own.
+          imageFilteringVersion = addCreatedImageToPage(storage, db, bookDir, {
+            imageId: newImageId, pageId, relativePath: `images/${filename}`, createdHere: true,
+          })
+        }
         clearCaptionData(storage)
       } finally {
         storage.close()
       }
 
-      return c.json({ imageId: newImageId, width, height })
+      return c.json({ imageId: newImageId, width, height, ...(imageFilteringVersion !== undefined && { imageFilteringVersion }) })
     } finally {
       db.close()
     }

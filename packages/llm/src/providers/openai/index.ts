@@ -35,6 +35,9 @@ export const openaiManifest: ProviderManifest = {
       storageKey: "adt-studio-openai-key",
       legacyStorageKeys: [],
       placeholder: "sk-...",
+      // Loose shape check (covers sk-, sk-proj-, sk-svcacct-…): catches typos,
+      // stray quotes/spaces and keys pasted into the wrong provider (sk-ant-).
+      pattern: "^sk-(?!ant-)[A-Za-z0-9_-]+$",
     },
   ],
   capabilities: {
@@ -81,7 +84,7 @@ export const openaiManifest: ProviderManifest = {
   defaultModels: {
     "structured-text": "gpt-5.4",
     agent: "gpt-5.4",
-    image: "gpt-image-2",
+    image: "gpt-image-2.6-flare",
     tts: "gpt-4o-mini-tts",
     stt: "whisper-1",
   },

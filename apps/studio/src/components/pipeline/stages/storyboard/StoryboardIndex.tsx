@@ -1,7 +1,9 @@
+import { useStoryboardPreviewReady } from "../../components/storyboard-thumbnails"
 import { Trans } from "@lingui/react/macro"
 import { usePages } from "@/hooks/use-pages"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { LoadingState } from "../../components/LoadingState"
+import { useHasUnsavedChanges } from "../../components/floating-save"
 import { StoryboardLandingPage } from "./StoryboardLandingPage"
 import { StoryboardView } from "./StoryboardView"
 
@@ -17,6 +19,7 @@ export function StoryboardIndex({
 }) {
   const status = useStageStatus("storyboard")
   const { data: pages, isLoading: pagesLoading } = usePages(bookLabel)
+  const hasUnsavedChanges = useHasUnsavedChanges()
 
   // The stage is marked stale by edits that don't destroy anything — the
   // renderings it produced are still on disk and still editable. Gating the view
@@ -25,7 +28,12 @@ export function StoryboardIndex({
   // whole book. Show the editor whenever there is a rendering to edit.
   const hasRendering = (pages ?? []).some((p) => p.hasRendering)
 
-  if (status.isCompleted || status.isRunning || hasRendering) {
+  const showView = status.isCompleted || status.isRunning || hasRendering || !!(selectedPageId && hasUnsavedChanges)
+  useStoryboardPreviewReady(!pagesLoading && !showView)
+
+  // A committed reset can remove every rendering while this route owns an
+  // editor draft. Keep its guarded session mounted until explicit discard/save.
+  if (showView) {
     return (
       <StoryboardView
         bookLabel={bookLabel}

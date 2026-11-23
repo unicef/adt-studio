@@ -1,12 +1,17 @@
-import { putSourceNodeData, putReflowableRendering, isFixedLayoutBook } from "@adt/pipeline"
+import { isFixedLayoutBook } from "@adt/pipeline"
 import { HTTPException } from "hono/http-exception"
 import { renderedSectionId, resolveRenderedSection, withLegacyRenderingOwnership } from "@adt/pipeline"
+import { withBookWriter, resolveBookPaths } from "@adt/storage"
+import {
+  createStoryboardPublication, FIXED_LAYOUT_SECTIONING_NODE, hasFixedLayoutSectioning, SectioningSafetyError,
+  processFixedLayoutPages, missingStoryboardInputMessage,
+} from "@adt/pipeline"
 import crypto from "node:crypto"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
 import type { LLMModel, ResolvedCredentials } from "@adt/llm"
-import { renderPage, buildRenderStrategyResolver, buildBookFontsPromptContext, readTypography, buildTypographyCss, collectReferencedImageIds, collectSourcePageImages, createTemplateEngine, loadBookConfig, createScreenshotRenderer, runVisualReviewLoop, DEFAULT_VISUAL_REVIEW_MODEL_ID, buildScreenshotHtml, SCREENSHOT_VIEWPORTS, inspectOrderingActivityHtml, validateRetainedHeadingHierarchy } from "@adt/pipeline"
+import { renderPage, buildRenderStrategyResolver, buildBookFontsPromptContext, readTypography, buildTypographyCss, collectReferencedImageIds, collectSourcePageImages, createTemplateEngine, loadBookConfig, resolveBookLanguage, resolvePageDirection, createScreenshotRenderer, runVisualReviewLoop, DEFAULT_VISUAL_REVIEW_MODEL_ID, buildScreenshotHtml, SCREENSHOT_VIEWPORTS, inspectOrderingActivityHtml, validateRetainedHeadingHierarchy } from "@adt/pipeline"
 import type { VisualRefinementDeps } from "@adt/pipeline"
 import { PageSectioningOutput, WebRenderingOutput, htmlEditLLMSchema, editVerifyLLMSchema, DEFAULT_LLM_MODEL_ID } from "@adt/types"
 import { loadStyleguideContent } from "./styleguide.js"
@@ -171,33 +176,89 @@ export function findInventedImages(originalHtml: string, editedHtml: string): st
   return [...invented]
 }
 
-export async function reRenderPage(
-  options: ReRenderOptions
-): Promise<ReRenderResult> {
+export async function reRenderPage(options: ReRenderOptions): Promise<ReRenderResult> {
+  return (await reRenderPages([options]))[0]
+}
+
+export async function reRenderPages(options: ReRenderOptions[]): Promise<ReRenderResult[]> {
+  if (!options.length) return []
+  const { label, booksDir, configPath } = options[0]
+  if (options.some((item) => item.label !== label || item.booksDir !== booksDir || item.configPath !== configPath)) throw new Error("A rendering batch must belong to one book")
+  return withBookWriter(resolveBookPaths(label, booksDir).bookDir, async () => {
+    const storage = createBookStorage(label, booksDir)
+    try {
+      const publication = createStoryboardPublication(storage, label, booksDir, configPath)
+      const pages = new Set(publication.storage.getPages().map((page) => page.pageId))
+      const outside = options.filter(item => !pages.has(item.pageId)).map(item => item.pageId)
+      if (outside.length) throw new SectioningSafetyError("STORYBOARD_PAGE_OUTSIDE_WINDOW", `${outside.slice(0, 20).join(", ")}; total=${outside.length}`)
+      publication.assertScope([...new Set(options.map((item) => item.pageId))])
+      if (isFixedLayoutBook(loadBookConfig(label, booksDir, configPath))) {
+        if (options.some((item) => item.sectionIndex !== undefined)) {
+          throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", "A fixed-layout page must be re-rendered as a whole. Existing output is kept.")
+        }
+        if (options.some((item) => item.prompt?.trim())) {
+          throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", "Fixed-layout rendering uses extracted positioned content and cannot apply an LLM prompt. Existing output is kept.")
+        }
+        const pageIds = options.map((item) => item.pageId)
+        const unavailable: string[] = []
+        await processFixedLayoutPages(publication.storage, `/api/books/${label}/images`, pageIds, {
+          onPage: (id) => publication.publishPage(id),
+          onUnavailable: (id) => unavailable.push(id),
+        })
+        publication.publish()
+        if (unavailable.length) throw new SectioningSafetyError("STORYBOARD_PAGE_INPUT_MISSING", missingStoryboardInputMessage(unavailable))
+        return pageIds.map((pageId) => {
+          const row = storage.getLatestNodeData("web-rendering", pageId)!
+          return { version: row.version, rendering: row.data }
+        })
+      }
+      const unavailable: string[] = []
+      for (const item of options) {
+        try {
+          const renderedIds = await reRenderAdmittedPage(item, publication)
+          publication.publishPage(item.pageId, renderedIds)
+        } catch (error) {
+          if (!(error instanceof SectioningSafetyError) || error.code !== "STORYBOARD_PAGE_INPUT_MISSING") throw error
+          publication.discardPage(item.pageId)
+          unavailable.push(item.pageId)
+        }
+      }
+      publication.publish()
+      if (unavailable.length) throw new SectioningSafetyError("STORYBOARD_PAGE_INPUT_MISSING", missingStoryboardInputMessage(unavailable))
+      return options.map((item) => {
+        const row = storage.getLatestNodeData("web-rendering", item.pageId)!
+        return { version: row.version, rendering: row.data }
+      })
+    } finally { storage.close() }
+  })
+}
+
+async function reRenderAdmittedPage(
+  options: ReRenderOptions, publication: ReturnType<typeof createStoryboardPublication>,
+): Promise<string[]> {
   const { label, pageId, sectionIndex, prompt, booksDir, promptsDir, webAssetsDir, configPath, credentials } = options
 
-  const storage = createBookStorage(label, booksDir)
+  const storage = publication.storage
   let visualRefinement: VisualRefinementDeps | undefined
   // Book typography (editable size-per-role map), shared with every rendered page.
   const typography = readTypography(storage)
 
   try {
-    const structuringRow = storage.getLatestNodeData("page-sectioning", pageId)
-
-    if (!structuringRow) {
-      throw new Error(
-        "Page must have page-sectioning data before re-rendering"
-      )
+    const hasFixedTree = hasFixedLayoutSectioning(storage, pageId)
+    const fixedVersion = storage.getSelectedNodeVersion(FIXED_LAYOUT_SECTIONING_NODE, pageId)
+    if (sectionIndex !== undefined && hasFixedTree) {
+      throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", "A positioned page must be re-rendered as a whole before re-rendering a semantic section. Existing output is kept.")
     }
-
-    const structuringParsed = PageSectioningOutput.safeParse(structuringRow.data)
+    let structuringRow: ReturnType<typeof storage.getLatestNodeData> = null
+    try { structuringRow = storage.getLatestNodeData("page-sectioning", pageId) }
+    catch (error) { if (!(error instanceof SyntaxError)) throw error }
+    const structuringParsed = PageSectioningOutput.safeParse(structuringRow?.data)
     if (!structuringParsed.success) {
-      throw new Error("Invalid page-sectioning data")
+      throw new SectioningSafetyError("STORYBOARD_PAGE_INPUT_MISSING", missingStoryboardInputMessage([pageId]))
     }
     const sectioning = structuringParsed.data
-    const fixedRow = storage.getLatestNodeData("fixed-layout-sectioning", pageId)
     const legacyPositioned = sectioning.sections.some(section => section.sectionType === "fixed-layout-page" && section.viewport && section.placement)
-    if (fixedRow || legacyPositioned) {
+    if (hasFixedTree || legacyPositioned) {
       const config = loadBookConfig(label, booksDir, configPath)
       if (sectionIndex !== undefined || legacyPositioned || isFixedLayoutBook(config)) {
         throw new HTTPException(409, { message: "This page uses fixed layout. Run Sectioning and Storyboard after selecting a reflowable layout, or run Storyboard to rebuild fixed layout. Existing content has been preserved." })
@@ -292,6 +353,7 @@ export async function reRenderPage(
             const hash = crypto.createHash("sha256").update(base64).digest("hex").slice(0, 16)
             storage.putDebugImage(hash, Buffer.from(base64, "base64"))
           },
+          language: resolveBookLanguage(storage, config),
         }
       }
     }
@@ -319,6 +381,7 @@ export async function reRenderPage(
         styleguide: styleguideContent,
         bookFonts: buildBookFontsPromptContext(storage),
         typography,
+        pageDirection: resolvePageDirection(resolveBookLanguage(storage, config), config.output_languages),
         userPrompt: prompt,
       },
       resolveRenderConfig,
@@ -328,9 +391,9 @@ export async function reRenderPage(
     )
 
     return storage.transaction(() => {
-      if (storage.getLatestNodeData("page-sectioning", pageId)?.version !== structuringRow.version ||
+      if (storage.getLatestNodeData("page-sectioning", pageId)?.version !== structuringRow?.version ||
           storage.getLatestNodeData("web-rendering", pageId)?.version !== initialRenderingRow?.version ||
-          storage.getLatestNodeData("fixed-layout-sectioning", pageId)?.version !== fixedRow?.version) {
+          storage.getSelectedNodeVersion(FIXED_LAYOUT_SECTIONING_NODE, pageId) !== fixedVersion) {
         throw new HTTPException(409, { message: "Page changed during re-rendering. The existing rendering has been preserved." })
       }
       let rendering = renderResult
@@ -345,17 +408,13 @@ export async function reRenderPage(
           return owner ? { ...entry, sectionIndex: sectioning.sections.indexOf(owner) } : entry
         }).sort((a, b) => a.sectionIndex - b.sectionIndex) }
       }
-      const version = sectionIndex === undefined
-        ? putReflowableRendering(storage, pageId, rendering)
-        : putSourceNodeData(storage, "web-rendering", pageId, rendering)
-      storage.clearNodesByType(["accessibility-assessment"])
-      return { version, rendering }
+      storage.putNodeData("web-rendering", pageId, rendering)
+      return renderResult.sections.flatMap(entry => renderedSectionId(entry) ?? [])
     })
   } finally {
     if (visualRefinement) {
       await visualRefinement.screenshotRenderer.close()
     }
-    storage.close()
   }
 }
 
@@ -400,6 +459,9 @@ export async function aiEditSection(
     const config = loadBookConfig(label, booksDir, configPath)
     const modelId =
       config.page_sectioning?.model ?? config.default_model ?? DEFAULT_LLM_MODEL_ID
+    // Screenshots follow the book's writing direction, as the reader does.
+    const language = resolveBookLanguage(storage, config)
+    const pageDirection = resolvePageDirection(language, config.output_languages) ?? ""
 
     // Build LLM model
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
@@ -444,6 +506,7 @@ export async function aiEditSection(
         images: imagesForScreenshot,
         webAssetsDir,
         typographyCss,
+        language,
       })
       const renderer = await createScreenshotRenderer()
       try {
@@ -502,6 +565,7 @@ export async function aiEditSection(
           instruction,
           screenshots,
           previous_attempt_failure: previousAttemptFailure,
+          page_direction: pageDirection,
         },
         validate: (obj) => {
           const resp = obj as HtmlEditResponse
@@ -585,6 +649,7 @@ export async function aiEditSection(
           images: afterImages,
           webAssetsDir: assetsDir,
           typographyCss,
+          language,
         })
         const renderer = await createScreenshotRenderer()
         let desktopAfter: string
@@ -606,6 +671,7 @@ export async function aiEditSection(
             instruction,
             before_base64: desktopBefore,
             after_base64: desktopAfter,
+            page_direction: pageDirection,
           },
           maxRetries: 1,
           log: {

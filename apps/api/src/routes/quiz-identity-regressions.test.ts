@@ -3,7 +3,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { Hono } from "hono"
-import { createBookStorage } from "@adt/storage"
+import { createBookStorage, writeSectioningLifecycle } from "@adt/storage"
 import { buildTextCatalog, packageAdtWeb, packageWebpub, packageEpub, saveQuizOutput, assertQuizGenerationCapacity } from "@adt/pipeline"
 import { formatQuizId, QuizIdExhaustedError, type Quiz, type QuizGenerationOutput } from "@adt/types"
 import { createQuizRoutes } from "./quizzes.js"
@@ -100,6 +100,8 @@ beforeEach(() => {
     fs.writeFileSync(path.join(assets, f), "window.__review = true;")
   }
   fs.writeFileSync(path.join(assets, "fonts.css"), "body { font-family: serif; }")
+  fs.mkdirSync(path.join(assets, "libs/fontawesome/css"), { recursive: true })
+  fs.writeFileSync(path.join(assets, "libs/fontawesome/css/all.min.css"), "/* test icons */")
   fs.writeFileSync(path.join(assets, "tailwind_css.css"), "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n")
   useStorage((s) => {
     for (let n = 1; n <= 2; n++) {
@@ -411,13 +413,12 @@ describe("full-stage quiz regeneration", () => {
 
   it("reserves identities through retained reruns and refuses an unsafe extraction reset", async () => {
     seed([quiz("One"), quiz("Two")])
-    makeBeforeRun(label, "storyboard", "storyboard", root)()
+    makeBeforeRun(label, "storyboard", "storyboard", root, undefined, configPath)()
     expect(stored().quizzes.map(quiz => quiz.question)).toEqual(["One", "Two"])
     useStorage((s) => saveQuizOutput(s, output([quiz("Three")]), "replace"))
     expect(stored().quizzes[0].quizId).toBe("qz003")
-    const before = history()
-    expect(() => makeBeforeRun(label, "extract", "quizzes", root)()).toThrow("UNSAFE_RESUME_UNAVAILABLE")
-    expect(history()).toEqual(before)
+    expect(makeBeforeRun(label, "extract", "quizzes", root, configPath)).toThrow(/preservation-safe|unknown-origin/)
+    expect(stored().quizzes[0].quizId).toBe("qz003")
     useStorage((s) => saveQuizOutput(s, output([quiz("Four")]), "replace"))
     expect(stored().quizzes[0].quizId).toBe("qz004")
     expect(history()).toHaveLength(3)
@@ -578,4 +579,86 @@ describe("wide quiz IDs in output formats", () => {
       }
     } finally { storage.close() }
   })
+})
+
+// REVIEWER-DESIGNED, NOT RUN. Append to:
+// apps/api/src/routes/quiz-identity-regressions.test.ts
+// Reuses real Hono/storage/generateQuiz plus existing controlled generateObject
+// provider seam. This is caller-input isolation, not provider-cache accounting.
+it.each([false, true])("generate-one excludes an explicitly reset JSON-null page (reset-only selection: %s)", async (resetOnly) => {
+  const { protectedAuthoredRecords, resetSectioningStoryboard, sectioningReplacementSignature } = await import("@adt/pipeline")
+  const retained = quiz("Preserved existing quiz", "qz001", "pg002")
+  retained.options = retained.options.map((option, index) => ({ ...option, optionId: `qz001_o${index}` }))
+  seed([retained])
+  const before = useStorage(s => ({
+    quizHistory: s.getAllNodeVersions("quiz-generation", "book"),
+    neighborSource: s.getAllNodeVersions("page-sectioning", "pg002"),
+    neighborRendering: s.getAllNodeVersions("web-rendering", "pg002"),
+    resetSource: s.getAllNodeVersions("page-sectioning", "pg001"),
+  }))
+  useStorage(s => {
+    const signature = sectioningReplacementSignature(s, label, root, configPath)
+    resetSectioningStoryboard(s, {
+      fromStage: "sectioning", toStage: "sectioning", replaceManual: true,
+      protectedReplacements: protectedAuthoredRecords(s, signature).filter(record => record.node === "page-sectioning" && record.itemId === "pg001"),
+    }, signature)
+    expect(s.getLatestNodeData("web-rendering", "pg001")?.data).toBeNull()
+  })
+  generateObjectMock.mockClear()
+  const response = await app.request(`/books/${label}/quizzes/generate-one`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      pageIds: resetOnly ? ["pg001"] : ["pg001", "pg002"], afterPageId: "pg002", placement: "after",
+      baseVersion: useStorage(s => s.getLatestNodeData("quiz-generation", "book")!.version),
+    }),
+  })
+  if (resetOnly) {
+    expect(response.status, await response.clone().text()).toBe(400)
+    // Client-safe missing-input refusal, not a raw null/schema exception.
+    expect(await response.text()).not.toContain("Invalid web-rendering")
+    expect(generateObjectMock).not.toHaveBeenCalled()
+    expect(useStorage(s => s.getAllNodeVersions("quiz-generation", "book"))).toEqual(before.quizHistory)
+  } else {
+    expect(response.status, await response.clone().text()).toBe(200)
+    const body = await response.json()
+    expect(body.quiz.pageIds).toEqual(["pg002"])
+    expect(generateObjectMock).toHaveBeenCalledTimes(1)
+    expect(generateObjectMock.mock.calls[0][0].context.page_texts).toEqual([{ pageId: "pg002", text: "Page 2" }])
+    expect(stored().quizzes.find(item => item.quizId === "qz001")).toEqual(before.quizHistory[0].data && (before.quizHistory[0].data as QuizGenerationOutput).quizzes[0])
+    expect(useStorage(s => s.getAllNodeVersions("quiz-generation", "book").slice(0, before.quizHistory.length))).toEqual(before.quizHistory)
+  }
+  expect(useStorage(s => s.getAllNodeVersions("page-sectioning", "pg001"))).toEqual(before.resetSource)
+  expect(useStorage(s => s.getLatestNodeData("web-rendering", "pg001")?.data)).toBeNull()
+  expect(useStorage(s => s.getAllNodeVersions("page-sectioning", "pg002"))).toEqual(before.neighborSource)
+  expect(useStorage(s => s.getAllNodeVersions("web-rendering", "pg002"))).toEqual(before.neighborRendering)
+})
+
+it.each(["edit", "insert", "replace"] as const)("allocates quizzes around section public aliases at every writer (%s)", async mode => {
+  useStorage(s => {
+    const row = s.getLatestNodeData("page-sectioning", "pg001")!
+    const tree = row.data as import("@adt/types").PageSectioningOutput
+    tree.sections[0].sectionId = "QZ001"
+    s.putNodeData("page-sectioning", "pg001", tree)
+  })
+  if (mode === "edit") {
+    const response = await put([quiz("New")])
+    expect(response.status, await response.clone().text()).toBe(200)
+  } else useStorage(s => saveQuizOutput(s, output([quiz("New")]), mode))
+  expect(stored().quizzes[0].quizId).toBe("qz002")
+  const before = useStorage(s => s.getNodeVersionFingerprint())
+  expect((await put([quiz("Alias", "qz001")])).status).toBe(400)
+  expect(useStorage(s => s.getNodeVersionFingerprint())).toEqual(before)
+})
+
+it("direct quiz preview omits imported aliases just as the manifest does", async () => {
+  useStorage(s => {
+    const row = s.getLatestNodeData("page-sectioning", "pg001")!
+    const tree = row.data as import("@adt/types").PageSectioningOutput
+    tree.sections[0].sectionId = "QZ001"
+    s.putNodeData("page-sectioning", "pg001", tree)
+  })
+  seed([quiz("Imported", "qz001")])
+  const before = useStorage(s => s.getNodeVersionFingerprint())
+  expect((await app.request(`/books/${label}/adt-preview/qz001.html`)).status).toBe(404)
+  expect(useStorage(s => s.getNodeVersionFingerprint())).toEqual(before)
 })

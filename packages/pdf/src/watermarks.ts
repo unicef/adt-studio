@@ -18,10 +18,15 @@
  *   watermark strings (handles word-by-word draw ops).
  * - Detected signatures are echoed into the extraction debug output so the
  *   removal is inspectable, never silent.
+ *
+ * Stamps that are not text ops — baked into the pixels of flattened or
+ * scanned page images — are handled by `raster-watermarks.ts`, which reuses
+ * the filtered render below to swap cleaned images in.
  */
 import mupdf, {
   type Color,
   type Document as MupdfDocument,
+  type Image as MupdfImage,
   type Matrix as MupdfMatrix,
   type Shade as MupdfShade,
   type StrokeState,
@@ -171,6 +176,18 @@ function opKey(op: TextOpInfo): string {
 }
 
 /**
+ * Up to `count` 0-based page indices spread evenly over a document of
+ * `total` pages. Both watermark detectors sample this way, so they look at
+ * the whole document whatever page range is being extracted.
+ */
+export function spreadPageIndices(total: number, count: number): number[] {
+  const n = Math.min(total, count);
+  const indices = new Set<number>();
+  for (let i = 0; i < n; i++) indices.add(Math.floor((i * total) / n));
+  return [...indices];
+}
+
+/**
  * Detect repeated identical text stamps across the document.
  *
  * Samples up to `DETECT_SAMPLE_PAGES` pages evenly over the whole document
@@ -181,11 +198,7 @@ export function detectTextWatermarks(doc: MupdfDocument): WatermarkSignature[] {
   const totalPages = doc.countPages();
   if (totalPages < 2) return [];
 
-  const sampleCount = Math.min(totalPages, DETECT_SAMPLE_PAGES);
-  const pageIndices = new Set<number>();
-  for (let i = 0; i < sampleCount; i++) {
-    pageIndices.add(Math.floor((i * totalPages) / sampleCount));
-  }
+  const pageIndices = spreadPageIndices(totalPages, DETECT_SAMPLE_PAGES);
 
   const byKey = new Map<string, { op: TextOpInfo; pages: Set<number>; diagRatio: number }>();
   let pagesSampled = 0;
@@ -312,6 +325,34 @@ export function renderPageWithoutWatermarks(
   watermarks: WatermarkSignature[],
 ): Buffer | null {
   if (watermarks.length === 0) return null;
+  return renderPageFiltered(page, scale, { watermarks });
+}
+
+export interface FilteredRenderOptions {
+  /** Text ops matching one of these signatures are not drawn. */
+  watermarks?: WatermarkSignature[];
+  /**
+   * Called for every image about to be drawn, with the matrix that places
+   * its unit square in render space (page points × scale, page origin at
+   * 0,0). Return a replacement to draw instead — it is destroyed after the
+   * draw — or null to draw the image unchanged.
+   */
+  replaceImage?: (image: MupdfImage, ctm: MupdfMatrix) => MupdfImage | null;
+}
+
+/**
+ * Render the page to a PNG at `scale` through a forwarding device that can
+ * drop watermark text ops and substitute images. Every other op reaches the
+ * rasterizer verbatim. Returns null on any failure so callers can fall back
+ * to the standard render.
+ */
+export function renderPageFiltered(
+  page: ReturnType<MupdfDocument["loadPage"]>,
+  scale: number,
+  options: FilteredRenderOptions,
+): Buffer | null {
+  const watermarks = options.watermarks ?? [];
+  const replaceImage = options.replaceImage;
 
   const bounds = page.getBounds();
   const originX = bounds[0];
@@ -331,6 +372,7 @@ export function renderPageWithoutWatermarks(
   ];
 
   const isWatermarkTextOp = (text: MupdfText, ctm: MupdfMatrix): boolean => {
+    if (watermarks.length === 0) return false;
     const info = decodeTextOp(text, ctm);
     if (!info) return false;
     // The callback CTM is composed with `matrix`, so measured bounds are in
@@ -397,7 +439,16 @@ export function renderPageWithoutWatermarks(
         }
       },
       fillImage(image, ctm, alpha) {
-        dev.fillImage(image, ctm, alpha);
+        const replacement = replaceImage?.(image, ctm) ?? null;
+        if (!replacement) {
+          dev.fillImage(image, ctm, alpha);
+          return;
+        }
+        try {
+          dev.fillImage(replacement, ctm, alpha);
+        } finally {
+          replacement.destroy();
+        }
       },
       fillImageMask(image, ctm, colorspace, color, alpha) {
         dev.fillImageMask(image, ctm, colorspace, asColor(color), alpha);

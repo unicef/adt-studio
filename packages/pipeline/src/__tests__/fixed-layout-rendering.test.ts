@@ -916,7 +916,7 @@ describe("processFixedLayoutPages", () => {
     }
   }
 
-  it("renders all positioned images and paragraphs in draw order", () => {
+  it("renders all positioned images and paragraphs in draw order", async () => {
     const booksRoot = fs.mkdtempSync(path.join(os.tmpdir(), "adt-fixlayout-test-"))
     tmpDirs.push(booksRoot)
 
@@ -954,7 +954,7 @@ describe("processFixedLayoutPages", () => {
         ],
       })
 
-      processFixedLayoutPages(storage, "/images")
+      await processFixedLayoutPages(storage, "/images")
 
       const rendering = storage.getLatestNodeData("web-rendering", "pg001")
       expect(rendering).not.toBeNull()
@@ -970,7 +970,7 @@ describe("processFixedLayoutPages", () => {
     }
   })
 
-  it("writes the positioned tree to fixed-layout-sectioning and leaves page-sectioning untouched", () => {
+  it("writes the positioned tree to fixed-layout-sectioning and leaves page-sectioning untouched", async () => {
     const booksRoot = fs.mkdtempSync(path.join(os.tmpdir(), "adt-fixlayout-test-"))
     tmpDirs.push(booksRoot)
 
@@ -1004,7 +1004,7 @@ describe("processFixedLayoutPages", () => {
       const semantic = { reasoning: "semantic", sections: [] }
       storage.putNodeData("page-sectioning", "pg001", semantic)
 
-      processFixedLayoutPages(storage, "/images")
+      await processFixedLayoutPages(storage, "/images")
 
       // Positioned tree goes to the dedicated node…
       const fixed = storage.getLatestNodeData("fixed-layout-sectioning", "pg001")
@@ -1019,7 +1019,7 @@ describe("processFixedLayoutPages", () => {
     }
   })
 
-  it("excludes images that image-filtering marked pruned", () => {
+  it("excludes images that image-filtering marked pruned", async () => {
     // Fixed-layout trusts image-filtering's pruning decisions: the wizard
     // writes image_filters that disable size/complexity/meaningfulness
     // filtering for these books, so in practice nothing gets pruned except
@@ -1062,7 +1062,7 @@ describe("processFixedLayoutPages", () => {
         ],
       })
 
-      processFixedLayoutPages(storage, "/images")
+      await processFixedLayoutPages(storage, "/images")
 
       const rendering = storage.getLatestNodeData("web-rendering", "pg001")!
       const html = (rendering.data as { sections: Array<{ html: string }> }).sections[0].html
@@ -1074,7 +1074,7 @@ describe("processFixedLayoutPages", () => {
     }
   })
 
-  it("stamps the book-wide widest page as data-fl-reference-width on every page", () => {
+  it("stamps the book-wide widest page as data-fl-reference-width on every page", async () => {
     const booksRoot = fs.mkdtempSync(path.join(os.tmpdir(), "adt-fixlayout-test-"))
     tmpDirs.push(booksRoot)
 
@@ -1131,7 +1131,7 @@ describe("processFixedLayoutPages", () => {
         ],
       })
 
-      processFixedLayoutPages(storage, "/images")
+      await processFixedLayoutPages(storage, "/images")
 
       const getHtml = (pageId: string) =>
         (storage.getLatestNodeData("web-rendering", pageId)!.data as {
@@ -1149,6 +1149,40 @@ describe("processFixedLayoutPages", () => {
       expect(spreadHtml).toContain("width:800px;height:600px")
     } finally {
       storage.close()
+    }
+  })
+
+  it("leaves an already-rendered page alone when there is no positioned text", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fl-no-postext-"))
+    const storage = createBookStorage("book", dir)
+    try {
+      storage.putExtractedPage({
+        pageId: "pg001",
+        pageNumber: 1,
+        text: "",
+        pageImage: makeImage("pg001_page", "pg001", 800, 600),
+        images: [makeImage("pg001_im001", "pg001", 600, 400, { x: 0, y: 0, width: 600, height: 400 })],
+      })
+      // An imported fixed-layout page renders, but was never extracted from a
+      // PDF — there is no positioned text to rebuild it from. Rebuilding anyway
+      // would replace it with an empty `#content`.
+      const imported = {
+        sections: [{
+          sectionIndex: 0,
+          sectionType: "fixed-layout-page",
+          reasoning: "Imported.",
+          html: '<div id="content" data-fl-reference-width="1145" style="position:relative;width:1145px;height:692px"><p data-id="p1">Hi</p></div>',
+        }],
+      }
+      storage.putNodeData("web-rendering", "pg001", imported)
+
+      await processFixedLayoutPages(storage, "/api/books/book/images")
+
+      expect(storage.getLatestNodeData("web-rendering", "pg001")!.data).toEqual(imported)
+      expect(storage.getLatestNodeData("fixed-layout-sectioning", "pg001")).toBeNull()
+    } finally {
+      storage.close()
+      fs.rmSync(dir, { recursive: true, force: true })
     }
   })
 })

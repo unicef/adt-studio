@@ -1,6 +1,17 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 
+// Lingui macros are not compiled and no locale is active in this test
+// project; the fallback error message is the only translation these reach.
+vi.mock("@lingui/core/macro", () => ({
+  msg: (strings: TemplateStringsArray, ...values: unknown[]) =>
+    ({ id: strings.reduce((out, part, i) => out + part + (i < values.length ? String(values[i]) : ""), "") }),
+}))
+vi.mock("@lingui/core", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@lingui/core")>()
+  return { ...actual, i18n: { ...actual.i18n, _: (descriptor: { id: string }) => descriptor.id } }
+})
+
 vi.mock("@/lib/utils", () => ({
   isElectron: vi.fn(() => false),
 }))
@@ -173,6 +184,17 @@ it("retains upstream structured codes and SPEC-0002 conflict status in the same 
   try {
     const error = await api.getPages("conflict-fixture").catch(error => error)
     expect(error).toBeInstanceOf(ApiError)
-    expect(error).toMatchObject({ status: 409, code: "VERSION_CONFLICT", message: "Changed elsewhere" })
+    expect(error).toMatchObject({ status: 409, code: "VERSION_CONFLICT", message: "The saved content changed. Your draft is retained. Refresh and review the current versions before retrying." })
+  } finally { vi.unstubAllGlobals() }
+})
+
+// F15: a proxy's HTML error page is not shown as the error message.
+it("replaces an HTML error page with the status message and keeps the status", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("<html><body><h1>502 Bad Gateway</h1></body></html>", { status: 502 })))
+  try {
+    const error = await api.getPages("proxy-fixture").catch(error => error)
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error.status).toBe(502)
+    expect(error.message).not.toContain("<html")
   } finally { vi.unstubAllGlobals() }
 })

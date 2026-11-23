@@ -541,3 +541,29 @@ describe("runPipelineDAG", () => {
     }
   })
 })
+
+
+it("cancellation stops both DAG levels and drains an already running executor", async () => {
+  const abort = new AbortController()
+  const events: ProgressEvent[] = []
+  let release!: () => void
+  let started!: () => void
+  const ready = new Promise<void>(resolve => { started = resolve })
+  let downstream = false
+  const executors = new Map<StepName, StepExecutor>([
+    ["extract", async () => { started(); await new Promise<void>(resolve => { release = resolve }) }],
+    ["image-filtering", async () => { downstream = true }],
+  ])
+  const run = runPipelineDAG(executors, { emit: event => events.push(event) }, undefined, abort.signal)
+  let settled = false
+  const checked = run.then(result => { settled = true; return result.stages.errors.size ? "aborted" : "completed" })
+  await ready
+  abort.abort()
+  await Promise.resolve()
+  expect(settled).toBe(false)
+  release()
+  expect(await checked).toBe("aborted")
+  expect(downstream).toBe(false)
+  expect(events).not.toContainEqual({ type: "step-complete", step: "extract" })
+  expect(events.some(event => event.type === "step-error" && event.step === "extract")).toBe(true)
+})

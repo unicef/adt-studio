@@ -18,6 +18,7 @@ import {
   type ActivityText,
 } from "@adt/types"
 import { type QuizPalette, paletteWithAccent } from "./quiz-palette.js"
+import { currentBookImageSrc } from "./book-image-url.js"
 
 /** Attribute value marking a section as stepper-rendered; the classic
  *  activity initializers skip sections carrying it. */
@@ -42,10 +43,9 @@ export function readEditableActivities(
 /** The enabled activity for a section, or null (disabled entries keep their
  *  data but render classic HTML).
  *
- *  Entities are keyed by sectionIndex, which can go stale when sections are
- *  added/deleted/merged (nothing migrates this node). The sectionType check
- *  makes a shifted entry inert instead of silently replacing whatever section
- *  now occupies the index. */
+ *  Structural edits migrate these index-keyed entries to their surviving
+ *  sections. The type check also keeps mismatched legacy or imported entries
+ *  from replacing the activity that now occupies the index. */
 export function enabledEditableActivity(
   entity: EditableActivitiesRow | null,
   sectionIndex: number,
@@ -84,6 +84,8 @@ export function remapEditableActivities(
 }
 
 export interface ResolveEditableActivityImageOptions {
+  /** Live Preview resolves portable API references against this book. */
+  previewLabel?: string
   /** Curated alt text from image captioning, keyed by imageId. */
   preferredAltMap?: Map<string, string>
   /** Images marked decorative in captioning — hidden from assistive tech. */
@@ -104,7 +106,7 @@ export function resolveEditableActivityImages(
   const referenced = new Set<string>()
   const resolveImage = (img: ActivityImage | undefined): ActivityImage | undefined => {
     if (!img) return undefined
-    let resolved = img
+    let resolved = opts.previewLabel ? { ...img, src: currentBookImageSrc(img.src, opts.previewLabel) } : img
     if (img.imageId && imageMap.has(img.imageId)) {
       referenced.add(img.imageId)
       resolved = { ...resolved, src: `images/${imageMap.get(img.imageId)}` }
@@ -170,7 +172,9 @@ function staticImage(img: ActivityImage | undefined): string {
   if (!img) return ""
   const alt = img.decorative ? "" : (img.alt ?? "")
   const hidden = img.decorative ? ` role="presentation" aria-hidden="true"` : ""
-  return `<img src="${escapeAttr(img.src)}" alt="${escapeAttr(alt)}"${hidden} style="max-height:240px;max-width:100%;object-fit:contain;border-radius:8px;margin:0 auto 12px;display:block;" />`
+  // The image's catalog id: EPUB keeps it, and a re-import projects the image by it.
+  const dataId = img.imageId ? ` data-id="${escapeAttr(img.imageId)}"` : ""
+  return `<img${dataId} src="${escapeAttr(img.src)}" alt="${escapeAttr(alt)}"${hidden} style="max-height:240px;max-width:100%;object-fit:contain;border-radius:8px;margin:0 auto 12px;display:block;" />`
 }
 
 const STATIC_BLANK = `<span style="display:inline-block;min-width:6ch;border-bottom:2px solid #64748B;">&#160;</span>`
@@ -288,6 +292,39 @@ export function maskStepperPayloads(html: string): {
       ? out
       : out.replace(STEPPER_PAYLOAD_MASK_RE, (m, i) => payloads[Number(i)] ?? m)
   return { masked, restore }
+}
+
+/**
+ * Re-import of a packaged stepper page. The shell carries the whole activity
+ * as JSON but none of the data-ids the importer projects, so the importer
+ * reads the section as its static rendering (which carries them) and restores
+ * the activity entity from the payload. Returns null when the page has no
+ * readable stepper shell for this section.
+ */
+export function expandImportedStepperShell(
+  pageHtml: string,
+  sectionId: string,
+): { html: string; activity: EditableActivity } | null {
+  let activity: EditableActivity | null = null
+  const html = pageHtml.replace(STEPPER_SHELL_RE, (shell) => {
+    if (activity) return shell
+    const openingTag = shell.slice(0, shell.indexOf(">") + 1)
+    const shellSectionId = /\sdata-section-id="([^"]*)"/.exec(openingTag)?.[1]
+    if (shellSectionId !== undefined && shellSectionId !== sectionId) return shell
+    const payloadMatch = STEPPER_PAYLOAD_RE.exec(shell)
+    if (!payloadMatch) return shell
+    try {
+      const payload = JSON.parse(payloadMatch[1]) as StepperPayload
+      const parsed = EditableActivity.safeParse(payload.activity)
+      if (!parsed.success) return shell
+      activity = parsed.data
+      const staticHtml = renderEditableActivityStaticHtml(parsed.data)
+      return `<section data-section-id="${escapeAttr(sectionId)}"${staticHtml.slice("<section".length)}`
+    } catch {
+      return shell
+    }
+  })
+  return activity ? { html, activity } : null
 }
 
 /**

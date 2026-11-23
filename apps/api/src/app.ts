@@ -1,5 +1,6 @@
 import { createOutputRoutes } from "./routes/outputs.js"
 import path from "node:path"
+import { bookWriterMiddleware } from "./middleware/book-writer.js"
 import fs from "node:fs"
 import os from "node:os"
 import { unzipSync } from "fflate"
@@ -7,7 +8,6 @@ import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { logger } from "hono/logger"
 import { errorHandler } from "./middleware/error-handler.js"
-import { bookWriterMiddleware } from "./middleware/book-writer.js"
 import { healthRoutes } from "./routes/health.js"
 import { createBookRoutes } from "./routes/books.js"
 import { createBookEventsRoutes } from "./routes/book-events.js"
@@ -45,6 +45,7 @@ import { createCloudflareRoutes } from "./routes/cloudflare.js"
 import { createConnectionStore, resolvePublishStateDir } from "./services/cloudflare/connection-store.js"
 import { createCloudflareOAuthService } from "./services/cloudflare/oauth.js"
 import { createPublishRoutes } from "./routes/publications.js"
+import { removeAbandonedAdtImports } from "./services/adt-import/marker.js"
 
 // Resolve paths relative to monorepo root (2 levels up from apps/api/)
 const projectRoot = path.resolve(
@@ -80,6 +81,10 @@ if (adtResourcesZip && fs.existsSync(adtResourcesZip)) {
     process.env.WEB_ASSETS_DIR ?? path.join(projectRoot, "assets", "adt")
   )
 }
+
+// An ADT import interrupted by a crash or shutdown leaves a hidden, half-made
+// book folder; no import of this process can be running yet, so clear them.
+removeAbandonedAdtImports(booksDir)
 
 const eventBus = createBookEventBus()
 const pageErrorDecisions = createPageErrorDecisions(eventBus)

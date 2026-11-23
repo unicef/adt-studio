@@ -97,6 +97,8 @@ export interface BookVM {
   modified: string
   lang: string
   needsRebuild: boolean
+  /** Built from an ADT Web export brought back in, so its imported HTML is the source. */
+  imported: boolean
   isNew: boolean
   cover: CoverSpec
   discs: StageDisc[]
@@ -107,7 +109,7 @@ export interface BookVM {
 
 export function toBookVM(book: BookSummary, locale: string): BookVM {
   const discs = presentDiscs(book)
-  const pagesText =
+  const pagesText = book.readUnavailable ? i18n._(msg`Temporarily unavailable`) :
     book.pageCount > 0
       ? plural(book.pageCount, { one: "# page", other: "# pages" })
       : i18n._(msg`Not started`)
@@ -119,7 +121,8 @@ export function toBookVM(book: BookSummary, locale: string): BookVM {
     modified: formatRelative(book.modifiedAt, locale),
     lang: book.languageCode ? book.languageCode.toUpperCase() : "—",
     needsRebuild: book.needsRebuild,
-    isNew: book.pageCount === 0 && discs.length === 0,
+    imported: book.workingSource === "imported-adt",
+    isNew: !book.readUnavailable && book.pageCount === 0 && discs.length === 0,
     cover: deriveCover(book),
     discs,
     stageCount: discs.length,

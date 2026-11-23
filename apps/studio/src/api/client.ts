@@ -1,9 +1,11 @@
-import type { TranslationSaveResponse, WordTimestampSaveRequest, WordTimestampSaveResponse } from "@adt/types"
+import type { TranslationSaveResponse, WordTimestampSaveRequest, WordTimestampSaveResponse, BookRecoveryCopyResult } from "@adt/types"
 export type { WordTimestampEditGuard, WordTimestampSaveResponse } from "@adt/types"
 import { i18n } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
 import type { OutputSkipRequest } from "@adt/types"
 import type { OutputStatus, OutputSummary, OutputStageSummaryResponse, OutputRunScope, OutputReviewRequest, OutputDisclosureOptions, OutputReplacement, StageName } from "@adt/types"
+import type { PackagingStatus, SectioningModeState } from "@adt/types"
+import { sectioningErrorMessage } from "@/lib/sectioning-error"
 import { isElectron } from "@/lib/utils"
 import { readEventStream } from "@/api/sse"
 import {
@@ -13,6 +15,8 @@ import {
 } from "@adt/types"
 import type {
   AccessibilityAssessmentOutput,
+  AdtBundleImportPreview,
+  AdtImportUnreadableDetails,
   BookDetail,
   BookFont,
   BookFontRole,
@@ -175,21 +179,31 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     const text = await res.text().catch(() => "")
     let message: string | undefined
     let code: string | null = null
+    let details: unknown
     try {
-      const parsed = JSON.parse(text) as { error?: string; code?: string }
-      message = parsed.error
+      const parsed = JSON.parse(text) as { error?: string; code?: string; details?: unknown }
+      message = sectioningErrorMessage(parsed.error, parsed.code)
       code = typeof parsed.code === "string" ? parsed.code : null
+      details = parsed.details
     } catch {
-      message = text || undefined
+      // A proxy error page (nginx 413/502/504) is HTML, not a message to show.
+      message = text && !/^\s*</.test(text) ? text : undefined
     }
-    throw new ApiError(message ?? i18n._(msg`Request failed: ${res.status}`), res.status, code)
+    throw new ApiError(message ?? i18n._(msg`Request failed: ${res.status}`), res.status, code, details)
   }
 
   return res.json()
 }
 
 export class ApiError extends Error {
-  constructor(message: string, readonly status: number, readonly code: string | null = null) {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code: string | null = null,
+    /** Extra data a route sends beside the message, such as what an import
+     * preview could still read from an archive it rejected. */
+    readonly details?: unknown,
+  ) {
     super(message)
     this.name = "ApiError"
   }
@@ -197,6 +211,10 @@ export class ApiError extends Error {
 
 export function apiErrorCode(error: unknown): string | null {
   return error instanceof ApiError ? error.code : null
+}
+
+export function apiErrorStatus(error: unknown): number | null {
+  return error instanceof ApiError ? error.status : null
 }
 
 async function postEventStream<TEvent>(path: string, body: Record<string, unknown>, options: {
@@ -283,12 +301,36 @@ export interface PartImportPreview {
   coverBase64: string | null
 }
 
-export type AnyImportPreview = ImportPreview | PartImportPreview
+export type { AdtBundleImportPreview, AdtImportUnreadableDetails }
+
+const UNREADABLE_DETAIL_KEYS = [
+  // eslint-disable-next-line lingui/no-unlocalized-strings -- JSON field names, not UI text.
+  "title", "coverBase64", "pageCount", "imageCount", "tocEntryCount", "sourceLanguage", "outputLanguages",
+] as const
+
+/** What an import preview could still read from an ADT export it rejected,
+ * or null when the error carries none. */
+export function unreadableAdtDetails(error: unknown): AdtImportUnreadableDetails | null {
+  if (!(error instanceof ApiError) || error.code !== "adt-unreadable") return null
+  const details = error.details
+  if (!details || typeof details !== "object") return null
+  return UNREADABLE_DETAIL_KEYS.every((key) => key in details)
+    ? details as AdtImportUnreadableDetails
+    : null
+}
+
+export type AnyImportPreview = ImportPreview | PartImportPreview | AdtBundleImportPreview
 
 export function isPartImportPreview(
   preview: AnyImportPreview,
 ): preview is PartImportPreview {
   return (preview as PartImportPreview).isPart === true
+}
+
+export function isAdtBundleImportPreview(
+  preview: AnyImportPreview,
+): preview is AdtBundleImportPreview {
+  return (preview as AdtBundleImportPreview).isAdtBundle === true
 }
 
 export interface MergePreview {
@@ -1263,10 +1305,11 @@ export const api = {
     label: string,
     pageId: string,
     activities: Record<string, EditableActivity>,
+    baseVersion: number,
   ) =>
     request<{ version: number }>(`/books/${label}/pages/${pageId}/editable-activities`, {
       method: "PUT",
-      body: JSON.stringify({ activities }),
+      body: JSON.stringify({ activities, baseVersion }),
     }),
 
   getActivityStructure: (label: string, pageId: string, sectionIndex: number) =>
@@ -1386,6 +1429,11 @@ export const api = {
   deleteBook: (label: string) =>
     request<{ ok: boolean }>(`/books/${label}`, { method: "DELETE" }),
 
+  recoverBookCopy: (sourceLabel: string, label: string) =>
+    request<BookRecoveryCopyResult>(`/books/${sourceLabel}/recover-copy`, {
+      method: "POST", body: JSON.stringify({ label, preserveOriginal: true }),
+    }),
+
   previewImport: (zip: File) => {
     const formData = new FormData()
     formData.append("zip", zip)
@@ -1399,6 +1447,19 @@ export const api = {
     const formData = new FormData()
     formData.append("zip", zip)
     return request<BookSummary>("/books/import", {
+      method: "POST",
+      body: formData,
+    })
+  },
+
+  importAdtProject: (
+    zip: File,
+    activityDecisions: Array<{ sectionId: string; type: string | null }> = [],
+  ) => {
+    const formData = new FormData()
+    formData.append("zip", zip)
+    formData.append("activityDecisions", JSON.stringify(activityDecisions))
+    return request<BookSummary>("/books/import-adt", {
       method: "POST",
       body: formData,
     })
@@ -1528,9 +1589,9 @@ export const api = {
   saveStoryboard: (
     label: string,
     pageId: string,
-    data: { sectioning?: unknown; rendering?: unknown; renderingInSync?: boolean; baseVersion?: number }
+    data: { sectioning?: unknown; rendering?: unknown; renderingInSync?: boolean; baseVersion?: number; renderingBaseVersion?: number }
   ) =>
-    request<{ sectioningVersion: number | null; renderingVersion: number | null }>(
+    request<import("@adt/types").StoryboardSaveResult>(
       `/books/${label}/pages/${pageId}/storyboard`,
       { method: "PUT", body: JSON.stringify(data) }
     ),
@@ -1659,13 +1720,14 @@ export const api = {
     apiKey: string,
     currentHtml: string | undefined,
     baseVersion: number,
+    renderingBaseVersion: number,
   ) =>
     request<{ taskId: string; status: "submitted" } | AiEditResult>(
       `/books/${label}/pages/${pageId}/sections/${sectionIndex}/ai-edit`,
       {
         method: "POST",
         headers: await buildApiHeaders(apiKey),
-        body: JSON.stringify({ instruction, currentHtml, baseVersion }),
+        body: JSON.stringify({ instruction, currentHtml, baseVersion, renderingBaseVersion }),
         signal: AbortSignal.timeout(30_000),
       }
     ),
@@ -1751,22 +1813,27 @@ export const api = {
       }>
     }>(`/books/${label}/translated-images`),
 
-  uploadNewImage: (label: string, pageId: string, imageBlob: Blob) => {
+  /** `addToPage` also adds the image to the page's image-filtering list in the
+   *  same request — nothing is left behind if that fails. */
+  uploadNewImage: (label: string, pageId: string, imageBlob: Blob, options?: { addToPage?: boolean }) => {
     const formData = new FormData()
     formData.append("image", imageBlob, "upload.png")
     formData.append("pageId", pageId)
-    return request<{ imageId: string; width: number; height: number }>(
+    if (options?.addToPage) formData.append("addToPage", "true")
+    return request<{ imageId: string; width: number; height: number; imageFilteringVersion?: number }>(
       `/books/${label}/images/upload`,
       { method: "POST", body: formData }
     )
   },
 
-  uploadCroppedImage: (label: string, pageId: string, sourceImageId: string, imageBlob: Blob) => {
+  /** `addToPage`: see uploadNewImage. */
+  uploadCroppedImage: (label: string, pageId: string, sourceImageId: string, imageBlob: Blob, options?: { addToPage?: boolean }) => {
     const formData = new FormData()
     formData.append("image", imageBlob, "crop.png")
     formData.append("pageId", pageId)
     formData.append("sourceImageId", sourceImageId)
-    return request<{ imageId: string; width: number; height: number }>(
+    if (options?.addToPage) formData.append("addToPage", "true")
+    return request<{ imageId: string; width: number; height: number; imageFilteringVersion?: number }>(
       `/books/${label}/images`,
       { method: "POST", body: formData }
     )
@@ -1907,6 +1974,21 @@ export const api = {
       `/books/${label}/versions/${node}/${itemId}/restore`,
       { method: "POST", body: JSON.stringify({ version, baseVersion }) }
     ),
+
+  inspectHistoryRecovery: (label: string, signal?: AbortSignal) =>
+    request<import("@adt/types").HistoryRecoveryStatus>(`/books/${label}/history-recovery`, { signal }),
+
+  checkpointHistory: (label: string, body: import("@adt/types").HistoryCheckpointRequest) =>
+    request<import("@adt/types").HistoryRecoveryReceipt>(`/books/${label}/history-recovery/checkpoint`, { method: "POST", body: JSON.stringify(body) }),
+
+  repairHistory: (label: string, body: import("@adt/types").HistoryRepairRequest) =>
+    request<import("@adt/types").HistoryRecoveryReceipt>(`/books/${label}/history-recovery/repair`, { method: "POST", body: JSON.stringify(body) }),
+
+  getHistoryRecoveryAudit: (label: string, requestId: string) =>
+    request<unknown[]>(`/books/${label}/history-recovery/audit/${requestId}`),
+
+  getSectioningModeState: (label: string) =>
+    request<SectioningModeState>(`/books/${label}/sectioning-state`),
 
   getBookConfig: (label: string) =>
     request<BookConfigResponse>(`/books/${label}/config`),
@@ -2141,7 +2223,7 @@ export const api = {
       { method: "POST" },
     ),
 
-  getStepStatus: (label: string) =>
+  getStepStatus: (label: string, signal?: AbortSignal) =>
     request<{
       sourceUpdateStages: string[]
       stages: Record<string, string>
@@ -2153,8 +2235,9 @@ export const api = {
       publicationAgeMs?: number
       runStatus: "idle" | "running" | "cancelling" | "cancelled" | "completed" | "failed"
       pendingDecisions: PendingDecision[]
+      coverage?: import("@adt/types").StoryboardCoverage
       protectedWork?: Array<import("@adt/types").AuthoredReplacement & { pageNumber?: number }>
-    }>(`/books/${label}/step-status`),
+    }>(`/books/${label}/step-status`, { signal }),
 
   getTTS: (label: string) =>
     request<TTSResponse>(`/books/${label}/tts`),
@@ -2243,7 +2326,7 @@ export const api = {
     request<{ tasks: TaskInfoResponse[] }>(`/books/${label}/tasks`),
 
   getPackageAdtStatus: (label: string) =>
-    request<{ label: string; hasAdt: boolean; version?: string }>(
+    request<PackagingStatus>(
       `/books/${label}/package-adt/status`
     ),
 
@@ -2489,7 +2572,7 @@ export const api = {
     })
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: res.statusText }))
-      throw new Error(body.error ?? `SCORM export failed: ${res.status}`)
+      throw new ApiError(sectioningErrorMessage(body.error, body.code) ?? i18n._(msg`Request failed: ${res.status}`), res.status, body.code)
     }
     const buf = await res.arrayBuffer()
     return new Blob([buf], { type: "application/zip" })
@@ -2509,7 +2592,7 @@ export const api = {
     })
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: res.statusText }))
-      throw new Error(body.error ?? `ADT export failed: ${res.status}`)
+      throw new ApiError(sectioningErrorMessage(body.error, body.code) ?? i18n._(msg`Request failed: ${res.status}`), res.status, body.code)
     }
     const buf = await res.arrayBuffer()
     return new Blob([buf], { type: "application/zip" })

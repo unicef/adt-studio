@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { openBookDb } from "@adt/storage"
+import { createBookStorage, openBookDb } from "@adt/storage"
 import { SCHEMA_VERSION } from "@adt/types"
 import {
   listBooks,
@@ -66,12 +66,43 @@ function addTestMetadata(
   db.close()
 }
 
+it.each(["page_sectioning:\n  mode: imported-invalid\n", "page_sectioning: ["])("isolates invalid book settings without marking its database for rebuild", malformed => {
+  for (const label of ["bad", "good"]) { createTestDb(label); addTestPages(label, 1) }
+  const config = path.join(tmpDir, "bad/config.yaml")
+  const healthy = listBooks(tmpDir).find(b => b.label === "good")!
+  fs.writeFileSync(config, malformed)
+  const listed = listBooks(tmpDir)
+  expect(listed.find(b => b.label === "bad")).toMatchObject({ readUnavailable: true, readUnavailableReason: "invalid-config", needsRebuild: false })
+  expect(listed.find(b => b.label === "good")).toMatchObject({ pageCount: healthy.pageCount, completedStages: healthy.completedStages })
+  expect(fs.readFileSync(config, "utf8")).toBe(malformed)
+  fs.writeFileSync(config, "page_sectioning:\n  mode: page\n")
+  expect(listBooks(tmpDir).find(b => b.label === "bad")?.readUnavailable).toBeUndefined()
+  const global = path.join(tmpDir, "global.yaml")
+  fs.writeFileSync(global, malformed)
+  expect(() => listBooks(tmpDir, global)).toThrow()
+})
+
 function createTestPdf(label: string): void {
   fs.writeFileSync(
     path.join(tmpDir, label, `${label}.pdf`),
     Buffer.from("%PDF-1.0 fake")
   )
 }
+
+it("isolates a corrupt database, preserves its bytes and healthy books, and recovers after repair", () => {
+  for (const label of ["bad", "good"]) { createTestDb(label); addTestPages(label, 2) }
+  const db = path.join(tmpDir, "bad/bad.db")
+  const original = fs.readFileSync(db)
+  const healthy = listBooks(tmpDir).find(book => book.label === "good")!
+  const truncated = original.subarray(0, 15)
+  fs.writeFileSync(db, truncated)
+  expect(listBooks(tmpDir).find(book => book.label === "bad")).toMatchObject({ readUnavailable: true, needsRebuild: false, completedStages: [] })
+  expect(listBooks(tmpDir).find(book => book.label === "good")).toEqual(healthy)
+  expect(fs.readFileSync(db)).toEqual(truncated)
+  fs.writeFileSync(db, original)
+  expect(listBooks(tmpDir).find(book => book.label === "bad")).toMatchObject({ pageCount: 2, needsRebuild: false })
+  expect(listBooks(tmpDir).find(book => book.label === "bad")?.readUnavailable).toBeUndefined()
+})
 
 function addTestRenderings(label: string, count: number): void {
   const db = openBookDb(path.join(tmpDir, label, `${label}.db`))
@@ -111,6 +142,53 @@ function markStepsDone(label: string, steps: string[]): void {
 }
 
 describe("listBooks", () => {
+  // F14: one book with an unreadable identity must not break the library.
+  it("still lists every book when one identity file is truncated", () => {
+    createTestDb("healthy")
+    createTestDb("damaged")
+    fs.writeFileSync(path.join(tmpDir, "damaged", ".adt-project.json"), '{"version": 1, "projec')
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    try {
+      const books = listBooks(tmpDir)
+      expect(books.map((book) => book.label)).toEqual(["damaged", "healthy"])
+      expect(books[0].projectId).toMatch(/^[0-9a-f-]{36}$/)
+      expect(listBooks(tmpDir)[0].projectId).toBe(books[0].projectId)
+      expect(warn).toHaveBeenCalled()
+    } finally {
+      warn.mockRestore()
+    }
+  })
+
+  it("lists every other book when one folder can't be read at all", () => {
+    if (process.platform === "win32" || process.getuid?.() === 0) return
+    createTestDb("healthy")
+    const bad = path.join(tmpDir, "unreadable")
+    fs.mkdirSync(bad)
+    fs.chmodSync(bad, 0o000)
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    try {
+      expect(listBooks(tmpDir).map((book) => book.label)).toContain("healthy")
+    } finally {
+      warn.mockRestore()
+      fs.chmodSync(bad, 0o755)
+    }
+  })
+
+  it("lists a book whose folder can't be written and has no identity yet", () => {
+    if (process.platform === "win32" || process.getuid?.() === 0) return
+    createTestDb("read-only")
+    const bookDir = path.join(tmpDir, "read-only")
+    fs.rmSync(path.join(bookDir, ".adt-project.json"), { force: true })
+    fs.chmodSync(bookDir, 0o555)
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    try {
+      expect(listBooks(tmpDir).map((book) => book.label)).toEqual(["read-only"])
+    } finally {
+      warn.mockRestore()
+      fs.chmodSync(bookDir, 0o755)
+    }
+  })
+
   it("returns empty array for empty directory", () => {
     expect(listBooks(tmpDir)).toEqual([])
   })
@@ -135,9 +213,14 @@ describe("listBooks", () => {
       languageCode: "en",
       pageCount: 3,
       hasSourcePdf: true,
+      projectId: expect.any(String),
+      sourceKind: "pdf",
+      workingSource: "pdf",
+      sourceFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
       needsRebuild: false,
       rebuildReason: null,
       completedStages: [],
+      previewStatus: "incomplete",
       createdAt: expect.any(String),
       modifiedAt: expect.any(String),
       part: null,
@@ -158,9 +241,14 @@ describe("listBooks", () => {
       languageCode: null,
       pageCount: 0,
       hasSourcePdf: false,
+      projectId: expect.any(String),
+      sourceKind: "unknown",
+      workingSource: "unknown",
+      sourceFingerprint: null,
       needsRebuild: false,
       rebuildReason: null,
       completedStages: [],
+      previewStatus: "incomplete",
       createdAt: expect.any(String),
       modifiedAt: expect.any(String),
       part: null,
@@ -183,9 +271,14 @@ describe("listBooks", () => {
       languageCode: null,
       pageCount: 0,
       hasSourcePdf: true,
+      projectId: expect.any(String),
+      sourceKind: "pdf",
+      workingSource: "pdf",
+      sourceFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
       needsRebuild: false,
       rebuildReason: null,
       completedStages: [],
+      previewStatus: "incomplete",
       createdAt: expect.any(String),
       modifiedAt: expect.any(String),
       part: null,
@@ -304,12 +397,12 @@ describe("listBooks", () => {
     expect(books[0].completedStages).toEqual([])
   })
 
-  it("includes preview when the adt directory exists", () => {
+  it("does not claim preview completion from an empty adt directory", () => {
     createTestDb("previewable")
     fs.mkdirSync(path.join(tmpDir, "previewable", "adt"))
 
     const books = listBooks(tmpDir)
-    expect(books[0].completedStages).toContain("preview")
+    expect(books[0].completedStages).not.toContain("preview")
   })
 
   it("treats skipped steps as completing the stage", () => {
@@ -511,21 +604,25 @@ describe("updateBookConfig", () => {
     expect(content).toContain("concurrency: 8")
   })
 
-  it("removes config.yaml when overrides are empty", () => {
+  it("atomically removes all overrides when the proposed mapping is empty", () => {
     const fakePdf = Buffer.from("%PDF-1.0 fake")
     createBook("remove-config", fakePdf, tmpDir, { concurrency: 4 })
     const configPath = path.join(tmpDir, "remove-config", "config.yaml")
     expect(fs.existsSync(configPath)).toBe(true)
 
+    // The public no-overrides value remains null; the journal uses an atomic
+    // empty mapping on disk instead of deleting the file.
     updateBookConfig("remove-config", tmpDir, {})
-    expect(fs.existsSync(configPath)).toBe(false)
+    expect(getBookConfig("remove-config", tmpDir)).toBeNull()
+    expect(fs.readFileSync(configPath, "utf8").trim()).toBe("{}")
   })
 
-  it("is a no-op when overrides are empty and no config exists", () => {
+  it("persists an empty override mapping when no config exists", () => {
     const bookDir = path.join(tmpDir, "empty-update")
     fs.mkdirSync(bookDir)
     updateBookConfig("empty-update", tmpDir, {})
-    expect(fs.existsSync(path.join(bookDir, "config.yaml"))).toBe(false)
+    expect(getBookConfig("empty-update", tmpDir)).toBeNull()
+    expect(fs.readFileSync(path.join(bookDir, "config.yaml"), "utf8").trim()).toBe("{}")
   })
 
   it("throws for non-existent book", () => {
@@ -555,4 +652,70 @@ describe("deleteBook", () => {
   it("throws for invalid label", () => {
     expect(() => deleteBook("-bad", tmpDir)).toThrow()
   })
+})
+
+
+it("persists one stable identity when listing a healthy legacy book", () => {
+  createTestDb("legacy")
+  const identityFile = path.join(tmpDir, "legacy", ".adt-project.json")
+  expect(fs.existsSync(identityFile)).toBe(false)
+  const first = listBooks(tmpDir).find(book => book.label === "legacy")!
+  const bytes = fs.readFileSync(identityFile)
+  expect(JSON.parse(bytes.toString()).projectId).toBe(first.projectId)
+  expect(listBooks(tmpDir).find(book => book.label === "legacy")!.projectId).toBe(first.projectId)
+  expect(fs.readFileSync(identityFile)).toEqual(bytes)
+})
+
+
+it.each(["rewrite", "window", "part", "rollback"])("RAC-13: cold Library verifies on book access and invalidates on %s", change => {
+  createTestDb("summary"); addTestPages("summary", 2)
+  const bookDir = path.join(tmpDir, "summary")
+  const storage = createBookStorage("summary", tmpDir)
+  for (const id of ["pg001", "pg002"]) {
+    storage.putNodeData("page-sectioning", id, { reasoning: "", sections: [{
+      sectionId: id + "_sec001", sectionType: "content", pageNumber: Number(id.slice(2)),
+      isPruned: false, backgroundColor: "white", textColor: "black",
+      nodes: [{ nodeId: id + "_n001", role: "paragraph", text: "Saved page", isPruned: false }],
+    }] })
+    storage.putNodeData("web-rendering", id, { sections: [] })
+    storage.putNodeData("web-rendering", id, { sections: [{ sectionId: id + "_sec001", sectionIndex: 0,
+      sectionType: "content", reasoning: "", html: `<section data-section-id="${id}_sec001"><p data-id="${id}_n001">Saved page</p></section>`,
+    }] })
+  }
+  storage.close()
+  markStepsDone("summary", ["web-rendering"])
+  expect(listBooks(tmpDir)[0]).toMatchObject({ storyboardVerificationPending: true, completedStages: [], previewStatus: "incomplete" })
+  const detail = getBook("summary", tmpDir)
+  expect(detail.completedStages).toContain("storyboard")
+  const warm = listBooks(tmpDir)[0]
+  expect(warm.storyboardVerificationPending).toBeUndefined()
+  expect(warm.completedStages).toEqual(detail.completedStages)
+  if (change === "rewrite") {
+    const db = openBookDb(path.join(bookDir, "summary.db"))
+    db.run("UPDATE node_data SET data=? WHERE node=? AND item_id=?", ["{bad", "web-rendering", "pg001"])
+    db.close()
+  } else if (change === "window") {
+    fs.writeFileSync(path.join(bookDir, "config.yaml"), "start_page: 1\nend_page: 1\n")
+  } else if (change === "part") {
+    fs.writeFileSync(path.join(bookDir, "part.json"), JSON.stringify({ adtPart: 1, sourceLabel: "source", title: null,
+      range: { startPage: 1, endPage: 1 }, pageCount: 2, fingerprint: {}, identityHash: "id", semanticsHash: "sem",
+      createdAt: "test", partLabelSuggestion: "part" }))
+  } else {
+    const writer = createBookStorage("summary", tmpDir)
+    expect(writer.setCurrentNodeVersion("web-rendering", "pg001", 1)).toBe(true)
+    writer.close()
+  }
+  const changed = listBooks(tmpDir)[0]
+  expect(changed.storyboardVerificationPending).toBe(true)
+  expect(changed.completedStages).not.toContain("storyboard")
+  const reopened = getBook("summary", tmpDir)
+  if (change === "rewrite" || change === "rollback") expect(reopened.completedStages).not.toContain("storyboard")
+  else expect(reopened.completedStages).toContain("storyboard")
+  expect(listBooks(tmpDir)[0].storyboardVerificationPending).toBeUndefined()
+})
+
+it("reports an existing package as unverified even without completed run telemetry", () => {
+  createTestDb("saved-package"); addTestPages("saved-package", 1)
+  fs.mkdirSync(path.join(tmpDir, "saved-package", "adt"))
+  expect(listBooks(tmpDir)[0]).toMatchObject({ storyboardVerificationPending: true, previewStatus: "unverified", completedStages: [] })
 })

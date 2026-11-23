@@ -6,6 +6,9 @@ export function useBooks() {
   return useQuery({
     queryKey: ["books"],
     queryFn: api.getBooks,
+    // Book access can verify a summary that was unknown on a cold listing.
+    // Refresh on SPA return even within the application's five-minute cache.
+    refetchOnMount: "always",
   })
 }
 
@@ -76,6 +79,22 @@ export function useImportBook() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (zip: File) => api.importBook(zip),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["books"] })
+    },
+  })
+}
+
+export function useImportAdtProject() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      zip,
+      activityDecisions,
+    }: {
+      zip: File
+      activityDecisions: Array<{ sectionId: string; type: string | null }>
+    }) => api.importAdtProject(zip, activityDecisions),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["books"] })
     },

@@ -4,7 +4,7 @@ import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { PIPELINE, type AppConfig, type ProgressEvent } from "@adt/types"
 import { computeSpeechCacheKey, stripEmojis, retireSectionIds, outputEvidence } from "@adt/pipeline"
-import { createBookStorage, openBookDb } from "@adt/storage"
+import { createBookStorage, openBookDb, writeSectioningLifecycle } from "@adt/storage"
 import {
   buildStageRunnerImageClassifyConfig,
   createStageRunner,
@@ -557,6 +557,128 @@ section_types:
   })
 })
 
+// SPEC-0024: the sectioning and render steps have to hand `sectionPage()` and
+// `renderPage()` the direction the book's pages are written in. The prompt
+// tests cover what the prompts do with it; these cover that it arrives.
+describe("createStageRunner page direction", () => {
+  const RIGHT_TO_LEFT = "editing_language: ur\noutput_languages:\n  - ur\n"
+  // The pages of such a book are read left to right; only a translation is not.
+  const LEFT_TO_RIGHT_WITH_TRANSLATION = "editing_language: en\noutput_languages:\n  - en\n  - ur\n"
+  const LEFT_TO_RIGHT_ONLY = "editing_language: en\noutput_languages:\n  - en\n"
+
+  let tmpDir = ""
+
+  afterEach(() => {
+    if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true })
+    tmpDir = ""
+  })
+
+  function setUp(languages: string): { booksDir: string; promptsDir: string; configPath: string } {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-page-direction-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
+    writeBaseConfig(configPath)
+    fs.appendFileSync(configPath, `section_types:\n  content: Content\n${languages}`)
+    return { booksDir, promptsDir, configPath }
+  }
+
+  /** Runs the sectioning stage on a one-page book and returns the direction `sectionPage()` was given. */
+  async function sectionedPageDirection(languages: string): Promise<unknown> {
+    const { booksDir, promptsDir, configPath } = setUp(languages)
+    const storage = createBookStorage("directed", booksDir)
+    try {
+      storage.putExtractedPage({
+        pageId: "pg001",
+        pageNumber: 1,
+        text: "Chapter One",
+        pageImage: {
+          imageId: "pg001_page",
+          buffer: pngBuffer(),
+          format: "png",
+          hash: "page-hash",
+          width: 4,
+          height: 6,
+        },
+        images: [],
+      })
+      storage.putNodeData("book-outline", "book", { reasoning: "", entries: [], styleClusters: [] })
+      for (const step of PIPELINE.find((stage) => stage.name === "extract")!.steps) {
+        storage.markStepCompleted(step.name)
+      }
+    } finally {
+      storage.close()
+    }
+
+    sectionPageMock.mockClear()
+    await createStageRunner().run(
+      "directed",
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "sectioning",
+        toStage: "sectioning",
+      },
+      { emit: () => {} },
+    )
+
+    expect(sectionPageMock).toHaveBeenCalledTimes(1)
+    return (sectionPageMock.mock.calls[0] as unknown as Array<{ pageDirection?: unknown }>)[0].pageDirection
+  }
+
+  /** Re-renders a one-page book and returns the direction `renderPage()` was given. */
+  async function renderedPageDirection(languages: string): Promise<unknown> {
+    const { booksDir, promptsDir, configPath } = setUp(languages)
+    seedStoryboardBook(booksDir, "directed")
+
+    renderPageMock.mockClear()
+    await createStageRunner().run(
+      "directed",
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "storyboard",
+        toStage: "storyboard",
+        renderOnly: true,
+      },
+      { emit: () => {} },
+    )
+
+    expect(renderPageMock).toHaveBeenCalledTimes(1)
+    return (renderPageMock.mock.calls[0] as unknown as Array<{ pageDirection?: unknown }>)[0].pageDirection
+  }
+
+  it("AC-17: sectioning is given rtl for a book whose source language is right-to-left", async () => {
+    expect(await sectionedPageDirection(RIGHT_TO_LEFT)).toBe("rtl")
+  })
+
+  it("AC-17: sectioning is given ltr for a left-to-right book with a right-to-left translation", async () => {
+    expect(await sectionedPageDirection(LEFT_TO_RIGHT_WITH_TRANSLATION)).toBe("ltr")
+  })
+
+  it("AC-17: sectioning is given no direction for a book with no right-to-left language", async () => {
+    expect(await sectionedPageDirection(LEFT_TO_RIGHT_ONLY)).toBeUndefined()
+  })
+
+  it("AC-11: rendering is given rtl for a book whose source language is right-to-left", async () => {
+    expect(await renderedPageDirection(RIGHT_TO_LEFT)).toBe("rtl")
+  })
+
+  it("AC-11: rendering is given ltr for a left-to-right book with a right-to-left translation", async () => {
+    expect(await renderedPageDirection(LEFT_TO_RIGHT_WITH_TRANSLATION)).toBe("ltr")
+  })
+
+  it("AC-11: rendering is given no direction for a book with no right-to-left language", async () => {
+    expect(await renderedPageDirection(LEFT_TO_RIGHT_ONLY)).toBeUndefined()
+  })
+})
+
 describe("createStageRunner captions step", () => {
   let tmpDir = ""
 
@@ -781,6 +903,7 @@ describe("createStageRunner storyboard render-only", () => {
     for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     writeBaseConfig(configPath)
     seedStoryboardBook(booksDir, "render-only")
+    writeSectioningLifecycle(path.join(booksDir, "render-only"), "dynamic", true)
 
     const events: ProgressEvent[] = []
     const controller = new AbortController()
