@@ -366,8 +366,9 @@ a value; until it does, ask at triage rather than assume one.
 | Spec number | `SPEC-NNNN`, allocated as in [§5](#5-writing-a-spec). Never reused. |
 | AC | An acceptance criterion, `AC-n`, one testable checkbox in a spec. Tests that prove it start their title with the tag ([§5a](#5a-implementing-an-approved-spec)). |
 | Amendment | A reviewed PR that changes an approved spec's contract ([§4](#amending-an-approved-spec)). |
-| Priority | How important an issue or PR is, set as a `priority: …` label: `P0` (critical: blocks a release or users), `P1` (high: must land in the current release), `P2` (medium: planned, can slip a release), `P3` (low: nice to have). Replaced the `tier: …` labels (#1233). Who assigns it: *not yet agreed*. |
+| Priority | How important an issue or PR is, set as a `priority: …` label: `P0` (critical: blocks a release or users), `P1` (high: must land in the current release), `P2` (medium: planned, can slip a release), `P3` (low: nice to have). Who assigns it: *not yet agreed*. |
 | Roadmap | When an issue or PR is planned, set as a `roadmap: …` label: `now` (being worked on in the current block), `next` (queued for the next block), `future` (later; not scheduled yet). Used together with Priority. Who assigns it: *not yet agreed*. |
+| Tier | The earlier `tier: …` labels (`must-beta`, `should-beta`, `must-stable`, `should-stable`, `1.1`, `parked`), set against the dates of the V1 beta plan. No longer applied: Priority and Roadmap replace them (#1233). Labels already on items stay. |
 | Block | The "Needed by" column in [INDEX](specs/INDEX.md) (`Block 1`, `Block 2`, a version). What each block covers and when: *not yet agreed*. |
 | Acceptance set | The books a spec is verified against before `verified`. Which books, and where they live: *not yet agreed* (SPEC-0005 will define the harness). |
 | Maintainer | Someone who can approve a spec ([§4](#4-the-spec-lifecycle)). Who: *not yet agreed*. |
