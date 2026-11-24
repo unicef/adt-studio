@@ -15,6 +15,7 @@ import {
   UpdateTaskModelRequest,
   findReasoningEffortSupport,
   resolveInheritedTaskModel,
+  taskConfigPath,
   type AiModality,
   type ReasoningEffort,
   type TaskModelsResponse,
@@ -33,7 +34,7 @@ import {
   writeStyleguideFiles,
 } from "../services/styleguide.js"
 import { ConfigYamlEditError, setYamlPathValue } from "../services/config-yaml.js"
-import { listTaskModels, taskConfigPath } from "../services/task-models.js"
+import { listTaskModels } from "../services/task-models.js"
 
 function assertModelSupported(
   registry: ProviderRegistry,

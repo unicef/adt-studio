@@ -54,9 +54,3 @@ export function listTaskModels(config: AppConfig): TaskModelEntry[] {
 
   return [...steps, ...strategies]
 }
-
-export function taskConfigPath(task: TaskModelEntry, field: "model" | "reasoning_effort"): string[] {
-  return task.kind === "step"
-    ? [task.configKey, field]
-    : ["render_strategies", task.configKey, "config", field]
-}

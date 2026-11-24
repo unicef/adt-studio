@@ -6088,6 +6088,9 @@ msgstr "Inherited from {sourceLabel}"
 msgid "Inherited from a parent element. Choose a value here to override on this element."
 msgstr "Inherited from a parent element. Choose a value here to override on this element."
 
+msgid "Inherited from Settings → Models"
+msgstr "Inherited from Settings → Models"
+
 msgid "Initial Page"
 msgstr "Initial Page"
 
@@ -6647,8 +6650,8 @@ msgstr "LLM image segmentation"
 msgid "LLM meaningfulness filter"
 msgstr "LLM meaningfulness filter"
 
-msgid "LLM model"
-msgstr "LLM model"
+#~ msgid "LLM model"
+#~ msgstr "LLM model"
 
 msgid "LLM positions text over background images"
 msgstr "LLM positions text over background images"
@@ -8540,8 +8543,11 @@ msgstr "Outputs will appear here as you generate them."
 msgid "Overall page note"
 msgstr "Overall page note"
 
-msgid "Override the default LLM and specialized models for this book. Empty fields inherit the platform defaults."
-msgstr "Override the default LLM and specialized models for this book. Empty fields inherit the platform defaults."
+#~ msgid "Override the default LLM and specialized models for this book. Empty fields inherit the platform defaults."
+#~ msgstr "Override the default LLM and specialized models for this book. Empty fields inherit the platform defaults."
+
+msgid "Override the models and reasoning effort for this book, task by task. Empty fields inherit Settings → Models; a value set here wins over it, even when the global setting changes later."
+msgstr "Override the models and reasoning effort for this book, task by task. Empty fields inherit Settings → Models; a value set here wins over it, even when the global setting changes later."
 
 msgid "Overview"
 msgstr "Overview"
@@ -9003,14 +9009,14 @@ msgstr "Platform"
 #~ msgid "Platform default"
 #~ msgstr "Platform default"
 
-msgid "Platform default: {platformImageModel}"
-msgstr "Platform default: {platformImageModel}"
+#~ msgid "Platform default: {platformImageModel}"
+#~ msgstr "Platform default: {platformImageModel}"
 
-msgid "Platform default: {platformLlmModel}"
-msgstr "Platform default: {platformLlmModel}"
+#~ msgid "Platform default: {platformLlmModel}"
+#~ msgstr "Platform default: {platformLlmModel}"
 
-msgid "Platform default: {platformSpeechModel}"
-msgstr "Platform default: {platformSpeechModel}"
+#~ msgid "Platform default: {platformSpeechModel}"
+#~ msgstr "Platform default: {platformSpeechModel}"
 
 msgid "Play a sound"
 msgstr "Play a sound"
@@ -10509,8 +10515,8 @@ msgstr "Saved content is unavailable; your draft is retained"
 msgid "Saved. Re-package Preview to apply."
 msgstr "Saved. Re-package Preview to apply."
 
-msgid "Saving..."
-msgstr "Saving..."
+#~ msgid "Saving..."
+#~ msgstr "Saving..."
 
 msgid "Saving…"
 msgstr "Saving…"
@@ -13192,8 +13198,8 @@ msgstr "Unable to load reviewer checklist settings."
 msgid "Unable to load the default LLM."
 msgstr "Unable to load the default LLM."
 
-msgid "Unable to load the model settings."
-msgstr "Unable to load the model settings."
+#~ msgid "Unable to load the model settings."
+#~ msgstr "Unable to load the model settings."
 
 msgid "Unable to load the provider list. Check that the local API is running, then refresh."
 msgstr "Unable to load the provider list. Check that the local API is running, then refresh."

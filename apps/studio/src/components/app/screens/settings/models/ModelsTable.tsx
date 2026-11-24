@@ -5,7 +5,6 @@ import { ModelSelect } from "@/components/pipeline/components/ModelSelect"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { SETTINGS_ANCHORS } from "../nav"
-import { DEFAULT_MODEL } from "../modelDefaults"
 import {
   CustomModelDot,
   ICON_SWAP,
@@ -53,7 +52,7 @@ export function ModelsTable(props: ModelsTableProps) {
 
   const defaultLabel = t`Default LLM`
   const specializedLabel = t`Task-specific defaults`
-  const showDefault = matchesQuery(query, [defaultLabel, llm.draft, DEFAULT_MODEL])
+  const showDefault = matchesQuery(query, [defaultLabel, llm.draft, llm.placeholder])
   const visibleGroups = tasks.groups
     .map((group) => ({
       ...group,
@@ -87,6 +86,7 @@ export function ModelsTable(props: ModelsTableProps) {
   const inheritanceHint = (taskId: string): string | null => {
     if (tasks.isCustom(taskId)) return null
     const { source } = tasks.inheritedOf(taskId)
+    if (source.kind === "platform") return t`Inherited from Settings → Models`
     if (source.kind !== "task") return null
     const sourceTask = tasks.tasks.find((entry) => entry.id === source.taskId)
     const sourceLabel = sourceTask ? tasks.labelOf(sourceTask) : source.taskId
@@ -220,7 +220,7 @@ export function ModelsTable(props: ModelsTableProps) {
                     inputId="app-default-model"
                     value={llm.draft}
                     onChange={llm.setDraft}
-                    placeholder={DEFAULT_MODEL}
+                    placeholder={llm.placeholder}
                     groups={llm.modelGroups}
                     inputClassName="h-9 font-mono text-[13px]"
                     disabled={llm.isLoading || llm.isSaving}
@@ -235,8 +235,8 @@ export function ModelsTable(props: ModelsTableProps) {
                     value={tasks.defaultEffort}
                     onChange={tasks.setDefaultEffort}
                     support={tasks.defaultModelEffortSupport}
-                    inherited={undefined}
-                    inheritLabel={t`Model default`}
+                    inherited={tasks.inheritedDefaultEffort}
+                    inheritLabel={tasks.inheritedDefaultEffort ? undefined : t`Model default`}
                     problem={null}
                     disabled={tasks.busy}
                     anyModel

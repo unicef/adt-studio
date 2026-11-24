@@ -28,6 +28,7 @@ export function normalizeSpeechModelInput(value: string): string {
 
 export interface DefaultLlmSetting {
   draft: string
+  placeholder: string
   setDraft: (value: string) => void
   savedModel: string
   modelGroups: ModelGroup[]
@@ -122,6 +123,7 @@ export function useDefaultLlmSetting(): DefaultLlmSetting {
 
   return {
     draft,
+    placeholder: DEFAULT_MODEL,
     setDraft,
     savedModel,
     modelGroups,
@@ -142,8 +144,10 @@ export function useDefaultLlmSetting(): DefaultLlmSetting {
 
 export interface SpecializedDefaults {
   imageDraft: string
+  imagePlaceholder: string
   setImageDraft: (value: string) => void
   speechDraft: string
+  speechPlaceholder: string
   setSpeechDraft: (value: string) => void
   isDirty: boolean
   changeCount: number
@@ -220,8 +224,10 @@ export function useSpecializedDefaults(): SpecializedDefaults {
 
   return {
     imageDraft,
+    imagePlaceholder: DEFAULT_IMAGE_GENERATION_MODEL_ID,
     setImageDraft,
     speechDraft,
+    speechPlaceholder: DEFAULT_OPENAI_TTS_MODEL_ID,
     setSpeechDraft,
     isDirty: changeCount > 0,
     changeCount,

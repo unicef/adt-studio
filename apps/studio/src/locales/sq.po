@@ -6090,6 +6090,9 @@ msgstr "Trashëguar nga {sourceLabel}"
 msgid "Inherited from a parent element. Choose a value here to override on this element."
 msgstr "Trashëguar nga një element prind. Zgjidhni një vlerë këtu për ta anuluar në këtë element."
 
+msgid "Inherited from Settings → Models"
+msgstr "Trashëguar nga Cilësimet → Modelet"
+
 msgid "Initial Page"
 msgstr "Faqja fillestare"
 
@@ -6649,8 +6652,8 @@ msgstr "Segmentim i imazhit me LLM"
 msgid "LLM meaningfulness filter"
 msgstr "Filtër kuptimësie LLM"
 
-msgid "LLM model"
-msgstr "Modeli LLM"
+#~ msgid "LLM model"
+#~ msgstr "Modeli LLM"
 
 msgid "LLM positions text over background images"
 msgstr "LLM pozicionon tekstin mbi imazhet e sfondit"
@@ -8542,8 +8545,11 @@ msgstr "Rezultatet do të shfaqen këtu ndërsa i gjeneroni ato."
 msgid "Overall page note"
 msgstr "Shënim i përgjithshëm i faqes"
 
-msgid "Override the default LLM and specialized models for this book. Empty fields inherit the platform defaults."
-msgstr "Mbivendosni LLM-në e parazgjedhur dhe modelet e specializuara për këtë libër. Fushat bosh trashëgojnë parazgjedhjet e platformës."
+#~ msgid "Override the default LLM and specialized models for this book. Empty fields inherit the platform defaults."
+#~ msgstr "Mbivendosni LLM-në e parazgjedhur dhe modelet e specializuara për këtë libër. Fushat bosh trashëgojnë parazgjedhjet e platformës."
+
+msgid "Override the models and reasoning effort for this book, task by task. Empty fields inherit Settings → Models; a value set here wins over it, even when the global setting changes later."
+msgstr "Zëvendëso modelet dhe përpjekjen e arsyetimit për këtë libër, detyrë pas detyre. Fushat bosh trashëgojnë Cilësimet → Modelet; një vlerë e vendosur këtu ka përparësi, edhe kur cilësimi global ndryshon më vonë."
 
 msgid "Overview"
 msgstr "Përmbledhje"
@@ -9005,14 +9011,14 @@ msgstr "Platforma"
 #~ msgid "Platform default"
 #~ msgstr "Parazgjedhja e platformës"
 
-msgid "Platform default: {platformImageModel}"
-msgstr "Parazgjedhja e platformës: {platformImageModel}"
+#~ msgid "Platform default: {platformImageModel}"
+#~ msgstr "Parazgjedhja e platformës: {platformImageModel}"
 
-msgid "Platform default: {platformLlmModel}"
-msgstr "Parazgjedhja e platformës: {platformLlmModel}"
+#~ msgid "Platform default: {platformLlmModel}"
+#~ msgstr "Parazgjedhja e platformës: {platformLlmModel}"
 
-msgid "Platform default: {platformSpeechModel}"
-msgstr "Parazgjedhja e platformës: {platformSpeechModel}"
+#~ msgid "Platform default: {platformSpeechModel}"
+#~ msgstr "Parazgjedhja e platformës: {platformSpeechModel}"
 
 msgid "Play a sound"
 msgstr "Luaj një tingull"
@@ -10511,8 +10517,8 @@ msgstr "Përmbajtja e ruajtur nuk është e disponueshme; drafti yt ruhet"
 msgid "Saved. Re-package Preview to apply."
 msgstr "U ruajt. Ri-pako Parapamjen për ta aplikuar."
 
-msgid "Saving..."
-msgstr "Duke ruajtur..."
+#~ msgid "Saving..."
+#~ msgstr "Duke ruajtur..."
 
 msgid "Saving…"
 msgstr "Po ruhet…"
@@ -13194,8 +13200,8 @@ msgstr "Nuk mund të ngarkohen cilësimet e listës së kontrollit të rishikues
 msgid "Unable to load the default LLM."
 msgstr "LLM-ja e parazgjedhur nuk mund të ngarkohej."
 
-msgid "Unable to load the model settings."
-msgstr "Cilësimet e modeleve nuk mund të ngarkoheshin."
+#~ msgid "Unable to load the model settings."
+#~ msgstr "Cilësimet e modeleve nuk mund të ngarkoheshin."
 
 msgid "Unable to load the provider list. Check that the local API is running, then refresh."
 msgstr "Lista e ofruesve nuk u ngarkua dot. Kontrollo që API-ja lokale po funksionon, pastaj rifresko."

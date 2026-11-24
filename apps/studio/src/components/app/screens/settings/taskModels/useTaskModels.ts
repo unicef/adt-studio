@@ -19,6 +19,7 @@ export interface TaskModelsSave {
 
 export interface TaskModelsState {
   data: TaskModelsResponse | undefined
+  inherited?: TaskModelsResponse
   isLoading: boolean
   isError: boolean
   isSaving: boolean

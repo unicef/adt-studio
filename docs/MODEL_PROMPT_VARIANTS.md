@@ -98,10 +98,17 @@ and its source, and structured-call logs record the resolved file path.
 The distributed execution default is `openai:gpt-6-luna`. The shipped
 `config.yaml` pins `openai:gpt-6.1-sol` for visual review (`visual_review.model`)
 and for every activity render strategy (`render_strategies.activity_*.config.model`),
-and `openai:gpt-6.1-sol` at `low` effort for book outline (`book_outline.model`,
+and `openai:gpt-6.1-sol` at `medium` effort for book outline (`book_outline.model`,
 `book_outline.reasoning_effort`); agents keep the provider's agent default, `gpt-6.1-sol`. Each of these is a
 task-model override shown in Settings > Models. Base prompt provenance remains `openai:gpt-5.4`;
 selecting GPT-5.4 still resolves the legacy base prompts.
+
+Visual review runs at `medium` effort (`visual_review.reasoning_effort`). The
+activity strategies also set `reasoning_effort: medium`, which applies to
+activity HTML generation and answers only: review reads
+`visual_review.reasoning_effort` and `visual_refinement.reasoning_effort`, never
+the strategy's own `reasoning_effort`. Without `visual_review.reasoning_effort`,
+review would run at Sol's default `low`, including on activity sections.
 
 Visual review resolves its model as `visual_review.model`, then `default_model`
 (`resolveVisualReviewModelId` in `packages/pipeline/src/visual-review.ts`).
@@ -317,7 +324,7 @@ keep their existing lookup and contracts. The broader rewrite and representative
 complete that evaluation or claim its acceptance criteria.
 
 Image generation/editing and image translation use specialized image models.
-The shipped config pins the book-outline task to `openai:gpt-6.1-sol` at `low`
+The shipped config pins the book-outline task to `openai:gpt-6.1-sol` at `medium`
 effort through `book_outline.model` and `book_outline.reasoning_effort`, which
 resolves the Sol outline variants above; without those values it follows
 `default_model` like any other task, with no mini-model fallback. Uploaded overrides and saved book files are never rewritten by the
@@ -389,6 +396,34 @@ translation evaluation do not read the field yet. The effective options and
 adapter/endpoint identity participate in caching; legacy caches cannot satisfy
 Sol requests. Reasoning continuation travels with the cached book transcript
 using `store: false` and encrypted reasoning items.
+
+### Books with their own model settings
+
+A book's `config.yaml` is deep-merged onto the global one (`loadBookConfig` and
+`deepMerge` in `packages/pipeline/src/config.ts`): each key the book sets wins,
+and every key it leaves out comes from the global config. Changing the shipped
+defaults never rewrites a book file, so a book can end up on a mix of models:
+
+- Studio saved full `render_strategies` blocks into some book configs, with
+  `model: openai:gpt-5.4` in each strategy. Those strategies keep GPT-5.4, while
+  every task the book does not pin follows the global defaults: Luna page
+  sectioning, Sol book outline and Sol visual review.
+- Global keys the book does not set still merge into its pinned blocks. The
+  activity strategies' `reasoning_effort: medium` reaches a book's GPT-5.4
+  activity strategies, which changes those requests and misses their LLM cache.
+  A key the book sets to `null` removes the global value instead, so a saved
+  block with `reasoning_effort: null` keeps the model's own default effort.
+- A book-level `default_model` does not replace a task model pinned in the
+  global config. Visual review, book outline and the activity strategies stay on
+  Sol unless the book sets their own `model`.
+
+The book's Settings > Models tab shows the same table as the global Settings >
+Models screen, scoped to the book. Each row shows the book's own value, with the
+value it inherits from the global config as the placeholder. Setting a row writes
+the key into the book's `config.yaml`; resetting it removes the key, so the task
+follows the global settings again. To move a pinned book onto the new defaults,
+reset its pinned activity rows; to keep it on GPT-5.4 throughout, set the
+remaining rows to GPT-5.4 and the effort rows as needed.
 
 ## Adding a New Model
 

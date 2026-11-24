@@ -92,10 +92,15 @@ describe("task model display matches the pipeline runtime", () => {
     }
   })
 
-  it("ships book outline on GPT-6.1 Sol at low effort", () => {
+  it("ships book outline on GPT-6.1 Sol at medium effort", () => {
     const tasks = listTaskModels(shipped)
     const outline = tasks.find((task) => task.id === "book_outline")!
     expect(displayedModel(tasks, outline, shipped.default_model!)).toBe("openai:gpt-6.1-sol")
-    expect(shipped.book_outline?.reasoning_effort).toBe("low")
+    expect(shipped.book_outline?.reasoning_effort).toBe("medium")
+  })
+
+  it("ships visual review on GPT-6.1 Sol at medium effort", () => {
+    expect(shipped.visual_review?.model).toBe("openai:gpt-6.1-sol")
+    expect(shipped.visual_review?.reasoning_effort).toBe("medium")
   })
 })

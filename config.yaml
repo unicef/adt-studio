@@ -8,13 +8,14 @@ default_model: "openai:gpt-6-luna"
 # (Settings > Models).
 visual_review:
   model: "openai:gpt-6.1-sol"
+  reasoning_effort: "medium"
 
-# Sol at low effort recovers stacked unit/lesson headings that Luna demotes or
+# Sol recovers stacked unit/lesson headings that Luna demotes or
 # drops; the outline sets every heading level that page sectioning uses.
 book_outline:
   prompt: book_outline
   model: "openai:gpt-6.1-sol"
-  reasoning_effort: "low"
+  reasoning_effort: "medium"
   timeout: 300
 
 default_image_generation_model: "openai:gpt-image-2"

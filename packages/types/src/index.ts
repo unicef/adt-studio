@@ -767,6 +767,7 @@ export {
   UpdateTaskModelRequest,
   UpdateDefaultReasoningEffortRequest,
   resolveInheritedTaskModel,
+  taskConfigPath,
   type InheritedModelSource,
 } from "./task-models.js"
 

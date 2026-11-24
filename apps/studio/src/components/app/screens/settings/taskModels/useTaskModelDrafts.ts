@@ -16,7 +16,7 @@ import {
 import { useProviderCredentials } from "@/hooks/use-provider-credentials"
 import { normalizeQualifiedModelInput } from "@/lib/model-id"
 import { groupTaskModels, taskModelLabel, type TaskModelGroup } from "./taskModelGroups"
-import { useTaskModels, type TaskModelChange } from "./useTaskModels"
+import type { TaskModelChange, TaskModelsState } from "./useTaskModels"
 
 export type EffortDraft = ReasoningEffort | ""
 
@@ -41,6 +41,7 @@ export interface TaskModelDrafts {
   effortOf: (id: string) => TaskEffortState
   setEffort: (id: string, value: EffortDraft) => void
   defaultEffort: EffortDraft
+  inheritedDefaultEffort: ReasoningEffort | undefined
   setDefaultEffort: (value: EffortDraft) => void
   isDefaultEffortDirty: boolean
   defaultModelEffortSupport: ReasoningEffortSupport | null
@@ -68,10 +69,9 @@ function savedEfforts(tasks: TaskModelEntry[]): Record<string, EffortDraft> {
   return Object.fromEntries(tasks.map((task) => [task.id, task.reasoningEffort ?? ""]))
 }
 
-export function useTaskModelDrafts(defaultModelDraft: string): TaskModelDrafts {
+export function useTaskModelDrafts(defaultModelDraft: string, taskModels: TaskModelsState): TaskModelDrafts {
   const { i18n } = useLingui()
   const { providers } = useProviderCredentials()
-  const taskModels = useTaskModels()
   const tasks = useMemo(() => taskModels.data?.tasks ?? [], [taskModels.data?.tasks])
   const savedDefaultEffort: EffortDraft = taskModels.data?.defaultReasoningEffort ?? ""
   const [drafts, setDrafts] = useState<Record<string, string>>({})
@@ -91,11 +91,19 @@ export function useTaskModelDrafts(defaultModelDraft: string): TaskModelDrafts {
   const defaultModel = normalizeQualifiedModelInput(defaultModelDraft) || taskModels.data?.defaultModel || ""
   const normalized = (id: string) => normalizeQualifiedModelInput(drafts[id] ?? "")
   const taskOf = (id: string) => tasks.find((task) => task.id === id)
-  const inheritedOf = (id: string) => {
+  const platformTaskOf = (id: string) => taskModels.inherited?.tasks.find((task) => task.id === id)
+  const inheritedDefaultEffort = taskModels.inherited?.defaultReasoningEffort ?? undefined
+  const inheritedOf = (id: string): { model: string; source: InheritedModelSource } => {
     const task = taskOf(id)
+    const platformModel = platformTaskOf(id)?.model
+    if (platformModel) return { model: platformModel, source: { kind: "platform" } }
     return task
-      ? resolveInheritedTaskModel(task, (sourceId) => normalized(sourceId) || null, defaultModel)
-      : { model: defaultModel, source: { kind: "default" } as InheritedModelSource }
+      ? resolveInheritedTaskModel(
+          task,
+          (sourceId) => normalized(sourceId) || platformTaskOf(sourceId)?.model || null,
+          defaultModel,
+        )
+      : { model: defaultModel, source: { kind: "default" } }
   }
   const effectiveModelOf = (id: string) => normalized(id) || inheritedOf(id).model
   const isModelDirty = (id: string) => normalized(id) !== (taskOf(id)?.model ?? "")
@@ -111,7 +119,8 @@ export function useTaskModelDrafts(defaultModelDraft: string): TaskModelDrafts {
   const effortOf = (id: string): TaskEffortState => {
     const draft = effortDrafts[id] ?? ""
     const support = providers.length > 0 ? reasoningEffortSupportFor(providers, effectiveModelOf(id)) : null
-    const inherited = fitReasoningEffort(support, defaultEffort || undefined) ?? support?.default
+    const inheritedLevel = platformTaskOf(id)?.reasoningEffort ?? (defaultEffort || inheritedDefaultEffort)
+    const inherited = fitReasoningEffort(support, inheritedLevel) ?? support?.default
     const problem: EffortProblem =
       !draft || providers.length === 0
         ? null
@@ -143,6 +152,7 @@ export function useTaskModelDrafts(defaultModelDraft: string): TaskModelDrafts {
     effortOf,
     setEffort: (id, value) => setEffortDrafts((current) => ({ ...current, [id]: value })),
     defaultEffort,
+    inheritedDefaultEffort,
     setDefaultEffort,
     isDefaultEffortDirty,
     defaultModelEffortSupport: providers.length > 0 ? reasoningEffortSupportFor(providers, defaultModel) : null,

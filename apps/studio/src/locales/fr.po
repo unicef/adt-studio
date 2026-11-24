@@ -6090,6 +6090,9 @@ msgstr "Hérité de {sourceLabel}"
 msgid "Inherited from a parent element. Choose a value here to override on this element."
 msgstr "Hérité d'un élément parent. Choisissez une valeur ici pour remplacer sur cet élément."
 
+msgid "Inherited from Settings → Models"
+msgstr "Hérité de Paramètres → Modèles"
+
 msgid "Initial Page"
 msgstr "Page initiale"
 
@@ -6649,8 +6652,8 @@ msgstr "Segmentation d'image par LLM"
 msgid "LLM meaningfulness filter"
 msgstr "Filtre de pertinence LLM"
 
-msgid "LLM model"
-msgstr "Modèle LLM"
+#~ msgid "LLM model"
+#~ msgstr "Modèle LLM"
 
 msgid "LLM positions text over background images"
 msgstr "Le LLM positionne le texte sur les images d'arrière-plan"
@@ -8542,8 +8545,11 @@ msgstr "Les sorties apparaîtront ici au fur et à mesure que vous les générez
 msgid "Overall page note"
 msgstr "Note globale de la page"
 
-msgid "Override the default LLM and specialized models for this book. Empty fields inherit the platform defaults."
-msgstr "Remplacez le LLM par défaut et les modèles spécialisés pour ce livre. Les champs vides héritent des valeurs par défaut de la plateforme."
+#~ msgid "Override the default LLM and specialized models for this book. Empty fields inherit the platform defaults."
+#~ msgstr "Remplacez le LLM par défaut et les modèles spécialisés pour ce livre. Les champs vides héritent des valeurs par défaut de la plateforme."
+
+msgid "Override the models and reasoning effort for this book, task by task. Empty fields inherit Settings → Models; a value set here wins over it, even when the global setting changes later."
+msgstr "Remplacez les modèles et l’effort de raisonnement de ce livre, tâche par tâche. Les champs vides héritent de Paramètres → Modèles ; une valeur définie ici l’emporte, même si le réglage global change ensuite."
 
 msgid "Overview"
 msgstr "Aperçu"
@@ -9005,14 +9011,14 @@ msgstr "Plateforme"
 #~ msgid "Platform default"
 #~ msgstr "Valeur par défaut de la plateforme"
 
-msgid "Platform default: {platformImageModel}"
-msgstr "Valeur par défaut de la plateforme : {platformImageModel}"
+#~ msgid "Platform default: {platformImageModel}"
+#~ msgstr "Valeur par défaut de la plateforme : {platformImageModel}"
 
-msgid "Platform default: {platformLlmModel}"
-msgstr "Valeur par défaut de la plateforme : {platformLlmModel}"
+#~ msgid "Platform default: {platformLlmModel}"
+#~ msgstr "Valeur par défaut de la plateforme : {platformLlmModel}"
 
-msgid "Platform default: {platformSpeechModel}"
-msgstr "Valeur par défaut de la plateforme : {platformSpeechModel}"
+#~ msgid "Platform default: {platformSpeechModel}"
+#~ msgstr "Valeur par défaut de la plateforme : {platformSpeechModel}"
 
 msgid "Play a sound"
 msgstr "Jouer un son"
@@ -10511,8 +10517,8 @@ msgstr "Le contenu enregistré est indisponible ; votre brouillon est conservé"
 msgid "Saved. Re-package Preview to apply."
 msgstr "Enregistré. Ré-empaquetez l'aperçu pour appliquer."
 
-msgid "Saving..."
-msgstr "Enregistrement..."
+#~ msgid "Saving..."
+#~ msgstr "Enregistrement..."
 
 msgid "Saving…"
 msgstr "Enregistrement…"
@@ -13194,8 +13200,8 @@ msgstr "Impossible de charger les paramètres de la liste de contrôle du révis
 msgid "Unable to load the default LLM."
 msgstr "Impossible de charger le LLM par défaut."
 
-msgid "Unable to load the model settings."
-msgstr "Impossible de charger les paramètres des modèles."
+#~ msgid "Unable to load the model settings."
+#~ msgstr "Impossible de charger les paramètres des modèles."
 
 msgid "Unable to load the provider list. Check that the local API is running, then refresh."
 msgstr "Impossible de charger la liste des fournisseurs. Vérifiez que l'API locale est en cours d'exécution, puis actualisez."

@@ -120,7 +120,16 @@ export const TaskModelEntry = z.object({
 })
 export type TaskModelEntry = z.infer<typeof TaskModelEntry>
 
-export type InheritedModelSource = { kind: "default" } | { kind: "task"; taskId: string }
+export type InheritedModelSource = { kind: "default" } | { kind: "platform" } | { kind: "task"; taskId: string }
+
+export function taskConfigPath(
+  task: Pick<TaskModelEntry, "kind" | "configKey">,
+  field: "model" | "reasoning_effort",
+): string[] {
+  return task.kind === "step"
+    ? [task.configKey, field]
+    : ["render_strategies", task.configKey, "config", field]
+}
 
 export function resolveInheritedTaskModel(
   task: Pick<TaskModelEntry, "inheritsFrom">,

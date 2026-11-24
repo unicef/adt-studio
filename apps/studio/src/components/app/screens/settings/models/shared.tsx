@@ -2,11 +2,7 @@ import { useRef, useState, type ReactNode } from "react"
 import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import { Link } from "@tanstack/react-router"
 import { AudioLines, ImageIcon, Info, TriangleAlert } from "lucide-react"
-import {
-  DEFAULT_IMAGE_GENERATION_MODEL_ID,
-  DEFAULT_OPENAI_TTS_MODEL_ID,
-  STEPS_BY_DEFAULT_MODEL_KIND,
-} from "@adt/types"
+import { STEPS_BY_DEFAULT_MODEL_KIND } from "@adt/types"
 import type { ModelModalitySupport } from "@/api/provider-credentials"
 import {
   ALL_TTS_MODEL_GROUPS,
@@ -25,6 +21,8 @@ export interface ModelsTableProps {
   llm: DefaultLlmSetting
   specialized: SpecializedDefaults
   tasks: TaskModelDrafts
+  floatingSaveId?: string
+  onSave?: () => void
 }
 
 export function UnsupportedModelNotice({
@@ -145,7 +143,7 @@ export function useSpecializedItems(specialized: SpecializedDefaults): Specializ
       inputId: "app-image-generation-model",
       value: specialized.imageDraft,
       onChange: specialized.setImageDraft,
-      placeholder: DEFAULT_IMAGE_GENERATION_MODEL_ID,
+      placeholder: specialized.imagePlaceholder,
       groups: IMAGE_MODEL_GROUPS,
       support: specialized.imageSupport,
     },
@@ -161,7 +159,7 @@ export function useSpecializedItems(specialized: SpecializedDefaults): Specializ
       inputId: "app-speech-generation-model",
       value: specialized.speechDraft,
       onChange: specialized.setSpeechDraft,
-      placeholder: DEFAULT_OPENAI_TTS_MODEL_ID,
+      placeholder: specialized.speechPlaceholder,
       groups: ALL_TTS_MODEL_GROUPS,
       prefixProvider: false,
       support: null,
@@ -169,7 +167,13 @@ export function useSpecializedItems(specialized: SpecializedDefaults): Specializ
   ]
 }
 
-export function useModelsFloatingSave({ llm, specialized, tasks }: ModelsTableProps) {
+export function useModelsFloatingSave({
+  llm,
+  specialized,
+  tasks,
+  floatingSaveId = "settings-models",
+  onSave,
+}: ModelsTableProps) {
   const { t } = useLingui()
   const llmDirty = llm.isDirty
   const changeCount = Number(llmDirty) + specialized.changeCount + tasks.changeCount
@@ -177,7 +181,7 @@ export function useModelsFloatingSave({ llm, specialized, tasks }: ModelsTablePr
     llm.support?.ok === false || specialized.imageSupport?.ok === false || tasks.hasUnsupported
 
   useFloatingSave({
-    id: "settings-models",
+    id: floatingSaveId,
     dirty: changeCount > 0,
     saving: llm.isSaving || specialized.isSaving || tasks.isSaving,
     label: (
@@ -193,6 +197,7 @@ export function useModelsFloatingSave({ llm, specialized, tasks }: ModelsTablePr
       tasks.discard()
     },
     onSave: () => {
+      if (onSave) return onSave()
       if (llmDirty) llm.save()
       if (specialized.isDirty) specialized.save()
       if (tasks.changeCount > 0) tasks.save()

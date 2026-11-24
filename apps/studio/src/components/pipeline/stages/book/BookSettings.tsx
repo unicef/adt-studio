@@ -7,7 +7,7 @@ import { BookModelSettings } from "./BookModelSettings"
 export function BookSettings({ bookLabel, tab = "general" }: { bookLabel: string; tab?: string }) {
   if (tab === "models") {
     return (
-      <div className="mx-auto w-full max-w-4xl p-4">
+      <div className="mx-auto w-full max-w-6xl p-4">
         <BookModelSettings bookLabel={bookLabel} />
       </div>
     )
