@@ -306,3 +306,71 @@ describe("SectionTreeEditor inherited prune (#596)", () => {
     expect(screen.getAllByText("Delete")).toHaveLength(4)
   })
 })
+
+describe("SectionTreeEditor highlightNodeId (#596)", () => {
+  function HighlightHarness({ highlightNodeId }: { highlightNodeId: string | null }) {
+    const [section, setSection] = useState(initialSection)
+    return (
+      <SectionTreeEditor
+        section={section}
+        onChange={setSection}
+        bookLabel="test-book"
+        highlightNodeId={highlightNodeId}
+      />
+    )
+  }
+
+  it("marks the highlighted row and scrolls only its own scroll container to it", () => {
+    // scrollIntoView would also scroll overflow-hidden ancestors sideways: the
+    // edit panel is still off-screen when the row is highlighted, so the whole
+    // section view shifted left by a panel width and stayed there.
+    const scrollIntoView = vi.fn()
+    Element.prototype.scrollIntoView = scrollIntoView
+    render(
+      <div data-testid="outer" style={{ overflow: "hidden" }}>
+        <div style={{ overflowY: "auto" }}>
+          <HighlightHarness highlightNodeId="sense-text" />
+        </div>
+      </div>
+    )
+
+    const row = document.querySelector('[data-node-id="sense-text"]')
+    expect(row?.getAttribute("data-highlighted")).toBe("true")
+    expect(document.querySelectorAll('[data-highlighted="true"]')).toHaveLength(1)
+    expect(scrollIntoView).not.toHaveBeenCalled()
+    expect(screen.getByTestId("outer").scrollLeft).toBe(0)
+  })
+
+  it("scrolls the nearest scrollable ancestor vertically, never horizontally", () => {
+    const scrollTo = vi.fn()
+    const original = HTMLElement.prototype.scrollTo
+    HTMLElement.prototype.scrollTo = scrollTo
+    try {
+      render(
+        <div style={{ overflow: "hidden" }}>
+          <div data-testid="scroller" style={{ overflowY: "auto" }}>
+            <HighlightHarness highlightNodeId="sense-text" />
+          </div>
+        </div>
+      )
+      expect(scrollTo).toHaveBeenCalledTimes(1)
+      expect(scrollTo.mock.contexts[0]).toBe(screen.getByTestId("scroller"))
+      const options = scrollTo.mock.calls[0][0] as ScrollToOptions
+      expect(typeof options.top).toBe("number")
+      expect(options.left).toBeUndefined()
+    } finally {
+      HTMLElement.prototype.scrollTo = original
+    }
+  })
+
+  it("expands a collapsed group so the highlighted row is reachable", () => {
+    Element.prototype.scrollIntoView = vi.fn()
+    const { rerender } = render(<HighlightHarness highlightNodeId={null} />)
+    const senseGroup = document.querySelector('[data-node-id="sense-group"]')!
+    fireEvent.click(senseGroup.querySelector('button[title="Collapse"]')!)
+    expect(screen.queryByText("Sense")).toBeNull()
+
+    rerender(<HighlightHarness highlightNodeId="sense-text" />)
+    expect(screen.getByText("Sense")).toBeTruthy()
+  })
+})
