@@ -18,6 +18,7 @@ import { Avatar } from "../../decide/intro/parts"
 import { AssistantRow, Folded, TypingRow, UserRow } from "./bubbles"
 import { Composer, ComposerReply } from "./Composer"
 import { NAME_INPUT } from "./Create"
+import { useLiving } from "./look"
 import { useAnswers, type SettingValue } from "./useAnswers"
 import { useCreateRun } from "./useCreateRun"
 import { useReveal } from "./useReveal"
@@ -50,6 +51,7 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
   const composer = useRef<HTMLDivElement>(null)
   const acted = useRef(false)
   const reduced = useReducedEffects()
+  const living = useLiving()
 
   // A new PDF starts a new conversation about it.
   useEffect(() => {
@@ -201,10 +203,12 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
         }}
         className="relative flex-1 overflow-y-auto overflow-x-hidden"
       >
-        <div className="mx-auto flex w-full max-w-[760px] flex-col px-4 pb-8 pt-8 sm:px-6 sm:pt-12">
+        <div className={cn("mx-auto flex w-full flex-col px-4 pb-8 pt-8 sm:px-6 sm:pt-12", living ? "max-w-[960px]" : "max-w-[760px]")}>
           {!validFile && (
             <header className="mb-8 flex flex-col items-start gap-4 animate-[am-fade-up_0.5s_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none">
-              <Avatar size="lg" />
+              <span className={living ? "lc-avatar" : undefined}>
+                <Avatar size="lg" />
+              </span>
               <div className="flex flex-col gap-2">
                 <h1 className="text-[34px] font-bold leading-[1.02] tracking-[-0.035em] sm:text-[44px]">
                   <Trans>
@@ -226,7 +230,7 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
                 const next = g.messages[i + 1]
                 const lastShown = current && i === g.messages.length - 1
                 const tail = m.from === "ai" && (!next || next.from !== "ai") && !(lastShown && reveal.typing)
-                const gap = i === 0 ? "" : g.messages[i - 1]!.from === m.from ? "mt-1.5" : "mt-4"
+                const gap = i === 0 ? "" : g.messages[i - 1]!.from === m.from ? (living ? "mt-2.5" : "mt-1.5") : living ? "mt-6" : "mt-4"
                 return (
                   <div key={m.id} id={`msg-${m.id}`} data-handoff={m.from === "ai" && m.focus ? "" : undefined} className={gap}>
                     {m.from === "ai" ? (
@@ -241,15 +245,23 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
               })
               const open = current || !summary || unfolded.has(g.step)
               return (
-                <section key={g.step} className={gi === 0 ? "" : current ? "mt-6" : "mt-2"}>
+                <section key={g.step} className={gi === 0 ? "" : current ? (living ? "mt-9" : "mt-6") : living ? "mt-3" : "mt-2"}>
                   {!current && summary && <Folded summary={summary} open={open} locked={create.locked} onToggle={() => setUnfolded((u) => (u.has(g.step) ? new Set([...u].filter((s) => s !== g.step)) : new Set(u).add(g.step)))} />}
-                  {open && <div className={!current && summary ? "mb-4 mt-3" : ""}>{body}</div>}
+                  {living && !current && summary ? (
+                    <div className="lc-fold" data-open={open} inert={!open}>
+                      <div>
+                        <div className="mb-5 mt-4">{body}</div>
+                      </div>
+                    </div>
+                  ) : (
+                    open && <div className={!current && summary ? "mb-4 mt-3" : ""}>{body}</div>
+                  )}
                 </section>
               )
             })}
           </div>
           {reveal.typing && (
-            <div className={cn(shown[shown.length - 1]?.from === "ai" ? "mt-1.5" : "mt-5")}>
+            <div className={cn(shown[shown.length - 1]?.from === "ai" ? (living ? "mt-2.5" : "mt-1.5") : living ? "mt-7" : "mt-5")}>
               <TypingRow />
             </div>
           )}

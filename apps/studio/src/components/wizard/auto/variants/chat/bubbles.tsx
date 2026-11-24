@@ -4,6 +4,7 @@ import { Check, ChevronDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Avatar, Dots } from "../../decide/intro/parts"
 import { POP, SWAP } from "../../../core/ui"
+import { useLiving } from "./look"
 
 const SHADOW = "shadow-[0_6px_18px_-10px_rgba(15,23,42,0.3)]"
 
@@ -12,26 +13,53 @@ const SHADOW = "shadow-[0_6px_18px_-10px_rgba(15,23,42,0.3)]"
  * chat. `card` lets a message hold a wide card (settings, questions) under its words.
  */
 export function AssistantRow({ tail, children, card, className }: { tail?: boolean; children?: ReactNode; card?: ReactNode; className?: string }) {
+  const living = useLiving()
   return (
-    <div className={cn("flex items-end gap-2.5", className)}>
-      <Avatar hidden={!tail} />
-      <div className="flex min-w-0 max-w-[min(560px,calc(100%-46px))] flex-1 flex-col items-start gap-2">
+    <div className={cn("flex items-end", living ? "gap-3.5" : "gap-2.5", className)}>
+      <span className={living && tail ? "lc-avatar flex self-end" : "contents"}>
+        <Avatar hidden={!tail} size={living ? "lg" : "md"} />
+      </span>
+      <div className={cn("flex min-w-0 flex-1 flex-col items-start", living ? "max-w-[min(720px,calc(100%-62px))] gap-3" : "max-w-[min(560px,calc(100%-46px))] gap-2")}>
         <AssistantLabel />
-        {children && <div className={cn("origin-bottom-left rounded-[20px] bg-card px-4 py-2.5 text-[15.5px] leading-snug text-foreground ring-1 ring-border", SHADOW, tail && !card && "rounded-bl-[6px]", POP)}>{children}</div>}
-        {card && <div className={cn("w-full origin-bottom-left", POP)} style={{ animationDelay: children ? "90ms" : undefined }}>{card}</div>}
+        {children && (
+          <div
+            className={cn(
+              "bg-card text-foreground ring-1 ring-border",
+              living ? "lc-ai rounded-[28px] px-6 py-4 text-[19px] leading-[1.4] shadow-[0_14px_34px_-16px_rgba(15,23,42,0.35)]" : cn("origin-bottom-left rounded-[20px] px-4 py-2.5 text-[15.5px] leading-snug", SHADOW, POP),
+              tail && !card && (living ? "rounded-bl-[8px]" : "rounded-bl-[6px]"),
+            )}
+          >
+            {children}
+          </div>
+        )}
+        {card && (
+          <div className={cn("w-full", living ? "lc-card [zoom:1.12]" : cn("origin-bottom-left", POP))} style={{ animationDelay: !living && children ? "90ms" : undefined }}>
+            {card}
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
 export function UserRow({ children, className, plain }: { children: ReactNode; className?: string; plain?: boolean }) {
+  const living = useLiving()
   return (
     <div className={cn("flex justify-end pl-10", className)}>
       <YouLabel />
       {plain ? (
-        <div className={cn("flex w-full justify-end origin-bottom-right", POP)}>{children}</div>
+        <div className={cn("flex w-full justify-end", living ? "lc-you [zoom:1.12]" : cn("origin-bottom-right", POP))}>{children}</div>
       ) : (
-        <div className={cn("max-w-[480px] origin-bottom-right rounded-[20px] rounded-br-[6px] bg-brand-600 px-4 py-2.5 text-[15.5px] font-medium leading-snug text-primary-foreground shadow-[0_10px_24px_-12px_rgba(43,127,255,0.9)]", POP)}>{children}</div>
+        <div
+          className={cn(
+            "bg-brand-600 font-medium text-primary-foreground",
+            living
+              ? "lc-you max-w-[600px] rounded-[28px] rounded-br-[8px] px-6 py-4 text-[19px] leading-[1.4] shadow-[0_16px_36px_-14px_rgba(43,127,255,0.9)]"
+              : cn("max-w-[480px] origin-bottom-right rounded-[20px] rounded-br-[6px] px-4 py-2.5 text-[15.5px] leading-snug shadow-[0_10px_24px_-12px_rgba(43,127,255,0.9)]", POP),
+          )}
+        >
+          {children}
+        </div>
       )}
     </div>
   )
@@ -39,10 +67,22 @@ export function UserRow({ children, className, plain }: { children: ReactNode; c
 
 /** The assistant is writing. The dots are decoration; the thread's status line says it in words. */
 export function TypingRow() {
+  const living = useLiving()
+  if (!living)
+    return (
+      <div className="flex items-end gap-2.5" aria-hidden>
+        <Avatar typing />
+        <Dots />
+      </div>
+    )
   return (
-    <div className="flex items-end gap-2.5" aria-hidden>
-      <Avatar typing />
-      <Dots />
+    <div className="flex items-end gap-3.5" aria-hidden>
+      <Avatar typing size="lg" />
+      <span className="lc-ai lc-typing flex h-[58px] w-[96px] items-center justify-center gap-2 rounded-[28px] rounded-bl-[8px] bg-card shadow-[0_14px_34px_-16px_rgba(15,23,42,0.35)] ring-1 ring-border">
+        {[0, 1, 2].map((i) => (
+          <span key={i} className="lc-dot size-2.5 rounded-full bg-brand-500/70" style={{ animationDelay: `${i * 0.16}s` }} />
+        ))}
+      </span>
     </div>
   )
 }
@@ -69,6 +109,7 @@ export function SettingPill({ label, value, tone = "ai" }: { label: ReactNode; v
 
 /** A reply the user can tap, shown under the assistant's message. */
 export function Chip({ onClick, children, icon, primary, pressed, disabled, className }: { onClick: () => void; children: ReactNode; icon?: ReactNode; primary?: boolean; pressed?: boolean; disabled?: boolean; className?: string }) {
+  const living = useLiving()
   return (
     <button
       type="button"
@@ -76,7 +117,8 @@ export function Chip({ onClick, children, icon, primary, pressed, disabled, clas
       disabled={disabled}
       aria-pressed={pressed}
       className={cn(
-        "inline-flex h-10 items-center gap-1.5 whitespace-nowrap rounded-full px-4 text-[14px] font-semibold transition-[transform,background-color,box-shadow,color] duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full font-semibold transition-[transform,background-color,box-shadow,color] duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50",
+        living ? "h-12 px-5 text-[16px] hover:-translate-y-0.5" : "h-10 px-4 text-[14px]",
         primary ? "bg-brand-600 text-primary-foreground shadow-[0_8px_20px_-8px_rgba(43,127,255,0.8)] hover:bg-brand-600/90" : "bg-card text-brand-700 ring-1 ring-brand-200 hover:bg-brand-50 hover:ring-brand-300",
         className,
       )}
@@ -110,8 +152,9 @@ function AssistantLabel() {
 
 /** A step the thread has moved past, folded to one line. Tapping it opens the step again, to change it. */
 export function Folded({ summary, open, onToggle, locked }: { summary: { text: ReactNode; tone?: "done" | "failed" }; open: boolean; onToggle: () => void; locked?: boolean }) {
+  const living = useLiving()
   return (
-    <div className="flex pl-[46px]">
+    <div className={cn("flex", living ? "pl-[62px] [zoom:1.12]" : "pl-[46px]")}>
       <button
         type="button"
         aria-expanded={open}

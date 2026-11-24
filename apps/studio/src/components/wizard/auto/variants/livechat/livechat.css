@@ -1,35 +1,44 @@
-/* Living chat: the morphs between a message and its stage, and the reading scanner. */
-::view-transition-group(*.lc) {
-  animation-duration: 0.48s;
-  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-  overflow: clip;
-  border-radius: 24px;
+/* Living chat: messages spring up out of the composer, cards unroll under them, folded steps open smoothly. */
+@keyframes lc-msg-ai {
+  0% { opacity: 0; transform: translateY(22px) scale(0.86); filter: blur(6px); }
+  60% { opacity: 1; filter: blur(0); }
+  100% { opacity: 1; transform: none; filter: none; }
 }
-::view-transition-old(*.lc),
-::view-transition-new(*.lc) {
-  height: 100%;
-  width: 100%;
-  object-fit: none;
-  object-position: top left;
+@keyframes lc-msg-you {
+  0% { opacity: 0; transform: translate(18px, 44px) scale(0.8); filter: blur(4px); }
+  100% { opacity: 1; transform: none; filter: none; }
 }
-::view-transition-old(*.lc) { animation: lc-out 0.22s ease-out both; }
-::view-transition-new(*.lc) { animation: lc-in 0.34s ease-out 0.1s both; }
-::view-transition-old(root), ::view-transition-new(root) { animation: none; }
-@keyframes lc-out { to { opacity: 0; filter: blur(2px); } }
-@keyframes lc-in { from { opacity: 0; filter: blur(2px); } }
+@keyframes lc-card {
+  0% { opacity: 0; transform: translateY(18px) scaleY(0.92); clip-path: inset(-60px -60px 100% -60px); }
+  100% { opacity: 1; transform: none; clip-path: inset(-60px); }
+}
+@keyframes lc-avatar {
+  0% { transform: scale(0.4) rotate(-30deg); opacity: 0; }
+  70% { transform: scale(1.12) rotate(6deg); opacity: 1; }
+  100% { transform: none; }
+}
+@keyframes lc-dot { 0%, 100% { transform: translateY(0) scale(1); opacity: 0.45; } 50% { transform: translateY(-6px) scale(1.15); opacity: 1; } }
+@keyframes lc-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 
-/* The pages flowing under the scanner. */
-@keyframes lc-flow { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-.lc-flow { animation: lc-flow 26s linear infinite; }
-@keyframes lc-beam { 0%, 100% { transform: translateX(-60px); opacity: 0.55; } 50% { transform: translateX(60px); opacity: 1; } }
-.lc-beam { animation: lc-beam 3.2s ease-in-out infinite; }
-@keyframes lc-glow { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
-.lc-glow { animation: lc-glow 2.4s ease-in-out infinite; }
-@keyframes lc-rise { from { opacity: 0; transform: translateY(14px) scale(0.98); } to { opacity: 1; transform: none; } }
-.lc-rise { animation: lc-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
-@keyframes lc-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.lc-ai { transform-origin: bottom left; animation: lc-msg-ai 0.62s cubic-bezier(0.34, 1.45, 0.64, 1) both; }
+.lc-you { transform-origin: bottom right; animation: lc-msg-you 0.5s cubic-bezier(0.34, 1.35, 0.64, 1) both; }
+.lc-card { transform-origin: top left; animation: lc-card 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.16s both; }
+.lc-avatar { animation: lc-avatar 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.lc-dot { animation: lc-dot 1.1s ease-in-out infinite; }
+/* The typing bubble's soft light passing over it. */
+.lc-typing {
+  background-image: linear-gradient(100deg, transparent 30%, color-mix(in oklab, var(--color-brand-300, #8ec5ff) 28%, transparent) 50%, transparent 70%);
+  background-size: 200% 100%;
+  animation: lc-shimmer 1.8s linear infinite;
+}
+/* A folded step opening or closing: the rows grow from 0 to their height. */
+.lc-fold { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease; }
+.lc-fold[data-open="true"] { grid-template-rows: 1fr; opacity: 1; }
+.lc-fold > * { min-height: 0; overflow: hidden; }
 
 @media (prefers-reduced-motion: reduce) {
-  .lc-flow, .lc-beam, .lc-glow, .lc-rise { animation: none; }
+  .lc-ai, .lc-you, .lc-card, .lc-avatar, .lc-dot, .lc-typing { animation: none; }
+  .lc-fold { transition: none; }
 }
-.reduce-effects .lc-flow, .reduce-effects .lc-beam, .reduce-effects .lc-glow, .reduce-effects .lc-rise { animation: none; }
+.reduce-effects :is(.lc-ai, .lc-you, .lc-card, .lc-avatar, .lc-dot, .lc-typing) { animation: none; }
+.reduce-effects .lc-fold { transition: none; }
