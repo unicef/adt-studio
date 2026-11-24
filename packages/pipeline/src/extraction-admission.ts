@@ -1,12 +1,10 @@
 import fs from "node:fs"
-import path from "node:path"
 import { countPdfPages, computeGroups } from "@adt/pdf"
 import { EXTRACTION_CONTRACT_VERSION, ExtractionInputs, PartManifest, type AppConfig } from "@adt/types"
-import { extractionHash, readExtractionManifest, inspectExtractionDestination, ExtractionAdmissionError, BookBusyError, assertBookWriter, resolveBookPaths, withBookWriter } from "@adt/storage"
+import { extractionHash, readExtractionManifest, inspectExtractionDestination, ExtractionAdmissionError, BookBusyError, assertBookWriter } from "@adt/storage"
 import type { ExtractOptions } from "./pdf-extraction.js"
 import { figureExtractionFlags } from "./figure-extraction-config.js"
 import { isFixedLayoutBook } from "./fixed-layout-rendering.js"
-import { loadBookConfig } from "./config.js"
 
 /** The same production resolver feeds API, CLI and the extraction fingerprint. */
 export function extractionOptionsFromConfig(pdfPath: string, config: AppConfig): ExtractOptions {
@@ -65,14 +63,4 @@ export function prepareExtractionAdmission(bookDir: string, options: ExtractOpti
     if (error instanceof ExtractionAdmissionError || error instanceof BookBusyError) throw error
     throw new ExtractionAdmissionError("EXTRACTION_INPUT_INVALID")
   }
-}
-
-/** A reused extraction cannot enter the legacy full-stage/DAG body. */
-export function assertSafeExtractionRun(label: string, booksRoot: string, configPath?: string): void {
-  const { bookDir } = resolveBookPaths(label, booksRoot)
-  withBookWriter(bookDir, () => {
-    const config = loadBookConfig(label, booksRoot, configPath)
-    const admission = prepareExtractionAdmission(bookDir, extractionOptionsFromConfig(path.join(bookDir, `${label}.pdf`), config))
-    if (admission.outcome === "reused") throw new ExtractionAdmissionError("UNSAFE_RESUME_UNAVAILABLE")
-  })
 }
