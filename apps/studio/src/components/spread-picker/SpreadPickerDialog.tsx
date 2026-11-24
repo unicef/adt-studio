@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { SegmentedControl } from "@/components/ui/segmented-control"
-import { usePdfPreviewPages } from "@/components/wizard/shared/usePdfPreviewPages"
+import { usePdfPreviewPages } from "@/components/wizard/core/pdf/usePdfPreviewPages"
 import { PageGroupingEditor } from "./PageGroupingEditor"
 import { normalizeLeads } from "./pairs"
 

@@ -177,6 +177,8 @@ interface Window {
     version?: string
     /** OS languages in preference order (e.g. `["pt-BR", "en-US"]`). Undefined in the web build. */
     systemLocales?: string[]
+    /** Processor cores, memory and whether the GPU is in use, for "Reduce effects" in Auto. Undefined in the web build. */
+    hardware?: { cores?: number; memoryGb?: number; softwareRendering?: boolean }
     /** IPC bridge for custom title bar controls. Undefined in the web build. */
     windowControls?: ElectronWindowControls
     /** IPC bridge for desktop auto-updater. Undefined in the web build. */
