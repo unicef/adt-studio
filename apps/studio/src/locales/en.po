@@ -40,6 +40,9 @@ msgstr ", "
 msgid ", and "
 msgstr ", and "
 
+msgid ", fixed once the book is created"
+msgstr ", fixed once the book is created"
+
 msgid "? This will remove all extracted data and cannot be undone."
 msgstr "? This will remove all extracted data and cannot be undone."
 
@@ -74,6 +77,9 @@ msgstr "(default)"
 
 msgid "(empty)"
 msgstr "(empty)"
+
+msgid "(fixed once the book is created)"
+msgstr "(fixed once the book is created)"
 
 msgid "(no instruction text)"
 msgstr "(no instruction text)"
@@ -135,6 +141,7 @@ msgstr "{0, plural, one {# page replaced} other {# pages replaced}}"
 
 #. placeholder {0}: Math.max(0, endPage - startPage + 1)
 #. placeholder {0}: book.pageCount
+#. placeholder {0}: flow.pageCount
 msgid "{0, plural, one {# page} other {# pages}}"
 msgstr "{0, plural, one {# page} other {# pages}}"
 
@@ -298,6 +305,17 @@ msgstr "{0} images selected"
 msgid "{0} img"
 msgstr "{0} img"
 
+#. placeholder {0}: run.name
+msgid "{0} is <0>ready</0>"
+msgstr "{0} is <0>ready</0>"
+
+#. placeholder {0}: words.name(c.id)
+#. placeholder {0}: words.name(id)
+#. placeholder {1}: words.value(c.id, c.value)
+#. placeholder {1}: words.value(id, value)
+msgid "{0} is now {1}."
+msgstr "{0} is now {1}."
+
 #. placeholder {0}: link.title
 msgid "{0} is ready to read."
 msgstr "{0} is ready to read."
@@ -335,7 +353,9 @@ msgid "{0} new comments"
 msgstr "{0} new comments"
 
 #. placeholder {0}: String(filteredQuizzes.length)
+#. placeholder {0}: at + 1
 #. placeholder {1}: String(displayQuizzes.length)
+#. placeholder {1}: list.length
 msgid "{0} of {1}"
 msgstr "{0} of {1}"
 
@@ -446,6 +466,11 @@ msgstr "{0} translations"
 msgid "{0}: “{1}”"
 msgstr "{0}: “{1}”"
 
+#. placeholder {0}: words.name(id)
+#. placeholder {1}: words.value(id, then[id]!.value)
+msgid "{0}: <0>{1}</0>"
+msgstr "{0}: <0>{1}</0>"
+
 #. placeholder {0}: String(generatedAudioCount)
 #. placeholder {1}: String(speakableEntries.length)
 msgid "{0}/{1} audio"
@@ -498,8 +523,14 @@ msgstr "{0}m ago"
 msgid "{0}s ago"
 msgstr "{0}s ago"
 
+msgid "{asks, plural, one {The AI has read your book. # note needs your answer.} other {The AI has read your book. # notes need your answer.}}"
+msgstr "{asks, plural, one {The AI has read your book. # note needs your answer.} other {The AI has read your book. # notes need your answer.}}"
+
 msgid "{availableCount} more you can generate after import:"
 msgstr "{availableCount} more you can generate after import:"
+
+msgid "{changed} set by you"
+msgstr "{changed} set by you"
 
 #. placeholder {0}: items.length
 msgid "{classifiedCount} of {0} classified"
@@ -546,6 +577,9 @@ msgstr "{count, plural, one {a text field} other {# text fields}}"
 
 msgid "{count, plural, one {the first version you've shared} other {# versions shared}}"
 msgstr "{count, plural, one {the first version you've shared} other {# versions shared}}"
+
+msgid "{count, plural, one {There's one thing I'm not sure about.} other {There are # things I'm not sure about. One at a time:}}"
+msgstr "{count, plural, one {There's one thing I'm not sure about.} other {There are # things I'm not sure about. One at a time:}}"
 
 msgid "{count} {count, plural, one {issue} other {issues}}"
 msgstr "{count} {count, plural, one {issue} other {issues}}"
@@ -610,6 +644,10 @@ msgstr "{first} and {second}"
 msgid "{first}, {second} and more"
 msgstr "{first}, {second} and more"
 
+#. placeholder {0}: SETTING_IDS.length
+msgid "{fromAi} of {0} picked by AI"
+msgstr "{fromAi} of {0} picked by AI"
+
 msgid "{generatedFeatureCount} of 6 features generated"
 msgstr "{generatedFeatureCount} of 6 features generated"
 
@@ -636,6 +674,9 @@ msgstr "{label} desktop size"
 
 msgid "{label} mobile size"
 msgstr "{label} mobile size"
+
+msgid "{left, plural, one {# note to answer} other {# notes to answer}}"
+msgstr "{left, plural, one {# note to answer} other {# notes to answer}}"
 
 msgid "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 msgstr "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
@@ -688,6 +729,9 @@ msgstr "{pagesReviewed} {pagesReviewed, plural, one {page} other {pages}} review
 msgid "{pdfFilename} · {pageCount} pages"
 msgstr "{pdfFilename} · {pageCount} pages"
 
+msgid "{pending, plural, one {One question is still open; we'll use our guess.} other {# questions are still open; we'll use our guesses.}}"
+msgstr "{pending, plural, one {One question is still open; we'll use our guess.} other {# questions are still open; we'll use our guesses.}}"
+
 msgid "{position} of {total}"
 msgstr "{position} of {total}"
 
@@ -731,6 +775,9 @@ msgstr "{providerKey, select, other {Your {name} key was rejected, so books can'
 #. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
 msgid "{providerKey, select, other {Your {name} key was rejected}}"
 msgstr "{providerKey, select, other {Your {name} key was rejected}}"
+
+msgid "{questions, plural, one {We weren't sure about one thing. Pick the one that matches your book.} other {We weren't sure about # things. Pick the ones that match your book.}}"
+msgstr "{questions, plural, one {We weren't sure about one thing. Pick the one that matches your book.} other {We weren't sure about # things. Pick the ones that match your book.}}"
 
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
@@ -847,6 +894,9 @@ msgstr "{title} is saved"
 msgid "{title} is updated. The link now shows your latest version."
 msgstr "{title} is updated. The link now shows your latest version."
 
+msgid "{title}. {body} {desc}"
+msgstr "{title}. {body} {desc}"
+
 msgid "{toggleShortcut} to toggle"
 msgstr "{toggleShortcut} to toggle"
 
@@ -896,8 +946,30 @@ msgstr "<0>{name}</0> has {controls}"
 msgid "<0>Another ADT Studio took over sharing on this Cloudflare account.</0> Readers still reach the link; reconnect here to manage it and see new feedback."
 msgstr "<0>Another ADT Studio took over sharing on this Cloudflare account.</0> Readers still reach the link; reconnect here to manage it and see new feedback."
 
+#. placeholder {0}: run.name
+msgid "<0>Another book is already called {0}.</0> <1>Choose a new name above and create it again.</1>"
+msgstr "<0>Another book is already called {0}.</0> <1>Choose a new name above and create it again.</1>"
+
+msgid "<0>I couldn't create the book.</0> <1>Nothing was saved and your setup is kept.</1>"
+msgstr "<0>I couldn't create the book.</0> <1>Nothing was saved and your setup is kept.</1>"
+
+msgid "<0>I couldn't open this PDF.</0> The file may be damaged. Export it again, or send another file."
+msgstr "<0>I couldn't open this PDF.</0> The file may be damaged. Export it again, or send another file."
+
+msgid "<0>I'm sure about all of it,</0> so there's nothing to ask you."
+msgstr "<0>I'm sure about all of it,</0> so there's nothing to ask you."
+
+msgid "<0>One heads-up:</0> only one of my two readings came back, so I couldn't double-check any of this. Give the setup a look before you create the book."
+msgstr "<0>One heads-up:</0> only one of my two readings came back, so I couldn't double-check any of this. Give the setup a look before you create the book."
+
+msgid "<0>That file isn't a PDF.</0> Only PDF files can be converted. Send a PDF and we'll start."
+msgstr "<0>That file isn't a PDF.</0> Only PDF files can be converted. Send a PDF and we'll start."
+
 msgid "<0>The sharing service isn't answering.</0> Readers may not reach the link, and new feedback shows up once it's back."
 msgstr "<0>The sharing service isn't answering.</0> Readers may not reach the link, and new feedback shows up once it's back."
+
+msgid "<0>This PDF is password-protected.</0> Remove the password and send it again, or send another file."
+msgstr "<0>This PDF is password-protected.</0> Remove the password and send it again, or send another file."
 
 msgid "="
 msgstr "="
@@ -1013,6 +1085,9 @@ msgstr "A comment you pick opens here, next to its page."
 msgid "A few maps, charts, diagrams or labelled drawings."
 msgstr "A few maps, charts, diagrams or labelled drawings."
 
+msgid "A few notes need <0>you</0>"
+msgstr "A few notes need <0>you</0>"
+
 msgid "A few spreads in a single book"
 msgstr "A few spreads in a single book"
 
@@ -1070,6 +1145,9 @@ msgstr "A page failed in {stepLabel}"
 msgid "A page range that was split off, finished, and exported to merge back."
 msgstr "A page range that was split off, finished, and exported to merge back."
 
+msgid "A question about your book: which looks right?"
+msgstr "A question about your book: which looks right?"
+
 msgid "A question worth asking"
 msgstr "A question worth asking"
 
@@ -1118,6 +1196,9 @@ msgstr "A separator page between sections."
 msgid "A sharing update is ready"
 msgstr "A sharing update is ready"
 
+msgid "A short chat with the ADT Assistant: send the PDF, answer a question or two, and it's ready to convert."
+msgstr "A short chat with the ADT Assistant: send the PDF, answer a question or two, and it's ready to convert."
+
 msgid "A simple, tidy layout: the picture on one side and the text on the other. On phones, the picture goes on top."
 msgstr "A simple, tidy layout: the picture on one side and the text on the other. On phones, the picture goes on top."
 
@@ -1126,6 +1207,9 @@ msgstr "A simplified Easy Read version makes the text accessible to readers with
 
 msgid "A single water molecule can take over 3,000 years to complete one full trip through the water cycle - from ocean to sky to river and back again."
 msgstr "A single water molecule can take over 3,000 years to complete one full trip through the water cycle - from ocean to sky to river and back again."
+
+msgid "A sketch of where things go, not the converted book. Words are drawn as lines."
+msgstr "A sketch of where things go, not the converted book. Words are drawn as lines."
 
 msgid "A soft chime when a long task completes."
 msgstr "A soft chime when a long task completes."
@@ -1646,6 +1730,9 @@ msgstr "Adds Universal Design for Learning guidance (plain language, keyboard + 
 msgid "ADT Assistant"
 msgstr "ADT Assistant"
 
+msgid "ADT Assistant:"
+msgstr "ADT Assistant:"
+
 msgid "ADT Book"
 msgstr "ADT Book"
 
@@ -1894,6 +1981,9 @@ msgstr "All pages are pruned"
 msgid "All parts merged — book assembled"
 msgstr "All parts merged — book assembled"
 
+msgid "All picked by AI"
+msgstr "All picked by AI"
+
 msgid "All present"
 msgstr "All present"
 
@@ -1944,6 +2034,9 @@ msgstr "Also delete the sharing service and every shared book from my Cloudflare
 
 msgid "Also regenerate these pages and replace their saved content"
 msgstr "Also regenerate these pages and replace their saved content"
+
+msgid "Also the name of the book's folder."
+msgstr "Also the name of the book's folder."
 
 msgid "Also used by {readerNames} unless that provider has its own key."
 msgstr "Also used by {readerNames} unless that provider has its own key."
@@ -2005,6 +2098,9 @@ msgstr "and many more blocks across the entire book"
 msgid "and more sections across the page"
 msgstr "and more sections across the page"
 
+msgid "And the rest follows from that:"
+msgstr "And the rest follows from that:"
+
 msgid "Another ADT Studio connected to this Cloudflare account has taken over sharing, so this computer can't read your hosted books. Reconnecting here takes it back — the other computer will then need to reconnect."
 msgstr "Another ADT Studio connected to this Cloudflare account has taken over sharing, so this computer can't read your hosted books. Reconnecting here takes it back — the other computer will then need to reconnect."
 
@@ -2018,14 +2114,28 @@ msgstr "Another program on this computer is already signing in to Cloudflare. Cl
 msgid "Answer"
 msgstr "Answer"
 
+msgid "Answer above, or skip to the settings."
+msgstr "Answer above, or skip to the settings."
+
 msgid "Answer area"
 msgstr "Answer area"
+
+msgid "Answer changed. No setting changes."
+msgstr "Answer changed. No setting changes."
+
+#. placeholder {0}: changed.join(", ")
+msgid "Answer changed. Now {0}."
+msgstr "Answer changed. Now {0}."
 
 msgid "Answer key reference"
 msgstr "Answer key reference"
 
 msgid "Answer Prompt"
 msgstr "Answer Prompt"
+
+#. placeholder {0}: i18n._(FACT_TOPIC[open.id])
+msgid "Answer the note on {0} first."
+msgstr "Answer the note on {0} first."
 
 #~ msgid "Answer the questions above to create the book."
 #~ msgstr "Answer the questions above to create the book."
@@ -2370,6 +2480,9 @@ msgstr "Back to review"
 msgid "Back to Speech overview"
 msgstr "Back to Speech overview"
 
+msgid "Back to the cover"
+msgstr "Back to the cover"
+
 msgid "Back up or transfer the full project including the database, PDF, and all pipeline outputs."
 msgstr "Back up or transfer the full project including the database, PDF, and all pipeline outputs."
 
@@ -2678,6 +2791,9 @@ msgstr "Building Storyboard..."
 msgid "Building the web pages exactly as they look right now."
 msgstr "Building the web pages exactly as they look right now."
 
+msgid "Building your <0>preview</0>"
+msgstr "Building your <0>preview</0>"
+
 msgid "Builds a glossary of key terms and definitions found in the text."
 msgstr "Builds a glossary of key terms and definitions found in the text."
 
@@ -2862,6 +2978,12 @@ msgstr "Change"
 msgid "Change and send"
 msgstr "Change and send"
 
+msgid "Change any setting and the preview follows."
+msgstr "Change any setting and the preview follows."
+
+msgid "Change anything above, then create the book."
+msgstr "Change anything above, then create the book."
+
 msgid "Change how you share"
 msgstr "Change how you share"
 
@@ -2870,6 +2992,9 @@ msgstr "Change in Settings"
 
 msgid "Change language"
 msgstr "Change language"
+
+msgid "Change my answer"
+msgstr "Change my answer"
 
 msgid "Change Preset"
 msgstr "Change Preset"
@@ -2886,8 +3011,14 @@ msgstr "Change the picture for this term"
 msgid "Changed"
 msgstr "Changed"
 
+msgid "Changed by you"
+msgstr "Changed by you"
+
 msgid "Changed by you. I had suggested {suggested}."
 msgstr "Changed by you. I had suggested {suggested}."
+
+msgid "Changed by you. The AI picked {aiTitle}."
+msgstr "Changed by you. The AI picked {aiTitle}."
 
 #~ msgid "Changed by your answer"
 #~ msgstr "Changed by your answer"
@@ -3054,6 +3185,9 @@ msgstr "Choose features to include in this export"
 msgid "Choose how ADT Studio should treat them after import, or let your AI assistant classify them."
 msgstr "Choose how ADT Studio should treat them after import, or let your AI assistant classify them."
 
+msgid "Choose how much of it to convert, then open it. The AI reads it and leaves notes in the margin for you to check."
+msgstr "Choose how much of it to convert, then open it. The AI reads it and leaves notes in the margin for you to check."
+
 msgid "Choose how Studio reviews the visible translations when you click Review."
 msgstr "Choose how Studio reviews the visible translations when you click Review."
 
@@ -3217,6 +3351,9 @@ msgstr "Close edit panel"
 msgid "Close style editor"
 msgstr "Close style editor"
 
+msgid "Close the comparison"
+msgstr "Close the comparison"
+
 msgid "Close the guide"
 msgstr "Close the guide"
 
@@ -3325,6 +3462,9 @@ msgstr "Comments you resolve collect here, so you can look back or reopen them."
 
 msgid "Compare"
 msgstr "Compare"
+
+msgid "Compare on page {page}"
+msgstr "Compare on page {page}"
 
 msgid "Compare the current version with a chosen version at the same screen size."
 msgstr "Compare the current version with a chosen version at the same screen size."
@@ -3612,6 +3752,9 @@ msgstr "Controls how page content is grouped during the sectioning step."
 msgid "Controls whether ElevenLabs expands abbreviations, numbers, and symbols into spoken words (e.g. \"N.º\" → \"Número\"). \"Auto\" lets ElevenLabs decide per request; \"On\" always normalizes; \"Off\" reads the text as written, which is safer for codes, IDs, or text that shouldn't be expanded."
 msgstr "Controls whether ElevenLabs expands abbreviations, numbers, and symbols into spoken words (e.g. \"N.º\" → \"Número\"). \"Auto\" lets ElevenLabs decide per request; \"On\" always normalizes; \"Off\" reads the text as written, which is safer for codes, IDs, or text that shouldn't be expanded."
 
+msgid "Conversation with the ADT Assistant"
+msgstr "Conversation with the ADT Assistant"
+
 msgid "Conversion failed"
 msgstr "Conversion failed"
 
@@ -3718,6 +3861,9 @@ msgstr "Correct answer (alternatives separated by |)"
 
 msgid "Correct the metadata extracted from the document."
 msgstr "Correct the metadata extracted from the document."
+
+msgid "Corrected by you"
+msgstr "Corrected by you"
 
 msgid "Could not load saved content."
 msgstr "Could not load saved content."
@@ -3830,6 +3976,10 @@ msgstr "Coverage"
 msgid "Covered"
 msgstr "Covered"
 
+#. placeholder {0}: r.name
+msgid "Create “{0}”"
+msgstr "Create “{0}”"
+
 msgid "Create a free account first"
 msgstr "Create a free account first"
 
@@ -3874,6 +4024,9 @@ msgstr "Create prompt file from template"
 
 msgid "Create session"
 msgstr "Create session"
+
+msgid "Create the book"
+msgstr "Create the book"
 
 msgid "Create the project"
 msgstr "Create the project"
@@ -4021,6 +4174,9 @@ msgstr "Date created"
 
 msgid "Debug mode is not enabled."
 msgstr "Debug mode is not enabled."
+
+msgid "Decide later"
+msgstr "Decide later"
 
 msgid "Decide whether a statement is true or false."
 msgstr "Decide whether a statement is true or false."
@@ -4473,6 +4629,9 @@ msgstr "Drop a .zip exported from ADT Studio."
 msgid "Drop a part <0>.zip</0> here, or browse"
 msgstr "Drop a part <0>.zip</0> here, or browse"
 
+msgid "Drop a PDF and watch it turn into a book for computers and phones. Nothing is created until you say so."
+msgstr "Drop a PDF and watch it turn into a book for computers and phones. Nothing is created until you say so."
+
 #~ msgid "Drop a PDF here"
 #~ msgstr "Drop a PDF here"
 
@@ -4487,6 +4646,9 @@ msgstr "Drop PDF here"
 
 msgid "Drop the bundle on any static host to serve the book as a website."
 msgstr "Drop the bundle on any static host to serve the book as a website."
+
+msgid "Drop the PDF of your book. We'll open it, read it, and mark what we find on its own pages."
+msgstr "Drop the PDF of your book. We'll open it, read it, and mark what we find on its own pages."
 
 msgid "Drop your PDF here"
 msgstr "Drop your PDF here"
@@ -4577,6 +4739,9 @@ msgstr "Each iteration is one LLM call. Lower values are faster and cheaper; hig
 
 msgid "Each kind of pipeline task uses a compatible model. Image generation and speech use their own task-specific defaults."
 msgstr "Each kind of pipeline task uses a compatible model. Image generation and speech use their own task-specific defaults."
+
+msgid "Each note points to the pages that show it. The bookmarks are the settings: open one to change it."
+msgstr "Each note points to the pages that show it. The bookmarks are the settings: open one to change it."
 
 msgid "Each page is one part"
 msgstr "Each page is one part"
@@ -4917,6 +5082,9 @@ msgstr "Every morning he says hello to the flowers in the garden."
 msgid "Every notable concept and named entity."
 msgstr "Every notable concept and named entity."
 
+msgid "Every note is settled. Check the bookmarks, name the book, and create it."
+msgstr "Every note is settled. Check the bookmarks, name the book, and create it."
+
 msgid "Every page becomes its own screen, one after another."
 msgstr "Every page becomes its own screen, one after another."
 
@@ -4997,6 +5165,12 @@ msgstr "Exclude from read-aloud"
 
 msgid "Exclude from render"
 msgstr "Exclude from render"
+
+msgid "Exercises"
+msgstr "Exercises"
+
+msgid "Exercises for the reader"
+msgstr "Exercises for the reader"
 
 msgid "Existing output is included."
 msgstr "Existing output is included."
@@ -5164,8 +5338,14 @@ msgstr "Extracts text and image data from each page of the PDF."
 msgid "Extracts the correct answer key from the generated activity HTML."
 msgstr "Extracts the correct answer key from the generated activity HTML."
 
+msgid "Facing pages"
+msgstr "Facing pages"
+
 msgid "Facing pages join into one wide screen, so a picture across the gutter stays whole."
 msgstr "Facing pages join into one wide screen, so a picture across the gutter stays whole."
+
+msgid "Facing pages that make one picture"
+msgstr "Facing pages that make one picture"
 
 msgid "failed"
 msgstr "failed"
@@ -5251,6 +5431,9 @@ msgstr "Fetching the details of your new setup."
 
 msgid "figure"
 msgstr "figure"
+
+msgid "Figure + labels"
+msgstr "Figure + labels"
 
 msgid "Figure 5.1 - The water cycle: evaporation from oceans, condensation into clouds, precipitation as rain, and runoff back to the sea."
 msgstr "Figure 5.1 - The water cycle: evaporation from oceans, condensation into clouds, precipitation as rain, and runoff back to the sea."
@@ -5354,8 +5537,11 @@ msgstr "Fixed layout"
 msgid "Fixed Layout"
 msgstr "Fixed Layout"
 
-#~ msgid "Fixed once the book is created"
-#~ msgstr "Fixed once the book is created"
+msgid "Fixed once the book is created"
+msgstr "Fixed once the book is created"
+
+msgid "Fixed once the book is created: this one can't be changed later."
+msgstr "Fixed once the book is created: this one can't be changed later."
 
 msgid "Fixed two-column template layout"
 msgstr "Fixed two-column template layout"
@@ -5395,6 +5581,9 @@ msgstr "FNDE-ready HTML5 package (.zip)"
 
 msgid "Folder actions"
 msgstr "Folder actions"
+
+msgid "Follows your answer on the notes."
+msgstr "Follows your answer on the notes."
 
 msgid "Font"
 msgstr "Font"
@@ -5493,6 +5682,12 @@ msgstr "From page"
 
 msgid "From reference image..."
 msgstr "From reference image..."
+
+msgid "From your answer"
+msgstr "From your answer"
+
+msgid "From your answer."
+msgstr "From your answer."
 
 msgid "Front Cover"
 msgstr "Front Cover"
@@ -5820,8 +6015,15 @@ msgstr "Got it"
 msgid "Got it — on to the next one"
 msgstr "Got it — on to the next one"
 
+#. placeholder {0}: flow.pageCount
+msgid "Got it: {0, plural, one {# page} other {# pages}}. Choose which pages to convert on the card if you don't want all of them."
+msgstr "Got it: {0, plural, one {# page} other {# pages}}. Choose which pages to convert on the card if you don't want all of them."
+
 msgid "Got it!"
 msgstr "Got it!"
+
+msgid "Got it."
+msgstr "Got it."
 
 msgid "GPT models for pipeline tasks."
 msgstr "GPT models for pipeline tasks."
@@ -5923,8 +6125,23 @@ msgstr "Height"
 msgid "Help"
 msgstr "Help"
 
+msgid "Here's the setup. Tap any setting to change it."
+msgstr "Here's the setup. Tap any setting to change it."
+
+msgid "Here's what we <0>noticed</0>"
+msgstr "Here's what we <0>noticed</0>"
+
+msgid "Here's your <0>book</0>"
+msgstr "Here's your <0>book</0>"
+
+msgid "Here's your book, <0>digital</0>"
+msgstr "Here's your book, <0>digital</0>"
+
 msgid "Hi! 👋 I just finished looking through {title}."
 msgstr "Hi! 👋 I just finished looking through {title}."
+
+msgid "Hi! I'm the ADT Assistant. Send me the PDF of the book you want to convert."
+msgstr "Hi! I'm the ADT Assistant. Send me the PDF of the book you want to convert."
 
 msgid "Hidden because its group is hidden"
 msgstr "Hidden because its group is hidden"
@@ -6046,6 +6263,9 @@ msgstr "How Easy Read works"
 msgid "How I set it up"
 msgstr "How I set it up"
 
+msgid "How it will read on screens. Change any setting and the preview follows."
+msgstr "How it will read on screens. Change any setting and the preview follows."
+
 msgid "How it works"
 msgstr "How it works"
 
@@ -6094,11 +6314,20 @@ msgstr "HTML source · {pageCount} pages"
 msgid "HTML5 + EPUB"
 msgstr "HTML5 + EPUB"
 
+msgid "I can't reach your AI provider. You seem to be offline."
+msgstr "I can't reach your AI provider. You seem to be offline."
+
 msgid "I set up {title} for you. Give it a name, check the setup and create it."
 msgstr "I set up {title} for you. Give it a name, check the setup and create it."
 
 msgid "I understand the part was processed with different prompts/models and want to merge it anyway."
 msgstr "I understand the part was processed with different prompts/models and want to merge it anyway."
+
+msgid "I'll look through it, tell you what I see, and only ask when I'm not sure."
+msgstr "I'll look through it, tell you what I see, and only ask when I'm not sure."
+
+msgid "I'll try again as soon as you're back online."
+msgstr "I'll try again as soon as you're back online."
 
 msgid "I've picked my two favourites and highlighted them for you — have a look and choose the one you like."
 msgstr "I've picked my two favourites and highlighted them for you — have a look and choose the one you like."
@@ -6120,6 +6349,15 @@ msgstr "Illustrated children's books"
 
 msgid "Illustration"
 msgstr "Illustration"
+
+msgid "Illustration · made from your page {page}"
+msgstr "Illustration · made from your page {page}"
+
+msgid "Illustration · page {page} · the AI lays out each page when it converts"
+msgstr "Illustration · page {page} · the AI lays out each page when it converts"
+
+msgid "Illustration of your {where} {on}, laid out with {strategy}, {sections}."
+msgstr "Illustration of your {where} {on}, laid out with {strategy}, {sections}."
 
 msgid "image"
 msgstr "image"
@@ -6513,6 +6751,9 @@ msgstr "Issues only"
 msgid "It contains unexpected file paths. Use a .zip exported from ADT Studio."
 msgstr "It contains unexpected file paths. Use a .zip exported from ADT Studio."
 
+msgid "It has an interactive activity."
+msgstr "It has an interactive activity."
+
 msgid "It is mostly words. Pictures are few or small."
 msgstr "It is mostly words. Pictures are few or small."
 
@@ -6537,6 +6778,15 @@ msgstr "It was cancelled for safety. Try again — it usually takes a few second
 
 msgid "It was created from a different PDF or settings, so it can't be merged here."
 msgstr "It was created from a different PDF or settings, so it can't be merged here."
+
+msgid "It's a school book."
+msgstr "It's a school book."
+
+msgid "It's a story."
+msgstr "It's a story."
+
+msgid "It's an information book."
+msgstr "It's an information book."
 
 msgid "italic"
 msgstr "italic"
@@ -6627,6 +6877,9 @@ msgstr "Keep going"
 msgid "Keep in mind"
 msgstr "Keep in mind"
 
+msgid "Keep it as it is"
+msgstr "Keep it as it is"
+
 msgid "Keep it as reading content. Its controls stay as they are."
 msgstr "Keep it as reading content. Its controls stay as they are."
 
@@ -6690,6 +6943,9 @@ msgstr "Kept together with their labels"
 msgid "Kept where nothing changed since export. The rest is generated again."
 msgstr "Kept where nothing changed since export. The rest is generated again."
 
+msgid "kept whole"
+msgstr "kept whole"
+
 msgid "Key rejected"
 msgstr "Key rejected"
 
@@ -6710,6 +6966,9 @@ msgstr "Keys are stored locally on this device — never sent anywhere else."
 
 msgid "Kind of book"
 msgstr "Kind of book"
+
+msgid "Kind of book:"
+msgstr "Kind of book:"
 
 #. placeholder {0}: afterPage.pageNumber
 msgid "Knowledge check generated from the source pages, after page {0}."
@@ -6733,6 +6992,12 @@ msgstr "Label"
 
 msgid "labeled {printedLabel}"
 msgstr "labeled {printedLabel}"
+
+msgid "Labelled pictures"
+msgstr "Labelled pictures"
+
+msgid "Labelled pictures:"
+msgstr "Labelled pictures:"
 
 msgid "Lang"
 msgstr "Lang"
@@ -6781,6 +7046,9 @@ msgstr "Last edited"
 
 msgid "last shared <0/>"
 msgstr "last shared <0/>"
+
+msgid "Last thing: what should we call it?"
+msgstr "Last thing: what should we call it?"
 
 msgid "LaTeX converted"
 msgstr "LaTeX converted"
@@ -6864,6 +7132,9 @@ msgstr "Let AI pick the settings, or choose them yourself."
 msgid "Let AI set it up"
 msgstr "Let AI set it up"
 
+msgid "Let me look at it. First I measure the pages: their shape, whether facing pages belong together, and whether the PDF has real text."
+msgstr "Let me look at it. First I measure the pages: their shape, whether facing pages belong together, and whether the PDF has real text."
+
 msgid "Let readers comment and see each other"
 msgstr "Let readers comment and see each other"
 
@@ -6878,6 +7149,9 @@ msgstr "Let the model write descriptive chapter titles based on each section's c
 
 #~ msgid "Let your AI assistant fix it"
 #~ msgstr "Let your AI assistant fix it"
+
+msgid "Let's set up your <0>book</0>, together."
+msgstr "Let's set up your <0>book</0>, together."
 
 msgid "Let's start"
 msgstr "Let's start"
@@ -7667,6 +7941,10 @@ msgstr "Move down"
 msgid "Move up"
 msgstr "Move up"
 
+#. placeholder {0}: setting.dependsOn.map((f) => i18n._(FACT_TOPIC[f])).join(", ")
+msgid "Moves with the note on: {0}"
+msgstr "Moves with the note on: {0}"
+
 msgid "Multi-format publications"
 msgstr "Multi-format publications"
 
@@ -7697,11 +7975,23 @@ msgstr "Muted by a content type switch in the Speech settings"
 msgid "Muted via its source text entry"
 msgstr "Muted via its source text entry"
 
+msgid "My guess"
+msgstr "My guess"
+
+msgid "My two readings disagree on this one, so I'd rather ask you."
+msgstr "My two readings disagree on this one, so I'd rather ask you."
+
+msgid "my-book"
+msgstr "my-book"
+
 msgid "my-book-slug"
 msgstr "my-book-slug"
 
 msgid "N/A"
 msgstr "N/A"
+
+msgid "Name"
+msgstr "Name"
 
 msgid "Names and terms are consistent"
 msgstr "Names and terms are consistent"
@@ -7769,8 +8059,14 @@ msgstr "Needs review"
 msgid "needs update"
 msgstr "needs update"
 
+msgid "Needs your answer"
+msgstr "Needs your answer"
+
 msgid "Needs your attention"
 msgstr "Needs your attention"
+
+msgid "Neither?"
+msgstr "Neither?"
 
 msgid "Never"
 msgstr "Never"
@@ -7912,6 +8208,9 @@ msgstr "No beta versions found"
 
 msgid "No book outline has been extracted yet."
 msgstr "No book outline has been extracted yet."
+
+msgid "No bookmark changed."
+msgstr "No bookmark changed."
 
 msgid "No books match your search"
 msgstr "No books match your search"
@@ -8406,6 +8705,9 @@ msgstr "Not rendered yet"
 msgid "Not reviewed"
 msgstr "Not reviewed"
 
+msgid "Not right? Correct it"
+msgstr "Not right? Correct it"
+
 msgid "Not run during the last execution — likely because its inputs weren't ready or its stage's settings turned it off."
 msgstr "Not run during the last execution — likely because its inputs weren't ready or its stage's settings turned it off."
 
@@ -8435,6 +8737,17 @@ msgstr "Not yet split:"
 
 msgid "Note"
 msgstr "Note"
+
+#. placeholder {0}: f.number
+#. placeholder {1}: f.topic
+msgid "Note {0}: {1}"
+msgstr "Note {0}: {1}"
+
+msgid "Note {number}:"
+msgstr "Note {number}:"
+
+msgid "Notes"
+msgstr "Notes"
 
 msgid "Nothing after the failed step ran. Open Sharing to try again."
 msgstr "Nothing after the failed step ran. Open Sharing to try again."
@@ -8571,6 +8884,12 @@ msgstr "On"
 msgid "On “<0>{0}</0>”"
 msgstr "On “<0>{0}</0>”"
 
+msgid "on a computer"
+msgstr "on a computer"
+
+msgid "on a phone"
+msgstr "on a phone"
+
 msgid "On a picture"
 msgstr "On a picture"
 
@@ -8612,8 +8931,14 @@ msgstr "One column for every section. Clean and predictable."
 msgid "One column, like an article"
 msgstr "One column, like an article"
 
+msgid "One note needs <0>you</0>"
+msgstr "One note needs <0>you</0>"
+
 msgid "One of its files is broken, so ADT Studio stopped reading it. An AI assistant can fix it; nothing is imported until you choose the repaired ZIP."
 msgstr "One of its files is broken, so ADT Studio stopped reading it. An AI assistant can fix it; nothing is imported until you choose the repaired ZIP."
+
+msgid "One page per PDF page"
+msgstr "One page per PDF page"
 
 msgid "One PDF page per screen"
 msgstr "One PDF page per screen"
@@ -8630,11 +8955,17 @@ msgstr "One text scale for the whole book. It starts from the book's own detecte
 #~ msgid "One thing needs your answer before we can create the book."
 #~ msgstr "One thing needs your answer before we can create the book."
 
+msgid "One thing to check"
+msgstr "One thing to check"
+
 msgid "One ZIP, up to 1 GiB"
 msgstr "One ZIP, up to 1 GiB"
 
 #~ msgid "One ZIP, up to 512 MiB"
 #~ msgstr "One ZIP, up to 512 MiB"
+
+msgid "Only a few pages of the book showed this. The AI said:"
+msgstr "Only a few pages of the book showed this. The AI said:"
 
 msgid "Only illustrations or photos. A caption under a photo doesn't count."
 msgstr "Only illustrations or photos. A caption under a photo doesn't count."
@@ -8647,6 +8978,12 @@ msgstr "Only images that appear in the storyboard are listed. The selected image
 
 msgid "Only letters, numbers, dots, dashes, underscores. Must start with a letter or number."
 msgstr "Only letters, numbers, dots, dashes, underscores. Must start with a letter or number."
+
+msgid "Only one of the two AI readings finished, so nothing was double-checked. Give the notes a quick look; each can be corrected."
+msgstr "Only one of the two AI readings finished, so nothing was double-checked. Give the notes a quick look; each can be corrected."
+
+msgid "Only one of the two AI readings finished, so nothing was double-checked. Give the preview a closer look."
+msgstr "Only one of the two AI readings finished, so nothing was double-checked. Give the preview a closer look."
 
 msgid "Only pages {range} of the book"
 msgstr "Only pages {range} of the book"
@@ -8820,6 +9157,9 @@ msgstr "Open Validation"
 msgid "Open Workers & Pages"
 msgstr "Open Workers & Pages"
 
+msgid "Open your <0>book</0>"
+msgstr "Open your <0>book</0>"
+
 msgid "Open-ended — learners write a free response; there is no fixed answer."
 msgstr "Open-ended — learners write a free response; there is no fixed answer."
 
@@ -8844,6 +9184,9 @@ msgstr "OpenAI Voice"
 
 msgid "OpenAI, Azure, and Gemini text-to-speech."
 msgstr "OpenAI, Azure, and Gemini text-to-speech."
+
+msgid "Opening it up…"
+msgstr "Opening it up…"
 
 msgid "Opening the page…"
 msgstr "Opening the page…"
@@ -8969,6 +9312,9 @@ msgstr "Other options"
 msgid "Other possibility"
 msgstr "Other possibility"
 
+msgid "Other reading"
+msgstr "Other reading"
+
 msgid "Other stages may need attention"
 msgstr "Other stages may need attention"
 
@@ -9018,6 +9364,9 @@ msgstr "Override the default LLM and specialized models for this book. Empty fie
 
 msgid "Overview"
 msgstr "Overview"
+
+msgid "p. {n}"
+msgstr "p. {n}"
 
 msgid "p. {page}"
 msgstr "p. {page}"
@@ -9091,6 +9440,10 @@ msgstr "page"
 msgid "Page"
 msgstr "Page"
 
+#. placeholder {0}: pages[0]
+msgid "page {0}"
+msgstr "page {0}"
+
 #. placeholder {0}: String(activePage.pageNumber)
 #. placeholder {0}: String(entry.pageNumber)
 #. placeholder {0}: String(group.pageNumber)
@@ -9123,8 +9476,14 @@ msgstr "Page {0} captions"
 msgid "Page {0} of {1}"
 msgstr "Page {0} of {1}"
 
+msgid "Page {first} of {numPages}"
+msgstr "Page {first} of {numPages}"
+
 msgid "Page {n}"
 msgstr "Page {n}"
+
+msgid "Page {open}"
+msgstr "Page {open}"
 
 msgid "Page {page}"
 msgstr "Page {page}"
@@ -9232,6 +9591,11 @@ msgstr "Pages"
 msgid "Pages {0}"
 msgstr "Pages {0}"
 
+#. placeholder {0}: pages[0]
+#. placeholder {1}: pages[1]
+msgid "pages {0} and {1} joined into one screen"
+msgstr "pages {0} and {1} joined into one screen"
+
 #. placeholder {0}: activeSession.session.start_page ?? "?"
 #. placeholder {0}: part.range.startPage
 #. placeholder {0}: preview.range.startPage
@@ -9257,6 +9621,9 @@ msgstr "Pages {0}–{1}"
 #~ msgid "Pages {0}–{1} of {2}"
 #~ msgstr "Pages {0}–{1} of {2}"
 
+msgid "Pages {first}–{last} of {numPages}"
+msgstr "Pages {first}–{last} of {numPages}"
+
 msgid "Pages {pageNumber}–{lastPageNumber} · Section {sectionNumber}"
 msgstr "Pages {pageNumber}–{lastPageNumber} · Section {sectionNumber}"
 
@@ -9275,6 +9642,9 @@ msgstr "Pages {start}–{end} of {numPages}"
 
 msgid "Pages are kept whole."
 msgstr "Pages are kept whole."
+
+msgid "Pages I looked at"
+msgstr "Pages I looked at"
 
 msgid "Pages in the full book"
 msgstr "Pages in the full book"
@@ -9299,6 +9669,9 @@ msgstr "Pages per Quiz"
 
 msgid "Pages reviewed"
 msgstr "Pages reviewed"
+
+msgid "Pages that show it"
+msgstr "Pages that show it"
 
 msgid "Pages to convert"
 msgstr "Pages to convert"
@@ -9339,6 +9712,9 @@ msgstr "Part"
 #. placeholder {0}: planStart.index + 1
 msgid "Part {0}"
 msgstr "Part {0}"
+
+msgid "Part {n}"
+msgstr "Part {n}"
 
 msgid "Part details (part.json)"
 msgstr "Part details (part.json)"
@@ -9538,6 +9914,9 @@ msgstr "Pictures across two pages can get split"
 
 msgid "Pictures and words are handled separately."
 msgstr "Pictures and words are handled separately."
+
+msgid "Pictures are kept together with their labels."
+msgstr "Pictures are kept together with their labels."
 
 msgid "Pictures aren't arranged around the text"
 msgstr "Pictures aren't arranged around the text"
@@ -9917,6 +10296,9 @@ msgstr "Put a private copy online. Readers open it in their browser — nothing 
 msgid "Put the book online for readers and reviewers, and manage the link."
 msgstr "Put the book online for readers and reviewers, and manage the link."
 
+msgid "Putting in the bookmarks…"
+msgstr "Putting in the bookmarks…"
+
 msgid "Putting your book online"
 msgstr "Putting your book online"
 
@@ -9938,6 +10320,9 @@ msgstr "Question"
 #. placeholder {0}: si + 1
 msgid "Question {0}"
 msgstr "Question {0}"
+
+msgid "Question {number} of {total}"
+msgstr "Question {number} of {total}"
 
 msgid "Question prompt"
 msgstr "Question prompt"
@@ -10102,6 +10487,9 @@ msgstr "Read aloud"
 msgid "Read it in their language."
 msgstr "Read it in their language."
 
+msgid "Read once, not double-checked"
+msgstr "Read once, not double-checked"
+
 msgid "Read the docs"
 msgstr "Read the docs"
 
@@ -10209,6 +10597,9 @@ msgstr "Readers will need the new link — the old one stays closed."
 msgid "Readers will see this once an account is connected."
 msgstr "Readers will see this once an account is connected."
 
+msgid "Reading <0>your book</0>"
+msgstr "Reading <0>your book</0>"
+
 msgid "Reading order"
 msgstr "Reading order"
 
@@ -10218,11 +10609,20 @@ msgstr "Reading PDF…"
 msgid "Reading the archive"
 msgstr "Reading the archive"
 
+msgid "Reading the pages…"
+msgstr "Reading the pages…"
+
 msgid "Reading through your book…"
 msgstr "Reading through your book…"
 
 #~ msgid "Reading your book"
 #~ msgstr "Reading your book"
+
+msgid "Reading your book. The preview is being built."
+msgstr "Reading your book. The preview is being built."
+
+msgid "Reading your book…"
+msgstr "Reading your book…"
 
 msgid "Reading,"
 msgstr "Reading,"
@@ -10248,6 +10648,9 @@ msgstr "Reads your book and picks the settings for you."
 msgid "Ready"
 msgstr "Ready"
 
+msgid "Ready to <0>create</0>"
+msgstr "Ready to <0>create</0>"
+
 msgid "Ready to import"
 msgstr "Ready to import"
 
@@ -10256,6 +10659,9 @@ msgstr "Ready to install"
 
 msgid "Real books processed with this preset — before and after."
 msgstr "Real books processed with this preset — before and after."
+
+msgid "Real text"
+msgstr "Real text"
 
 msgid "Realistic / Photo"
 msgstr "Realistic / Photo"
@@ -11144,6 +11550,12 @@ msgstr "Saving…"
 msgid "Scale"
 msgstr "Scale"
 
+msgid "Scan with hidden text"
+msgstr "Scan with hidden text"
+
+msgid "Scanned pages"
+msgstr "Scanned pages"
+
 msgid "School book"
 msgstr "School book"
 
@@ -11388,11 +11800,17 @@ msgstr "Sections of one page are split apart in the reading order."
 msgid "Securing the service"
 msgstr "Securing the service"
 
+msgid "See it on"
+msgstr "See it on"
+
 msgid "See release notes"
 msgstr "See release notes"
 
 msgid "See the book & pick pages"
 msgstr "See the book & pick pages"
+
+msgid "See your book <0>digital</0>"
+msgstr "See your book <0>digital</0>"
 
 msgid "Seed"
 msgstr "Seed"
@@ -11539,6 +11957,9 @@ msgstr "Send a fresh copy"
 msgid "Send a sample notification using these settings."
 msgstr "Send a sample notification using these settings."
 
+msgid "Send another PDF"
+msgstr "Send another PDF"
+
 msgid "Send readers your latest edits — same address, same code."
 msgstr "Send readers your latest edits — same address, same code."
 
@@ -11603,6 +12024,9 @@ msgstr "Set a Gemini API key to generate audio"
 msgid "Set fonts for the whole book"
 msgstr "Set fonts for the whole book"
 
+msgid "set it up myself"
+msgstr "set it up myself"
+
 msgid "Set it up myself"
 msgstr "Set it up myself"
 
@@ -11611,6 +12035,9 @@ msgstr "Set manually"
 
 msgid "Set the editing language and choose output languages for the book."
 msgstr "Set the editing language and choose output languages for the book."
+
+msgid "Set up <0>your book</0>"
+msgstr "Set up <0>your book</0>"
 
 msgid "Set up sharing"
 msgstr "Set up sharing"
@@ -11623,6 +12050,10 @@ msgstr "Set your API key to auto-generate"
 
 msgid "Sets the default layout used when a section has no specific strategy assigned."
 msgstr "Sets the default layout used when a section has no specific strategy assigned."
+
+#. placeholder {0}: drives.map((id) => words.name(id)).join(", ")
+msgid "Sets: {0}"
+msgstr "Sets: {0}"
 
 msgid "Setting up"
 msgstr "Setting up"
@@ -11828,6 +12259,13 @@ msgstr "Show only entries missing audio"
 msgid "Show only the terms you added manually"
 msgstr "Show only the terms you added manually"
 
+#. placeholder {0}: setting.pages[0]
+msgid "Show page {0}"
+msgstr "Show page {0}"
+
+msgid "Show page {page} larger"
+msgstr "Show page {page} larger"
+
 msgid "Show review rationale"
 msgstr "Show review rationale"
 
@@ -11851,6 +12289,9 @@ msgstr "Showing only terms you added — click to show all"
 
 msgid "Shown after page {afterNumber}"
 msgstr "Shown after page {afterNumber}"
+
+msgid "Shown on page"
+msgstr "Shown on page"
 
 msgid "Shown with your own page"
 msgstr "Shown with your own page"
@@ -11988,6 +12429,9 @@ msgstr "Skip this page and continue the step, or stop the step entirely."
 msgid "Skip this run"
 msgstr "Skip this run"
 
+msgid "Skip to settings"
+msgstr "Skip to settings"
+
 msgid "Skipped"
 msgstr "Skipped"
 
@@ -12047,6 +12491,9 @@ msgstr "Some pages have no embedded text layer — text was recovered from the p
 msgid "Some pages have real text, some are scans."
 msgstr "Some pages have real text, some are scans."
 
+msgid "Some pages scanned"
+msgstr "Some pages scanned"
+
 msgid "Some permissions are missing"
 msgstr "Some permissions are missing"
 
@@ -12070,6 +12517,9 @@ msgstr "Something went wrong"
 
 msgid "Something went wrong in ADT Studio, not necessarily in your file. Try again; if it keeps failing, report the problem and include the archive."
 msgstr "Something went wrong in ADT Studio, not necessarily in your file. Try again; if it keeps failing, report the problem and include the archive."
+
+msgid "Something went wrong while I was looking at your book."
+msgstr "Something went wrong while I was looking at your book."
 
 msgid "Something went wrong while the AI was looking at your book. Try again, or set it up yourself."
 msgstr "Something went wrong while the AI was looking at your book. Try again, or set it up yourself."
@@ -12216,6 +12666,9 @@ msgstr "Split into"
 msgid "Split into new section"
 msgstr "Split into new section"
 
+msgid "split into parts"
+msgstr "split into parts"
+
 msgid "Split into parts"
 msgstr "Split into parts"
 
@@ -12332,6 +12785,9 @@ msgstr "Starting from a PDF?"
 
 msgid "Starting on the first pages"
 msgstr "Starting on the first pages"
+
+msgid "Starting over: measuring the pages again."
+msgstr "Starting over: measuring the pages again."
 
 msgid "Starting…"
 msgstr "Starting…"
@@ -12579,6 +13035,9 @@ msgstr "Supported"
 msgid "Supports interactive activities"
 msgstr "Supports interactive activities"
 
+msgid "Sure. I went with my guesses, and you can change anything in the setup below:"
+msgstr "Sure. I went with my guesses, and you can change anything in the setup below:"
+
 msgid "Switch languages in a tap."
 msgstr "Switch languages in a tap."
 
@@ -12681,6 +13140,9 @@ msgstr "Task-specific defaults"
 
 msgid "Task-specific model defaults updated."
 msgstr "Task-specific model defaults updated."
+
+msgid "Tasks for the reader:"
+msgstr "Tasks for the reader:"
 
 msgid "Tasks Running"
 msgstr "Tasks Running"
@@ -12833,6 +13295,9 @@ msgstr "That didn't go through"
 msgid "That didn't resolve. Try again."
 msgstr "That didn't resolve. Try again."
 
+msgid "That doesn't change any setting."
+msgstr "That doesn't change any setting."
+
 msgid "That file isn't a PDF"
 msgstr "That file isn't a PDF"
 
@@ -12841,6 +13306,12 @@ msgstr "That name is already taken"
 
 msgid "That reply didn't send. Try again."
 msgstr "That reply didn't send. Try again."
+
+msgid "That sets these:"
+msgstr "That sets these:"
+
+msgid "That sets:"
+msgstr "That sets:"
 
 msgid "The activity structure needs confirmation."
 msgstr "The activity structure needs confirmation."
@@ -12851,8 +13322,14 @@ msgstr "The activity type changed after export."
 msgid "The address every share link will start with."
 msgstr "The address every share link will start with."
 
+msgid "The ADT Assistant is reading your book…"
+msgstr "The ADT Assistant is reading your book…"
+
 msgid "The AI didn't pick these for your book, but you can still use one."
 msgstr "The AI didn't pick these for your book, but you can still use one."
+
+msgid "The AI has read your book. Its notes and the settings are ready."
+msgstr "The AI has read your book. Its notes and the settings are ready."
 
 msgid "The AI is having a think..."
 msgstr "The AI is having a think..."
@@ -12863,8 +13340,14 @@ msgstr "The AI rebuilds each page so it reads well on any screen size."
 msgid "The AI suggested {title}."
 msgstr "The AI suggested {title}."
 
+msgid "The AI wasn't sure about something. Answer on the blue note; the bookmarks follow your answer."
+msgstr "The AI wasn't sure about something. Answer on the blue note; the bookmarks follow your answer."
+
 msgid "The AI will preserve the original style while applying your changes."
 msgstr "The AI will preserve the original style while applying your changes."
+
+msgid "The AI's pick"
+msgstr "The AI's pick"
 
 msgid "The application ran into an unexpected error. You can try reloading — your work in progress is saved on disk."
 msgstr "The application ran into an unexpected error. You can try reloading — your work in progress is saved on disk."
@@ -12898,6 +13381,9 @@ msgstr "The book has no labelled pictures."
 
 msgid "The book has no tasks for the reader."
 msgstr "The book has no tasks for the reader."
+
+msgid "The book has only a few pages to go on, so I'd rather ask you."
+msgstr "The book has only a few pages to go on, so I'd rather ask you."
 
 msgid "The book is laid out in two-page openings: a page of text faces a page of picture."
 msgstr "The book is laid out in two-page openings: a page of text faces a page of picture."
@@ -12988,6 +13474,9 @@ msgstr "The file may be damaged. Export it again, or <0>choose another file</0>.
 
 msgid "The file you uploaded and the options you picked won't be kept."
 msgstr "The file you uploaded and the options you picked won't be kept."
+
+msgid "The first pages are on their way; the rest keep converting in the background."
+msgstr "The first pages are on their way; the rest keep converting in the background."
 
 msgid "The following terms are used throughout this manual. Familiarity with these definitions is required before proceeding to the implementation chapters."
 msgstr "The following terms are used throughout this manual. Familiarity with these definitions is required before proceeding to the implementation chapters."
@@ -13093,6 +13582,9 @@ msgstr "The message carries the title, the link and the code."
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "The model detects bounding boxes so each visual element can be stored and laid out separately."
 
+msgid "The notes appear here when the AI has read the book."
+msgstr "The notes appear here when the AI has read the book."
+
 msgid "The page"
 msgstr "The page"
 
@@ -13143,6 +13635,12 @@ msgstr "The PDF has no real text, so there are no labels to keep together."
 
 msgid "The PDF has real text, so we read the words directly."
 msgstr "The PDF has real text, so we read the words directly."
+
+msgid "The preview needs the AI to read your book first. Your PDF is kept either way."
+msgstr "The preview needs the AI to read your book first. Your PDF is kept either way."
+
+msgid "The preview of your book is ready."
+msgstr "The preview of your book is ready."
 
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "The process plants use to turn sunlight, water, and carbon dioxide into food."
@@ -13228,6 +13726,10 @@ msgstr "The same edition in every language."
 msgid "The saved translation review is stale. Run Review again for the visible translations."
 msgstr "The saved translation review is stale. Run Review again for the visible translations."
 
+#. placeholder {0}: i18n._(FACT_SHORT[fact.id][fact.secondOpinion!]!)
+msgid "The second reading said “{0}”; that doesn't change any bookmark."
+msgstr "The second reading said “{0}”; that doesn't change any bookmark."
+
 msgid "The section was edited after conversion — use \"Rebuild from page\" to refresh the steps."
 msgstr "The section was edited after conversion — use \"Rebuild from page\" to refresh the steps."
 
@@ -13273,6 +13775,9 @@ msgstr "The table of contents was reorganized or replaced. Your draft is intact.
 msgid "The table of contents."
 msgstr "The table of contents."
 
+msgid "The text"
+msgstr "The text"
+
 msgid "The text from your page goes here, in large and easy-to-read letters."
 msgstr "The text from your page goes here, in large and easy-to-read letters."
 
@@ -13281,6 +13786,12 @@ msgstr "The TOC lists the typed sections placed by Storyboard. Finish Storyboard
 
 msgid "The two AI readings disagree here."
 msgstr "The two AI readings disagree here."
+
+msgid "The two AI readings disagree here. Pick the one that fits your book."
+msgstr "The two AI readings disagree here. Pick the one that fits your book."
+
+msgid "The two AI readings disagree. One of them said:"
+msgstr "The two AI readings disagree. One of them said:"
 
 msgid "The Water Cycle"
 msgstr "The Water Cycle"
@@ -13327,11 +13838,20 @@ msgstr "theme appearance dark light mode"
 msgid "theme appearance system automatic"
 msgstr "theme appearance system automatic"
 
+msgid "Then the two readings, as before."
+msgstr "Then the two readings, as before."
+
+msgid "Then two separate AI readings look at sample pages. Where they agree, I decide. Where they don't, I'll ask you."
+msgstr "Then two separate AI readings look at sample pages. Where they agree, I decide. Where they don't, I'll ask you."
+
 #~ msgid "Then zip the folder again."
 #~ msgstr "Then zip the folder again."
 
 msgid "There are a few tasks, but this kind of book doesn't turn them into activities."
 msgstr "There are a few tasks, but this kind of book doesn't turn them into activities."
+
+msgid "There were only a few pages to go on, so the AI isn't sure."
+msgstr "There were only a few pages to go on, so the AI isn't sure."
 
 msgid "There's just one thing I'd love your help with: how the pages should look."
 msgstr "There's just one thing I'd love your help with: how the pages should look."
@@ -13347,6 +13867,9 @@ msgstr "These features improve access for people with disabilities. Running them
 
 msgid "These keys are shared with Settings → AI providers and apply to every book."
 msgstr "These keys are shared with Settings → AI providers and apply to every book."
+
+msgid "These look alike on screen. The answer changes {hidden}, which shapes how the book is built."
+msgstr "These look alike on screen. The answer changes {hidden}, which shapes how the book is built."
 
 msgid "These pages come from an imported ADT export. Edit them here; regenerating Storyboard is off so it can’t overwrite them."
 msgstr "These pages come from an imported ADT export. Edit them here; regenerating Storyboard is off so it can’t overwrite them."
@@ -13455,6 +13978,9 @@ msgstr "This book renders fixed-layout, so it keeps the original PDF fonts. Atta
 msgid "This book was already shared — another window may have done it. Use \"Update site\" to push your latest changes to the link you already have."
 msgstr "This book was already shared — another window may have done it. Use \"Update site\" to push your latest changes to the link you already have."
 
+msgid "This can't be changed after the book is created, so it's worth a look now."
+msgstr "This can't be changed after the book is created, so it's worth a look now."
+
 msgid "This cannot be undone. Every link you have shared will stop working."
 msgstr "This cannot be undone. Every link you have shared will stop working."
 
@@ -13548,6 +14074,12 @@ msgstr "This is Pip! He is a happy little dog."
 msgid "This is taking longer than usual."
 msgstr "This is taking longer than usual."
 
+msgid "This is taking longer than usual. I'll keep at it, or you can set the book up yourself. Your PDF stays."
+msgstr "This is taking longer than usual. I'll keep at it, or you can set the book up yourself. Your PDF stays."
+
+msgid "This is taking longer than usual. You can wait, or"
+msgstr "This is taking longer than usual. You can wait, or"
+
 msgid "This is the active version — pick another above to compare and restore it. Everything it contains:"
 msgstr "This is the active version — pick another above to compare and restore it. Everything it contains:"
 
@@ -13586,6 +14118,9 @@ msgstr "This model is using the base prompt because {expectedModelPromptName} do
 
 msgid "This model-specific prompt file does not exist yet. Saving while this model is selected creates a global prompt version for that model."
 msgstr "This model-specific prompt file does not exist yet. Saving while this model is selected creates a global prompt version for that model."
+
+msgid "This one can't be changed after the book is created."
+msgstr "This one can't be changed after the book is created."
 
 msgid "This only changes ADT Studio's interface. It does not affect the languages your books are generated in."
 msgstr "This only changes ADT Studio's interface. It does not affect the languages your books are generated in."
@@ -13962,6 +14497,12 @@ msgstr "Try Activity"
 msgid "Try again"
 msgstr "Try again"
 
+msgid "Try again, or set it up yourself."
+msgstr "Try again, or set it up yourself."
+
+msgid "Try again, or set it up yourself. Your PDF stays here."
+msgstr "Try again, or set it up yourself. Your PDF stays here."
+
 #~ msgid "Try another file"
 #~ msgstr "Try another file"
 
@@ -13998,6 +14539,9 @@ msgstr "Turn any textbook into an accessible edition — every step of the pipel
 msgid "Turn this on to show the Validation review card in Preview and the Reviewer Validation tab in the Validation step."
 msgstr "Turn this on to show the Validation review card in Preview and the Reviewer Validation tab in the Validation step."
 
+msgid "Turn to page {n}"
+msgstr "Turn to page {n}"
+
 msgid "Turning normalization on with {elevenLabsModel} requires an ElevenLabs Enterprise plan. Use \"Off\", or switch to eleven_multilingual_v2 — it normalizes numbers better anyway."
 msgstr "Turning normalization on with {elevenLabsModel} requires an ElevenLabs Enterprise plan. Use \"Off\", or switch to eleven_multilingual_v2 — it normalizes numbers better anyway."
 
@@ -14030,6 +14574,9 @@ msgstr "Two elements share a data-id but their content differs."
 
 msgid "Two facing pages joined"
 msgstr "Two facing pages joined"
+
+msgid "Two pages side by side on each PDF page"
+msgstr "Two pages side by side on each PDF page"
 
 msgid "Two ways to start — from a source PDF, or from a project that already exists."
 msgstr "Two ways to start — from a source PDF, or from a project that already exists."
@@ -14142,6 +14689,9 @@ msgstr "Underline text"
 msgid "Undo"
 msgstr "Undo"
 
+msgid "Undo my change"
+msgstr "Undo my change"
+
 msgid "UNICEF"
 msgstr "UNICEF"
 
@@ -14184,6 +14734,9 @@ msgstr "Unsaved changes"
 msgid "Unsaved edit"
 msgstr "Unsaved edit"
 
+msgid "Unsure"
+msgstr "Unsure"
+
 msgid "Untangling nested divs with care..."
 msgstr "Untangling nested divs with care..."
 
@@ -14217,6 +14770,9 @@ msgstr "Update available"
 msgid "Update filtered items"
 msgstr "Update filtered items"
 
+msgid "Update it in Settings and try again, or set this book up yourself. Your PDF stays here."
+msgstr "Update it in Settings and try again, or set this book up yourself. Your PDF stays here."
+
 msgid "Update key"
 msgstr "Update key"
 
@@ -14237,6 +14793,9 @@ msgstr "Update the link to send them — same address, same code."
 
 msgid "Updated <0/>"
 msgstr "Updated <0/>"
+
+msgid "Updated."
+msgstr "Updated."
 
 msgid "Updates are running. You can continue reviewing the book."
 msgstr "Updates are running. You can continue reviewing the book."
@@ -14362,6 +14921,9 @@ msgstr "Use an LLM to detect and split composited images (e.g., multiple photos 
 
 msgid "Use an LLM to filter out decorative or non-educational images."
 msgstr "Use an LLM to filter out decorative or non-educational images."
+
+msgid "Use another PDF"
+msgstr "Use another PDF"
 
 msgid "Use as current"
 msgstr "Use as current"
@@ -14600,6 +15162,9 @@ msgstr "Voices & Accents"
 msgid "Volcanic Origins"
 msgstr "Volcanic Origins"
 
+msgid "Wait a moment and try again, or set this book up yourself. Your PDF stays here."
+msgstr "Wait a moment and try again, or set this book up yourself. Your PDF stays here."
+
 msgid "Wait for glossary generation to finish"
 msgstr "Wait for glossary generation to finish"
 
@@ -14717,6 +15282,9 @@ msgstr "We set everything up"
 #~ msgid "We're fairly sure about everything below. Open any line to see why."
 #~ msgstr "We're fairly sure about everything below. Open any line to see why."
 
+msgid "We're reading a few pages. The preview fills in as we learn about your book."
+msgstr "We're reading a few pages. The preview fills in as we learn about your book."
+
 msgid "Web Export"
 msgstr "Web Export"
 
@@ -14774,6 +15342,9 @@ msgstr "What should the AI change?"
 msgid "What should the review focus on?"
 msgstr "What should the review focus on?"
 
+msgid "What the AI saw:"
+msgstr "What the AI saw:"
+
 msgid "What this comment was on isn't on the page any more."
 msgstr "What this comment was on isn't on the page any more."
 
@@ -14788,6 +15359,9 @@ msgstr "What to include"
 
 msgid "What we discovered"
 msgstr "What we discovered"
+
+msgid "What we found"
+msgstr "What we found"
 
 #~ msgid "What we picked"
 #~ msgstr "What we picked"
@@ -14843,6 +15417,12 @@ msgstr "Where book projects live on this machine."
 msgid "Where it all begins"
 msgstr "Where it all begins"
 
+msgid "Where the words are:"
+msgstr "Where the words are:"
+
+msgid "Where the words sit"
+msgstr "Where the words sit"
+
 msgid "Where toasts appear on screen."
 msgstr "Where toasts appear on screen."
 
@@ -14854,6 +15434,9 @@ msgstr "Which comments"
 
 msgid "Which engine runs the extraction and generation pipeline."
 msgstr "Which engine runs the extraction and generation pipeline."
+
+msgid "Which looks <0>right</0>?"
+msgstr "Which looks <0>right</0>?"
 
 msgid "Which of these is not sold in this aisle?"
 msgstr "Which of these is not sold in this aisle?"
@@ -14964,6 +15547,13 @@ msgstr "Write correct/incorrect feedback for every step with AI"
 msgid "Write your sentence with a {0} marker."
 msgstr "Write your sentence with a {0} marker."
 
+msgid "Writing notes in the margin…"
+msgstr "Writing notes in the margin…"
+
+#. placeholder {0}: languageName(rec.measured.language, i18n.locale)
+msgid "Written in {0}."
+msgstr "Written in {0}."
+
 #. placeholder {0}: root.version
 msgid "Written on version {0} of this book"
 msgstr "Written on version {0} of this book"
@@ -14986,6 +15576,9 @@ msgstr "Yes, on most pages"
 msgid "yesterday"
 msgstr "yesterday"
 
+msgid "You answered"
+msgstr "You answered"
+
 #. placeholder {0}: formatVersion(release.version)
 msgid "You are about to install {0}. Books or settings edited with a newer version may not work as expected. Back up your books before continuing."
 msgstr "You are about to install {0}. Books or settings edited with a newer version may not work as expected. Back up your books before continuing."
@@ -15004,6 +15597,10 @@ msgstr "You can leave this screen — just keep ADT Studio open."
 
 msgid "You can stop it any time"
 msgstr "You can stop it any time"
+
+#. placeholder {0}: words.value(setting.id, setting.base)
+msgid "You changed this. The notes point to {0}."
+msgstr "You changed this. The notes point to {0}."
 
 msgid "You chose"
 msgstr "You chose"
@@ -15025,6 +15622,9 @@ msgstr "You picked this when I asked."
 
 msgid "You stopped this before it finished. Nothing was sent, and sharing again starts a fresh copy — it does not resume this one."
 msgstr "You stopped this before it finished. Nothing was sent, and sharing again starts a fresh copy — it does not resume this one."
+
+msgid "You:"
+msgstr "You:"
 
 msgid "You'll review everything before the book is created."
 msgstr "You'll review everything before the book is created."
@@ -15063,8 +15663,14 @@ msgstr "you@example.com"
 msgid "Young adult fiction"
 msgstr "Young adult fiction"
 
+msgid "Your {where} as printed, {on}, while we read the book."
+msgstr "Your {where} as printed, {on}, while we read the book."
+
 msgid "Your account needs a web address first"
 msgstr "Your account needs a web address first"
+
+msgid "Your AI provider didn't accept the API key."
+msgstr "Your AI provider didn't accept the API key."
 
 msgid "Your AI provider didn't accept the API key. Update it in Settings, or set this book up yourself."
 msgstr "Your AI provider didn't accept the API key. Update it in Settings, or set this book up yourself."
@@ -15075,11 +15681,17 @@ msgstr "Your AI provider is busy"
 msgid "Your AI provider needs attention"
 msgstr "Your AI provider needs attention"
 
+msgid "Your AI provider turned me down because of a usage limit."
+msgstr "Your AI provider turned me down because of a usage limit."
+
 msgid "Your AI provider turned the request down because of a usage limit. Wait a moment and try again, or set this book up yourself."
 msgstr "Your AI provider turned the request down because of a usage limit. Wait a moment and try again, or set this book up yourself."
 
 msgid "Your AI, your keys."
 msgstr "Your AI, your keys."
+
+msgid "Your answer"
+msgstr "Your answer"
 
 #~ msgid "Your answer decides something that can't be changed after the book is created."
 #~ msgstr "Your answer decides something that can't be changed after the book is created."
@@ -15093,6 +15705,9 @@ msgstr "Your book"
 msgid "Your book and its settings are saved."
 msgstr "Your book and its settings are saved."
 
+msgid "Your book and its settings are saved. Start processing from the book page whenever you're ready."
+msgstr "Your book and its settings are saved. Start processing from the book page whenever you're ready."
+
 msgid "Your book is <0>ready</0>"
 msgstr "Your book is <0>ready</0>"
 
@@ -15102,8 +15717,17 @@ msgstr "Your book is online"
 msgid "Your book is ready to open."
 msgstr "Your book is ready to open."
 
+msgid "Your book is ready."
+msgstr "Your book is ready."
+
 #~ msgid "Your book, as we read it"
 #~ msgstr "Your book, as we read it"
+
+msgid "Your book, open while the AI reads it"
+msgstr "Your book, open while the AI reads it"
+
+msgid "Your book, with the AI's notes"
+msgstr "Your book, with the AI's notes"
 
 msgid "Your books will live in your own Cloudflare account."
 msgstr "Your books will live in your own Cloudflare account."
@@ -15156,6 +15780,9 @@ msgstr "Your link appears here once the book is shared"
 msgid "Your other edits will be kept. Review the result, then save again."
 msgstr "Your other edits will be kept. Review the result, then save again."
 
+msgid "Your page {page}, as printed"
+msgstr "Your page {page}, as printed"
+
 msgid "Your pages {displayStart}–{displayEnd}"
 msgstr "Your pages {displayStart}–{displayEnd}"
 
@@ -15167,6 +15794,9 @@ msgstr "Your service isn't answering yet"
 
 msgid "Your settings are saved and the first pages are on their way."
 msgstr "Your settings are saved and the first pages are on their way."
+
+msgid "Your setup"
+msgstr "Your setup"
 
 msgid "Your shared books are still online on the old version. Trying again picks up where it left off."
 msgstr "Your shared books are still online on the old version. Trying again picks up where it left off."
