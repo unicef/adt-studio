@@ -538,10 +538,10 @@ introduce new required variables without a matching pipeline code change.
 | `quiz_generation` | `language`, `language_code`, `page_texts`, `page_texts[].pageId`, `page_texts[].text` |
 | `font_assignment` | `fonts`, `page_images`, `book_summary`, `book_title` |
 | `styleguide_generation` | `page_images`, `book_fonts` |
-| `web_generation_html` | `label`, `page_image_base64`, `source_pages`, `source_pages[].page_id`, `source_pages[].image_base64`, `section_id`, `section_type`, `nodes`, `leaf_texts`, `images`, `group_ids`, `styleguide`, `book_fonts`, `typography`, `viewports`, `user_instructions` |
+| `web_generation_html` | `label`, `page_image_base64`, `source_pages`, `source_pages[].page_id`, `source_pages[].image_base64`, `section_id`, `section_type`, `nodes`, `leaf_texts`, `images`, `group_ids`, `styleguide`, `book_fonts`, `typography`, `viewports`, `user_instructions`, `book_context` (null unless `render_context.enabled`; rendered by `{% include "_book_context" %}`) |
 | `web_generation_html_overlay` | `label`, `page_image_base64`, `section_id`, `section_type`, `nodes`, `leaf_texts`, `images`, `group_ids`, `styleguide`, `book_fonts`, `viewports`, `user_instructions` |
-| `visual_review` | `page_image_base64`, `section_type`, `current_html`, `nodes`, `leaf_texts`, `has_merged_content`, `viewports` |
-| `visual_review_flexible` | `page_image_base64`, `section_type`, `current_html`, `nodes`, `leaf_texts`, `has_merged_content`, `user_instructions`, `viewports` |
+| `visual_review` | `page_image_base64`, `section_type`, `current_html`, `nodes`, `leaf_texts`, `has_merged_content`, `viewports`, `book_context` (review scope: no page sections or neighbouring pages) |
+| `visual_review_flexible` | `page_image_base64`, `section_type`, `current_html`, `nodes`, `leaf_texts`, `has_merged_content`, `user_instructions`, `viewports`, `book_context` (review scope) |
 | `html_edit` | `current_html`, `instruction`, `screenshots`, `previous_attempt_failure` |
 | `html_edit_verify` | `instruction`, `before_base64`, `after_base64` |
 | `activity_*` | Same as render prompts: `label`, `page_image_base64`, `section_id`, `section_type`, `nodes`, `leaf_texts`, `images`, `group_ids`, `styleguide`, `book_fonts`, `viewports`, `user_instructions` |
@@ -549,6 +549,7 @@ introduce new required variables without a matching pipeline code change.
 | `activity_open_ended_answer` | Same as `activity_*` |
 | `ai_image_generation` | `user_prompt`, `style`, `image_type` |
 | `ai_image_edit` | `user_prompt`, `style`, `image_type` |
+| `_book_context` | Include-only helper. Reads `book_context` (`page_number`, `book`, `position`, `page_headings`, `section_number`, `page_sections`, `neighbor_pages`); see "Book context for rendering" in `docs/DEVELOPER-GUIDE.md`. Guard the include with `{% if book_context %}`. |
 | `_render_node` | Include-only helper. Called with `nodes` and `depth`; internally iterates `node`, `node.node_id`, `node.role`, `node.text`, `node.structure`, and `node.children`. |
 | `web_generation_html_old` | Legacy prompt using `styleguide`, `page_image_base64`, `section_type`, `images`, `images[].image_id`, `images[].image_base64`, `texts`, `texts[].text_id`, `texts[].text_type`, `texts[].text`. |
 | `visual_review_edit` | Legacy/alternate prompt using `instruction`, `viewports`, and visual review screenshot context. |
