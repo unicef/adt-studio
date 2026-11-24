@@ -19,24 +19,30 @@ import { cn } from "@/lib/utils"
  * States what is discarded, with the counts step-status reported when the
  * dialog opened, and what is kept. Cancel has the initial focus and Escape
  * closes without sending anything; only the destructive button confirms.
+ * `busy` covers the settings save a confirmation may start: nothing can be
+ * pressed or closed meanwhile. `error` is why that save failed.
  */
 export function ExtractReplaceDialog({
   open,
   discards,
   onCancel,
   onConfirm,
+  busy = false,
+  error,
 }: {
   open: boolean
   /** Null when the counts are not available; the dialog then names no numbers. */
   discards: ExtractRerunDiscards | null | undefined
   onCancel: () => void
   onConfirm: () => void
+  busy?: boolean
+  error?: string | null
 }) {
   const cancelRef = useRef<HTMLButtonElement>(null)
   const stage = STAGES.find((s) => s.slug === "extract")
 
   return (
-    <Dialog open={open} onOpenChange={(next) => { if (!next) onCancel() }}>
+    <Dialog open={open} onOpenChange={(next) => { if (!next && !busy) onCancel() }}>
       <DialogContent
         className="max-h-[calc(100dvh-2rem)] gap-5 overflow-y-auto p-6 sm:max-w-md"
         onOpenAutoFocus={(event) => {
@@ -90,6 +96,7 @@ export function ExtractReplaceDialog({
           <p className="leading-snug text-[#525252]">
             <Trans>The PDF, settings, fonts and prompts are kept.</Trans>
           </p>
+          {error && <p role="alert" className="leading-snug text-red-700">{error}</p>}
         </div>
 
         <div className="-mx-6 border-t border-[#f1f1f1]" aria-hidden />
@@ -97,12 +104,14 @@ export function ExtractReplaceDialog({
           <Button
             ref={cancelRef}
             variant="ghost"
+            disabled={busy}
             onClick={onCancel}
             className="h-10 px-4 font-medium text-[#525252] hover:text-[#0a0a0a]"
           >
             <Trans>Cancel</Trans>
           </Button>
           <Button
+            disabled={busy}
             onClick={onConfirm}
             className="h-10 px-5 font-medium text-white border-0 shadow-sm bg-red-600 hover:bg-red-700"
           >

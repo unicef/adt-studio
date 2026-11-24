@@ -63,3 +63,19 @@ it("names no numbers when the counts are unavailable, and renders nothing while 
   render(<ExtractReplaceDialog open={false} discards={discards} onCancel={() => {}} onConfirm={() => {}} />)
   expect(screen.queryByRole("dialog")).toBeNull()
 })
+
+it("RAC-23: while the settings are being saved nothing can be pressed, and a failed save is announced", () => {
+  const onCancel = vi.fn(), onConfirm = vi.fn()
+  const view = render(<ExtractReplaceDialog open busy discards={discards} onCancel={onCancel} onConfirm={onConfirm} />)
+  const dialog = screen.getByRole("dialog", { name: "Extract this book again?" })
+  const cancel = within(dialog).getByRole("button", { name: "Cancel" }) as HTMLButtonElement
+  const confirm = within(dialog).getByRole("button", { name: "Discard and extract again" }) as HTMLButtonElement
+  expect(cancel.disabled).toBe(true)
+  expect(confirm.disabled).toBe(true)
+  fireEvent.keyDown(dialog, { key: "Escape" })
+  expect(onCancel).not.toHaveBeenCalled()
+  expect(within(dialog).queryByRole("alert")).toBeNull()
+  view.rerender(<ExtractReplaceDialog open error="Config could not be saved" discards={discards} onCancel={onCancel} onConfirm={onConfirm} />)
+  expect(within(dialog).getByRole("alert").textContent).toBe("Config could not be saved")
+  expect(confirm.disabled).toBe(false)
+})

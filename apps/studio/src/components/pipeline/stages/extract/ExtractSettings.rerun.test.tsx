@@ -75,32 +75,55 @@ it("RAC-24: the General tab saves without starting a run", async () => {
   await waitFor(() => expect(screen.queryByRole("button", { name: "Save & Re-run" })).toBeNull())
 })
 
-it("RAC-23: Save & Re-run saves, asks for confirmation, then sends the replace request", async () => {
+const confirmReplace = async (dialog: HTMLElement) => { await act(async () => { fireEvent.click(within(dialog).getByRole("button", { name: "Discard and extract again" })) }) }
+
+it("RAC-23: Save & Re-run asks for confirmation first, then saves and sends the replace request", async () => {
   await editGeneral()
   await click("Save & Re-run")
   const dialog = await replaceDialog()
-  expect(state.save).toHaveBeenCalledTimes(1)
+  // Nothing is saved or sent until the replace is confirmed.
+  expect(state.save).not.toHaveBeenCalled()
   expect(state.queue).not.toHaveBeenCalled()
   expect(document.activeElement).toBe(within(dialog).getByRole("button", { name: "Cancel" }))
   expect(within(dialog).getAllByRole("term")[0].nextElementSibling?.textContent).toBe("2")
-  fireEvent.click(within(dialog).getByRole("button", { name: "Discard and extract again" }))
+  await confirmReplace(dialog)
+  await waitFor(() => expect(state.queue).toHaveBeenCalledTimes(1))
+  expect(state.save).toHaveBeenCalledTimes(1)
+  expect(state.save.mock.calls[0][0]).toMatchObject({ label: "book", config: { image_filters: { min_side: 120 } } })
+  expect(state.save.mock.invocationCallOrder[0]).toBeLessThan(state.queue.mock.invocationCallOrder[0])
   expect(state.queue).toHaveBeenCalledExactlyOnceWith({
     fromStage: "extract", toStage: "extract", apiKey: "test-only",
     extraction: { action: "replace", attemptId }, viewAfterStart: true,
   })
   // The view follows the run only once the server accepted it, which queueRun owns.
   expect(state.navigate).not.toHaveBeenCalled()
-  expect(state.save).toHaveBeenCalledTimes(1)
+  expect(screen.queryByRole("dialog")).toBeNull()
 })
 
-it("RAC-23: cancelling the confirmation keeps the saved settings and sends nothing", async () => {
+it("RAC-23: cancelling the confirmation saves nothing, sends nothing and keeps the changes pending", async () => {
   await editGeneral()
   await click("Save & Re-run")
   fireEvent.click(within(await replaceDialog()).getByRole("button", { name: "Cancel" }))
   expect(screen.queryByRole("dialog")).toBeNull()
-  expect(state.save).toHaveBeenCalledTimes(1)
+  expect(state.save).not.toHaveBeenCalled()
   expect(state.queue).not.toHaveBeenCalled()
   expect(state.navigate).not.toHaveBeenCalled()
+  expect(button("Save & Re-run").disabled).toBe(false)
+})
+
+it("RAC-23: a save that fails on confirm sends nothing and says so in the dialog", async () => {
+  state.save.mockRejectedValueOnce(new Error("Config could not be saved"))
+  await editGeneral()
+  await click("Save & Re-run")
+  const dialog = await replaceDialog()
+  await confirmReplace(dialog)
+  expect((await within(dialog).findByRole("alert")).textContent).toContain("Config could not be saved")
+  expect(state.queue).not.toHaveBeenCalled()
+  // The user can try again from the same dialog.
+  await confirmReplace(dialog)
+  await waitFor(() => expect(state.queue).toHaveBeenCalledTimes(1))
+  expect(state.save).toHaveBeenCalledTimes(2)
+  expect(screen.queryByRole("dialog")).toBeNull()
 })
 
 it.each(["retry", "resume"] as const)("RAC-24: Save & Re-run sends %s directly when a replace is not offered", async action => {

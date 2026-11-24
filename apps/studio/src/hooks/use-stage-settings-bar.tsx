@@ -33,9 +33,10 @@ export function useStageSettingsBar({
    * plain stage run (Extract on a book that already has an extraction).
    * `disabledReason` disables the re-run control only; Save keeps working.
    * `manual` marks a run that must be asked for explicitly (it shows its own
-   * confirmation), so saving while leaving the page does not start it.
+   * confirmation), so saving while leaving the page does not start it, and
+   * the settings are handed to it as `save`, to be saved once it is confirmed.
    */
-  rerun?: { start: (options: { follow: boolean }) => void; disabledReason?: string; manual?: boolean }
+  rerun?: { start: (options: { follow: boolean; save?: () => Promise<void> }) => void; disabledReason?: string; manual?: boolean }
 }) {
   const { t } = useLingui()
   const remount = useSettingsRemount()
@@ -52,6 +53,9 @@ export function useStageSettingsBar({
     colorClass: "bg-amber-600 hover:bg-amber-700",
   })
   const saveAndRun = async (leave: boolean) => {
+    // A run with its own confirmation saves the settings when it is confirmed:
+    // cancelling it must leave the saved settings as they were.
+    if (rerun?.manual) { rerun.start({ follow: leave, save: () => saveRef.current() }); return true }
     const apply = async (options = {}, stillCurrent = () => true) => {
       // The protected versions stay frozen, but untouched settings may have
       // refreshed while confirmation was open. Apply the current form draft.
