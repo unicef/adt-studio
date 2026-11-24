@@ -47,7 +47,9 @@ export function detectBundleReflowableFont(
   }
   if (best) return best as ReflowableFontSetting
   const legacy = fontsCss ? approvedFont(BODY_FONT_RULE.exec(fontsCss)?.[1]) : undefined
-  return legacy && legacy.role !== "default" ? legacy.id as ReflowableFontSetting : null
+  // Only the template's own Merriweather rule is noise. role "default" also
+  // marks Atkinson Hyperlegible (the sans "auto" pick), which a book chooses.
+  return legacy && legacy.id !== "merriweather" ? legacy.id as ReflowableFontSetting : null
 }
 
 function approvedFont(chain: string | undefined) {

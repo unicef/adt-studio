@@ -63,4 +63,13 @@ body, p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, select {
       '"Merriweather", serif',
     ))).toBeNull()
   })
+
+  // Atkinson Hyperlegible is the sans-serif "auto" choice, but in fonts.css it
+  // was still the book's own choice: only the template's Merriweather is noise.
+  it("keeps Atkinson Hyperlegible from fonts.css", () => {
+    expect(detectBundleReflowableFont([pageWith(null)], legacyFontsCss.replace(
+      "'Open Sans', 'Merriweather', sans-serif",
+      '"Atkinson Hyperlegible", sans-serif',
+    ))).toBe("atkinson-hyperlegible")
+  })
 })
