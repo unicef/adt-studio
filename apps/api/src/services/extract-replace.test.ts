@@ -316,8 +316,10 @@ describe("SPEC-0003 Extract replace", { timeout: 60_000 }, () => {
       const value = (await server(b.root).status()).extractRerunDiscards
       return value === null ? null : ExtractRerunDiscards.parse(value)
     }
-    const extracted = count(b, "images")
-    expect(extracted).toBeGreaterThan(2)
+    // Page renders are not counted as images: each page is already counted once.
+    const extracted = count(b, "images WHERE image_id != page_id || '_page'")
+    expect(extracted).toBeGreaterThan(0)
+    expect(count(b, "images")).toBe(extracted + 2)
     expect(await discards()).toEqual({ pages: 2, extractedImages: extracted, addedImages: 0 })
     // A crop, a segment and an upload made in Extract.
     b.read(storage => {

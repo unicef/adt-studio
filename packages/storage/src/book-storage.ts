@@ -133,7 +133,8 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       const count = (sql: string) => (db.get(`SELECT COUNT(*) AS n FROM ${sql}`) as { n: number }).n
       return {
         pages: count("pages"),
-        extractedImages: count("images WHERE source IN ('page', 'extract')"),
+        // A page's own render (`<pageId>_page`) is the page, counted above.
+        extractedImages: count("images WHERE source IN ('page', 'extract') AND image_id != page_id || '_page'"),
         addedImages: count("images WHERE source IN ('crop', 'segment', 'upload')"),
       }
     }, "DEFERRED"),
