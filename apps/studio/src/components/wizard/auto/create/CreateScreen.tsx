@@ -7,6 +7,7 @@ import { classifyCreateError, useBookCreation, type CreateFailureKind } from "@/
 import { useWizardForm } from "@/components/wizard/core/wizardForm"
 import { cn } from "@/lib/utils"
 import { CoverBox, useBookFacts } from "../review/parts"
+import { useRecommendation } from "../recommendation/RecommendationContext"
 import { ErrorDetails, SecondaryButton } from "../errors/ErrorState"
 import "../../core/flow.css"
 import { ENTER, PrimaryButton, ScreenShell } from "../../core/ui"
@@ -74,6 +75,8 @@ export function CreateScreen({ onBack }: { onBack: () => void }) {
   const facts = useBookFacts()
   const title = facts.title || t`your book`
   const extract = willExtract(values)
+  const recommendation = useRecommendation() as { id?: string } | null
+  const setupRecommendationId = recommendation?.id
 
   useEffect(() => {
     if (started.current === run) return
@@ -83,7 +86,7 @@ export function CreateScreen({ onBack }: { onBack: () => void }) {
     void (async () => {
       let label: string
       try {
-        label = (await createBook(form.state.values)).label
+        label = (await createBook(form.state.values, setupRecommendationId)).label
       } catch (error) {
         const failure = classifyCreateError(error)
         if (failure.kind === "taken") void queryClient.invalidateQueries({ queryKey: ["books"] })

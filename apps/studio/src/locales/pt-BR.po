@@ -13279,6 +13279,9 @@ msgstr "O texto da sua página aparece aqui, em letras grandes e fáceis de ler.
 msgid "The TOC lists the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "O sumário lista as seções classificadas posicionadas pelo Storyboard. Termine o Storyboard antes de executar esta etapa."
 
+msgid "The two AI readings disagree here."
+msgstr ""
+
 msgid "The Water Cycle"
 msgstr "O ciclo da água"
 

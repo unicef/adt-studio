@@ -13281,6 +13281,9 @@ msgstr "Teksti nga faqja juaj vendoset këtu, me shkronja të mëdha dhe të leh
 msgid "The TOC lists the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "TOC liston seksionet e shtypura të vendosura nga Storyboard. Përfundo Storyboard para se të ekzekutosh këtë fazë."
 
+msgid "The two AI readings disagree here."
+msgstr ""
+
 msgid "The Water Cycle"
 msgstr "Cikli i Ujit"
 

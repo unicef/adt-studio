@@ -19,11 +19,13 @@ export function useBookCreation() {
   const createMutation = useCreateBook()
   const { apiKey, hasStructuredTextProvider, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey } = useApiKey()
 
-  const createBook = (values: WizardFormValues) =>
+  /** `setupRecommendationId` links the book to the recommendation it was set up from (kept in the book folder). */
+  const createBook = (values: WizardFormValues, setupRecommendationId?: string) =>
     createMutation.mutateAsync({
       label: values.label.trim(),
       pdf: values.file!,
       config: buildConfigOverrides(values),
+      setupRecommendationId,
     })
 
   // Kick off extraction automatically so the user lands on the book home
