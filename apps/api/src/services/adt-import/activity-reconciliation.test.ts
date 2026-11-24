@@ -52,6 +52,7 @@ function bundle(
     texts: { en: { "text-1": "Text" } },
     ignoredEdits: { sourceTextsChanged: false, pageHtmlChanged: [], pageHtmlMissing: [] },
     agentGuides: { agentsMd: null, claudeMd: null },
+    fontsCss: null,
   }
 }
 

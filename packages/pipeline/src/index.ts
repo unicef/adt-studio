@@ -434,6 +434,10 @@ export {
   type BuildAdtRoundTripManifestOptions,
 } from "./adt-round-trip/manifest.js"
 export {
+  detectBundleReflowableFont,
+  reflowableBodyFontStyle,
+} from "./adt-round-trip/font.js"
+export {
   ADT_AGENT_GUIDE_VERSION,
   inspectAdtAgentGuide,
   readAdtAgentGuideTemplate,
