@@ -30,6 +30,7 @@ const compatibilityIssueGuidance: Record<AdtImportCompatibilityIssueCode, string
   "missing-section-type": "A canonical section is missing data-section-type.",
   "missing-data-id": "Editable content is missing a stable data-id.",
   "duplicate-data-id": "Two elements share a data-id but their content differs. Responsive desktop and mobile copies of one element may share a data-id only while their text (or image src and alt) stays identical: apply the same edit to every copy, or give genuinely new content its own data-id.",
+  "cross-page-duplicate-data-id": "One data-id appears on more than one page. Each page's text needs its own entry in the text catalog, so a data-id must belong to one page.",
   "image-missing-data-id": "A content image is missing a stable data-id.",
   "remote-asset": "A page references a remote asset.",
   "unsafe-asset": "A page references an unsafe asset path.",
@@ -56,6 +57,7 @@ const compatibilityIssueFix: Record<AdtImportCompatibilityIssueCode, string> = {
   "missing-section-type": "Add the data-section-type from the guide that matches the page.",
   "missing-data-id": "Give the element a new data-id that is unique in the book, add it to the page's editingContract.pageDataIds in document order, and add its text to content/i18n/<language>/texts.json.",
   "duplicate-data-id": "Make the copies identical again, or give the new content its own data-id.",
+  "cross-page-duplicate-data-id": "Keep the data-id on the first page listed. On every other page, rename the copy to a new data-id that is unique in the book (for example the old id plus that page's section id), replace it in that page's editingContract.pageDataIds, and copy its entries to the new id in every language's texts.json, and in speech_texts.json and audios.json where present, including any <id>_easy_read entry. This is the one case where renaming an existing data-id is required.",
   "image-missing-data-id": "Give the image a new data-id that is unique in the book and add it to the page's editingContract.pageDataIds in document order.",
   "remote-asset": "ADT exports can't load files from the internet. For an image, download it into images/ and point to it there. Otherwise save the reference in the restore kit, then remove it. Don't add scripts or stylesheets, and don't put files in assets/.",
   "unsafe-asset": "Point the reference at a file in images/ with a relative path such as images/example.png, with no ../ or absolute paths.",
@@ -118,6 +120,12 @@ export const DO_NOT_INTRODUCE_PROBLEMS = [
  * examples, so a pathological archive can't bloat the request. */
 const MAX_LISTED_FILES_PER_CODE = 500
 
+/** Problem types whose detail is the fix itself (which data-id, which other
+ * pages), so the request lists every problem with its detail instead of the
+ * report's examples plus file names. A file name alone would point at the
+ * page the fix says to keep. */
+const EVERY_DETAIL_CODES: ReadonlySet<AdtImportCompatibilityIssueCode> = new Set(["cross-page-duplicate-data-id"])
+
 interface IssueGroup {
   code: AdtImportCompatibilityIssueCode
   count: number
@@ -135,8 +143,11 @@ function issueGroups(
 ): IssueGroup[] {
   const codes = [...new Set(compatibility.issues.map((issue) => issue.code))]
   return codes.map((code) => {
-    const examples = compatibility.issues.filter((issue) => issue.code === code)
     const all = allIssues.filter((issue) => issue.code === code)
+    const reported = compatibility.issues.filter((issue) => issue.code === code)
+    const examples = EVERY_DETAIL_CODES.has(code) && all.length > reported.length
+      ? all.slice(0, MAX_LISTED_FILES_PER_CODE)
+      : reported
     const files = [...new Set(all.map((issue) => issue.pageHref).filter(Boolean))]
     const exampleFiles = new Set(examples.map((issue) => issue.pageHref))
     const others = files.filter((file) => !exampleFiles.has(file))

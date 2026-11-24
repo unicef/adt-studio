@@ -3808,6 +3808,9 @@ msgstr "Dark"
 msgid "dash.cloudflare.com"
 msgstr "dash.cloudflare.com"
 
+msgid "data-id used on more than one page"
+msgstr "data-id used on more than one page"
+
 msgid "Date added"
 msgstr "Date added"
 
@@ -12611,6 +12614,9 @@ msgstr "The requested pages are outside the active page window ({total} total; s
 
 msgid "The rules ADT Studio checks. Your assistant gets them with the repair request."
 msgstr "The rules ADT Studio checks. Your assistant gets them with the repair request."
+
+msgid "The same data-id is used on more than one page."
+msgstr "The same data-id is used on more than one page."
 
 msgid "The same edition in every language."
 msgstr "The same edition in every language."

@@ -162,6 +162,9 @@ export function previewAdtRecoveryImport(
     bundle.pages,
     bundle.pageHtml,
     bundle.sourceFormat === "legacy-studio-export",
+    // Repeated ids are listed by the compatibility report below, which blocks
+    // the import; the preview keeps the first copy so it can still be shown.
+    { onDuplicate: "keep-first" },
   )
   const outputLanguages = [...new Set(
     bundle.manifest.languages.output

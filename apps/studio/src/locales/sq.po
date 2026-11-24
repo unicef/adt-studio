@@ -3810,6 +3810,9 @@ msgstr "E errët"
 msgid "dash.cloudflare.com"
 msgstr "dash.cloudflare.com"
 
+msgid "data-id used on more than one page"
+msgstr "data-id i përdorur në më shumë se një faqe"
+
 msgid "Date added"
 msgstr "Data e shtimit"
 
@@ -12613,6 +12616,9 @@ msgstr "Faqet e kërkuara janë jashtë intervalit aktiv të faqeve ({total} gji
 
 msgid "The rules ADT Studio checks. Your assistant gets them with the repair request."
 msgstr "Rregullat që kontrollon ADT Studio. Asistenti juaj i merr bashkë me kërkesën për riparim."
+
+msgid "The same data-id is used on more than one page."
+msgstr "I njëjti data-id përdoret në më shumë se një faqe."
 
 msgid "The same edition in every language."
 msgstr "I njëjti botim në çdo gjuhë."

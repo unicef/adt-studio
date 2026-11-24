@@ -3808,6 +3808,9 @@ msgstr "Oscuro"
 msgid "dash.cloudflare.com"
 msgstr "dash.cloudflare.com"
 
+msgid "data-id used on more than one page"
+msgstr "data-id usado en más de una página"
+
 msgid "Date added"
 msgstr "Fecha de adición"
 
@@ -12611,6 +12614,9 @@ msgstr "Las páginas solicitadas están fuera del intervalo de páginas activo (
 
 msgid "The rules ADT Studio checks. Your assistant gets them with the repair request."
 msgstr "Las reglas que comprueba ADT Studio. Tu asistente las recibe con la solicitud de reparación."
+
+msgid "The same data-id is used on more than one page."
+msgstr "El mismo data-id se usa en más de una página."
 
 msgid "The same edition in every language."
 msgstr "La misma edición en cada idioma."

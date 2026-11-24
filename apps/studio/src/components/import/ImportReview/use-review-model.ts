@@ -58,7 +58,8 @@ export interface ReviewModel {
 const STRUCTURE_CODES = new Set([
   "missing-editing-contract", "unsupported-editing-contract", "nested-page", "changed-page-structure",
   "missing-content-root", "multiple-content-roots", "missing-section", "multiple-sections",
-  "missing-section-type", "missing-data-id", "duplicate-data-id", "image-missing-data-id",
+  "missing-section-type", "missing-data-id", "duplicate-data-id", "cross-page-duplicate-data-id",
+  "image-missing-data-id",
 ])
 const FILE_CODES = new Set([
   "unexpected-bundle-entry", "remote-asset", "unsafe-asset", "unsupported-stylesheet",
@@ -97,6 +98,7 @@ export function useReviewModel(
     "missing-section-type": t`Section without a type`,
     "missing-data-id": t`Content without a data-id`,
     "duplicate-data-id": t`Repeated data-id with different content`,
+    "cross-page-duplicate-data-id": t`data-id used on more than one page`,
     "image-missing-data-id": t`Image without a data-id`,
     "remote-asset": t`File loaded from the internet`,
     "unsafe-asset": t`File path outside the archive`,
@@ -120,6 +122,7 @@ export function useReviewModel(
     "missing-section-type": t`The main section has no data-section-type.`,
     "missing-data-id": t`Editable content is missing its data-id.`,
     "duplicate-data-id": t`Two elements share a data-id but their content differs.`,
+    "cross-page-duplicate-data-id": t`The same data-id is used on more than one page.`,
     "image-missing-data-id": t`An image is missing its data-id.`,
     "remote-asset": t`The page loads a file from the internet.`,
     "unsafe-asset": t`The page points to a file outside the archive.`,
