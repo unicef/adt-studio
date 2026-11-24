@@ -27,7 +27,7 @@ export const BADGE: Record<NoteTone, string> = {
   done: "bg-emerald-600 text-white",
 }
 
-function languageName(code: string, locale: string) {
+export function languageName(code: string, locale: string) {
   try {
     return new Intl.DisplayNames([locale], { type: "language" }).of(code) ?? code
   } catch {

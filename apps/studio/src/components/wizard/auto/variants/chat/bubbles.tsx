@@ -1,8 +1,9 @@
 import type { ReactNode } from "react"
 import { Trans } from "@lingui/react/macro"
+import { Check, ChevronDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Avatar, Dots } from "../../decide/intro/parts"
-import { POP } from "../../../core/ui"
+import { POP, SWAP } from "../../../core/ui"
 
 const SHADOW = "shadow-[0_6px_18px_-10px_rgba(15,23,42,0.3)]"
 
@@ -104,5 +105,24 @@ function AssistantLabel() {
     <span className="sr-only">
       <Trans>ADT Assistant:</Trans>
     </span>
+  )
+}
+
+/** A step the thread has moved past, folded to one line. Tapping it opens the step again, to change it. */
+export function Folded({ summary, open, onToggle, locked }: { summary: { text: ReactNode; tone?: "done" | "failed" }; open: boolean; onToggle: () => void; locked?: boolean }) {
+  return (
+    <div className="flex pl-[46px]">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={onToggle}
+        className={cn("group inline-flex min-w-0 max-w-full items-center gap-2 rounded-full bg-muted/60 py-1.5 pl-1.5 pr-3 text-left text-[13.5px] text-muted-foreground ring-1 ring-border/60 transition-colors hover:bg-muted hover:text-foreground", SWAP)}
+      >
+        <span className={cn("grid size-5 shrink-0 place-items-center rounded-full text-white", summary.tone === "failed" ? "bg-destructive" : "bg-emerald-500")}>{summary.tone === "failed" ? <X className="size-3 stroke-[3]" /> : <Check className="size-3 stroke-[3]" />}</span>
+        <span className="min-w-0 truncate">{summary.text}</span>
+        <span className="shrink-0 text-[12.5px] font-semibold text-brand-700">{open ? <Trans>Hide</Trans> : locked ? <Trans>Show</Trans> : <Trans>Change</Trans>}</span>
+        <ChevronDown className={cn("size-3.5 shrink-0 text-brand-700 transition-transform duration-200 motion-reduce:transition-none", open && "rotate-180")} />
+      </button>
+    </div>
   )
 }

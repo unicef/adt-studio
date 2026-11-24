@@ -10,11 +10,13 @@ import type { CreateRun } from "./useCreateRun"
 
 export const NAME_INPUT = "wizard-project-name"
 
-/** "What should we call it?": the wizard's Project Name field (same validation) and the one Create action. */
-export function NameCard({ onCreate, locked }: { onCreate: () => void; locked: boolean }) {
+/** The ready step: the setup on one line (`setup`), the wizard's Project Name field (same validation) and the one Create action. */
+export function ReadyCard({ setup, onCreate, locked }: { setup: ReactNode; onCreate: () => void; locked: boolean }) {
   const create = useCreate(onCreate)
   return (
     <div inert={locked} className="flex w-full flex-col gap-3 rounded-[22px] bg-card/95 p-4 ring-1 ring-border shadow-[0_18px_44px_-26px_rgba(15,23,42,0.5)] backdrop-blur">
+      {setup}
+      <div className="h-px bg-border/70" />
       <NameField />
       <div className="flex justify-end">
         <PrimaryButton onClick={create} disabled={locked} icon={<Sparkles className="size-4" />}>

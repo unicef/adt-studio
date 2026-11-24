@@ -73,7 +73,7 @@ export function LoaderScreen({ onDone, onUnsure, onStartOver, onManual }: { onDo
           ) : (
             <div className="flex flex-col items-center gap-5">
               <div className={cn("flex flex-col items-center gap-3", ENTER)} style={{ animationDelay: "80ms" }}>
-                <div className="grid h-[48px] place-items-center">
+                <div className="grid min-h-[48px] place-items-center">
                   <div aria-hidden={state.finished} className={cn("col-start-1 row-start-1 transition-[opacity,filter] duration-300", state.finished ? "opacity-0 blur-[3px]" : "opacity-100")}>
                     <Heading finished={false} />
                   </div>

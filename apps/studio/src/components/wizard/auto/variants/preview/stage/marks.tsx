@@ -102,16 +102,13 @@ export function ActivityCard({ compact }: { compact?: boolean }) {
   )
 }
 
-/** One section of a page when Section Mode is Dynamic: a dashed outline and its number. Plain wrapper otherwise. */
+/** One section of a page when Section Mode is Dynamic: a dashed outline (no tag, to keep the preview quiet). Plain wrapper otherwise. */
 export function Part({ n, on, children, className }: { n: number; on: boolean; children: ReactNode; className?: string }) {
   return (
     <div className={cn("relative", className)}>
       {children}
       {on && (
         <span aria-hidden className="pointer-events-none absolute -inset-2.5 animate-[am-pop_0.35s_cubic-bezier(0.34,1.56,0.64,1)_both] rounded-[18px] border-[3px] border-dashed border-amber-500 motion-reduce:animate-none" style={{ animationDelay: `${n * 80}ms` }}>
-          <span className="absolute -top-[15px] right-3 rounded-full bg-amber-500 px-2.5 py-0.5 text-[14px] font-bold text-white shadow">
-            <Trans>Part {n}</Trans>
-          </span>
         </span>
       )}
     </div>

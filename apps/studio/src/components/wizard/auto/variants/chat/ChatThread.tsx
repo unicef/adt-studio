@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
+import { flushSync } from "react-dom"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { FastForward, Wrench } from "lucide-react"
 import type { SetupBookFactId, SetupSettingId } from "@adt/types"
@@ -14,14 +15,13 @@ import { DotGrid } from "../../../core/ui"
 import "../../../core/flow.css"
 import { useUploadFlow } from "../../../start/upload/useUploadFlow"
 import { Avatar } from "../../decide/intro/parts"
-import { SCOPE_ANCHOR } from "./Attachment"
-import { AssistantRow, TypingRow, UserRow } from "./bubbles"
+import { AssistantRow, Folded, TypingRow, UserRow } from "./bubbles"
 import { Composer, ComposerReply } from "./Composer"
 import { NAME_INPUT } from "./Create"
 import { useAnswers, type SettingValue } from "./useAnswers"
 import { useCreateRun } from "./useCreateRun"
 import { useReveal } from "./useReveal"
-import { useThread } from "./useThread"
+import { useThread, type Message } from "./useThread"
 import { SETTING_LABEL, valueTitle } from "./words"
 
 const NEAR_BOTTOM = 160
@@ -40,7 +40,7 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
   const [attempt, setAttempt] = useState(0)
   const [failures, setFailures] = useState<Record<number, SetupFailure>>({})
   const [rejectedAt, setRejectedAt] = useState(0)
-  const [edited, setEdited] = useState<Set<SetupBookFactId>>(() => new Set())
+  const [unfolded, setUnfolded] = useState<Set<string>>(() => new Set())
   const [announce, setAnnounce] = useState("")
   const run = useEngineRun(validFile ? flow.file : null, attempt)
   const rec = run.status === "done" ? run.rec : null
@@ -55,7 +55,7 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
   useEffect(() => {
     setAttempt(0)
     setFailures({})
-    setEdited(new Set())
+    setUnfolded(new Set())
     chat.reset()
   }, [flow.fileKey])
   useEffect(() => {
@@ -82,7 +82,6 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
     acted.current = true
     const before = chat.answers[fact]
     if (before && before !== value && chat.derived && rec) {
-      setEdited((e) => new Set(e).add(fact))
       const then = settingsFor(rec, { ...chat.derived.current, [fact]: value })
       const changed = settingsChangedBy(rec, chat.derived.current, fact, value).map((id) => say(id, then[id]?.value))
       setAnnounce(changed.length ? t`Answer changed. Now ${changed.join(", ")}.` : t`Answer changed. No setting changes.`)
@@ -95,7 +94,7 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
     setAnnounce(say(id, value))
   }
 
-  const messages = useThread({
+  const { messages, summaries } = useThread({
     flow,
     validFile,
     rejectedAt,
@@ -104,7 +103,6 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
     run,
     rec,
     chat,
-    edited,
     create,
     onRetry: () => {
       acted.current = true
@@ -113,17 +111,13 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
     onManual: manual,
     onAnswer,
     onSetting,
-    onEditScope: () => {
-      const el = document.getElementById(SCOPE_ANCHOR)
-      el?.scrollIntoView({ block: "center", behavior: "smooth" })
-      el?.focus({ preventScroll: true })
-    },
     onCreate: () => {
       if (!chat.derived || !rec) return
       acted.current = true
       void create.start(chat.derived.effective, rec.id)
     },
     onRename: () => {
+      flushSync(() => setUnfolded((u) => new Set(u).add("ready")))
       const input = document.getElementById(NAME_INPUT) as HTMLInputElement | null
       input?.scrollIntoView({ block: "center", behavior: "smooth" })
       input?.focus({ preventScroll: true })
@@ -132,9 +126,10 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
   })
   const reveal = useReveal(messages)
   const shown = messages.slice(0, reveal.visible)
+  const groups = groupBySteps(shown)
   const engineBusy = validFile && run.status === "running"
   const waiting = !reveal.typing && reveal.visible === messages.length && engineBusy
-  const settingsShown = shown.some((m) => m.id.startsWith("settings-"))
+  const settingsShown = shown.some((m) => m.step === "ready")
   const canSkip = !!rec && !settingsShown && !create.locked
 
   useEffect(() => {
@@ -174,21 +169,6 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
     reveal.flush()
   }
 
-  const lastRun = create.runs[create.runs.length - 1]
-  const hint = lastRun?.status === "done" ? (
-    <Trans>Your book is ready.</Trans>
-  ) : create.locked ? (
-    <Trans>Creating your book…</Trans>
-  ) : engineBusy ? (
-    <Trans>Reading your book…</Trans>
-  ) : run.status === "failed" ? (
-    <Trans>Try again, or set it up yourself.</Trans>
-  ) : chat.derived?.pending && !settingsShown ? (
-    <Trans>Answer above, or skip to the settings.</Trans>
-  ) : settingsShown ? (
-    <Trans>Change anything above, then create the book.</Trans>
-  ) : null
-
   const replies = (
     <>
       {canSkip && (
@@ -222,39 +202,53 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
         className="relative flex-1 overflow-y-auto overflow-x-hidden"
       >
         <div className="mx-auto flex w-full max-w-[760px] flex-col px-4 pb-8 pt-8 sm:px-6 sm:pt-12">
-          <header className="mb-8 flex flex-col items-start gap-4 animate-[am-fade-up_0.5s_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none">
-            <Avatar size="lg" />
-            <div className="flex flex-col gap-2">
-              <h1 className="text-[34px] font-bold leading-[1.02] tracking-[-0.035em] sm:text-[44px]">
-                <Trans>
-                  Let&apos;s set up your <span className="bg-gradient-to-br from-brand-400 to-brand-700 bg-clip-text text-transparent">book</span>, together.
-                </Trans>
-              </h1>
-              <p className="max-w-[520px] text-[15.5px] leading-relaxed text-muted-foreground">
-                <Trans>A short chat with the ADT Assistant: send the PDF, answer a question or two, and it&apos;s ready to convert.</Trans>
-              </p>
-            </div>
-          </header>
+          {!validFile && (
+            <header className="mb-8 flex flex-col items-start gap-4 animate-[am-fade-up_0.5s_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none">
+              <Avatar size="lg" />
+              <div className="flex flex-col gap-2">
+                <h1 className="text-[34px] font-bold leading-[1.02] tracking-[-0.035em] sm:text-[44px]">
+                  <Trans>
+                    Let&apos;s set up your <span className="bg-gradient-to-br from-brand-400 to-brand-700 bg-clip-text text-transparent">book</span>, together.
+                  </Trans>
+                </h1>
+                <p className="max-w-[520px] text-[15.5px] leading-relaxed text-muted-foreground">
+                  <Trans>Send a PDF, answer a question or two, done.</Trans>
+                </p>
+              </div>
+            </header>
+          )}
 
           <div role="log" aria-label={t`Conversation with the ADT Assistant`} aria-relevant="additions" className="flex flex-col">
-            {shown.map((m, i) => {
-              const next = shown[i + 1]
-              const tail = m.from === "ai" && (!next || next.from !== "ai") && !(i === shown.length - 1 && (reveal.typing || waiting))
-              const gap = i === 0 ? "" : shown[i - 1]!.from === m.from ? "mt-1.5" : "mt-5"
+            {groups.map((g, gi) => {
+              const current = gi === groups.length - 1
+              const summary = summaries[g.step]
+              const body = g.messages.map((m, i) => {
+                const next = g.messages[i + 1]
+                const lastShown = current && i === g.messages.length - 1
+                const tail = m.from === "ai" && (!next || next.from !== "ai") && !(lastShown && reveal.typing)
+                const gap = i === 0 ? "" : g.messages[i - 1]!.from === m.from ? "mt-1.5" : "mt-4"
+                return (
+                  <div key={m.id} id={`msg-${m.id}`} data-handoff={m.from === "ai" && m.focus ? "" : undefined} className={gap}>
+                    {m.from === "ai" ? (
+                      <AssistantRow tail={tail} card={m.card}>
+                        {m.body}
+                      </AssistantRow>
+                    ) : (
+                      <UserRow plain={m.plain}>{m.body}</UserRow>
+                    )}
+                  </div>
+                )
+              })
+              const open = current || !summary || unfolded.has(g.step)
               return (
-                <div key={m.id} id={`msg-${m.id}`} data-handoff={m.from === "ai" && m.focus ? "" : undefined} className={cn(gap)}>
-                  {m.from === "ai" ? (
-                    <AssistantRow tail={tail} card={m.card}>
-                      {m.body}
-                    </AssistantRow>
-                  ) : (
-                    <UserRow plain={m.plain}>{m.body}</UserRow>
-                  )}
-                </div>
+                <section key={g.step} className={gi === 0 ? "" : current ? "mt-6" : "mt-2"}>
+                  {!current && summary && <Folded summary={summary} open={open} locked={create.locked} onToggle={() => setUnfolded((u) => (u.has(g.step) ? new Set([...u].filter((s) => s !== g.step)) : new Set(u).add(g.step)))} />}
+                  {open && <div className={!current && summary ? "mb-4 mt-3" : ""}>{body}</div>}
+                </section>
               )
             })}
           </div>
-          {(reveal.typing || waiting) && (
+          {reveal.typing && (
             <div className={cn(shown[shown.length - 1]?.from === "ai" ? "mt-1.5" : "mt-5")}>
               <TypingRow />
             </div>
@@ -262,12 +256,25 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
         </div>
       </div>
 
-      <div ref={composer}>
-        <Composer flow={flow} replies={replies} hint={hint} />
-      </div>
+      {!create.locked && (
+        <div ref={composer}>
+          <Composer flow={flow} replies={replies} />
+        </div>
+      )}
       <span role="status" className="sr-only">
         {waiting ? <Trans>The ADT Assistant is reading your book…</Trans> : announce}
       </span>
     </div>
   )
+}
+
+/** Consecutive messages of the same step, in order. */
+function groupBySteps(messages: Message[]) {
+  const out: { step: string; messages: Message[] }[] = []
+  for (const m of messages) {
+    const last = out[out.length - 1]
+    if (last?.step === m.step) last.messages.push(m)
+    else out.push({ step: m.step, messages: [m] })
+  }
+  return out
 }

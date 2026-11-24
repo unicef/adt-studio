@@ -1,10 +1,10 @@
 import { useState, type ReactNode } from "react"
-import { Trans, useLingui } from "@lingui/react/macro"
+import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import { ChevronDown, Lock, Settings2, Sparkles } from "lucide-react"
 import type { SetupRecommendation, SetupSettingId } from "@adt/types"
 import { Collapsible } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
-import { useScopeSummary } from "../../../core/fields/ScopeField"
+import { ScopeField, useScopeSummary } from "../../../core/fields/ScopeField"
 import { SWAP } from "../../../core/ui"
 import { SETTING_IDS } from "../../engine/answers"
 import { RULE_WHY, SETTING_VALUE } from "../../engine/words"
@@ -62,96 +62,110 @@ function Options({ id, only, current, onPick, label }: { id: SetupSettingId; onl
 }
 
 /**
- * The whole setup as one card in the thread, in the wizard's names. Each row says where its value
- * came from (the AI, an answer, or a change by hand; the AI's are the default and untagged) and
- * opens to change it with chips, with what the value means, why it was picked and the pages that
- * show it. Settings that can't change after creation carry a lock.
+ * The setup, folded to one line ("Storybook · Fixed Layout · Spread") with "Change". Opened, each
+ * setting is a row in the wizard's names that says where its value came from (an answer or a change
+ * by hand; the AI's are untagged), carries a lock when it can't change after creation, and opens to
+ * chips with what the value means, why, and the pages. Page Range is the upload card's own choice.
  */
-export function SettingsCard({ rec, derived, onChange, frozen, numPages, file, onEditScope, onAllSettings }: { rec: SetupRecommendation; derived: Derived; onChange: (id: SetupSettingId, value: SettingValue) => void; frozen: boolean; numPages: number; file: File | null | undefined; onEditScope: () => void; onAllSettings: () => void }) {
+export function SettingsCard({ rec, derived, onChange, frozen, numPages, file, onAllSettings }: { rec: SetupRecommendation; derived: Derived; onChange: (id: SetupSettingId, value: SettingValue) => void; frozen: boolean; numPages: number; file: File | null | undefined; onAllSettings: () => void }) {
   const { i18n, t } = useLingui()
+  const [expanded, setExpanded] = useState(false)
   const [open, setOpen] = useState<string | null>(null)
   const scope = useScopeSummary(numPages)
   const toggle = (key: string) => setOpen((o) => (o === key ? null : key))
-  const fromAi = SETTING_IDS.filter((id) => derived.source(id) === "ai").length
+  const changed = SETTING_IDS.filter((id) => derived.source(id) !== "ai").length
   const locked = new Set(rec.lockedSettings)
+  const title = (id: SetupSettingId) => {
+    const v = valueTitle(id, derived.effective[id]?.value)
+    return v ? i18n._(v) : String(derived.effective[id]?.value)
+  }
+  // eslint-disable-next-line lingui/no-unlocalized-strings -- setting ids
+  const summary = (["preset", "renderStrategy", "pageGrouping"] as SetupSettingId[]).map(title).join(" · ")
   return (
-    <div inert={frozen} className="w-full rounded-[22px] bg-card/95 p-1.5 ring-1 ring-border shadow-[0_18px_44px_-26px_rgba(15,23,42,0.5)] backdrop-blur">
-      <div className="flex items-center justify-between gap-2 px-3 pb-1.5 pt-2.5">
-        <p className="text-[15px] font-bold tracking-[-0.01em]">
-          <Trans>Your setup</Trans>
-        </p>
-        <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-brand-50 px-2.5 py-1 text-[11.5px] font-semibold text-brand-700 ring-1 ring-brand-200">
-          <Sparkles className="size-3" />
-          {fromAi === SETTING_IDS.length ? <Trans>Picked by AI</Trans> : <Trans>{fromAi} of {SETTING_IDS.length} picked by AI</Trans>}
-        </span>
-      </div>
-      <ul className="flex flex-col">
-        {SETTING_IDS.map((id) => {
-          const pick = derived.effective[id]
-          const title = valueTitle(id, pick?.value)
-          const source = derived.source(id)
-          const means = SETTING_VALUE[id]?.[String(pick?.value)]?.means
-          const why = pick && RULE_WHY[pick.rule]
-          const allowed = id === "renderStrategy" ? strategiesFor(derived.effective.preset?.value) : null
-          const name = i18n._(SETTING_LABEL[id])
-          return (
-            <Row
-              key={id}
-              id={`chat-setting-${id}`}
-              label={name}
-              locked={locked.has(id)}
-              open={open === id}
-              onToggle={() => toggle(id)}
-              value={
-                <span key={String(pick?.value)} className={cn("text-[14.5px] font-semibold", SWAP)}>
-                  {title ? i18n._(title) : String(pick?.value)}
-                </span>
-              }
-              tag={<SourceTag source={source} />}
-            >
-              <Options id={id} only={allowed} current={pick?.value} onPick={(v) => onChange(id, v)} label={name} />
-              {means && <p className="text-[13px] leading-snug text-foreground/90">{i18n._(means)}</p>}
-              {source === "ai" && why && (
-                <p className="inline-flex gap-1.5 text-[12.5px] leading-snug text-muted-foreground">
-                  <Sparkles className="mt-0.5 size-3 shrink-0 text-brand-600" />
-                  {i18n._(why)}
-                </p>
-              )}
-              {locked.has(id) && (
-                <p className="inline-flex gap-1.5 text-[12.5px] leading-snug text-muted-foreground">
-                  <Lock className="mt-0.5 size-3 shrink-0" />
-                  <Trans>This one can&apos;t be changed after the book is created.</Trans>
-                </p>
-              )}
-              {(rec.settingEvidence[id]?.length ?? 0) > 0 && <PageStrip file={file} pages={rec.settingEvidence[id]!} label={t`Pages that show it`} />}
-            </Row>
-          )
-        })}
-        <li className="flex items-center gap-2 rounded-[16px] px-3 py-2.5">
-          <span className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-3">
-            <span className="shrink-0 text-[13px] text-muted-foreground sm:w-[150px]">
-              <Trans>Page Range</Trans>
-            </span>
-            <span className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[14.5px] font-semibold">{scope}</span>
-              <SourceTag source="asked" />
-            </span>
-          </span>
-          <button type="button" onClick={onEditScope} className="shrink-0 rounded-full px-2.5 py-1.5 text-[13px] font-semibold text-brand-700 transition-colors hover:bg-brand-50">
-            <Trans>Change</Trans>
-          </button>
-        </li>
-      </ul>
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/70 px-3 pb-1.5 pt-2.5">
-        <p className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground">
-          <Lock className="size-3" />
-          <Trans>Fixed once the book is created</Trans>
-        </p>
-        <button type="button" onClick={onAllSettings} className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[13px] font-semibold text-brand-700 transition-colors hover:bg-brand-50">
-          <Settings2 className="size-3.5" />
-          <Trans>All settings</Trans>
+    <div inert={frozen}>
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <p key={summary} className={cn("text-[16px] font-bold leading-snug tracking-[-0.01em]", SWAP)}>
+            {summary}
+          </p>
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-muted-foreground">
+            <span>{scope}</span>
+            {changed === 0 ? (
+              <span className="inline-flex items-center gap-1 font-semibold text-brand-700">
+                <Sparkles className="size-3" />
+                <Trans>Picked by AI</Trans>
+              </span>
+            ) : (
+              <span className="font-semibold text-foreground">
+                <Plural value={changed} one="# changed by you" other="# changed by you" />
+              </span>
+            )}
+          </p>
+        </div>
+        <button type="button" aria-expanded={expanded} aria-controls="chat-settings-all" onClick={() => setExpanded((e) => !e)} className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full px-3 text-[13.5px] font-semibold text-brand-700 ring-1 ring-brand-200 transition-colors hover:bg-brand-50">
+          {expanded ? <Trans>Done</Trans> : <Trans>Change</Trans>}
+          <ChevronDown className={cn("size-3.5 transition-transform duration-200 motion-reduce:transition-none", expanded && "rotate-180")} />
         </button>
       </div>
+      <Collapsible shown={expanded}>
+        <div id="chat-settings-all" inert={!expanded} className="pt-2">
+          <ul className="-mx-2 flex flex-col">
+            {SETTING_IDS.map((id) => {
+              const pick = derived.effective[id]
+              const source = derived.source(id)
+              const means = SETTING_VALUE[id]?.[String(pick?.value)]?.means
+              const why = pick && RULE_WHY[pick.rule]
+              const allowed = id === "renderStrategy" ? strategiesFor(derived.effective.preset?.value) : null
+              const name = i18n._(SETTING_LABEL[id])
+              return (
+                <Row
+                  key={id}
+                  id={`chat-setting-${id}`}
+                  label={name}
+                  locked={locked.has(id)}
+                  open={open === id}
+                  onToggle={() => toggle(id)}
+                  value={
+                    <span key={String(pick?.value)} className={cn("text-[14.5px] font-semibold", SWAP)}>
+                      {title(id)}
+                    </span>
+                  }
+                  tag={<SourceTag source={source} />}
+                >
+                  <Options id={id} only={allowed} current={pick?.value} onPick={(v) => onChange(id, v)} label={name} />
+                  {means && <p className="text-[13px] leading-snug text-foreground/90">{i18n._(means)}</p>}
+                  {source === "ai" && why && (
+                    <p className="inline-flex gap-1.5 text-[12.5px] leading-snug text-muted-foreground">
+                      <Sparkles className="mt-0.5 size-3 shrink-0 text-brand-600" />
+                      {i18n._(why)}
+                    </p>
+                  )}
+                  {locked.has(id) && (
+                    <p className="inline-flex gap-1.5 text-[12.5px] leading-snug text-muted-foreground">
+                      <Lock className="mt-0.5 size-3 shrink-0" />
+                      <Trans>Can&apos;t be changed after the book is created.</Trans>
+                    </p>
+                  )}
+                  {(rec.settingEvidence[id]?.length ?? 0) > 0 && <PageStrip file={file} pages={rec.settingEvidence[id]!} label={t`Pages that show it`} />}
+                </Row>
+              )
+            })}
+            <Row id="chat-setting-range" label={<Trans>Page Range</Trans>} open={open === "range"} onToggle={() => toggle("range")} value={<span className="text-[14.5px] font-semibold">{scope}</span>}>
+              <ScopeField />
+            </Row>
+          </ul>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/70 pt-2">
+            <p className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground">
+              <Lock className="size-3" />
+              <Trans>Fixed once the book is created</Trans>
+            </p>
+            <button type="button" onClick={onAllSettings} className="-mr-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[13px] font-semibold text-brand-700 transition-colors hover:bg-brand-50">
+              <Settings2 className="size-3.5" />
+              <Trans>All settings</Trans>
+            </button>
+          </div>
+        </div>
+      </Collapsible>
     </div>
   )
 }

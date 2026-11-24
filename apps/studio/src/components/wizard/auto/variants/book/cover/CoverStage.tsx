@@ -85,9 +85,9 @@ export function CoverStage({ flow, onOpen, onManual }: { flow: UploadFlow; onOpe
             </h1>
             <p className="max-w-[520px] text-[15.5px] leading-relaxed text-muted-foreground">
               {card ? (
-                <Trans>Choose how much of it to convert, then open it. The AI reads it and leaves notes in the margin for you to check.</Trans>
+                <Trans>Pick the pages to convert, then open it.</Trans>
               ) : (
-                <Trans>Drop the PDF of your book. We&apos;ll open it, read it, and mark what we find on its own pages.</Trans>
+                <Trans>Drop its PDF. We&apos;ll read it and set it up.</Trans>
               )}
             </p>
           </div>

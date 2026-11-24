@@ -51,12 +51,11 @@ export function Rail({ setup, stopped, onCompare, className }: { setup: CanvasSe
   return (
     <div className={cn("flex flex-col gap-5", className)}>
       <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between gap-2 px-1">
-          <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
-            <Trans>Settings</Trans>
-          </h2>
-          {setup && <Summary setup={setup} />}
-        </div>
+        {setup && (
+          <div className="px-1">
+            <Summary setup={setup} />
+          </div>
+        )}
         {setup ? (
           <ul className="flex flex-col gap-0.5">
             {SETTING_IDS.map((id, i) => (

@@ -1,0 +1,10 @@
+/* The waiting visual: a soft light sweeping down the pages being read. Off with reduced motion or Reduce effects. */
+@keyframes chat-scan {
+  0% { transform: translateY(-100%); opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translateY(220%); opacity: 0; }
+}
+.chat-scan { animation: chat-scan 2.2s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
+@media (prefers-reduced-motion: reduce) { .chat-scan { animation: none; opacity: 0; } }
+.reduce-effects .chat-scan { animation: none; opacity: 0; }

@@ -30,3 +30,11 @@ export const FACT_TOPIC: Record<SetupBookFactId, MessageDescriptor> = {
 
 export const TOPIC_TEXT = msg`The text`
 export const TOPIC_PAGES = msg`Facing pages`
+
+/** The question in a few words, as the step's title; the full question sits behind "Why?". */
+export const SHORT_QUESTION: Record<SetupBookFactId, MessageDescriptor> = {
+  genre: msg`What kind of book is it?`,
+  exercises: msg`Does it ask for answers?`,
+  composition: msg`Where are the words?`,
+  diagrams: msg`Any labelled pictures?`,
+}

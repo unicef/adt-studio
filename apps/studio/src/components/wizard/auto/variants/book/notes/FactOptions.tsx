@@ -11,7 +11,7 @@ import { useSettingWords } from "../useBookState"
  * The answers a note offers, in plain words, each with what it would set: only the bookmarks that
  * differ between the answers are named, so the consequence of a choice is visible before it's made.
  */
-export function FactOptions({ rec, fact, answers, checked, legend, onPick }: { rec: SetupRecommendation; fact: SetupFact; answers: FactAnswers; checked: string | null; legend: string; onPick: (value: string) => void }) {
+export function FactOptions({ rec, fact, answers, checked, legend, compact, onPick }: { rec: SetupRecommendation; fact: SetupFact; answers: FactAnswers; checked: string | null; legend: string; compact?: boolean; onPick: (value: string) => void }) {
   const { i18n } = useLingui()
   const words = useSettingWords()
   const name = useId()
@@ -43,7 +43,7 @@ export function FactOptions({ rec, fact, answers, checked, legend, onPick }: { r
               )}
               {value === other && <span className="rounded-full bg-stone-900/[0.06] px-1.5 py-px text-[10.5px] font-semibold text-stone-600 dark:bg-white/10 dark:text-stone-300">{i18n._(OTHER_POSSIBILITY)}</span>}
             </span>
-            <span className="pl-6 text-[12px] leading-snug text-stone-600 dark:text-stone-300">{i18n._(FACT_LONG[fact.id][value]!)}</span>
+            {!compact && <span className="pl-6 text-[12px] leading-snug text-stone-600 dark:text-stone-300">{i18n._(FACT_LONG[fact.id][value]!)}</span>}
             {varying.length > 0 && (
               <span className="flex flex-col gap-0.5 pl-6 text-[11.5px] font-medium text-stone-500 dark:text-stone-400">
                 {varying.map((id) => (

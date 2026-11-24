@@ -1,9 +1,8 @@
 import type { ReactNode } from "react"
-import { Plural, Trans, useLingui } from "@lingui/react/macro"
-import { BookCheck, ChevronLeft, ChevronRight, Hourglass } from "lucide-react"
+import { Trans, useLingui } from "@lingui/react/macro"
+import { ArrowLeft, ChevronLeft, ChevronRight, Hourglass } from "lucide-react"
 import { Collapsible } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
-import { BackButton, PrimaryButton } from "../../../../core/ui"
 import { viewOf } from "../model"
 
 /** Previous / next pages, and where the book is open. */
@@ -64,37 +63,33 @@ export function TextButton({ onClick, children, className }: { onClick: () => vo
 }
 
 /**
- * The bar along the bottom: back to the cover, the manual setup (always there), and creating the
- * book, which first asks for any note still waiting for an answer.
+ * The bar along the bottom: back (or Cancel while reading), the manual setup, which is always
+ * there, and the step's one primary action.
  */
-export function ActionBar({ reading, left, onBack, onManual, onCancel, onCreate }: { reading: boolean; left: number; onBack: () => void; onManual: () => void; onCancel: () => void; onCreate: () => void }) {
+export function ActionBar({ backLabel, onBack, onManual, primary }: { backLabel?: ReactNode; onBack: () => void; onManual: () => void; primary?: ReactNode }) {
+  const { t } = useLingui()
   return (
     <div data-fade className="sticky bottom-0 z-30 -mx-4 mt-auto border-t bg-background/85 px-4 py-3 backdrop-blur transition-opacity duration-300 sm:-mx-6 sm:px-6">
-      <div className="mx-auto flex max-w-[1360px] items-center gap-2">
-        {reading ? (
-          <button type="button" onClick={onCancel} className="inline-flex h-11 items-center rounded-full bg-muted px-4 text-[14px] font-medium transition-colors hover:bg-muted/70">
-            <Trans>Cancel</Trans>
+      <div className="mx-auto flex max-w-[1360px] items-center gap-1 sm:gap-2">
+        {backLabel ? (
+          <button type="button" onClick={onBack} className="inline-flex h-11 items-center rounded-full bg-muted px-4 text-[14px] font-medium transition-colors hover:bg-muted/70">
+            {backLabel}
           </button>
         ) : (
-          <BackButton onClick={onBack} />
+          <button type="button" onClick={onBack} aria-label={t`Back`} className="inline-flex h-11 items-center gap-1.5 rounded-full bg-muted px-3.5 text-[14px] font-medium transition-[background-color,transform] hover:bg-muted/70 active:scale-[0.97] sm:px-4">
+            <ArrowLeft aria-hidden className="size-4" />
+            <span className="max-sm:hidden">
+              <Trans>Back</Trans>
+            </span>
+          </button>
         )}
         <div className="flex-1" />
-        <TextButton onClick={onManual} className="max-sm:hidden">
+        <TextButton onClick={onManual} className="whitespace-nowrap px-2.5 text-[13.5px] sm:px-4 sm:text-[14px]">
           <Trans>Set it up myself</Trans>
         </TextButton>
-        {!reading && (
-          <div className="flex items-center gap-3">
-            {left > 0 && (
-              <span className="text-[13px] font-medium text-muted-foreground max-sm:hidden">
-                <Plural value={left} one="# note to answer" other="# notes to answer" />
-              </span>
-            )}
-            <PrimaryButton onClick={onCreate} icon={<BookCheck className="size-4" />}>
-              <Trans>Create book</Trans>
-            </PrimaryButton>
-          </div>
-        )}
+        {primary}
       </div>
     </div>
   )
 }
+

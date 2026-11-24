@@ -29,13 +29,7 @@ function HonestChip({ mode, shown, pages }: { mode: StageMode; shown: Shown; pag
     <span className={cn("inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold shadow-sm ring-1", mode === "reading" ? "bg-card text-muted-foreground ring-border" : "bg-card text-foreground ring-brand-200")}>
       {mode === "reading" ? <ScanLine className="size-3.5 shrink-0 text-brand-600" /> : ai ? <Sparkles className="size-3.5 shrink-0 text-brand-600" /> : <BookImage className="size-3.5 shrink-0 text-brand-600" />}
       <span className="truncate">
-        {mode === "reading" ? (
-          <Trans>Your page {page}, as printed</Trans>
-        ) : ai ? (
-          <Trans>Illustration · page {page} · the AI lays out each page when it converts</Trans>
-        ) : (
-          <Trans>Illustration · made from your page {page}</Trans>
-        )}
+        {mode === "reading" ? <Trans>Your page {page}, as printed</Trans> : <Trans>A sketch from your page {page}</Trans>}
       </span>
     </span>
   )
@@ -43,10 +37,9 @@ function HonestChip({ mode, shown, pages }: { mode: StageMode; shown: Shown; pag
 
 /**
  * The big preview: the finished book on a computer or a phone, made from the book's own page. It
- * fills whatever space it has. `children` takes its place (a question, an error); `footer` holds the
- * chips under it.
+ * fills whatever space it has. `children` takes its place (a question, an error).
  */
-export function Stage({ mode, device, onDevice, shown, pages, srcs, slow, onManual, footer, children }: { mode: StageMode; device: Device; onDevice: (d: Device) => void; shown: Shown; pages: number[]; srcs: (string | undefined)[]; slow?: boolean; onManual: () => void; footer?: ReactNode; children?: ReactNode }) {
+export function Stage({ mode, device, onDevice, shown, pages, srcs, slow, onManual, children }: { mode: StageMode; device: Device; onDevice: (d: Device) => void; shown: Shown; pages: number[]; srcs: (string | undefined)[]; slow?: boolean; onManual: () => void; children?: ReactNode }) {
   const { ref, box } = useBox()
   const describe = useDescribe()
   const pad = box.w < 600 ? 24 : 40
@@ -78,7 +71,6 @@ export function Stage({ mode, device, onDevice, shown, pages, srcs, slow, onManu
           )}
         </div>
       )}
-      {!children && footer}
     </div>
   )
 }

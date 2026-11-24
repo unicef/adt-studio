@@ -6,30 +6,6 @@ import type { FactAnswers } from "../../../engine/answers"
 import type { Finding } from "../model"
 import { Note } from "./Note"
 
-/** Blank notes while the AI reads: the margin is ready, the words aren't in yet. */
-export function WaitingNotes({ className }: { className?: string }) {
-  return (
-    <div className={cn("flex flex-col gap-4", className)}>
-      <p className="sr-only">
-        <Trans>The notes appear here when the AI has read the book.</Trans>
-      </p>
-      {[0, 1, 2, 3].map((i) => (
-        <div
-          key={i}
-          aria-hidden
-          className={cn("relative rounded-[4px] bg-[#fff6c9]/70 px-4 pb-4 pt-5 shadow-[0_12px_24px_-18px_rgba(60,45,0,0.6)] animate-[am-fade-up_0.5s_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none dark:bg-[#2e2a1b]/70", i % 2 ? "rotate-[0.5deg]" : "-rotate-[0.6deg]")}
-          style={{ animationDelay: `${200 + i * 160}ms` }}
-        >
-          <span className="absolute -top-2 left-1/2 h-4 w-16 -translate-x-1/2 -rotate-2 rounded-[2px] bg-white/50 dark:bg-white/10" />
-          <span className="block h-2 w-20 rounded-full bg-stone-900/10 motion-safe:animate-pulse dark:bg-white/10" />
-          <span className="mt-2.5 block h-3 w-[80%] rounded-full bg-stone-900/10 motion-safe:animate-pulse dark:bg-white/10" />
-          {i === 0 && <span className="mt-2 block h-3 w-[55%] rounded-full bg-stone-900/10 motion-safe:animate-pulse dark:bg-white/10" />}
-        </div>
-      ))}
-    </div>
-  )
-}
-
 /** The one-reading warning: nothing was double-checked, so nothing could be asked. */
 export function OneReading() {
   return (

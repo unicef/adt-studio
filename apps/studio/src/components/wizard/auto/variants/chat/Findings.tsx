@@ -1,11 +1,15 @@
-import type { ReactNode } from "react"
 import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import type { SetupRecommendation, SetupSettingId } from "@adt/types"
+import { SETTING_IDS } from "../../engine/answers"
 import { RULE_WHY, TEXT_LAYER } from "../../engine/words"
 import { SettingPill } from "./bubbles"
 import { PageStrip } from "./Evidence"
-import type { Derived } from "./useAnswers"
+import { settingsWaitingOn, type Derived } from "./useAnswers"
+import { Why } from "./Why"
 import { KIND_SAYS, SETTING_LABEL, valueTitle } from "./words"
+
+// eslint-disable-next-line lingui/no-unlocalized-strings -- setting ids
+const LEAD: SetupSettingId[] = ["preset", "renderStrategy", "pageGrouping"]
 
 /** A setting as a pill, toned by where its value came from. */
 export function Pill({ id, derived }: { id: SetupSettingId; derived: Derived }) {
@@ -15,74 +19,67 @@ export function Pill({ id, derived }: { id: SetupSettingId; derived: Derived }) 
   return <SettingPill label={i18n._(SETTING_LABEL[id])} value={title ? i18n._(title) : String(value)} tone={derived.source(id)} />
 }
 
-function Finding({ text, pills, pages, file }: { text: ReactNode; pills: ReactNode; pages: number[]; file: File | null | undefined }) {
-  return (
-    <div className="flex flex-col gap-2">
-      <p>{text}</p>
-      <div className="flex flex-wrap gap-1.5">{pills}</div>
-      <PageStrip file={file} pages={pages} className="-mb-0.5" />
-    </div>
-  )
+/** The settings the engine settled without asking (no question hangs on them). */
+export function settledSettings(rec: SetupRecommendation, derived: Derived): SetupSettingId[] {
+  const waiting = settingsWaitingOn(rec, derived.asked, derived.proposed)
+  return SETTING_IDS.filter((id) => !waiting.has(id))
 }
 
-/** "It's a story." The kind of book and the preset it leads to. */
-export function KindFinding({ rec, derived, file }: { rec: SetupRecommendation; derived: Derived; file: File | null | undefined }) {
+/**
+ * What the assistant found, in one breath: the kind of book and the main reason, at most three
+ * settings as pills, and how many questions follow. Every reason, the scan note and the pages are
+ * behind "Why?".
+ */
+export function Found({ rec, derived, file }: { rec: SetupRecommendation; derived: Derived; file: File | null | undefined }) {
   const { i18n } = useLingui()
-  const genre = derived.proposed.genre
-  const why = RULE_WHY[rec.settings.preset?.rule ?? ""]
-  return (
-    <Finding
-      file={file}
-      text={
-        <>
-          <strong className="font-semibold">{i18n._(KIND_SAYS[genre]!)}</strong> {why && i18n._(why)}
-        </>
-      }
-      pills={<Pill id="preset" derived={derived} />}
-      pages={rec.settingEvidence.preset ?? []}
-    />
-  )
-}
-
-/** How the PDF's pages are stored and whether it has real text: Page Grouping, and a scan's note. */
-export function PagesFinding({ rec, derived, file }: { rec: SetupRecommendation; derived: Derived; file: File | null | undefined }) {
-  const { i18n } = useLingui()
-  const why = RULE_WHY[rec.settings.pageGrouping?.rule ?? ""]
+  const settled = settledSettings(rec, derived)
+  const genreAsked = derived.asked.some((f) => f.id === "genre")
+  const chips = LEAD.filter((id) => settled.includes(id))
+  const leadWhy = settled.includes("renderStrategy") ? RULE_WHY[rec.settings.renderStrategy?.rule ?? ""] : settled.includes("pageGrouping") ? RULE_WHY[rec.settings.pageGrouping?.rule ?? ""] : undefined
   const scan = rec.measured.textLayer !== "digital" ? TEXT_LAYER[rec.measured.textLayer] : null
-  const pages = [...(rec.settingEvidence.pageGrouping ?? []), ...rec.measured.pageStorageEvidence, ...(scan ? rec.measured.textLayerEvidence : [])]
-  return <Finding file={file} text={<>{why && i18n._(why)} {scan && i18n._(scan)}</>} pills={<Pill id="pageGrouping" derived={derived} />} pages={pages} />
-}
-
-/** Where the words sit and so how pages are rebuilt: Render Strategy. */
-export function LookFinding({ rec, derived, file }: { rec: SetupRecommendation; derived: Derived; file: File | null | undefined }) {
-  const { i18n } = useLingui()
-  const why = RULE_WHY[rec.settings.renderStrategy?.rule ?? ""]
-  return <Finding file={file} text={why ? i18n._(why) : null} pills={<Pill id="renderStrategy" derived={derived} />} pages={rec.settingEvidence.renderStrategy ?? []} />
-}
-
-/** Everything else in one breath, as pills: the reasons are one tap away in the setup card. */
-export function RestFinding({ ids, derived }: { ids: SetupSettingId[]; derived: Derived }) {
+  const pages = chips.flatMap((id) => rec.settingEvidence[id] ?? [])
+  const count = derived.asked.length
   return (
     <div className="flex flex-col gap-2">
       <p>
-        <Trans>And the rest follows from that:</Trans>
+        {!genreAsked && <strong className="font-semibold">{i18n._(KIND_SAYS[derived.proposed.genre]!)} </strong>}
+        {leadWhy ? i18n._(leadWhy) : <Trans>I&apos;ve read it.</Trans>}{" "}
+        {!rec.secondOpinion && (
+          <span className="text-amber-700 dark:text-amber-300">
+            <Trans>Only one of my two readings came back, so give it a look.</Trans>{" "}
+          </span>
+        )}
+        {count > 0 && (
+          <span className="text-muted-foreground">
+            <Plural value={count} one="One question first." other="# questions first." />
+          </span>
+        )}
       </p>
-      <div className="flex flex-wrap gap-1.5">
-        {ids.map((id) => (
-          <Pill key={id} id={id} derived={derived} />
-        ))}
-      </div>
+      {chips.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {chips.map((id) => (
+            <Pill key={id} id={id} derived={derived} />
+          ))}
+        </div>
+      )}
+      <Why>
+        <ul className="flex flex-col gap-1">
+          {settled.map((id) => {
+            const why = RULE_WHY[rec.settings[id]?.rule ?? ""]
+            const title = valueTitle(id, derived.effective[id]?.value)
+            return (
+              <li key={id}>
+                <span className="font-semibold text-foreground">
+                  {i18n._(SETTING_LABEL[id])}: {title ? i18n._(title) : ""}.
+                </span>{" "}
+                {why && i18n._(why)}
+              </li>
+            )
+          })}
+        </ul>
+        {scan && <p>{i18n._(scan)}</p>}
+        <PageStrip file={file} pages={pages} />
+      </Why>
     </div>
   )
-}
-
-/** What's left to ask, or that there's nothing to ask. */
-export function AskIntro({ count }: { count: number }) {
-  if (count === 0)
-    return (
-      <Trans>
-        <strong className="font-semibold">I&apos;m sure about all of it,</strong> so there&apos;s nothing to ask you.
-      </Trans>
-    )
-  return <Plural value={count} one="There's one thing I'm not sure about." other="There are # things I'm not sure about. One at a time:" />
 }

@@ -5,9 +5,16 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { cn } from "@/lib/utils"
 import { usePageThumb } from "../../../core/pdf/usePageThumb"
 
-function Thumb({ file, page, onOpen }: { file: File; page: number; onOpen: () => void }) {
+function Thumb({ file, page, onOpen, small }: { file: File; page: number; onOpen: () => void; small?: boolean }) {
   const { t } = useLingui()
   const src = usePageThumb(file, page, 56)
+  if (small)
+    return (
+      <button type="button" onClick={onOpen} className="group inline-flex items-center gap-2 rounded-full py-0.5 pl-0.5 pr-2.5 text-[13px] font-semibold text-brand-700 transition-colors hover:bg-brand-50">
+        <span className="grid h-[34px] w-[26px] place-items-center overflow-hidden rounded-[3px] bg-muted ring-1 ring-border">{src ? <img src={src} alt="" className="max-h-full max-w-full" /> : <FileText className="size-3 text-muted-foreground/60" />}</span>
+        <Trans>See page {page}</Trans>
+      </button>
+    )
   return (
     <button type="button" onClick={onOpen} aria-label={t`Show page ${page} larger`} className="group flex shrink-0 flex-col items-center gap-1 rounded-lg p-0.5 outline-offset-2">
       <span className="grid h-[74px] w-[56px] place-items-center overflow-hidden rounded-[5px] bg-muted shadow-[0_4px_12px_-6px_rgba(15,23,42,0.4)] ring-1 ring-border transition-[transform,box-shadow] duration-200 ease-out group-hover:-translate-y-0.5 group-hover:shadow-[0_10px_20px_-8px_rgba(15,23,42,0.45)] group-hover:ring-brand-300 motion-reduce:transition-none">
@@ -33,7 +40,7 @@ function Big({ file, page }: { file: File; page: number }) {
  * The pages that show what the assistant says, as small real page images. Tapping one opens it
  * large, with the others a step away.
  */
-export function PageStrip({ file, pages, label, className }: { file: File | null | undefined; pages: number[]; label?: string; className?: string }) {
+export function PageStrip({ file, pages, label, className, small }: { file: File | null | undefined; pages: number[]; label?: string; className?: string; small?: boolean }) {
   const { t } = useLingui()
   const [open, setOpen] = useState<number | null>(null)
   const list = [...new Set(pages)].sort((a, b) => a - b).slice(0, 4)
@@ -44,7 +51,7 @@ export function PageStrip({ file, pages, label, className }: { file: File | null
     <>
       <div role="group" aria-label={label ?? t`Pages that show it`} className={cn("flex flex-wrap gap-1.5", className)}>
         {list.map((p) => (
-          <Thumb key={p} file={file} page={p} onOpen={() => setOpen(p)} />
+          <Thumb key={p} file={file} page={p} small={small} onOpen={() => setOpen(p)} />
         ))}
       </div>
       <Dialog open={open !== null} onOpenChange={(o) => !o && setOpen(null)}>

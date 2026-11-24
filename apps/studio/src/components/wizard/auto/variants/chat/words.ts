@@ -57,3 +57,19 @@ export const ASK_WHY: Record<string, MessageDescriptor> = {
   "readings-disagree": msg`My two readings disagree on this one, so I'd rather ask you.`,
   "few-body-pages": msg`The book has only a few pages to go on, so I'd rather ask you.`,
 }
+
+/** The questions, short enough to read at a glance (the engine's long wording is behind "Why?"). */
+export const QUESTION_SHORT: Record<string, MessageDescriptor> = {
+  genre: msg`What is this book mostly?`,
+  exercises: msg`Does the reader write or mark answers?`,
+  composition: msg`Where are the words on a page?`,
+  diagrams: msg`Are there labelled pictures, like maps or diagrams?`,
+}
+
+/** One line under each answer. */
+export const FACT_HINT: Record<string, Record<string, MessageDescriptor>> = {
+  genre: { story: msg`Characters and events, start to end.`, textbook: msg`Lessons with tasks for the learner.`, reference: msg`Information to look up, no tasks.` },
+  exercises: { none: msg`Only reading, colouring or drawing.`, some: msg`Answers to write on a few pages.`, many: msg`Answers to write on most pages.` },
+  composition: { "text-in-art": msg`Printed over the picture itself.`, "text-beside-art": msg`Beside, above or below the picture.`, "text-mostly": msg`Mostly text, few pictures.` },
+  diagrams: { none: msg`Only illustrations or photos.`, some: msg`A few maps, charts or diagrams.`, many: msg`Maps, charts or diagrams on many pages.` },
+}

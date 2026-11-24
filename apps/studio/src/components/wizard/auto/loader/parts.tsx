@@ -120,7 +120,7 @@ export function AnswerChip({ pick, done, index }: { pick: Pick; done: boolean; i
 
 export function Heading({ finished }: { finished: boolean }) {
   return (
-    <h1 className="text-[44px] font-bold leading-[1.05] tracking-[-0.035em]">
+    <h1 className="text-[34px] font-bold leading-[1.05] tracking-[-0.035em] sm:text-[44px]">
       {finished ? (
         <Trans>
           Your book is <span className="bg-gradient-to-br from-brand-400 via-brand-600 to-brand-800 bg-clip-text text-transparent">ready</span>
