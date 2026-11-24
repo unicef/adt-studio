@@ -2527,6 +2527,55 @@ describe("Page routes", () => {
     })
   })
 
+  describe("GET /api/books/:label/pages/:pageId/sections/:sectionIndex/ai-edit-history", () => {
+    const text = (value: unknown) => [{ type: "text", text: typeof value === "string" ? value : JSON.stringify(value) }]
+    const edit = (feasible: boolean, reasoning: string, unsupported_reason = "") => ({ reasoning, feasible, unsupported_reason, content: feasible ? "<section></section>" : "" })
+
+    function logEditTurn(attempts: unknown[], verify?: { applied: boolean; reason: string }) {
+      const db = openBookDb(path.join(tmpDir, label, `${label}.db`))
+      const insert = (promptName: string, messages: unknown[], timestamp: string) =>
+        db.run("INSERT INTO llm_log (timestamp, step, item_id, success, data) VALUES (?, ?, ?, 1, ?)", [
+          timestamp, "ai-edit", `${label}_p1`, JSON.stringify({ correlationId: "turn-1", sectionIndex: 0, promptName, cacheHit: false, messages }),
+        ])
+      try {
+        insert("html_edit", [
+          { role: "user", content: text("## Edit instruction\nReplace the photos\n") },
+          ...attempts.flatMap((attempt, i) => [
+            { role: "assistant", content: text(attempt) },
+            ...(i < attempts.length - 1 ? [{ role: "user", content: text("Fix these validation errors") }] : []),
+          ]),
+        ], "2026-01-01T00:00:00.000Z")
+        if (verify) insert("html_edit_verify", [{ role: "user", content: text("Verify") }, { role: "assistant", content: text(verify) }], "2026-01-01T00:00:01.000Z")
+      } finally {
+        db.close()
+      }
+    }
+
+    async function history() {
+      const res = await app.request(`/api/books/${label}/pages/${label}_p1/sections/0/ai-edit-history`)
+      expect(res.status).toBe(200)
+      return ((await res.json()) as { history: Array<Record<string, unknown>> }).history
+    }
+
+    it("labels the turn from the final attempt when a rejected attempt says it is not possible", async () => {
+      logEditTurn([edit(true, "Swapped in new photos"), edit(false, "Needs new images", "AI editing can't change images.")])
+
+      expect(await history()).toEqual([expect.objectContaining({
+        instruction: "Replace the photos",
+        attempts: [expect.objectContaining({ reasoning: "Needs new images" })],
+        unsupported: { reason: "AI editing can't change images." },
+      })])
+    })
+
+    it("keeps an applied turn and its verification when a rejected attempt was not feasible", async () => {
+      logEditTurn([edit(false, "Not possible"), edit(true, "Made the text blue")], { applied: true, reason: "The text is blue." })
+
+      const [turn] = await history()
+      expect(turn).toMatchObject({ attempts: [{ reasoning: "Made the text blue" }], verify: { applied: true, reason: "The text is blue." } })
+      expect(turn).not.toHaveProperty("unsupported")
+    })
+  })
+
   describe("POST /api/books/:label/pages/re-render", () => {
     beforeEach(() => writeSectioningLifecycle(path.join(tmpDir, label), "dynamic", true))
     it("marks the Storyboard running before submitting one task for all pages", async () => {

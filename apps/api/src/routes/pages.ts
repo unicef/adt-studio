@@ -2286,7 +2286,8 @@ export function createPageRoutes(
           }
           if (!data.correlationId) continue
 
-          const assistantText = data.messages
+          const assistantText = [...data.messages]
+            .reverse()
             .find((m) => m.role === "assistant")
             ?.content.find((p) => p.type === "text")?.text
           if (!assistantText) continue
