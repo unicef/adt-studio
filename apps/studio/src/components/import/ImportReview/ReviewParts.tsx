@@ -1,16 +1,20 @@
-import type { ReactNode } from "react"
+import { useId, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { AlertCircle, Check as CheckIcon, Minus, X } from "lucide-react"
+import { AlertCircle, Check as CheckIcon, Minus, MoreHorizontal, X } from "lucide-react"
 import type { AnyImportPreview } from "@/api/client"
 import { cn } from "@/lib/utils"
 import { FEATURES, featureStatus } from "./helpers"
-import type { Check, CheckState, Issue, Status, Step, Tone } from "./use-review-model"
+import type { Check, CheckState, Issue, IssueGroup, Status, Step, Tone } from "./use-review-model"
 
 
 export function Panel({ title, children, className }: { title?: ReactNode; children: ReactNode; className?: string }) {
+  const titleId = useId()
   return (
-    <section className={cn("flex min-h-0 min-w-0 flex-col gap-2.5 overflow-y-auto rounded-xl border border-border bg-card p-4 [@media(max-height:960px)]:gap-1.5 [@media(max-height:960px)]:p-3", className)}>
-      {title ? <h3 className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{title}</h3> : null}
+    <section
+      aria-labelledby={title ? titleId : undefined}
+      className={cn("flex min-h-0 min-w-0 flex-col gap-2.5 overflow-y-auto rounded-xl border border-border bg-card p-4 [@media(max-height:960px)]:gap-1.5 [@media(max-height:960px)]:p-3", className)}
+    >
+      {title ? <h3 id={titleId} className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{title}</h3> : null}
       {children}
     </section>
   )
@@ -20,7 +24,7 @@ const TONE_CLASSNAMES: Record<Tone, string> = {
   // eslint-disable-next-line lingui/no-unlocalized-strings -- Tailwind classes, not user-visible copy.
   green: "bg-muted [&_svg]:text-emerald-600 dark:[&_svg]:text-emerald-400",
   amber: "bg-amber-500/10 [&_svg]:text-amber-600 dark:[&_svg]:text-amber-400",
-  red: "bg-destructive/10 [&_svg]:text-destructive",
+  red: "bg-destructive/10 ring-1 ring-inset ring-destructive/40 [&_svg]:text-destructive",
   blue: "bg-brand-500/10 [&_svg]:text-brand-600 dark:[&_svg]:text-brand-400",
 }
 
@@ -31,7 +35,10 @@ export function StatusRow({ status, children }: { status: Status; children?: Rea
       <Icon aria-hidden="true" className="mt-0.5 size-[18px] shrink-0" />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-foreground">{status.title}</p>
-        <p className="text-[12.5px] leading-relaxed text-muted-foreground text-pretty">{status.text}</p>
+        {/* Not text-muted-foreground: on the tinted boxes its contrast drops
+            below 4.5:1 in light mode (3.96:1 on the red one). foreground/80
+            stays secondary and measures about 10:1 in both themes. */}
+        <p className="text-[12.5px] leading-relaxed text-foreground/80 text-pretty">{status.text}</p>
         {children}
       </div>
     </div>
@@ -234,5 +241,50 @@ export function IssueList({ issues }: { issues: Issue[] }) {
         </li>
       ))}
     </ul>
+  )
+}
+
+/** The problems to fix, one group per problem type: its name, how many were
+ * found, what it means, a few example files, and how many more there are. */
+export function IssueGroupList({ groups }: { groups: IssueGroup[] }) {
+  return (
+    <div className="flex flex-col gap-3">
+      {groups.map((group) => (
+        <section
+          key={group.code}
+          aria-label={group.name}
+          className="overflow-hidden rounded-lg border border-border"
+        >
+          <header className="border-b border-border bg-muted/50 px-3.5 py-2.5">
+            <div className="flex items-baseline justify-between gap-3">
+              <h4 className="text-[13.5px] font-semibold text-foreground">{group.name}</h4>
+              {/* text-destructive on its own 10% tint is 3.99:1 in light mode;
+                  red-700 / red-300 measure 5.4:1 and 9.2:1. */}
+              <span className="shrink-0 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-red-700 dark:text-red-300">
+                {group.countLabel}
+              </span>
+            </div>
+            <p className="mt-1 text-[12.5px] text-muted-foreground">{group.description}</p>
+            <code className="mt-1 block font-mono text-[11px] text-muted-foreground">{group.code}</code>
+          </header>
+          <ul className="divide-y divide-border">
+            {group.examples.map((example, index) => (
+              <li key={`${example.file}:${index}`} className="px-3.5 py-2">
+                <code className="block truncate font-mono text-xs font-semibold text-foreground">{example.file}</code>
+                {example.detail ? (
+                  <p className="mt-0.5 break-words text-[12.5px] text-foreground">{example.detail}</p>
+                ) : null}
+              </li>
+            ))}
+            {group.moreLabel ? (
+              <li className="flex items-center gap-2 bg-destructive/[0.06] px-3.5 py-2 text-[12.5px] font-medium text-foreground">
+                <MoreHorizontal aria-hidden="true" className="size-4 shrink-0 text-destructive" />
+                {group.moreLabel}
+              </li>
+            ) : null}
+          </ul>
+        </section>
+      ))}
+    </div>
   )
 }
