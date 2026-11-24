@@ -7,6 +7,7 @@ import { useWizardForm } from "@/components/wizard/core/wizardForm"
 import { EngineClientProvider, useEngineClient } from "../engine/client"
 import { labEngine, SCENARIOS, type LabError, type ScenarioId, type Speed } from "./mockEngine"
 import { VARIANTS } from "../variants"
+import { IDEA_GROUPS, IdeasContext, type Ideas } from "../variants/chat/ideas"
 
 const CONTROLS: LabControl[] = [
   { key: "variant", label: "Design", options: VARIANTS.map((v) => ({ value: v.id, label: v.name })), cycle: true },
@@ -24,6 +25,14 @@ const CONTROLS: LabControl[] = [
     ],
   },
 ]
+
+/** Living chat only: one control per group of ideas from the reference board. */
+const IDEA_CONTROLS: LabControl[] = IDEA_GROUPS.map((g) => ({
+  key: g.key,
+  label: g.label,
+  options: [{ value: "now", label: "Now" }, ...g.options.map(([value, label]) => ({ value, label }))],
+}))
+const ALL_CONTROLS = [...CONTROLS, ...IDEA_CONTROLS]
 
 /** Puts the last PDF back into a fresh form, so Restart and switching designs don't ask for it again. */
 function KeepFile({ file, onFile }: { file: File | null; onFile: (f: File) => void }) {
@@ -50,7 +59,7 @@ function KeepFile({ file, onFile }: { file: File | null; onFile: (f: File) => vo
  * answers: the real engine, or a saved answer from a real book, at a chosen speed, or a real error.
  */
 export default function AddBookLab() {
-  const [values, set] = useLabParams(CONTROLS)
+  const [values, set] = useLabParams(ALL_CONTROLS)
   const [run, setRun] = useState(0)
   const [file, setFile] = useState<File | null>(null)
   const real = useEngineClient()
@@ -61,17 +70,21 @@ export default function AddBookLab() {
   const variant = VARIANTS.find((v) => v.id === values.variant) ?? VARIANTS[0]
   const Variant = variant.Component
   const scenario = SCENARIOS.find((s) => s.id === values.book)
+  const living = variant.id === "livechat"
+  const ideas = useMemo(() => Object.fromEntries(IDEA_GROUPS.map((g) => [g.key, living ? values[g.key] : "now"])) as Ideas, [living, values])
 
   return (
     <EngineClientProvider value={engine}>
       <WizardProvider key={`${values.variant}-${values.book}-${values.speed}-${values.error}-${run}`}>
         <WizardFormProvider>
           <KeepFile file={file} onFile={setFile} />
-          <Variant />
+          <IdeasContext.Provider value={ideas}>
+            <Variant />
+          </IdeasContext.Provider>
         </WizardFormProvider>
       </WizardProvider>
       <DevToolbar
-        controls={CONTROLS}
+        controls={living ? ALL_CONTROLS : CONTROLS}
         values={values}
         onChange={set}
         note={scenario ? <span title={scenario.note}>{scenario.note.split(" · ")[0]}</span> : undefined}
