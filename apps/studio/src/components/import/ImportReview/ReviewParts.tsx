@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import { useId, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { AlertCircle, Check as CheckIcon, Minus, MoreHorizontal, X } from "lucide-react"
 import type { AnyImportPreview } from "@/api/client"
@@ -8,9 +8,13 @@ import type { Check, CheckState, Issue, IssueGroup, Status, Step, Tone } from ".
 
 
 export function Panel({ title, children, className }: { title?: ReactNode; children: ReactNode; className?: string }) {
+  const titleId = useId()
   return (
-    <section className={cn("flex min-h-0 min-w-0 flex-col gap-2.5 overflow-y-auto rounded-xl border border-border bg-card p-4 [@media(max-height:960px)]:gap-1.5 [@media(max-height:960px)]:p-3", className)}>
-      {title ? <h3 className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{title}</h3> : null}
+    <section
+      aria-labelledby={title ? titleId : undefined}
+      className={cn("flex min-h-0 min-w-0 flex-col gap-2.5 overflow-y-auto rounded-xl border border-border bg-card p-4 [@media(max-height:960px)]:gap-1.5 [@media(max-height:960px)]:p-3", className)}
+    >
+      {title ? <h3 id={titleId} className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{title}</h3> : null}
       {children}
     </section>
   )

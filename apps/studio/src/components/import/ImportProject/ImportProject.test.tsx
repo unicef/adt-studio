@@ -569,6 +569,7 @@ describe("ImportProject", () => {
     })
 
     expect(await screen.findByText(/^61 .*to fix before import/)).toBeTruthy()
+    expect(screen.getByRole("region", { name: "To fix" })).toBeTruthy()
     // One group per problem type: its name, how many were found, ten examples
     // and how many more the list leaves out.
     const scripts = screen.getByRole("region", { name: "Unsupported script" })
