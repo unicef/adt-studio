@@ -1,0 +1,35 @@
+/* Living chat: the morphs between a message and its stage, and the reading scanner. */
+::view-transition-group(*.lc) {
+  animation-duration: 0.48s;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  overflow: clip;
+  border-radius: 24px;
+}
+::view-transition-old(*.lc),
+::view-transition-new(*.lc) {
+  height: 100%;
+  width: 100%;
+  object-fit: none;
+  object-position: top left;
+}
+::view-transition-old(*.lc) { animation: lc-out 0.22s ease-out both; }
+::view-transition-new(*.lc) { animation: lc-in 0.34s ease-out 0.1s both; }
+::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+@keyframes lc-out { to { opacity: 0; filter: blur(2px); } }
+@keyframes lc-in { from { opacity: 0; filter: blur(2px); } }
+
+/* The pages flowing under the scanner. */
+@keyframes lc-flow { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.lc-flow { animation: lc-flow 26s linear infinite; }
+@keyframes lc-beam { 0%, 100% { transform: translateX(-60px); opacity: 0.55; } 50% { transform: translateX(60px); opacity: 1; } }
+.lc-beam { animation: lc-beam 3.2s ease-in-out infinite; }
+@keyframes lc-glow { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+.lc-glow { animation: lc-glow 2.4s ease-in-out infinite; }
+@keyframes lc-rise { from { opacity: 0; transform: translateY(14px) scale(0.98); } to { opacity: 1; transform: none; } }
+.lc-rise { animation: lc-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes lc-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .lc-flow, .lc-beam, .lc-glow, .lc-rise { animation: none; }
+}
+.reduce-effects .lc-flow, .reduce-effects .lc-beam, .reduce-effects .lc-glow, .reduce-effects .lc-rise { animation: none; }

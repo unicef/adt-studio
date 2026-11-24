@@ -2,6 +2,7 @@ import type { ComponentType } from "react"
 import { AddBookFlow } from "../../AddBookFlow"
 import { OpenBookFlow } from "./book"
 import { ConversationFlow } from "./chat"
+import { LiveChatFlow } from "./livechat"
 import { PreviewFirstFlow } from "./preview"
 
 /**
@@ -13,4 +14,5 @@ export const VARIANTS: { id: string; name: string; Component: ComponentType }[] 
   { id: "book", name: "Open book", Component: OpenBookFlow },
   { id: "chat", name: "Conversation", Component: ConversationFlow },
   { id: "preview", name: "Preview first", Component: PreviewFirstFlow },
+  { id: "livechat", name: "Living chat", Component: LiveChatFlow },
 ]
