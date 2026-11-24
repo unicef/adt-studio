@@ -3,7 +3,8 @@
 
 **Issue:** #
 **Lane:** fast / spec proposal (SPEC-____) / spec amendment (SPEC-____) / spec implementation (SPEC-____) / experiment
-**Tier:** must-beta / should-beta / must-stable / should-stable / 1.1 / parked
+**Priority:** P0 / P1 / P2 / P3
+**Roadmap:** now / next / future
 **Acceptance criteria closed (spec lane):** AC-
 
 ## Verification
