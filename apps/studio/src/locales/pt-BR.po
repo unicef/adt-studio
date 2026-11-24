@@ -473,6 +473,9 @@ msgstr "Há {0}min"
 msgid "{0}s ago"
 msgstr "Há {0}s"
 
+msgid "{activityTotal} found, none to classify"
+msgstr "{activityTotal} encontradas, nenhuma para classificar"
+
 msgid "{availableCount} more you can generate after import:"
 msgstr "Mais {availableCount} que você pode gerar depois de importar:"
 
@@ -827,6 +830,9 @@ msgstr "{unresolvedCount, plural, one {Escolha um tipo para # página de ativida
 
 msgid "{waiting, plural, one {# comment waiting} other {# comments waiting}}"
 msgstr "{waiting, plural, one {# comentário esperando} other {# comentários esperando}}"
+
+msgid "{withoutEditor} of them keep their own scripts: Studio’s activity editor can’t edit them"
+msgstr "{withoutEditor} mantêm seus próprios scripts: o editor de atividades do Studio não pode editá-las"
 
 #. placeholder {0}: String(filterSectionIndex + 1)
 msgid "/ Section {0}"
@@ -1798,6 +1804,9 @@ msgstr "Todos os problemas e itens de revisão manual"
 
 msgid "All languages"
 msgstr "Todos os idiomas"
+
+msgid "All of them can be edited in Studio’s activity editor"
+msgstr "Todas podem ser editadas no editor de atividades do Studio"
 
 msgid "All pages"
 msgstr "Todas as páginas"
@@ -6306,6 +6315,9 @@ msgstr "KB"
 msgid "Keep"
 msgstr "Manter"
 
+msgid "Keep {activities} {activities, plural, one {activity} other {activities}}"
+msgstr "Manter {activities} {activities, plural, one {atividade} other {atividades}}"
+
 msgid "Keep accepts existing content without regenerating it."
 msgstr "Manter aceita o conteúdo existente sem gerá-lo novamente."
 
@@ -7941,6 +7953,9 @@ msgstr "Nenhum"
 msgid "None — anyone with the link can open it."
 msgstr "Nenhum — qualquer pessoa com o link pode abri-lo."
 
+msgid "None found"
+msgstr "Nenhuma encontrada"
+
 msgid "Normalization"
 msgstr "Normalização"
 
@@ -8086,8 +8101,8 @@ msgstr "Nada resolvido ainda"
 msgid "Nothing split yet"
 msgstr "Nada dividido ainda"
 
-msgid "Nothing to classify"
-msgstr "Nada para classificar"
+#~ msgid "Nothing to classify"
+#~ msgstr "Nada para classificar"
 
 msgid "Nothing to edit yet"
 msgstr "Ainda não há nada para editar"

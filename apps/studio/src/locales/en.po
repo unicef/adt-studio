@@ -473,6 +473,9 @@ msgstr "{0}m ago"
 msgid "{0}s ago"
 msgstr "{0}s ago"
 
+msgid "{activityTotal} found, none to classify"
+msgstr "{activityTotal} found, none to classify"
+
 msgid "{availableCount} more you can generate after import:"
 msgstr "{availableCount} more you can generate after import:"
 
@@ -827,6 +830,9 @@ msgstr "{unresolvedCount, plural, one {Choose a type for # activity page} other 
 
 msgid "{waiting, plural, one {# comment waiting} other {# comments waiting}}"
 msgstr "{waiting, plural, one {# comment waiting} other {# comments waiting}}"
+
+msgid "{withoutEditor} of them keep their own scripts: Studio’s activity editor can’t edit them"
+msgstr "{withoutEditor} of them keep their own scripts: Studio’s activity editor can’t edit them"
 
 #. placeholder {0}: String(filterSectionIndex + 1)
 msgid "/ Section {0}"
@@ -1798,6 +1804,9 @@ msgstr "All issues and manual review items"
 
 msgid "All languages"
 msgstr "All languages"
+
+msgid "All of them can be edited in Studio’s activity editor"
+msgstr "All of them can be edited in Studio’s activity editor"
 
 msgid "All pages"
 msgstr "All pages"
@@ -6306,6 +6315,9 @@ msgstr "KB"
 msgid "Keep"
 msgstr "Keep"
 
+msgid "Keep {activities} {activities, plural, one {activity} other {activities}}"
+msgstr "Keep {activities} {activities, plural, one {activity} other {activities}}"
+
 msgid "Keep accepts existing content without regenerating it."
 msgstr "Keep accepts existing content without regenerating it."
 
@@ -7941,6 +7953,9 @@ msgstr "None"
 msgid "None — anyone with the link can open it."
 msgstr "None — anyone with the link can open it."
 
+msgid "None found"
+msgstr "None found"
+
 msgid "Normalization"
 msgstr "Normalization"
 
@@ -8086,8 +8101,8 @@ msgstr "Nothing resolved yet"
 msgid "Nothing split yet"
 msgstr "Nothing split yet"
 
-msgid "Nothing to classify"
-msgstr "Nothing to classify"
+#~ msgid "Nothing to classify"
+#~ msgstr "Nothing to classify"
 
 msgid "Nothing to edit yet"
 msgstr "Nothing to edit yet"

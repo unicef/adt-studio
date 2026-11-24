@@ -587,6 +587,64 @@ describe("ImportProject", () => {
     expect(screen.getByText("The list below shows a few examples of each problem. The repair request lists every affected file.")).toBeTruthy()
   })
 
+  // The review says which activities it found and what Studio can edit, not
+  // only that there is nothing to classify.
+  it("reports the activities it recognized and those Studio's editor can't edit", async () => {
+    previewImport.mockResolvedValue({
+      isAdtBundle: true,
+      legacyRecovery: false,
+      label: "workbook",
+      title: "Workbook",
+      coverBase64: null,
+      sourceLanguage: "es",
+      outputLanguages: [],
+      runtimeFeatures: { activities: true },
+      pageCount: 4,
+      glossaryEntryCount: 0,
+      tocEntryCount: 0,
+      translationLanguageCount: 0,
+      contentChanged: false,
+      exportComparisonStatus: "unchanged",
+      activityReview: {
+        inventoryVersion: null,
+        items: [
+          {
+            sectionId: "pg001_sec001", href: "pg001_sec001.html", declaredType: "activity_custom", detectedType: "activity_custom", suggestedType: "activity_custom",
+            kind: "custom", status: "confirmed", supportsStudioEditing: false, reasons: [], signals: [], validationErrors: [], textPreview: "",
+          },
+          {
+            sectionId: "pg002_sec001", href: "pg002_sec001.html", declaredType: "activity_matching", detectedType: "activity_matching", suggestedType: "activity_matching",
+            kind: "known", status: "confirmed", supportsStudioEditing: false, reasons: [], signals: [], validationErrors: [], textPreview: "",
+          },
+          {
+            sectionId: "pg003_sec001", href: "pg003_sec001.html", declaredType: "activity_fill_in_the_blank", detectedType: "activity_fill_in_the_blank", suggestedType: "activity_fill_in_the_blank",
+            kind: "known", status: "confirmed", supportsStudioEditing: true, reasons: [], signals: [], validationErrors: [], textPreview: "",
+          },
+          {
+            sectionId: "qz001", href: "qz001.html", declaredType: "activity_quiz", detectedType: "activity_quiz", suggestedType: "activity_quiz",
+            kind: "quiz", status: "confirmed", supportsStudioEditing: true, reasons: [], signals: [], validationErrors: [], textPreview: "",
+          },
+        ],
+        needsReviewCount: 0,
+        quizCount: 1,
+        activityCount: 3,
+        typeOptions: [],
+      },
+      compatibility: { supported: true, issues: [] },
+      match: { confidence: "none", recommendedProjectLabel: null, candidates: [] },
+    })
+
+    const view = render(<ImportProject />)
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement
+    fireEvent.change(input, {
+      target: { files: [new File(["zip"], "workbook.zip", { type: "application/zip" })] },
+    })
+
+    expect(await screen.findByText("4 found, none to classify")).toBeTruthy()
+    expect(screen.getByText(/^Keep 4 /)).toBeTruthy()
+    expect(screen.getByText("2 of them keep their own scripts: Studio’s activity editor can’t edit them")).toBeTruthy()
+  })
+
   it("does not offer local projects as import destinations", async () => {
     previewImport.mockResolvedValue({
       isAdtBundle: true,

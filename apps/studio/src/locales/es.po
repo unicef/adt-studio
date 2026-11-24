@@ -473,6 +473,9 @@ msgstr "Hace {0}min"
 msgid "{0}s ago"
 msgstr "Hace {0}s"
 
+msgid "{activityTotal} found, none to classify"
+msgstr "{activityTotal} encontradas, ninguna para clasificar"
+
 msgid "{availableCount} more you can generate after import:"
 msgstr "{availableCount} más que puedes generar después de importar:"
 
@@ -827,6 +830,9 @@ msgstr "{unresolvedCount, plural, one {Elige un tipo para # página de actividad
 
 msgid "{waiting, plural, one {# comment waiting} other {# comments waiting}}"
 msgstr "{waiting, plural, one {# comentario pendiente} other {# comentarios pendientes}}"
+
+msgid "{withoutEditor} of them keep their own scripts: Studio’s activity editor can’t edit them"
+msgstr "{withoutEditor} conservan sus propios scripts: el editor de actividades de Studio no puede editarlas"
 
 #. placeholder {0}: String(filterSectionIndex + 1)
 msgid "/ Section {0}"
@@ -1798,6 +1804,9 @@ msgstr "Todos los problemas y elementos de revisión manual"
 
 msgid "All languages"
 msgstr "Todos los idiomas"
+
+msgid "All of them can be edited in Studio’s activity editor"
+msgstr "Todas se pueden editar en el editor de actividades de Studio"
 
 msgid "All pages"
 msgstr "Todas las páginas"
@@ -6306,6 +6315,9 @@ msgstr "KB"
 msgid "Keep"
 msgstr "Mantener"
 
+msgid "Keep {activities} {activities, plural, one {activity} other {activities}}"
+msgstr "Conservar {activities} {activities, plural, one {actividad} other {actividades}}"
+
 msgid "Keep accepts existing content without regenerating it."
 msgstr "Conservar acepta el contenido existente sin regenerarlo."
 
@@ -7941,6 +7953,9 @@ msgstr "Ninguno"
 msgid "None — anyone with the link can open it."
 msgstr "Ninguno: cualquiera con el enlace puede abrirlo."
 
+msgid "None found"
+msgstr "Ninguna encontrada"
+
 msgid "Normalization"
 msgstr "Normalización"
 
@@ -8086,8 +8101,8 @@ msgstr "Aún no hay nada resuelto"
 msgid "Nothing split yet"
 msgstr "Nada dividido aún"
 
-msgid "Nothing to classify"
-msgstr "Nada que clasificar"
+#~ msgid "Nothing to classify"
+#~ msgstr "Nada que clasificar"
 
 msgid "Nothing to edit yet"
 msgstr "Todavía no hay nada que editar"
