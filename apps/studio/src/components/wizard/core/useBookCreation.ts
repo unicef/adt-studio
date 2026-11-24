@@ -1,3 +1,4 @@
+import { createContext, createElement, useContext, type ReactNode } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { api } from "@/api/client"
@@ -8,12 +9,28 @@ import type { WizardFormValues } from "./wizardForm"
 
 export { classifyCreateError, type CreateFailureKind } from "./createErrors"
 
+/** What creating a book takes; `useBookCreation` returns the real one unless a provider replaces it. */
+export interface BookCreation {
+  createBook: (values: WizardFormValues, setupRecommendationId?: string) => Promise<{ label: string }>
+  willExtract: (values: WizardFormValues) => boolean
+  startExtract: (label: string) => Promise<void>
+  openBook: (label: string, values: WizardFormValues) => void
+}
+
+const BookCreationContext = createContext<BookCreation | null>(null)
+
+/** Replaces creating books (the Add Book lab simulates it, so trying the flow never makes a real book). */
+export function BookCreationProvider({ value, children }: { value: BookCreation; children: ReactNode }) {
+  return createElement(BookCreationContext.Provider, { value }, children)
+}
+
 /**
  * Creating a book from the wizard form, shared by the AI setup and the step-by-step wizard: create it
  * (settings + PDF in one request), start extraction, then open it. Split into those three so a
  * screen can show each one as it happens.
  */
-export function useBookCreation() {
+export function useBookCreation(): BookCreation {
+  const override = useContext(BookCreationContext)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const createMutation = useCreateBook()
@@ -76,5 +93,5 @@ export function useBookCreation() {
     navigate({ to: "/books/$label/$step", params: { label, step: "book" } })
   }
 
-  return { createBook, willExtract, startExtract, openBook }
+  return override ?? { createBook, willExtract, startExtract, openBook }
 }

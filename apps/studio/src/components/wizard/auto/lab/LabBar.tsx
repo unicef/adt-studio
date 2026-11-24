@@ -1,9 +1,12 @@
 /* eslint-disable lingui/no-unlocalized-strings -- dev-only lab chrome, never shipped */
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import type { LabControl, LabValues } from "@/lab/DevToolbar"
+import type { FlowStep } from "../variants/chat/labDrive"
 
 const STORE_KEY = "add-book-lab-picks-v1"
 const HIDDEN_KEY = "lab:toolbar-hidden"
+
+export type StepItem = { id: FlowStep; label: string }
 
 interface Combo {
   id: string
@@ -48,42 +51,32 @@ function readHidden() {
 const PILL = "h-7 whitespace-nowrap rounded-full px-2.5 text-[12px] font-semibold transition-[background-color,color] duration-150"
 const pill = (active: boolean) => `${PILL} ${active ? "bg-white text-zinc-900 shadow-sm" : "text-white/70 hover:bg-white/10 hover:text-white"}`
 const GHOST = "h-8 shrink-0 whitespace-nowrap rounded-full px-3 text-[12px] font-semibold transition-colors"
+const ICON = "grid size-8 shrink-0 place-items-center rounded-full text-[14px] transition-colors"
 const labelOf = (c: LabControl, v: string) => {
   const l = c.options.find((o) => o.value === v)?.label
   return typeof l === "string" ? l : v
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div className="flex shrink-0 items-center gap-1 rounded-full bg-white/5 py-0.5 pl-2.5 pr-1">
-      <span className="pr-1 text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">{title}</span>
-      {children}
-    </div>
-  )
-}
-
 function Select({ control, value, onChange }: { control: LabControl; value: string; onChange: (v: string) => void }) {
   return (
-    <label className="flex items-center" title={String(control.label)}>
-      <span className="sr-only">{control.label}</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-7 max-w-[170px] cursor-pointer rounded-full border-0 bg-white/10 px-2 text-[12px] font-semibold text-white outline-none hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-white/40 [&>option]:bg-zinc-900"
-      >
-        {control.options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {typeof o.label === "string" ? o.label : o.value}
-          </option>
-        ))}
-      </select>
-    </label>
+    <select
+      aria-label={String(control.label)}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="h-8 w-full cursor-pointer rounded-lg border-0 bg-white/10 px-2 text-[12.5px] font-semibold text-white outline-none hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-white/40 [&>option]:bg-zinc-900"
+    >
+      {control.options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {typeof o.label === "string" ? o.label : o.value}
+        </option>
+      ))}
+    </select>
   )
 }
 
-function Panel({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+function Panel({ title, onClose, wide, children }: { title: string; onClose: () => void; wide?: boolean; children: ReactNode }) {
   return (
-    <div className="pointer-events-auto mb-2 max-h-[min(560px,70vh)] w-[min(980px,calc(100vw-32px))] overflow-y-auto rounded-2xl bg-zinc-900/95 p-4 text-white shadow-[0_18px_48px_rgba(0,0,0,0.35)] ring-1 ring-white/10 backdrop-blur-md">
+    <div className={`pointer-events-auto mb-2 max-h-[min(560px,70vh)] overflow-y-auto rounded-2xl bg-zinc-900/95 p-4 text-white shadow-[0_18px_48px_rgba(0,0,0,0.35)] ring-1 ring-white/10 backdrop-blur-md ${wide ? "w-[min(760px,calc(100vw-32px))]" : "w-[min(440px,calc(100vw-32px))]"}`}>
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-[13px] font-bold">{title}</h2>
         <button type="button" onClick={onClose} aria-label="Close" className="grid size-7 place-items-center rounded-full text-white/60 hover:bg-white/10 hover:text-white">
@@ -95,35 +88,63 @@ function Panel({ title, onClose, children }: { title: string; onClose: () => voi
   )
 }
 
+function Row({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-white/45">{label}</span>
+      {children}
+      {hint && <span className="text-[11.5px] leading-snug text-white/45">{hint}</span>}
+    </div>
+  )
+}
+
+type Open = { kind: "settings" } | { kind: "saved" } | { kind: "idea"; key: string } | null
+
 /**
- * The Add Book lab's toolbar, in three sections: Design, State (the engine answer, its speed and
- * an error) and, for Living chat, Ideas (one row per group from the reference board) in a panel.
- * Picks persist in this browser: a heart per idea, and saved combos (design + state + ideas) to
- * reload later. "Copy" puts both on the clipboard as plain text.
+ * The Add Book lab's bar, for Living chat: a stepper through the flow (it jumps the real thread
+ * there, and follows the thread as you click through it), the idea groups that change the current
+ * step (each opens its options), Save / Saved, Replay, and ⚙ settings (design, book answer, speed,
+ * error, the saved PDF). ← / → move one step; ` hides the bar.
  */
 export function LabBar({
-  design,
-  state,
+  steps,
+  actual,
+  onStep,
+  pdfName,
+  settings,
   ideas,
+  shownGroups,
   values,
   onChange,
-  onRestart,
+  onReplay,
+  onForgetPdf,
   note,
+  designName,
 }: {
-  design: LabControl
-  state: LabControl[]
+  steps: StepItem[]
+  actual: FlowStep
+  onStep: (step: FlowStep) => void
+  pdfName: string | null
+  settings: LabControl[]
   ideas: LabControl[]
+  shownGroups: string[]
   values: LabValues
   onChange: (key: string, value: string) => void
-  onRestart: () => void
+  onReplay: () => void
+  onForgetPdf: () => void
   note?: string
+  designName: string
 }) {
   const [hidden, setHidden] = useState(readHidden)
-  const [open, setOpen] = useState<"ideas" | "saved" | null>(null)
+  const [open, setOpen] = useState<Open>(null)
   const [picks, setPicks] = usePicks()
   const [flash, setFlash] = useState("")
   const root = useRef<HTMLDivElement>(null)
-  const changed = ideas.filter((c) => values[c.key] !== "now").length
+  const onCount = ideas.filter((c) => values[c.key] !== "now").length
+  const shown = ideas.filter((c) => shownGroups.includes(c.key))
+  const main = steps.filter((s) => s.id !== "error")
+  const at = main.findIndex((s) => s.id === actual)
+  const toggle = (o: NonNullable<Open>) => setOpen((cur) => (cur && cur.kind === o.kind && (o.kind !== "idea" || (cur.kind === "idea" && cur.key === o.key)) ? null : o))
 
   useEffect(() => {
     try {
@@ -132,6 +153,19 @@ export function LabBar({
       return
     }
   }, [hidden])
+
+  // An idea group not shown at this step closes its popover.
+  useEffect(() => {
+    if (open?.kind === "idea" && !shownGroups.includes(open.key)) setOpen(null)
+  }, [shownGroups])
+
+  const move = (by: number) => {
+    if (!main.length) return
+    // From Error, ← goes back to Reading and → on to Found.
+    const from = actual === "error" ? main.findIndex((s) => s.id === "reading") + (by > 0 ? 0 : 1) : at
+    const next = main[Math.min(main.length - 1, Math.max(0, from + by))]
+    if (next && next.id !== actual) onStep(next.id)
+  }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -145,34 +179,35 @@ export function LabBar({
       } else if (e.key === "Escape") setOpen(null)
       else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
         e.preventDefault()
-        const o = design.options
-        const i = Math.max(0, o.findIndex((x) => x.value === values[design.key]))
-        onChange(design.key, o[(i + (e.key === "ArrowRight" ? 1 : -1) + o.length) % o.length]!.value)
+        move(e.key === "ArrowRight" ? 1 : -1)
       }
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [design, values, onChange])
+  })
 
   const say = (text: string) => {
     setFlash(text)
     window.setTimeout(() => setFlash(""), 1600)
   }
 
+  const stepLabel = (id: string) => steps.find((s) => s.id === id)?.label ?? id
   const describe = (v: LabValues) => {
-    const parts = [labelOf(design, v[design.key] ?? "")]
+    const parts = [labelOf(settings[0]!, v[settings[0]!.key] ?? ""), stepLabel(v.step ?? "start")]
     for (const c of ideas) if (v[c.key] && v[c.key] !== "now") parts.push(`${c.label}: ${labelOf(c, v[c.key]!)}`)
     return parts.join(" · ")
   }
 
   const saveCombo = () => {
-    const name = describe(values)
-    setPicks((p) => ({ ...p, combos: [{ id: crypto.randomUUID(), name, values: { ...values }, at: Date.now() }, ...p.combos] }))
+    const name = describe({ ...values, step: actual })
+    setPicks((p) => ({ ...p, combos: [{ id: crypto.randomUUID(), name, values: { ...values, step: actual }, at: Date.now() }, ...p.combos] }))
     say("✓ Saved")
   }
 
   const loadCombo = (c: Combo) => {
-    for (const [k, v] of Object.entries(c.values)) onChange(k, v)
+    const { step, ...rest } = c.values
+    for (const [k, v] of Object.entries(rest)) if (values[k] !== v) onChange(k, v)
+    if (step) onChange("step", step)
     setOpen(null)
   }
 
@@ -201,51 +236,85 @@ export function LabBar({
       </div>
     )
 
+  const ideaControl = open?.kind === "idea" ? ideas.find((c) => c.key === open.key) : undefined
+
   return (
     <div ref={root} data-lab-toolbar="" className="pointer-events-none fixed inset-x-0 bottom-6 z-[2147483000] flex flex-col items-center px-4">
-      {open === "ideas" && (
-        <Panel title="Living chat ideas" onClose={() => setOpen(null)}>
-          <div className="flex flex-col gap-2">
-            {ideas.map((c) => {
-              const value = values[c.key]!
+      {ideaControl && (
+        <Panel title={`${ideaControl.label} ideas`} onClose={() => setOpen(null)}>
+          <div role="radiogroup" aria-label={String(ideaControl.label)} className="flex flex-col gap-0.5">
+            {ideaControl.options.map((o) => {
+              const on = o.value === values[ideaControl.key]
+              const liked = picks.liked.includes(o.value)
               return (
-                <div key={c.key} className="flex items-center gap-2">
-                  <span className="w-[76px] shrink-0 text-[10.5px] font-bold uppercase tracking-[0.08em] text-white/45">{c.label}</span>
-                  <div role="radiogroup" aria-label={String(c.label)} className="flex flex-1 flex-wrap gap-0.5">
-                    {c.options.map((o) => (
-                      <button key={o.value} type="button" role="radio" aria-checked={o.value === value} onClick={() => onChange(c.key, o.value)} className={pill(o.value === value)}>
-                        {picks.liked.includes(o.value) && <span className="mr-1 text-rose-400">♥</span>}
-                        {o.label}
-                      </button>
-                    ))}
-                  </div>
-                  <button
-                    type="button"
-                    disabled={value === "now"}
-                    onClick={() => toggleLike(value)}
-                    aria-pressed={picks.liked.includes(value)}
-                    title={value === "now" ? "Pick an idea to like it" : "Like this idea"}
-                    className={`${GHOST} w-[74px] disabled:opacity-30 ${picks.liked.includes(value) ? "bg-rose-500/20 text-rose-300" : "bg-white/5 text-white/70 hover:bg-white/10"}`}
-                  >
-                    {picks.liked.includes(value) ? "♥ Liked" : "♡ Like"}
+                <div key={o.value} className={`flex items-center gap-1 rounded-xl pr-1 ${on ? "bg-white/10" : ""}`}>
+                  <button type="button" role="radio" aria-checked={on} onClick={() => onChange(ideaControl.key, o.value)} className="flex h-9 flex-1 items-center gap-2 rounded-xl px-3 text-left text-[13px] font-semibold hover:bg-white/5">
+                    <span className={`size-2 shrink-0 rounded-full ${on ? "bg-brand-400" : "bg-white/15"}`} />
+                    <span className={on ? "text-white" : "text-white/75"}>{o.label}</span>
+                    {o.value !== "now" && <span className="text-[11px] font-medium text-white/30">{o.value}</span>}
                   </button>
+                  {o.value !== "now" && (
+                    <button
+                      type="button"
+                      onClick={() => toggleLike(o.value)}
+                      aria-pressed={liked}
+                      aria-label={liked ? `Unlike ${String(o.label)}` : `Like ${String(o.label)}`}
+                      className={`${ICON} size-7 ${liked ? "text-rose-400" : "text-white/35 hover:bg-white/10 hover:text-white"}`}
+                    >
+                      {liked ? "♥" : "♡"}
+                    </button>
+                  )}
                 </div>
               )
             })}
           </div>
-          <div className="mt-3 flex items-center gap-2 border-t border-white/10 pt-3">
-            <button type="button" onClick={() => ideas.forEach((c) => onChange(c.key, "now"))} className={`${GHOST} bg-white/5 text-white/70 hover:bg-white/10`}>
-              Reset all to Now
-            </button>
-            <span className="text-[11.5px] text-white/45">Ideas switch live. Restart replays the flow from the start.</span>
+          <p className="mt-3 border-t border-white/10 pt-3 text-[11.5px] text-white/45">Switches live. Ideas picked at other steps stay on ({onCount} on now).</p>
+        </Panel>
+      )}
+      {open?.kind === "settings" && (
+        <Panel title="Lab settings" onClose={() => setOpen(null)}>
+          <div className="flex flex-col gap-4">
+            <Row label="Design" hint={values[settings[0]!.key] === "livechat" ? undefined : "The stepper works on Living chat and Chat; ideas only on Living chat."}>
+              <div role="radiogroup" aria-label="Design" className="flex flex-wrap gap-0.5 rounded-full bg-white/5 p-0.5">
+                {settings[0]!.options.map((o) => (
+                  <button key={o.value} type="button" role="radio" aria-checked={o.value === values[settings[0]!.key]} onClick={() => onChange(settings[0]!.key, o.value)} className={pill(o.value === values[settings[0]!.key])}>
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </Row>
+            <Row label="Book answer" hint={note}>
+              <Select control={settings[1]!} value={values[settings[1]!.key]!} onChange={(v) => onChange(settings[1]!.key, v)} />
+            </Row>
+            <div className="grid grid-cols-2 gap-3">
+              <Row label="Speed" hint="When you drop a PDF on Start, or Replay.">
+                <Select control={settings[2]!} value={values[settings[2]!.key]!} onChange={(v) => onChange(settings[2]!.key, v)} />
+              </Row>
+              <Row label="Error" hint="Shown on the Error step (API key when none), and on Replay.">
+                <Select control={settings[3]!} value={values[settings[3]!.key]!} onChange={(v) => onChange(settings[3]!.key, v)} />
+              </Row>
+            </div>
+            <Row label="PDF">
+              <div className="flex items-center gap-2">
+                <span className="min-w-0 flex-1 truncate text-[12.5px] text-white/80" title={pdfName ?? undefined}>
+                  {pdfName ?? "None yet: drop a PDF on Start, it's kept in this browser."}
+                </span>
+                {pdfName && (
+                  <button type="button" onClick={onForgetPdf} className={`${GHOST} h-7 bg-white/10 hover:bg-white/20`}>
+                    Forget
+                  </button>
+                )}
+              </div>
+            </Row>
+            <p className="text-[11.5px] leading-snug text-white/45">Creating a book is simulated here: nothing is sent to the API.</p>
           </div>
         </Panel>
       )}
-      {open === "saved" && (
-        <Panel title="Saved" onClose={() => setOpen(null)}>
+      {open?.kind === "saved" && (
+        <Panel title="Saved" wide onClose={() => setOpen(null)}>
           <h3 className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-white/45">Liked ideas ({picks.liked.length})</h3>
           <div className="mb-4 flex flex-wrap gap-1">
-            {picks.liked.length === 0 && <span className="text-[12px] text-white/45">None yet. Use ♡ Like in Ideas.</span>}
+            {picks.liked.length === 0 && <span className="text-[12px] text-white/45">None yet. Use ♡ in an idea group.</span>}
             {ideas.flatMap((c) =>
               c.options
                 .filter((o) => picks.liked.includes(o.value))
@@ -261,7 +330,7 @@ export function LabBar({
           </div>
           <h3 className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-white/45">Saved combos ({picks.combos.length})</h3>
           <ul className="flex flex-col gap-1">
-            {picks.combos.length === 0 && <li className="text-[12px] text-white/45">None yet. Use Save in the bar.</li>}
+            {picks.combos.length === 0 && <li className="text-[12px] text-white/45">None yet. Use ★ Save in the bar.</li>}
             {picks.combos.map((c) => (
               <li key={c.id} className="flex items-center gap-2 rounded-xl bg-white/5 py-1.5 pl-3 pr-1.5">
                 <span className="min-w-0 flex-1 truncate text-[12.5px]" title={c.name}>
@@ -277,45 +346,98 @@ export function LabBar({
               </li>
             ))}
           </ul>
-          <div className="mt-3 border-t border-white/10 pt-3">
+          <div className="mt-3 flex items-center gap-2 border-t border-white/10 pt-3">
             <button type="button" onClick={copy} className={`${GHOST} bg-white text-zinc-900`}>
               Copy all as text
             </button>
+            {onCount > 0 && (
+              <button type="button" onClick={() => ideas.forEach((c) => values[c.key] !== "now" && onChange(c.key, "now"))} className={`${GHOST} bg-white/5 text-white/70 hover:bg-white/10`}>
+                Turn all {onCount} ideas off
+              </button>
+            )}
           </div>
         </Panel>
       )}
 
-      <div className="pointer-events-auto flex max-w-full items-center gap-1.5 overflow-x-auto rounded-full bg-zinc-900/90 p-1.5 text-white shadow-[0_12px_32px_rgba(0,0,0,0.28)] ring-1 ring-white/10 backdrop-blur-md [scrollbar-width:none]">
-        <Section title="Design">
-          {design.options.map((o) => (
-            <button key={o.value} type="button" onClick={() => onChange(design.key, o.value)} aria-pressed={o.value === values[design.key]} className={pill(o.value === values[design.key])}>
-              {o.label}
+      <div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-zinc-900/90 p-1.5 text-white shadow-[0_12px_32px_rgba(0,0,0,0.28)] ring-1 ring-white/10 backdrop-blur-md [scrollbar-width:none]">
+        {steps.length > 0 ? (
+          <nav aria-label="Flow steps" className="flex shrink-0 items-center gap-0.5 rounded-full bg-white/5 p-0.5">
+            <button type="button" onClick={() => move(-1)} disabled={at === 0} aria-label="Previous step" title="Previous step (←)" className={`${ICON} size-7 text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-30`}>
+              ‹
             </button>
-          ))}
-        </Section>
-        <Section title="State">
-          {state.map((c) => (
-            <span key={c.key} title={c.key === "book" ? note : undefined}>
-              <Select control={c} value={values[c.key]!} onChange={(v) => onChange(c.key, v)} />
-            </span>
-          ))}
-        </Section>
-        {ideas.length > 0 && (
-          <button type="button" onClick={() => setOpen((o) => (o === "ideas" ? null : "ideas"))} aria-expanded={open === "ideas"} className={`${GHOST} ${open === "ideas" ? "bg-white text-zinc-900" : "bg-brand-500 text-white hover:bg-brand-500/90"}`}>
-            Ideas{changed > 0 ? ` · ${changed} on` : ""}
-          </button>
+            {steps.map((s, i) => {
+              const current = s.id === actual
+              const locked = !pdfName && s.id !== "start"
+              const past = s.id !== "error" && actual !== "error" && i < at
+              return (
+                <span key={s.id} className="flex items-center">
+                  {s.id === "error" && <span className="mx-0.5 h-4 w-px bg-white/15" />}
+                  <button
+                    type="button"
+                    onClick={() => onStep(s.id)}
+                    disabled={locked}
+                    aria-current={current ? "step" : undefined}
+                    title={locked ? "Drop a PDF on Start once; it's kept for the lab" : s.id === "error" ? "Error while reading (kind in ⚙)" : `Jump to ${s.label}`}
+                    className={`h-7 whitespace-nowrap rounded-full px-1.5 text-[12px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-30 ${
+                      current ? (s.id === "error" ? "bg-rose-400 text-zinc-900" : "bg-white text-zinc-900 shadow-sm") : s.id === "error" ? "text-rose-300/80 hover:bg-rose-400/15" : past ? "text-white/80 hover:bg-white/10" : "text-white/50 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    {past && <span className="mr-1 text-emerald-400">✓</span>}
+                    {s.label}
+                  </button>
+                </span>
+              )
+            })}
+            <button type="button" onClick={() => move(1)} disabled={at === main.length - 1 || !pdfName} aria-label="Next step" title="Next step (→)" className={`${ICON} size-7 text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-30`}>
+              ›
+            </button>
+          </nav>
+        ) : (
+          <span className="shrink-0 px-3 text-[12px] font-semibold text-white/70">{designName}</span>
         )}
+        {!pdfName && actual === "start" && steps.length > 0 && <span className="shrink-0 px-1.5 text-[11.5px] text-amber-300">Drop a PDF once</span>}
+
+        {ideas.length > 0 && (
+          <div className="flex shrink-0 items-center gap-0.5 rounded-full bg-white/5 py-0.5 pl-2.5 pr-0.5">
+            <span className="pr-1 text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">Ideas</span>
+            {shown.map((c) => {
+              const value = values[c.key]!
+              const on = value !== "now"
+              const isOpen = open?.kind === "idea" && open.key === c.key
+              return (
+                <button
+                  key={c.key}
+                  type="button"
+                  onClick={() => toggle({ kind: "idea", key: c.key })}
+                  aria-expanded={isOpen}
+                  title={on ? `${c.label}: ${labelOf(c, value)}` : `${c.label}: Now`}
+                  className={`h-7 max-w-[150px] truncate whitespace-nowrap rounded-full px-2 text-[12px] font-semibold transition-colors ${isOpen ? "bg-white text-zinc-900" : on ? "bg-brand-500 text-white hover:bg-brand-500/90" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
+                >
+                  {c.label}
+
+                </button>
+              )
+            })}
+            <span className="px-1.5 text-[11px] font-semibold tabular-nums text-white/45" title="Ideas on, across all steps">
+              {onCount} on
+            </span>
+          </div>
+        )}
+
         <span className="mx-0.5 h-5 w-px shrink-0 bg-white/15" />
-        <button type="button" onClick={saveCombo} className={`${GHOST} bg-white/10 hover:bg-white/20`}>
+        <button type="button" onClick={saveCombo} title="Save this design, step and ideas" className={`${GHOST} bg-white/10 px-2.5 hover:bg-white/20`}>
           {flash || "★ Save"}
         </button>
-        <button type="button" title="Saved picks" aria-label="Saved picks" onClick={() => setOpen((o) => (o === "saved" ? null : "saved"))} aria-expanded={open === "saved"} className={`${GHOST} ${open === "saved" ? "bg-white text-zinc-900" : "bg-white/10 hover:bg-white/20"}`}>
+        <button type="button" title="Saved picks" aria-label="Saved picks" onClick={() => toggle({ kind: "saved" })} aria-expanded={open?.kind === "saved"} className={`${GHOST} px-2.5 ${open?.kind === "saved" ? "bg-white text-zinc-900" : "bg-white/10 hover:bg-white/20"}`}>
           ☰ {picks.combos.length + picks.liked.length}
         </button>
-        <button type="button" onClick={onRestart} title="Restart the flow" aria-label="Restart" className={`${GHOST} bg-white/10 px-2.5 hover:bg-white/20`}>
+        <button type="button" onClick={onReplay} disabled={!pdfName} title="Replay from the PDF at the chosen speed" aria-label="Replay" className={`${ICON} bg-white/10 hover:bg-white/20 disabled:opacity-30`}>
           ↻
         </button>
-        <button type="button" onClick={() => setHidden(true)} aria-label="Hide lab toolbar" title="Hide (`)" className="grid size-8 shrink-0 place-items-center rounded-full text-[15px] text-white/60 hover:bg-white/10 hover:text-white">
+        <button type="button" onClick={() => toggle({ kind: "settings" })} aria-expanded={open?.kind === "settings"} title="Lab settings: design, book answer, speed, error" aria-label="Lab settings" className={`${ICON} ${open?.kind === "settings" ? "bg-white text-zinc-900" : "bg-white/10 hover:bg-white/20"}`}>
+          ⚙
+        </button>
+        <button type="button" onClick={() => setHidden(true)} aria-label="Hide lab toolbar" title="Hide (`)" className={`${ICON} text-[15px] text-white/60 hover:bg-white/10 hover:text-white`}>
           ×
         </button>
       </div>

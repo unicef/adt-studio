@@ -24,6 +24,7 @@ import { AssistantRow, Folded, TypingRow, UserRow } from "./bubbles"
 import { Composer, ComposerReply } from "./Composer"
 import { NAME_INPUT } from "./Create"
 import { useIdea } from "./ideas"
+import { useHoldAtFound, useLabDrive } from "./labDrive"
 import { useLiving } from "./look"
 import { useAnswers, type SettingValue } from "./useAnswers"
 import { useCreateRun } from "./useCreateRun"
@@ -141,7 +142,7 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
   })
   const { summaries } = thread
   // f26 / f29: the creating message becomes the end itself, so the separate "ready" message is left out.
-  const messages = ENDS_IN_PLACE.includes(finishIdea) ? thread.messages.filter((m) => !m.id.startsWith("done-")) : thread.messages
+  const messages = useHoldAtFound(ENDS_IN_PLACE.includes(finishIdea) ? thread.messages.filter((m) => !m.id.startsWith("done-")) : thread.messages)
   const reveal = useReveal(messages)
   const shown = messages.slice(0, reveal.visible)
   const groups = groupBySteps(shown)
@@ -156,6 +157,8 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
     prevLastStep.current = lastStep
   }, [lastStep])
   const canSkip = !!rec && !settingsShown && !create.locked
+  // Dev lab only (no-op elsewhere): reports the step and plays the lab's jumps.
+  useLabDrive({ validFile, failed: !!failures[attempt], rec, chat, create, lastStep, flush: reveal.flush })
 
   useEffect(() => {
     if (settingsShown) reveal.markSeen()

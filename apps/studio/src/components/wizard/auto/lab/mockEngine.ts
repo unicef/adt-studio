@@ -22,7 +22,8 @@ export type ScenarioId = (typeof SCENARIOS)[number]["id"]
 
 const FIXTURES = import.meta.glob<SetupRecommendation>("./fixtures/*.json", { import: "default" })
 
-export const SPEEDS = { normal: 6500, fast: 900, slow: 22000, hold: Infinity } as const
+/** `instant` is for the stepper's jumps past Reading; `hold` keeps Reading on screen. */
+export const SPEEDS = { normal: 6500, fast: 900, slow: 22000, hold: Infinity, instant: 200 } as const
 export type Speed = keyof typeof SPEEDS
 
 export type LabError = "none" | "auth" | "quota" | "offline" | "unknown"
@@ -35,7 +36,10 @@ function failure(kind: Exclude<LabError, "none">): Error {
   return new ApiError("The page-label reading returned output that does not match its schema.", 500)
 }
 
-function wait(ms: number, signal: AbortSignal) {
+/** A scenario's saved engine answer. */
+export const loadScenario = (book: ScenarioId) => FIXTURES[`./fixtures/${book}.json`]!().then((rec) => structuredClone(rec))
+
+export function wait(ms: number, signal: AbortSignal) {
   return new Promise<void>((resolve, reject) => {
     const abort = () => reject(new DOMException("Aborted", "AbortError"))
     if (signal.aborted) return abort()
