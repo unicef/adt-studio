@@ -91,6 +91,22 @@ describe("ADT recovery workspace", () => {
     expect(config.reflowable_font).toBe("open-sans")
   })
 
+  // Some older exports (v0.7.0-rc.8 to v0.7.4-beta.1) embedded the fonts in
+  // fonts.css as base64, about 6.6 MB. The font is only a hint: skip the file
+  // instead of failing the import, as before #1158.
+  it("imports an export whose fonts.css is too big to read, leaving the font automatic", () => {
+    const files = unzipSync(makeCurrentBundleWithExternallyAddedPage())
+    files["assets/fonts.css"] = strToU8(
+      "body, p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, select {\n  font-family: 'Open Sans', sans-serif;\n}\n"
+        + `@font-face { src: url(data:font/woff2;base64,${"A".repeat(600 * 1024)}); }`,
+    )
+    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-font-"))
+    temporaryRoots.push(booksDir)
+    const session = seedFromArchive(Buffer.from(zipSync(files)), booksDir, "embedded-fonts.zip")
+    const config = yaml.load(fs.readFileSync(path.join(booksDir, session.label, "config.yaml"), "utf8")) as Record<string, unknown>
+    expect(config).not.toHaveProperty("reflowable_font")
+  })
+
   it("leaves the font automatic when the pages declare none", () => {
     const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-font-"))
     temporaryRoots.push(booksDir)

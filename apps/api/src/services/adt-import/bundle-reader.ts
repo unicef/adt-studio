@@ -328,6 +328,12 @@ function extractSelected(
         }
         const limit = selectedLimit(info.name, includePreviewImages)
         if (limit === null) return false
+        // fonts.css only hints at the book font (#1158). Some older exports
+        // embedded the fonts there as base64 (about 6.6 MB): skip it rather
+        // than fail the import, and the font stays automatic.
+        if (FONTS_CSS_PATH.test(info.name) && !(Number.isSafeInteger(info.originalSize) && info.originalSize >= 0 && info.originalSize <= limit)) {
+          return false
+        }
         if (!Number.isSafeInteger(info.originalSize) || info.originalSize < 0 || info.originalSize > limit) {
           throw new AdtBundleReadError(`ADT bundle file exceeds its size limit: ${info.name}`)
         }
