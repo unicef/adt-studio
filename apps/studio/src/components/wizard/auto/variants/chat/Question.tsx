@@ -1,16 +1,23 @@
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Check, Quote } from "lucide-react"
 import type { SetupFact, SetupRecommendation } from "@adt/types"
 import { cn } from "@/lib/utils"
 import { FACT_OPTIONS, settingsFor, type FactAnswers } from "../../engine/answers"
 import { FACT_SHORT } from "../../engine/words"
+import { useInlinePages } from "../livechat/ideas/evidence/ClaimMark"
+import { launch } from "../livechat/ideas/question/FlyIn"
+import { PreviewChoices } from "../livechat/ideas/question/PreviewChoices"
+import { SmartDefault } from "../livechat/ideas/question/SmartDefault"
+import "../livechat/ideas/question/question.css"
 import { PageStrip } from "./Evidence"
+import { useIdea } from "./ideas"
 import { settingsTouchedBy } from "./useAnswers"
 import { Why } from "./Why"
 import { ASK_WHY, FACT_HINT, QUESTION_SHORT, SETTING_LABEL, valueTitle } from "./words"
 
 /** The question in the assistant's bubble: where it is in the run ("1 of 2"), then the question, short. */
-export function QuestionText({ fact, index, total }: { fact: SetupFact; index: number; total: number }) {
+export function QuestionText({ fact, index, total, mark }: { fact: SetupFact; index: number; total: number; mark?: ReactNode }) {
   const { i18n } = useLingui()
   return (
     <>
@@ -21,7 +28,10 @@ export function QuestionText({ fact, index, total }: { fact: SetupFact; index: n
           </Trans>
         </span>
       )}
-      <strong className="block font-semibold">{i18n._(QUESTION_SHORT[fact.id]!)}</strong>
+      <strong className="block font-semibold">
+        {i18n._(QUESTION_SHORT[fact.id]!)}
+        {mark}
+      </strong>
     </>
   )
 }
@@ -36,9 +46,41 @@ export function QuestionCard({ rec, fact, answers, chosen, onAnswer, frozen, fil
   const touched = settingsTouchedBy(rec, answers, fact.id)
   const other = fact.secondOpinion && fact.secondOpinion !== fact.value ? fact.secondOpinion : null
   const order = [fact.value, ...(other ? [other] : []), ...FACT_OPTIONS[fact.id].filter((v) => v !== fact.value && v !== other)]
+  const idea = useIdea("question")
+  const inlinePages = useInlinePages()
+  // d21: only the guess until the user asks for the others (or has answered).
+  const [others, setOthers] = useState(false)
+  const list = useRef<HTMLDivElement>(null)
+  // d19: right after a tap, the others fade and the tapped one leaves for the reply.
+  const [flown, setFlown] = useState<string | null>(null)
+  useEffect(() => {
+    if (!flown) return
+    const id = window.setTimeout(() => setFlown(null), 1100)
+    return () => window.clearTimeout(id)
+  }, [flown])
+  const pick = (value: string, el: Element | null) => {
+    if (idea === "d19" && value !== chosen) {
+      launch(fact.id, el)
+      setFlown(value)
+    }
+    onAnswer(value)
+  }
+  const smart = idea === "d21" && !chosen && !others
   return (
     <div inert={frozen} className="flex w-full flex-col gap-1 rounded-[22px] bg-card/95 p-2 ring-1 ring-border shadow-[0_14px_36px_-24px_rgba(15,23,42,0.45)] backdrop-blur">
-      <div role="group" aria-labelledby={labelId} className="flex flex-col gap-1">
+      {smart ? (
+        <SmartDefault
+          fact={fact}
+          onAnswer={onAnswer}
+          onOthers={() => {
+            setOthers(true)
+            window.requestAnimationFrame(() => list.current?.querySelector<HTMLElement>("button")?.focus())
+          }}
+        />
+      ) : idea === "d18" ? (
+        <PreviewChoices rec={rec} fact={fact} order={order} answers={answers} chosen={chosen} onAnswer={onAnswer} file={file} labelId={labelId} />
+      ) : (
+      <div ref={list} role="group" aria-labelledby={labelId} className="flex flex-col gap-1">
         {order.map((value) => {
           const selected = chosen === value
           return (
@@ -46,8 +88,9 @@ export function QuestionCard({ rec, fact, answers, chosen, onAnswer, frozen, fil
               key={value}
               type="button"
               aria-pressed={selected}
-              onClick={() => onAnswer(value)}
-              className={cn("relative flex w-full flex-col rounded-[16px] px-3.5 py-2.5 pr-10 text-left transition-[background-color,box-shadow,transform] duration-150 active:scale-[0.99]", selected ? "bg-brand-50 ring-2 ring-brand-500" : "ring-1 ring-transparent hover:bg-muted/70 hover:ring-border")}
+              onClick={(e) => pick(value, e.currentTarget)}
+              data-flown={flown ? (flown === value ? "went" : "other") : undefined}
+              className={cn("relative flex w-full flex-col rounded-[16px] px-3.5 py-2.5 pr-10 text-left transition-[background-color,box-shadow,transform] duration-150 active:scale-[0.99]", idea === "d19" && "qd19-fade", selected ? "bg-brand-50 ring-2 ring-brand-500" : "ring-1 ring-transparent hover:bg-muted/70 hover:ring-border")}
             >
               <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                 <span className="text-[15px] font-semibold">{i18n._(FACT_SHORT[fact.id][value]!)}</span>
@@ -65,8 +108,9 @@ export function QuestionCard({ rec, fact, answers, chosen, onAnswer, frozen, fil
           )
         })}
       </div>
+      )}
       <div className="border-t border-border/70 px-2 pb-1 pt-1.5">
-        <Why aside={fact.evidencePages.length > 0 ? <PageStrip file={file} pages={fact.evidencePages.slice(0, 1)} className="shrink-0" small /> : undefined}>
+        <Why aside={fact.evidencePages.length > 0 && !inlinePages ? <PageStrip file={file} pages={fact.evidencePages.slice(0, 1)} className="shrink-0" small /> : undefined}>
           {fact.askReason && <p>{i18n._(ASK_WHY[fact.askReason]!)}</p>}
           {other && fact.reason && (
             <p className="flex gap-1.5 italic">

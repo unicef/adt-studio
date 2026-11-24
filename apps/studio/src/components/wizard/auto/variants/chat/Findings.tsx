@@ -1,9 +1,12 @@
 import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import type { SetupRecommendation, SetupSettingId } from "@adt/types"
 import { SETTING_IDS } from "../../engine/answers"
-import { RULE_WHY, TEXT_LAYER } from "../../engine/words"
+import { FACT_SHORT, RULE_WHY, TEXT_LAYER } from "../../engine/words"
+import { ClaimMark, useInlinePages } from "../livechat/ideas/evidence/ClaimMark"
+import { PageBoxes, type BoxClaim } from "../livechat/ideas/evidence/PageBoxes"
 import { SettingPill } from "./bubbles"
 import { PageStrip } from "./Evidence"
+import { useIdea } from "./ideas"
 import { settingsWaitingOn, type Derived } from "./useAnswers"
 import { Why } from "./Why"
 import { KIND_SAYS, SETTING_LABEL, valueTitle } from "./words"
@@ -39,11 +42,39 @@ export function Found({ rec, derived, file }: { rec: SetupRecommendation; derive
   const scan = rec.measured.textLayer !== "digital" ? TEXT_LAYER[rec.measured.textLayer] : null
   const pages = chips.flatMap((id) => rec.settingEvidence[id] ?? [])
   const count = derived.asked.length
+  const idea = useIdea("evidence")
+  const inline = useInlinePages()
+  // The pages behind each claim: the kind of book, and the setting the main reason is about.
+  const kindPages = rec.facts.find((f) => f.id === "genre")?.evidencePages ?? []
+  const leadId: SetupSettingId | null = settled.includes("renderStrategy") ? "renderStrategy" : settled.includes("pageGrouping") ? "pageGrouping" : null
+  const leadPages = leadId ? rec.settingEvidence[leadId] ?? [] : []
+  const boxes: BoxClaim[] = []
+  if (idea === "e22") {
+    if (!genreAsked && kindPages[0]) boxes.push({ label: i18n._(FACT_SHORT.genre[derived.proposed.genre]!), page: kindPages[0] })
+    // Then the main setting, or else the first settled one with pages, on a page not shown yet.
+    for (const id of [...(leadId ? [leadId] : []), ...settled.filter((s) => s !== leadId)]) {
+      const title = valueTitle(id, derived.effective[id]?.value)
+      const page = (rec.settingEvidence[id] ?? []).find((p) => !boxes.some((b) => b.page === p))
+      if (title && page) {
+        boxes.push({ label: `${i18n._(SETTING_LABEL[id])}: ${i18n._(title)}`, page })
+        break
+      }
+    }
+  }
   return (
     <div className="flex flex-col gap-2">
       <p>
-        {!genreAsked && <strong className="font-semibold">{i18n._(KIND_SAYS[derived.proposed.genre]!)} </strong>}
-        {leadWhy ? i18n._(leadWhy) : <Trans>I&apos;ve read it.</Trans>}{" "}
+        {!genreAsked &&
+          (inline ? (
+            <>
+              <strong className="font-semibold">{i18n._(KIND_SAYS[derived.proposed.genre]!)}</strong>
+              <ClaimMark file={file} pages={kindPages} />{" "}
+            </>
+          ) : (
+            <strong className="font-semibold">{i18n._(KIND_SAYS[derived.proposed.genre]!)} </strong>
+          ))}
+        {leadWhy ? i18n._(leadWhy) : <Trans>I&apos;ve read it.</Trans>}
+        {leadWhy && <ClaimMark file={file} pages={leadPages} />}{" "}
         {!rec.secondOpinion && (
           <span className="text-amber-700 dark:text-amber-300">
             <Trans>Only one of my two readings came back, so give it a look.</Trans>{" "}
@@ -55,6 +86,7 @@ export function Found({ rec, derived, file }: { rec: SetupRecommendation; derive
           </span>
         )}
       </p>
+      {boxes.length > 0 && <PageBoxes file={file} claims={boxes} />}
       {chips.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {chips.map((id) => (

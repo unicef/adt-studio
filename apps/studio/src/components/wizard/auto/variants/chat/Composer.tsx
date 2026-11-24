@@ -1,8 +1,12 @@
-import type { ReactNode } from "react"
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { ArrowUp, Loader2, Paperclip } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { UploadFlow } from "../../../start/upload/useUploadFlow"
+import { rememberHandoff } from "../livechat/ideas/entrance/handoff"
+import { NAME_INPUT } from "./Create"
+import { useIdea } from "./ideas"
+import { useLiving } from "./look"
 
 /**
  * Where a chat's text box would be. Before the PDF it is the drop zone (the whole window takes a
@@ -11,6 +15,7 @@ import type { UploadFlow } from "../../../start/upload/useUploadFlow"
 export function Composer({ flow, replies, hint }: { flow: UploadFlow; replies: ReactNode; hint?: ReactNode }) {
   const { t } = useLingui()
   const hasFile = !!flow.file && !flow.error
+  const drop = useHandoffSource(hasFile)
   return (
     <div className="relative mx-auto w-full max-w-[760px] px-4 pb-4 pt-2 sm:px-6 sm:pb-5">
       <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-8 h-10 bg-gradient-to-t from-background to-transparent" />
@@ -24,6 +29,7 @@ export function Composer({ flow, replies, hint }: { flow: UploadFlow; replies: R
         </div>
       ) : (
         <button
+          ref={drop}
           type="button"
           onClick={flow.openPicker}
           className="group relative flex w-full items-center gap-3 rounded-[26px] border-2 border-dashed border-brand-300 bg-card/90 p-2 pl-3 text-left shadow-[0_16px_40px_-22px_rgba(43,127,255,0.8)] backdrop-blur transition-[border-color,background-color,transform] duration-200 hover:border-brand-500 hover:bg-brand-50/60 active:scale-[0.995]"
@@ -47,6 +53,46 @@ export function Composer({ flow, replies, hint }: { flow: UploadFlow; replies: R
       {!hasFile && replies && <div className="mt-2 flex justify-center gap-1.5">{replies}</div>}
     </div>
   )
+}
+
+/**
+ * Idea A2 (Living chat lab only): remembers where what the user sends was, so their bubble can
+ * fly out of it. The drop zone for the PDF; the name field when they create the book.
+ */
+function useHandoffSource(hasFile: boolean) {
+  const living = useLiving()
+  const on = useIdea("entrance") === "a2" && living
+  const drop = useRef<HTMLButtonElement>(null)
+  const last = useRef<DOMRect | null>(null)
+  useLayoutEffect(() => {
+    if (!on) return
+    if (!hasFile && drop.current) last.current = drop.current.getBoundingClientRect()
+    else if (hasFile && last.current) {
+      rememberHandoff("pdf", last.current)
+      last.current = null
+    }
+  })
+  useEffect(() => {
+    if (!on) return
+    const fromName = (target: EventTarget | null) => {
+      const input = document.getElementById(NAME_INPUT) as HTMLInputElement | null
+      const card = input?.closest("[id^='msg-ready-']")
+      if (input?.value.trim() && card?.contains(target as Node)) rememberHandoff("name", input.getBoundingClientRect())
+    }
+    const click = (e: MouseEvent) => {
+      if ((e.target as HTMLElement | null)?.closest("button")) fromName(e.target)
+    }
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Enter") fromName(e.target)
+    }
+    document.addEventListener("click", click, true)
+    document.addEventListener("keydown", key, true)
+    return () => {
+      document.removeEventListener("click", click, true)
+      document.removeEventListener("keydown", key, true)
+    }
+  }, [on])
+  return drop
 }
 
 /** A quiet always-there reply in the composer. */

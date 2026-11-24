@@ -37,16 +37,52 @@ function Big({ file, page }: { file: File; page: number }) {
 }
 
 /**
+ * A page shown large, with the other pages a step away (← → or the arrows). `page` null is closed.
+ */
+export function PageViewer({ file, pages, page, onPage, label }: { file: File; pages: number[]; page: number | null; onPage: (page: number | null) => void; label?: string }) {
+  const { t } = useLingui()
+  const at = page === null ? -1 : pages.indexOf(page)
+  const go = (step: number) => onPage(pages[(at + step + pages.length) % pages.length]!)
+  return (
+    <Dialog open={page !== null} onOpenChange={(o) => !o && onPage(null)}>
+      <DialogContent className="max-w-[min(92vw,720px)] gap-3 rounded-[24px] p-4 sm:p-6" onKeyDown={(e) => (e.key === "ArrowRight" ? go(1) : e.key === "ArrowLeft" ? go(-1) : undefined)}>
+        <DialogTitle className="text-[17px] font-bold tracking-[-0.01em]">
+          <Trans>Page {page}</Trans>
+        </DialogTitle>
+        <DialogDescription className="sr-only">{label ?? t`Pages that show it`}</DialogDescription>
+        {page !== null && <Big file={file} page={page} />}
+        {pages.length > 1 && (
+          <div className="flex items-center justify-center gap-3">
+            <button type="button" onClick={() => go(-1)} aria-label={t`Previous page`} className="grid size-10 place-items-center rounded-full bg-muted transition-colors hover:bg-muted/70 active:scale-[0.96]">
+              <ChevronLeft className="size-4" />
+            </button>
+            <span className="text-[13px] font-medium tabular-nums text-muted-foreground">
+              <Trans>
+                {at + 1} of {pages.length}
+              </Trans>
+            </span>
+            <button type="button" onClick={() => go(1)} aria-label={t`Next page`} className="grid size-10 place-items-center rounded-full bg-muted transition-colors hover:bg-muted/70 active:scale-[0.96]">
+              <ChevronRight className="size-4" />
+            </button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/** Evidence pages as given: unique, in page order, at most four. */
+export const evidenceList = (pages: number[]) => [...new Set(pages)].sort((a, b) => a - b).slice(0, 4)
+
+/**
  * The pages that show what the assistant says, as small real page images. Tapping one opens it
  * large, with the others a step away.
  */
 export function PageStrip({ file, pages, label, className, small }: { file: File | null | undefined; pages: number[]; label?: string; className?: string; small?: boolean }) {
   const { t } = useLingui()
   const [open, setOpen] = useState<number | null>(null)
-  const list = [...new Set(pages)].sort((a, b) => a - b).slice(0, 4)
+  const list = evidenceList(pages)
   if (!file || list.length === 0) return null
-  const at = open === null ? -1 : list.indexOf(open)
-  const go = (step: number) => setOpen(list[(at + step + list.length) % list.length]!)
   return (
     <>
       <div role="group" aria-label={label ?? t`Pages that show it`} className={cn("flex flex-wrap gap-1.5", className)}>
@@ -54,30 +90,7 @@ export function PageStrip({ file, pages, label, className, small }: { file: File
           <Thumb key={p} file={file} page={p} small={small} onOpen={() => setOpen(p)} />
         ))}
       </div>
-      <Dialog open={open !== null} onOpenChange={(o) => !o && setOpen(null)}>
-        <DialogContent className="max-w-[min(92vw,720px)] gap-3 rounded-[24px] p-4 sm:p-6" onKeyDown={(e) => (e.key === "ArrowRight" ? go(1) : e.key === "ArrowLeft" ? go(-1) : undefined)}>
-          <DialogTitle className="text-[17px] font-bold tracking-[-0.01em]">
-            <Trans>Page {open}</Trans>
-          </DialogTitle>
-          <DialogDescription className="sr-only">{label ?? t`Pages that show it`}</DialogDescription>
-          {open !== null && <Big file={file} page={open} />}
-          {list.length > 1 && (
-            <div className="flex items-center justify-center gap-3">
-              <button type="button" onClick={() => go(-1)} aria-label={t`Previous page`} className="grid size-10 place-items-center rounded-full bg-muted transition-colors hover:bg-muted/70 active:scale-[0.96]">
-                <ChevronLeft className="size-4" />
-              </button>
-              <span className="text-[13px] font-medium tabular-nums text-muted-foreground">
-                <Trans>
-                  {at + 1} of {list.length}
-                </Trans>
-              </span>
-              <button type="button" onClick={() => go(1)} aria-label={t`Next page`} className="grid size-10 place-items-center rounded-full bg-muted transition-colors hover:bg-muted/70 active:scale-[0.96]">
-                <ChevronRight className="size-4" />
-              </button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <PageViewer file={file} pages={list} page={open} onPage={setOpen} label={label} />
     </>
   )
 }

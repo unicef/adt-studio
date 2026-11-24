@@ -12,12 +12,18 @@ import { applySettings, settingsChangedBy, settingsFor } from "../../engine/answ
 import { useEngineRun } from "../../engine/useEngineRun"
 import { useWizardForm } from "../../../core/wizardForm"
 import { DotGrid } from "../../../core/ui"
+import { AmbientLayer, ambientPhase } from "../livechat/ideas/ambient/AmbientLayer"
 import "../../../core/flow.css"
 import { useUploadFlow } from "../../../start/upload/useUploadFlow"
 import { Avatar } from "../../decide/intro/parts"
+import { FoldedStep } from "../livechat/ideas/expand/FoldedStep"
+import { Island } from "../livechat/ideas/expand/Island"
+import { CANVAS_WIDTH, CanvasContext } from "../livechat/ideas/expand/SideCanvas"
+import { ENDS_IN_PLACE, FinishContext } from "../livechat/ideas/finish/context"
 import { AssistantRow, Folded, TypingRow, UserRow } from "./bubbles"
 import { Composer, ComposerReply } from "./Composer"
 import { NAME_INPUT } from "./Create"
+import { useIdea } from "./ideas"
 import { useLiving } from "./look"
 import { useAnswers, type SettingValue } from "./useAnswers"
 import { useCreateRun } from "./useCreateRun"
@@ -52,6 +58,13 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
   const acted = useRef(false)
   const reduced = useReducedEffects()
   const living = useLiving()
+  // Lab ideas from the reference board (Living chat only; "now" everywhere else).
+  const ideaExpand = useIdea("expand")
+  const ideaFinish = useIdea("finish")
+  const expandIdea = living ? ideaExpand : "now"
+  const finishIdea = living ? ideaFinish : "now"
+  const [canvasEl, setCanvasEl] = useState<HTMLDivElement | null>(null)
+  const [canvasOpen, setCanvasOpen] = useState(false)
 
   // A new PDF starts a new conversation about it.
   useEffect(() => {
@@ -96,7 +109,7 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
     setAnnounce(say(id, value))
   }
 
-  const { messages, summaries } = useThread({
+  const thread = useThread({
     flow,
     validFile,
     rejectedAt,
@@ -126,12 +139,22 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
       input?.select()
     },
   })
+  const { summaries } = thread
+  // f26 / f29: the creating message becomes the end itself, so the separate "ready" message is left out.
+  const messages = ENDS_IN_PLACE.includes(finishIdea) ? thread.messages.filter((m) => !m.id.startsWith("done-")) : thread.messages
   const reveal = useReveal(messages)
   const shown = messages.slice(0, reveal.visible)
   const groups = groupBySteps(shown)
   const engineBusy = validFile && run.status === "running"
   const waiting = !reveal.typing && reveal.visible === messages.length && engineBusy
   const settingsShown = shown.some((m) => m.step === "ready")
+  // b11: the step that was current until this render folds with its receipt animation.
+  const lastStep = groups[groups.length - 1]?.step
+  const prevLastStep = useRef(lastStep)
+  const justFolded = prevLastStep.current !== lastStep ? prevLastStep.current : undefined
+  useEffect(() => {
+    prevLastStep.current = lastStep
+  }, [lastStep])
   const canSkip = !!rec && !settingsShown && !create.locked
 
   useEffect(() => {
@@ -186,7 +209,14 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
     </>
   )
 
+  // b9: the side canvas takes this much of the thread's right side while it's open.
+  const shift = expandIdea === "b9" && canvasOpen ? { paddingRight: CANVAS_WIDTH + 24 } : undefined
+  const asked = chat.derived?.asked ?? []
+  const askIndex = last?.step.startsWith("q-") ? asked.findIndex((f) => `q-${f.id}` === last.step) : -1
+
   return (
+    <FinishContext.Provider value={{ onOpen: create.open }}>
+    <CanvasContext.Provider value={{ el: canvasEl, setOpen: setCanvasOpen }}>
     <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-background">
       <FlowTopBar title={t`Add Book`} />
       <FileDropOverlay overlay={flow.overlay} dropLabel={<Trans>Drop PDF here</Trans>} errorLabel={<Trans>Only PDF files are supported</Trans>} accent="blue" />
@@ -194,6 +224,7 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
       <DotGrid>
         <div className="absolute left-1/2 top-[-120px] h-[380px] w-[760px] -translate-x-1/2 rounded-full bg-brand-300/20 blur-3xl motion-reduce:hidden" />
       </DotGrid>
+      <AmbientLayer phase={ambientPhase(engineBusy, last?.id)} />
 
       <div
         ref={scroller}
@@ -201,9 +232,10 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
           const box = e.currentTarget
           nearBottom.current = box.scrollHeight - box.scrollTop - box.clientHeight < NEAR_BOTTOM
         }}
-        className="relative flex-1 overflow-y-auto overflow-x-hidden"
+        className={cn("relative flex-1 overflow-y-auto overflow-x-hidden", expandIdea === "b9" && "ix-shift")}
+        style={shift}
       >
-        <div className={cn("mx-auto flex w-full flex-col px-4 pb-8 pt-8 sm:px-6 sm:pt-12", living ? "max-w-[960px]" : "max-w-[760px]")}>
+        <div className={cn("mx-auto flex w-full flex-col px-4 pb-8 pt-8 sm:px-6 sm:pt-12", living ? "max-w-[960px]" : "max-w-[760px]", expandIdea === "b7" && validFile && "sm:pt-[104px]")}>
           {!validFile && (
             <header className="mb-8 flex flex-col items-start gap-4 animate-[am-fade-up_0.5s_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none">
               <span className={living ? "lc-avatar" : undefined}>
@@ -244,9 +276,16 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
                 )
               })
               const open = current || !summary || unfolded.has(g.step)
+              const toggleStep = () => setUnfolded((u) => (u.has(g.step) ? new Set([...u].filter((s) => s !== g.step)) : new Set(u).add(g.step)))
+              if (!current && summary && (expandIdea === "b6" || expandIdea === "b8" || expandIdea === "b11"))
+                return (
+                  <section key={g.step} className={gi === 0 ? "" : "mt-3"}>
+                    <FoldedStep idea={expandIdea} step={g.step} summary={summary} open={open} locked={create.locked} onToggle={toggleStep} body={body} fresh={justFolded === g.step} />
+                  </section>
+                )
               return (
                 <section key={g.step} className={gi === 0 ? "" : current ? (living ? "mt-9" : "mt-6") : living ? "mt-3" : "mt-2"}>
-                  {!current && summary && <Folded summary={summary} open={open} locked={create.locked} onToggle={() => setUnfolded((u) => (u.has(g.step) ? new Set([...u].filter((s) => s !== g.step)) : new Set(u).add(g.step)))} />}
+                  {!current && summary && <Folded summary={summary} open={open} locked={create.locked} onToggle={toggleStep} />}
                   {living && !current && summary ? (
                     <div className="lc-fold" data-open={open} inert={!open}>
                       <div>
@@ -269,14 +308,27 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
       </div>
 
       {!create.locked && (
-        <div ref={composer}>
+        <div ref={composer} className={expandIdea === "b9" ? "ix-shift" : undefined} style={shift}>
           <Composer flow={flow} replies={replies} />
         </div>
+      )}
+      {expandIdea === "b9" && <div ref={setCanvasEl} className="pointer-events-none absolute bottom-4 right-4 top-[76px] z-20 flex" style={{ width: CANVAS_WIDTH }} />}
+      {expandIdea === "b7" && validFile && (
+        <Island
+          engine={run.status}
+          step={reveal.typing ? undefined : last?.step}
+          messageId={last?.id}
+          ask={askIndex >= 0 ? { index: askIndex + 1, total: asked.length } : null}
+          create={create.runs[create.runs.length - 1]}
+          onOpen={create.open}
+        />
       )}
       <span role="status" className="sr-only">
         {waiting ? <Trans>The ADT Assistant is reading your book…</Trans> : announce}
       </span>
     </div>
+    </CanvasContext.Provider>
+    </FinishContext.Provider>
   )
 }
 

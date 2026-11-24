@@ -1,0 +1,82 @@
+/*
+ * Living chat loader ideas (lab only, board group "c"). Every loop stops under reduced motion and
+ * under `.reduce-effects`; the still state is the real pages (or words) with nothing moving.
+ */
+
+/* c12 Scan line: a glowing line walks down each page, leaving a soft tint, page after page. */
+@keyframes lcl-scan { 0% { top: -14px; opacity: 1; } 70% { top: 100%; opacity: 1; } 71%, 100% { top: 100%; opacity: 0; } }
+@keyframes lcl-lit { 0% { clip-path: inset(0 0 100% 0); opacity: 1; } 70% { clip-path: inset(0); opacity: 1; } 100% { clip-path: inset(0); opacity: 0; } }
+.lcl-scan-line {
+  position: absolute; left: -4px; right: -4px; top: -14px; height: 14px; pointer-events: none;
+  background: linear-gradient(to bottom, transparent, color-mix(in oklab, var(--color-brand-500) 55%, transparent) 70%, var(--color-brand-500) 92%, transparent);
+  box-shadow: 0 6px 16px -4px color-mix(in oklab, var(--color-brand-500) 60%, transparent);
+  animation: lcl-scan 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite both;
+}
+.lcl-scan-tint {
+  position: absolute; inset: 0; pointer-events: none;
+  background: color-mix(in oklab, var(--color-brand-400) 18%, transparent);
+  animation: lcl-lit 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite both;
+}
+
+/* c13 Shimmer: a light band slides across the status words; the seconds roll in. */
+@keyframes lcl-shim { from { background-position: 100% 0; } to { background-position: -50% 0; } }
+@keyframes lcl-roll { from { transform: translateY(-0.45em); opacity: 0.2; } to { transform: none; opacity: 1; } }
+.lcl-shim {
+  background: linear-gradient(90deg, var(--color-muted-foreground) 0 40%, var(--color-foreground) 50%, var(--color-muted-foreground) 60% 100%) 0 0 / 250% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: lcl-shim 2s linear infinite;
+}
+.lcl-roll { display: inline-block; animation: lcl-roll 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* c14 Steps: the current step spins; a step that ends pops its check and dims. */
+@keyframes lcl-spin { to { transform: rotate(360deg); } }
+@keyframes lcl-check { 0% { transform: scale(0.3); opacity: 0; } 60% { transform: scale(1.2); opacity: 1; } 100% { transform: none; opacity: 1; } }
+@keyframes lcl-row { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.lcl-spin { animation: lcl-spin 0.8s linear infinite; }
+.lcl-check { animation: lcl-check 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.lcl-row { animation: lcl-row 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* c15 Skeleton: grey bars sweep while waiting; the real words and pages come in from a blur. */
+@keyframes lcl-sweep { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+@keyframes lcl-real { from { opacity: 0; transform: scale(0.85); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+.lcl-sk { position: relative; overflow: hidden; background: color-mix(in oklab, var(--color-muted-foreground) 20%, transparent); }
+.lcl-sk::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.5), transparent);
+  animation: lcl-sweep 1.3s ease-in-out infinite;
+}
+@keyframes lcl-gone { to { opacity: 0; } }
+.lcl-real { animation: lcl-real 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.lcl-gone { animation: lcl-gone 0.35s ease 0.15s both; }
+
+/* c16 Flipbook: the first real pages turn over one by one, in 3D. */
+@keyframes lcl-flip { 0%, 8% { transform: rotateY(0); } 42%, 100% { transform: rotateY(-170deg); } }
+.lcl-book { perspective: 700px; }
+.lcl-leaf { position: absolute; inset: 0; transform-origin: 0 50%; transform-style: preserve-3d; animation: lcl-flip 3.2s cubic-bezier(0.45, 0, 0.2, 1) infinite both; }
+.lcl-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.lcl-face-back { transform: rotateY(180deg); }
+
+/* c17 Shape morph: the assistant's mark keeps changing shape while it works. */
+@keyframes lcl-morph {
+  0%, 100% { border-radius: 42% 58% 64% 36% / 45% 40% 60% 55%; scale: 1; }
+  25% { border-radius: 50%; scale: 0.88; }
+  50% { border-radius: 28% 72% 36% 64% / 62% 33% 67% 38%; scale: 1.05; }
+  75% { border-radius: 30%; scale: 0.93; }
+}
+.lcl-morph { border-radius: 50%; animation: lcl-morph 3.2s ease-in-out infinite; }
+.lcl-turn { animation: lcl-spin 7s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lcl-scan-line, .lcl-scan-tint { animation: none; opacity: 0; }
+  .lcl-shim { animation: none; background: none; color: inherit; }
+  .lcl-roll, .lcl-check, .lcl-row, .lcl-real, .lcl-spin, .lcl-turn, .lcl-leaf { animation: none; }
+  .lcl-sk::after { animation: none; opacity: 0; }
+  .lcl-gone { animation: none; opacity: 0; }
+  .lcl-morph { animation: none; border-radius: 50%; }
+}
+.reduce-effects :is(.lcl-scan-line, .lcl-scan-tint) { animation: none; opacity: 0; }
+.reduce-effects .lcl-shim { animation: none; background: none; color: inherit; }
+.reduce-effects :is(.lcl-roll, .lcl-check, .lcl-row, .lcl-real, .lcl-spin, .lcl-turn, .lcl-leaf) { animation: none; }
+.reduce-effects .lcl-sk::after { animation: none; opacity: 0; }
+.reduce-effects .lcl-gone { animation: none; opacity: 0; }
+.reduce-effects .lcl-morph { animation: none; border-radius: 50%; }

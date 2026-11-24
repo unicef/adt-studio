@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useStore } from "@tanstack/react-form"
-import { DevToolbar, useLabParams, type LabControl } from "@/lab/DevToolbar"
+import { useLabParams, type LabControl } from "@/lab/DevToolbar"
+import { LabBar } from "./LabBar"
 import { WizardProvider } from "@/components/wizard/core/WizardProvider"
 import { WizardFormProvider } from "@/components/wizard/core/WizardFormProvider"
 import { useWizardForm } from "@/components/wizard/core/wizardForm"
@@ -10,14 +11,14 @@ import { VARIANTS } from "../variants"
 import { IDEA_GROUPS, IdeasContext, type Ideas } from "../variants/chat/ideas"
 
 const CONTROLS: LabControl[] = [
-  { key: "variant", label: "Design", options: VARIANTS.map((v) => ({ value: v.id, label: v.name })), cycle: true },
-  { key: "book", label: "Engine answer", options: [{ value: "real", label: "Real engine" }, ...SCENARIOS.map((s) => ({ value: s.id, label: s.label }))] },
-  { key: "speed", label: "Speed", default: "normal", options: [{ value: "fast", label: "Fast" }, { value: "normal", label: "6.5 s" }, { value: "slow", label: "Slow 22 s" }, { value: "hold", label: "Never answers" }] },
+  { key: "variant", label: "Design", options: VARIANTS.map((v) => ({ value: v.id, label: v.short })), cycle: true },
+  { key: "book", label: "Book", default: "two-questions", options: SCENARIOS.map((s) => ({ value: s.id, label: s.label })) },
+  { key: "speed", label: "Speed", default: "normal", options: [{ value: "fast", label: "Fast" }, { value: "normal", label: "Normal" }, { value: "slow", label: "Slow" }, { value: "hold", label: "Never" }] },
   {
     key: "error",
     label: "Error",
     options: [
-      { value: "none", label: "None" },
+      { value: "none", label: "No error" },
       { value: "auth", label: "API key" },
       { value: "quota", label: "Quota" },
       { value: "offline", label: "Offline" },
@@ -56,7 +57,7 @@ function KeepFile({ file, onFile }: { file: File | null; onFile: (f: File) => vo
 /**
  * Add Book variant lab (dev builds only, `/books/new?lab`): every design is a whole flow, from
  * upload to create, fed by the same engine seam. The toolbar picks the design and what the engine
- * answers: the real engine, or a saved answer from a real book, at a chosen speed, or a real error.
+ * answers: a saved answer from a real book, at a chosen speed, or a real error.
  */
 export default function AddBookLab() {
   const [values, set] = useLabParams(ALL_CONTROLS)
@@ -83,12 +84,14 @@ export default function AddBookLab() {
           </IdeasContext.Provider>
         </WizardFormProvider>
       </WizardProvider>
-      <DevToolbar
-        controls={living ? ALL_CONTROLS : CONTROLS}
+      <LabBar
+        design={CONTROLS[0]!}
+        state={CONTROLS.slice(1)}
+        ideas={living ? IDEA_CONTROLS : []}
         values={values}
         onChange={set}
-        note={scenario ? <span title={scenario.note}>{scenario.note.split(" · ")[0]}</span> : undefined}
-        actions={[{ key: "restart", label: "Restart", onClick: () => setRun((r) => r + 1) }]}
+        onRestart={() => setRun((r) => r + 1)}
+        note={scenario?.note}
       />
     </EngineClientProvider>
   )

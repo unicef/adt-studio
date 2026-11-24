@@ -1,9 +1,12 @@
-import type { ReactNode } from "react"
+import { useRef, type ReactNode } from "react"
 import { Trans } from "@lingui/react/macro"
 import { Check, ChevronDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Avatar, Dots } from "../../decide/intro/parts"
 import { POP, SWAP } from "../../../core/ui"
+import { MorphDots, useTypingMorph } from "../livechat/ideas/ambient/TypingMorph"
+import { useHandoff, useSlam, useWordBlur } from "../livechat/ideas/entrance/hooks"
+import { useIdea } from "./ideas"
 import { useLiving } from "./look"
 
 const SHADOW = "shadow-[0_6px_18px_-10px_rgba(15,23,42,0.3)]"
@@ -14,22 +17,36 @@ const SHADOW = "shadow-[0_6px_18px_-10px_rgba(15,23,42,0.3)]"
  */
 export function AssistantRow({ tail, children, card, className }: { tail?: boolean; children?: ReactNode; card?: ReactNode; className?: string }) {
   const living = useLiving()
+  const entrance = useLabIdea("entrance")
+  const ambient = useLabIdea("ambient")
+  const row = useRef<HTMLDivElement>(null)
+  const bubble = useRef<HTMLDivElement>(null)
+  const words = useWordBlur(bubble, entrance === "a3")
+  const morph = useTypingMorph(bubble, ambient === "g32" && !!children)
+  useSlam(row, entrance === "a4")
   return (
-    <div className={cn("flex items-end", living ? "gap-3.5" : "gap-2.5", className)}>
-      <span className={living && tail ? "lc-avatar flex self-end" : "contents"}>
+    <div ref={row} data-entrance={entrance} className={cn("flex items-end", living ? "gap-3.5" : "gap-2.5", className)}>
+      <span className={living && tail ? cn("lc-avatar flex self-end", ambient === "g31" && "lc-mood") : "contents"}>
         <Avatar hidden={!tail} size={living ? "lg" : "md"} />
       </span>
       <div className={cn("flex min-w-0 flex-1 flex-col items-start", living ? "max-w-[min(720px,calc(100%-62px))] gap-3" : "max-w-[min(560px,calc(100%-46px))] gap-2")}>
         <AssistantLabel />
         {children && (
           <div
+            ref={bubble}
+            data-morph={morph || undefined}
+            data-a3={words.active || undefined}
+            style={words.style}
             className={cn(
               "bg-card text-foreground ring-1 ring-border",
               living ? "lc-ai rounded-[28px] px-6 py-4 text-[19px] leading-[1.4] shadow-[0_14px_34px_-16px_rgba(15,23,42,0.35)]" : cn("origin-bottom-left rounded-[20px] px-4 py-2.5 text-[15.5px] leading-snug", SHADOW, POP),
               tail && !card && (living ? "rounded-bl-[8px]" : "rounded-bl-[6px]"),
+              (morph || words.active) && "relative",
             )}
           >
-            {children}
+            {morph ? <div className="lc-g32-text">{children}</div> : children}
+            {morph && <MorphDots />}
+            {words.layer}
           </div>
         )}
         {card && (
@@ -44,13 +61,19 @@ export function AssistantRow({ tail, children, card, className }: { tail?: boole
 
 export function UserRow({ children, className, plain }: { children: ReactNode; className?: string; plain?: boolean }) {
   const living = useLiving()
+  const entrance = useLabIdea("entrance")
+  const bubble = useRef<HTMLDivElement>(null)
+  useHandoff(bubble, entrance === "a2")
   return (
-    <div className={cn("flex justify-end pl-10", className)}>
+    <div data-entrance={entrance} className={cn("flex justify-end pl-10", className)}>
       <YouLabel />
       {plain ? (
-        <div className={cn("flex w-full justify-end", living ? "lc-you [zoom:1.12]" : cn("origin-bottom-right", POP))}>{children}</div>
+        <div ref={bubble} className={cn("flex w-full justify-end", living ? "lc-you [zoom:1.12]" : cn("origin-bottom-right", POP))}>
+          {children}
+        </div>
       ) : (
         <div
+          ref={bubble}
           className={cn(
             "bg-brand-600 font-medium text-primary-foreground",
             living
@@ -68,6 +91,7 @@ export function UserRow({ children, className, plain }: { children: ReactNode; c
 /** The assistant is writing. The dots are decoration; the thread's status line says it in words. */
 export function TypingRow() {
   const living = useLiving()
+  const ambient = useLabIdea("ambient")
   if (!living)
     return (
       <div className="flex items-end gap-2.5" aria-hidden>
@@ -77,7 +101,13 @@ export function TypingRow() {
     )
   return (
     <div className="flex items-end gap-3.5" aria-hidden>
-      <Avatar typing size="lg" />
+      {ambient === "g31" ? (
+        <span className="lc-mood-typing flex">
+          <Avatar typing size="lg" />
+        </span>
+      ) : (
+        <Avatar typing size="lg" />
+      )}
       <span className="lc-ai lc-typing flex h-[58px] w-[96px] items-center justify-center gap-2 rounded-[28px] rounded-bl-[8px] bg-card shadow-[0_14px_34px_-16px_rgba(15,23,42,0.35)] ring-1 ring-border">
         {[0, 1, 2].map((i) => (
           <span key={i} className="lc-dot size-2.5 rounded-full bg-brand-500/70" style={{ animationDelay: `${i * 0.16}s` }} />
@@ -85,6 +115,13 @@ export function TypingRow() {
       </span>
     </div>
   )
+}
+
+/** The idea picked in the lab for a group, only in Living chat; undefined for "now" (today's behaviour). */
+function useLabIdea(group: "entrance" | "ambient") {
+  const living = useLiving()
+  const idea = useIdea(group)
+  return living && idea !== "now" ? idea : undefined
 }
 
 /** A setting named the wizard's way, with its value: "Page Grouping · Spread". */

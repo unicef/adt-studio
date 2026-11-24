@@ -9,13 +9,17 @@ import { FACT_SHORT } from "../../engine/words"
 import type { UploadFlow } from "../../../start/upload/useUploadFlow"
 import { useScopeSummary } from "../../../core/fields/ScopeField"
 import { Attachment } from "./Attachment"
-import { Chip } from "./bubbles"
 import { CreateFailed, CreateSteps, NAME_INPUT, Ready, ReadyCard } from "./Create"
 import { EngineError } from "./EngineError"
 import { Found, settledSettings } from "./Findings"
 import { QuestionCard, QuestionText } from "./Question"
-import { Reading } from "./Reading"
+import { ReadingMessage, readingStays, useLoaderIdea } from "./Reading"
 import { SettingsCard } from "./SettingsCard"
+import { ClaimMark } from "../livechat/ideas/evidence/ClaimMark"
+import { SettingsSentence } from "../livechat/ideas/evidence/SettingsSentence"
+import { ToolCard } from "../livechat/ideas/evidence/ToolCard"
+import { FlyIn } from "../livechat/ideas/question/FlyIn"
+import { useIdea } from "./ideas"
 import type { Answers, SettingValue } from "./useAnswers"
 import type { useCreateRun } from "./useCreateRun"
 import { QUESTION_SHORT, valueTitle } from "./words"
@@ -64,6 +68,9 @@ export type ThreadInput = {
 export function useThread(input: ThreadInput): { messages: Message[]; summaries: Record<string, StepSummary> } {
   const { i18n } = useLingui()
   const { flow, rec, chat, run, create } = input
+  const loader = useLoaderIdea()
+  const questionIdea = useIdea("question")
+  const evidenceIdea = useIdea("evidence")
   const file = flow.file
   const scope = useScopeSummary(flow.pageCount)
   // Ids end up in CSS selectors (focus), so the file key is made safe for them.
@@ -122,24 +129,7 @@ export function useThread(input: ThreadInput): { messages: Message[]; summaries:
   }
   if (input.attempt > 0) user(`retry-${key}`, <Trans>Try again</Trans>)
   const failure = input.failures[input.attempt]
-  if (!rec && !failure)
-    ai(
-      `reading-${key}`,
-      60,
-      <div className="flex items-center gap-3.5">
-        <Reading file={file} pageCount={flow.pageCount} />
-        <div className="flex min-w-0 flex-col gap-2">
-          <p>{run.status === "running" && run.slow ? <Trans>This is taking longer than usual. I&apos;ll keep at it.</Trans> : <Trans>Reading your book. This takes a few seconds.</Trans>}</p>
-          {run.status === "running" && run.slow && (
-            <div>
-              <Chip onClick={input.onManual}>
-                <Trans>Set it up myself</Trans>
-              </Chip>
-            </div>
-          )}
-        </div>
-      </div>,
-    )
+  if ((!rec || readingStays(loader)) && !failure) ai(`reading-${key}`, 60, <ReadingMessage idea={loader} file={file} pageCount={flow.pageCount} run={run} rec={rec} onManual={input.onManual} />)
   if (failure) ai(`failed-${key}`, 70, <EngineError failure={failure} current onRetry={input.onRetry} onManual={input.onManual} />, undefined, `#msg-failed-${key} button`)
 
   const derived = chat.derived
@@ -151,7 +141,7 @@ export function useThread(input: ThreadInput): { messages: Message[]; summaries:
 
   // What it found, in one message.
   step = "found"
-  ai(`found-${key}`, 90, <Found rec={rec} derived={derived} file={file} />)
+  ai(`found-${key}`, 90, <Found rec={rec} derived={derived} file={file} />, evidenceIdea === "e25" ? <ToolCard rec={rec} derived={derived} /> : undefined)
   const settled = settledSettings(rec, derived)
   const genreAsked = derived.asked.some((f) => f.id === "genre")
   summaries.found = {
@@ -169,14 +159,14 @@ export function useThread(input: ThreadInput): { messages: Message[]; summaries:
       `q-${fact.id}-${key}`,
       60,
       <span id={labelId}>
-        <QuestionText fact={fact} index={i + 1} total={total} />
+        <QuestionText fact={fact} index={i + 1} total={total} mark={<ClaimMark file={file} pages={fact.evidencePages} />} />
       </span>,
       <QuestionCard rec={rec} fact={fact} answers={derived.current} chosen={chat.answers[fact.id]} onAnswer={(v) => input.onAnswer(fact.id, v)} frozen={create.locked} file={file} labelId={labelId} />,
-      `#msg-q-${fact.id}-${key} [aria-pressed]`,
+      questionIdea === "d21" ? `#msg-q-${fact.id}-${key} [data-q-first], #msg-q-${fact.id}-${key} [aria-pressed]` : `#msg-q-${fact.id}-${key} [aria-pressed]`,
     )
     const answer = chat.answers[fact.id]
     if (!answer) return done
-    user(`a-${fact.id}-${key}`, i18n._(FACT_SHORT[fact.id][answer]!))
+    user(`a-${fact.id}-${key}`, questionIdea === "d19" ? <FlyIn flight={fact.id}>{i18n._(FACT_SHORT[fact.id][answer]!)}</FlyIn> : i18n._(FACT_SHORT[fact.id][answer]!))
     summaries[step] = {
       text: (
         <>
@@ -198,7 +188,13 @@ export function useThread(input: ThreadInput): { messages: Message[]; summaries:
     `ready-${key}`,
     30,
     total === 0 ? <Trans>Nothing to ask. Here&apos;s the setup: name it and create it.</Trans> : <Trans>Thanks! Here&apos;s the setup: name it and create it.</Trans>,
-    <ReadyCard locked={create.locked} onCreate={input.onCreate} setup={<SettingsCard rec={rec} derived={derived} onChange={input.onSetting} frozen={create.locked} numPages={flow.pageCount} file={file} onAllSettings={input.onManual} />} />,
+    <ReadyCard locked={create.locked} onCreate={input.onCreate} setup={
+        evidenceIdea === "e24" ? (
+          <SettingsSentence rec={rec} derived={derived} onChange={input.onSetting} frozen={create.locked} onAllSettings={input.onManual} />
+        ) : (
+          <SettingsCard rec={rec} derived={derived} onChange={input.onSetting} frozen={create.locked} numPages={flow.pageCount} file={file} onAllSettings={input.onManual} />
+        )
+      } />,
     `#${NAME_INPUT}`,
   )
   summaries.ready = { text: [title("preset"), title("renderStrategy"), title("pageGrouping")].join(" · ") }
