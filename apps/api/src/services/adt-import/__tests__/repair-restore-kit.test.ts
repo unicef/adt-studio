@@ -44,3 +44,19 @@ describe("repair request", () => {
     expect(request).toMatch(/fix: Save the script in the restore kit, then remove it/)
   })
 })
+
+describe("repair request for a page outside the reading order", () => {
+  const files = unzipSync(makeCurrentBundleWithExternallyAddedPage())
+  files["creditos.html"] = strToU8("<!doctype html><html><body><p>Créditos</p></body></html>")
+  files["notes.txt"] = strToU8("scratch")
+  const request = previewAdtRecoveryImport(Buffer.from(zipSync(files)), undefined, "cuaderno.zip").agentGuide.repairPrompt
+
+  it("saves the page in the restore kit instead of deleting it, and asks when unsure", () => {
+    expect(request).toMatch(/kind: unlisted-root-page\n[^\n]*\n   fix: [^\n]*save it in the restore kit, then remove it/)
+    expect(request).toMatch(/fix: [^\n]*If you can't tell whether the delivered book needs the page, ask the user/)
+  })
+
+  it("points a stray file at the kit too", () => {
+    expect(request).toMatch(/fix: Move its files into the matching canonical folder, or save the folder or file in the restore kit/)
+  })
+})

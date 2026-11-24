@@ -1883,6 +1883,9 @@ msgstr "Se está generando una imagen con IA. ¿Cancelar y navegar?"
 msgid "An API key set in the server environment takes precedence over this sign-in. Remove it there to run on the signed-in account."
 msgstr "Una clave de API definida en el entorno del servidor tiene prioridad sobre este inicio de sesión. Elimínela allí para usar la cuenta con la que ha iniciado sesión."
 
+msgid "An HTML page at the top of the archive isn’t in the book’s reading order (content/pages.json), so it can’t be imported."
+msgstr "Una página HTML en la raíz del archivo no está en el orden de lectura del libro (content/pages.json), así que no se puede importar."
+
 msgid "An image is missing its data-id."
 msgstr "A una imagen le falta su data-id."
 
@@ -8752,6 +8755,9 @@ msgstr "Número de página"
 
 msgid "Page numbers detected — these will be read aloud: {pageNumberPreview}. Mute them all from text-to-speech?"
 msgstr "Se detectaron números de página — se leerán en voz alta: {pageNumberPreview}. ¿Silenciarlos todos en la conversión de texto a voz?"
+
+msgid "Page outside the reading order"
+msgstr "Página fuera del orden de lectura"
 
 msgid "Page preview"
 msgstr "Vista previa de la página"

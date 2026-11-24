@@ -582,6 +582,7 @@ describe("ImportProject", () => {
     expect(within(scripts).getAllByText(/^pg0\d\d_sec001\.html$/)).toHaveLength(10)
     expect(within(scripts).getByText("+50 more not listed here. The repair request includes them all.")).toBeTruthy()
     expect(screen.getByText("creditos.html")).toBeTruthy()
+    expect(screen.getByRole("region", { name: "Page outside the reading order" })).toBeTruthy()
     // The summary says once, above the list, that the list is a sample.
     expect(screen.getByText("The list below shows a few examples of each problem. The repair request lists every affected file.")).toBeTruthy()
   })
