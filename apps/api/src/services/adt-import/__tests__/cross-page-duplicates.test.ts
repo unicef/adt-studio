@@ -86,3 +86,35 @@ describe("import review of repeated ids", () => {
     ])
   })
 })
+
+function bundleWithManyRepeatedIds(count: number): Buffer {
+  const files = unzipSync(makeCurrentBundleWithExternallyAddedPage())
+  const ids = Array.from({ length: count }, (_, index) => `pg002_t${String(index + 1).padStart(3, "0")}`)
+  const paragraphs = (text: string) => ids.map((id) => `<p data-id="${id}">${text} ${id}</p>`).join("")
+  const manifest = JSON.parse(new TextDecoder().decode(files["manifest.json"]))
+  manifest.editingContract.pageOrder.push({ sectionId: "pg003_sec001", href: "pg003_sec001.html" })
+  manifest.editingContract.pageDataIds["pg002_sec001.html"] = ids
+  manifest.editingContract.pageDataIds["pg003_sec001.html"] = ids
+  files["manifest.json"] = json(manifest)
+  files["content/pages.json"] = json([
+    { section_id: "pg001_sec001", href: "index.html", page_number: 1 },
+    { section_id: "pg002_sec001", href: "pg002_sec001.html", page_number: 2 },
+    { section_id: "pg003_sec001", href: "pg003_sec001.html", page_number: 3 },
+  ])
+  files["pg002_sec001.html"] = strToU8(page("pg002_sec001", paragraphs("Original")))
+  files["pg003_sec001.html"] = strToU8(page("pg003_sec001", paragraphs("Copy")))
+  return Buffer.from(zipSync(files))
+}
+
+describe("repair request for repeated ids", () => {
+  it("names every repeated id and its other pages, not only the report's examples", () => {
+    const { compatibility, agentGuide } = previewAdtRecoveryImport(bundleWithManyRepeatedIds(12))
+    expect(compatibility.issueCounts?.["cross-page-duplicate-data-id"]).toBe(12)
+    for (let index = 1; index <= 12; index += 1) {
+      const id = `pg002_t${String(index).padStart(3, "0")}`
+      expect(agentGuide.repairPrompt).toContain(`   - pg002_sec001.html: ${id} (also on pg003_sec001.html)`)
+    }
+    expect(agentGuide.repairPrompt).toContain("found 12 times:")
+    expect(agentGuide.repairPrompt).not.toMatch(/found 12 times; the first/)
+  })
+})

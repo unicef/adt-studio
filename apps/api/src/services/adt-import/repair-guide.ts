@@ -100,6 +100,12 @@ export const DO_NOT_INTRODUCE_PROBLEMS = [
  * examples, so a pathological archive can't bloat the request. */
 const MAX_LISTED_FILES_PER_CODE = 500
 
+/** Problem types whose detail is the fix itself (which data-id, which other
+ * pages), so the request lists every problem with its detail instead of the
+ * report's examples plus file names. A file name alone would point at the
+ * page the fix says to keep. */
+const EVERY_DETAIL_CODES: ReadonlySet<AdtImportCompatibilityIssueCode> = new Set(["cross-page-duplicate-data-id"])
+
 interface IssueGroup {
   code: AdtImportCompatibilityIssueCode
   count: number
@@ -117,8 +123,11 @@ function issueGroups(
 ): IssueGroup[] {
   const codes = [...new Set(compatibility.issues.map((issue) => issue.code))]
   return codes.map((code) => {
-    const examples = compatibility.issues.filter((issue) => issue.code === code)
     const all = allIssues.filter((issue) => issue.code === code)
+    const reported = compatibility.issues.filter((issue) => issue.code === code)
+    const examples = EVERY_DETAIL_CODES.has(code) && all.length > reported.length
+      ? all.slice(0, MAX_LISTED_FILES_PER_CODE)
+      : reported
     const files = [...new Set(all.map((issue) => issue.pageHref).filter(Boolean))]
     const exampleFiles = new Set(examples.map((issue) => issue.pageHref))
     const others = files.filter((file) => !exampleFiles.has(file))
