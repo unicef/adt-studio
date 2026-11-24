@@ -112,6 +112,36 @@ describe("import, then export again", () => {
     expect(exportedConfig.lockedSettings).toEqual(["dockLayout", "theme", "iconSize", "reduceMotion"])
   })
 
+  // #1198 review: the Preview stage's bundle reports its settings back and
+  // the export lets them override the book's, so it must start from the
+  // book's defaults, not the reader's built-in ones. Locks stay out, as in
+  // the /adt-preview/ iframe, so every setting can still be changed there.
+  it("builds the Preview stage's bundle with the book's reader defaults and no locks", async () => {
+    const files = unzipSync(makeCurrentBundleWithExternallyAddedPage())
+    const config = JSON.parse(new TextDecoder().decode(files["assets/config.json"]))
+    files["assets/config.json"] = strToU8(JSON.stringify({
+      ...config,
+      defaultSettings: { dockLayout: { width: "compact", position: "top", align: "center" }, theme: "light", iconSize: "sm", reduceMotion: true },
+      lockedSettings: ["theme"],
+    }))
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "adt-reexport-preview-settings-"))
+    temporaryRoots.push(root)
+    const webAssetsDir = path.join(root, "web-assets")
+    createWebAssets(webAssetsDir)
+    const session = importAdtProject(Buffer.from(zipSync(files)), root)
+    const app = new Hono().onError(errorHandler).route("/api", createPackageRoutes(root, webAssetsDir))
+    const response = await app.request(`/api/books/${session.label}/package-adt`, { method: "POST" })
+    expect(response.status, await response.clone().text()).toBe(200)
+    const previewConfig = JSON.parse(fs.readFileSync(path.join(root, session.label, "adt", "assets", "config.json"), "utf8"))
+    expect(previewConfig.defaultSettings).toEqual({
+      dockLayout: { width: "compact", position: "top", align: "center" },
+      theme: "light",
+      iconSize: "sm",
+      reduceMotion: true,
+    })
+    expect(previewConfig).not.toHaveProperty("lockedSettings")
+  })
+
   it("keeps a quiz's exported id instead of renumbering it by position (review #4)", async () => {
     // The reviewer's case: the book's only remaining quiz is qz002.
     const archive = renameInArchive(makeFixedLayoutBundle(), "qz001", "qz002")
