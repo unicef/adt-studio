@@ -2223,8 +2223,8 @@ export const api = {
       protectedWork?: Array<import("@adt/types").AuthoredReplacement & { pageNumber?: number }>
     }>(`/books/${label}/step-status`, { signal }),
 
-  getTTS: (label: string) =>
-    request<TTSResponse>(`/books/${label}/tts`),
+  getTTS: (label: string, signal?: AbortSignal) =>
+    request<TTSResponse>(`/books/${label}/tts`, { signal }),
 
   deleteTTS: (label: string) =>
     request<{ ok: boolean }>(`/books/${label}/tts`, { method: "DELETE" }),

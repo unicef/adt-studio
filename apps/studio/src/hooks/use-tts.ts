@@ -6,7 +6,9 @@ import { api, getAudioUrl } from "@/api/client"
 export function useTTSData(label: string) {
   return useQuery({
     queryKey: ["books", label, "tts"],
-    queryFn: () => api.getTTS(label),
+    // Forward the signal so a read that was cancelled or lost its last
+    // subscriber is dropped instead of being served for nobody.
+    queryFn: ({ signal }) => api.getTTS(label, signal),
     enabled: !!label,
   })
 }
