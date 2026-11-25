@@ -34,6 +34,8 @@ export {
   bustCache,
 } from "./cache.js"
 
+export { toJsonSchema } from "./providers/shared/json-schema.js"
+
 export {
   runAgentLoop,
   executeToolCall,

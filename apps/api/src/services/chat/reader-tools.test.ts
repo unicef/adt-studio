@@ -7,6 +7,7 @@ import { z } from "zod"
 import { createBookStorage } from "@adt/storage"
 import {
   createProviderRegistry,
+  toJsonSchema,
   type AgentTurnRequest,
   type AgentTurnResponse,
   type AnyProviderModule,
@@ -107,7 +108,7 @@ describe("reader chat tools", () => {
   it("AC-23: compileReader returns the compile route's errors, and paths outside src are refused", async () => {
     const toolkit = createReaderToolkit(label, booksDir, webAssetsDir)
     const drafts = { [DOCK]: 'import "left-pad"\n' }
-    const fromTool = await toolkit.tools.compileReader.execute({ drafts })
+    const fromTool = await toolkit.tools.compileReader.execute({ drafts: [{ path: DOCK, content: drafts[DOCK] }] })
     const fromService = await createReaderSourceService(booksDir, webAssetsDir).compile(label, drafts)
     expect(fromTool).toEqual(fromService)
     expect(fromTool.ok).toBe(false)
@@ -117,6 +118,30 @@ describe("reader chat tools", () => {
     const toolMessage = result.messages.find((message) => message.role === "tool")
     expect(toolMessage).toMatchObject({ results: [{ toolName: "readReaderFile", isError: true }] })
   }, 60_000)
+
+  it("declares every parameter as required, as strict tool schemas demand", () => {
+    const toolkit = createReaderToolkit(label, booksDir, webAssetsDir)
+    const objectsMissingRequired = (schema: unknown, at: string): string[] => {
+      if (!schema || typeof schema !== "object") return []
+      const node = schema as { type?: unknown; properties?: Record<string, unknown>; required?: string[]; additionalProperties?: unknown; items?: unknown; anyOf?: unknown[] }
+      const own = node.properties
+        ? Object.keys(node.properties)
+            .filter((key) => !(node.required ?? []).includes(key))
+            .map((key) => `${at}.${key}`)
+        : []
+      const open = node.type === "object" && node.additionalProperties !== false ? [`${at} allows additional properties`] : []
+      const nested = [
+        ...Object.entries(node.properties ?? {}).flatMap(([key, child]) => objectsMissingRequired(child, `${at}.${key}`)),
+        ...objectsMissingRequired(node.items, `${at}[]`),
+        ...(node.anyOf ?? []).flatMap((child) => objectsMissingRequired(child, at)),
+      ]
+      return [...own, ...open, ...nested]
+    }
+    const problems = Object.entries(toolkit.tools).flatMap(([name, tool]) =>
+      objectsMissingRequired(toJsonSchema(tool.parameters, name), name),
+    )
+    expect(problems).toEqual([])
+  })
 
   it("AC-25: reader tools only exist in reader scope", async () => {
     const { id } = createChatThreadStore(booksDir, label).create()

@@ -44,13 +44,22 @@ export function createReaderToolkit(label: string, booksDir: string, webAssetsDi
       },
       searchReaderFiles: {
         description: "Search the effective reader source for a text (case-insensitive). Returns matching lines.",
-        parameters: z.object({ query: z.string().min(2).max(200), limit: z.number().int().min(1).max(100).optional() }),
-        execute: ({ query, limit }: { query: string; limit?: number }) => ({ matches: service.search(label, query, limit ?? 40) }),
+        parameters: z.object({
+          query: z.string().min(2).max(200),
+          limit: z.number().int().min(1).max(100).nullable().describe("Maximum matches to return; null for 40"),
+        }),
+        execute: ({ query, limit }: { query: string; limit: number | null }) => ({ matches: service.search(label, query, limit ?? 40) }),
       },
       compileReader: {
         description: "Compile the reader with the saved overrides plus optional unsaved drafts. Returns compile errors with file, line and column.",
-        parameters: z.object({ drafts: z.record(ReaderSourcePath, z.string().max(READER_SOURCE_MAX_BYTES)).optional() }),
-        execute: ({ drafts }: { drafts?: Record<string, string> }) => service.compile(label, drafts),
+        parameters: z.object({
+          drafts: z
+            .array(z.object({ path: ReaderSourcePath, content: z.string().max(READER_SOURCE_MAX_BYTES) }))
+            .nullable()
+            .describe("Unsaved files to compile in place of the saved ones; null to compile only what is saved"),
+        }),
+        execute: ({ drafts }: { drafts: Array<{ path: string; content: string }> | null }) =>
+          service.compile(label, Object.fromEntries((drafts ?? []).map((draft) => [draft.path, draft.content]))),
       },
       writeReaderFile: {
         description: "Replace a reader source file with new content. Waits for the user's approval and saves a new version in this book.",
