@@ -266,12 +266,12 @@ export function LabBar({
                     <span className="flex min-w-0 flex-col gap-0.5">
                       <span className={`text-[13px] font-semibold ${on ? "text-white" : "text-white/80"}`}>
                         {o.label}
-                        {o.value !== "now" && <span className="ml-1.5 text-[11px] font-medium text-white/30">{o.value}</span>}
+                        {o.value !== "now" && o.value !== "off" && <span className="ml-1.5 text-[11px] font-medium text-white/30">{o.value}</span>}
                       </span>
-                      <span className="text-[11.5px] leading-snug text-white/50">{o.value === "now" ? "Living chat as it is, no idea on." : o.hint}</span>
+                      <span className="text-[11.5px] leading-snug text-white/50">{o.hint}</span>
                     </span>
                   </button>
-                  {o.value !== "now" && (
+                  {o.value !== "now" && o.value !== "off" && (
                     <button
                       type="button"
                       onClick={() => toggleLike(o.value)}
@@ -297,7 +297,7 @@ export function LabBar({
       {open?.kind === "settings" && (
         <Panel title="Lab settings" onClose={() => setOpen(null)}>
           <div className="flex flex-col gap-4">
-            <Row label="Design" hint={values[settings[0]!.key] === "livechat" ? undefined : "The stepper works on Living chat and Chat; ideas only on Living chat."}>
+            <Row label="Design" hint={["livechat", "guided"].includes(values[settings[0]!.key] ?? "") ? undefined : "The stepper works on Living chat, Guided and Chat; ideas only on Living chat and Guided."}>
               <div role="radiogroup" aria-label="Design" className="flex flex-wrap gap-0.5 rounded-full bg-white/5 p-0.5">
                 {settings[0]!.options.map((o) => (
                   <button key={o.value} type="button" role="radio" aria-checked={o.value === values[settings[0]!.key]} onClick={() => onChange(settings[0]!.key, o.value)} className={pill(o.value === values[settings[0]!.key])}>

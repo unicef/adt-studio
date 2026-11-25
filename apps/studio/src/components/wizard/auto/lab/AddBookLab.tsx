@@ -14,6 +14,7 @@ import { forgetSavedPdf, loadSavedPdf, savePdf } from "./savedPdf"
 import { VARIANTS } from "../variants"
 import { IDEA_GROUPS, IdeasContext, type IdeaGroup, type Ideas } from "../variants/chat/ideas"
 import { LabDriveContext, type FlowStep } from "../variants/chat/labDrive"
+import { GUIDED_IDEAS, GUIDED_STEP_GROUPS, PLAIN } from "../variants/guided/ideas"
 
 /** The flow in order; Error branches off Reading. Question steps show only as many as the book answer asks. */
 const FLOW: StepItem[] = [
@@ -59,13 +60,56 @@ const SETTINGS: LabControl[] = [
 ]
 const STEP_CONTROL: LabControl = { key: "step", label: "Step", default: "start", options: FLOW.map((s) => ({ value: s.id, label: s.label })) }
 
-/** Living chat only: one control per group of ideas from the reference board. */
+/** Living chat: one control per group of ideas from the reference board. */
 const IDEA_CONTROLS: LabControl[] = IDEA_GROUPS.map((g) => ({
   key: g.key,
   label: g.label,
-  options: [{ value: "now", label: "Now" }, ...g.options.map(([value, label, hint]) => ({ value, label, hint }))],
+  // eslint-disable-next-line lingui/no-unlocalized-strings -- dev-only lab labels
+  options: [{ value: "now", label: "Now", hint: "Living chat as it is, no idea on." }, ...g.options.map(([value, label, hint]) => ({ value, label, hint }))],
 }))
-const ALL_CONTROLS = [...SETTINGS, STEP_CONTROL, ...IDEA_CONTROLS]
+
+/**
+ * Guided: only the groups and ideas that apply to it. "Now" is Guided's own pick (its default);
+ * Plain turns the group off.
+ */
+const GUIDED_CONTROLS: LabControl[] = IDEA_GROUPS.flatMap((g) => {
+  const spec = (GUIDED_IDEAS as Record<string, { default: string; options: readonly string[] }>)[g.key]
+  if (!spec) return []
+  const option = (id: string) => g.options.find(([value]) => value === id)!
+  const [, defLabel, defHint] = option(spec.default)
+  return [
+    {
+      key: g.key,
+      label: g.label,
+      options: [
+        // eslint-disable-next-line lingui/no-unlocalized-strings -- dev-only lab labels
+        { value: "now", label: `Default: ${defLabel}`, hint: `Guided's pick (${spec.default}). ${defHint}` },
+        ...spec.options.filter((id) => id !== spec.default).map((id) => {
+          const [value, label, hint] = option(id)
+          return { value, label, hint }
+        }),
+        // eslint-disable-next-line lingui/no-unlocalized-strings -- dev-only lab labels
+        { value: PLAIN, label: "Plain", hint: "No idea from the board for this group." },
+      ],
+    },
+  ]
+})
+
+/** Every value a group can take in any design, so the URL keeps it when switching designs. */
+const PARAM_CONTROLS: LabControl[] = IDEA_CONTROLS.map((c) => {
+  const guided = GUIDED_CONTROLS.find((g) => g.key === c.key)
+  return { ...c, options: [...c.options, ...(guided?.options.filter((o) => !c.options.some((x) => x.value === o.value)) ?? [])] }
+})
+const ALL_CONTROLS = [...SETTINGS, STEP_CONTROL, ...PARAM_CONTROLS]
+
+/** The idea controls and the groups each step shows, per design (none for the designs without ideas). */
+const DESIGN_IDEAS: Record<string, { controls: LabControl[]; groups: Record<FlowStep, IdeaGroup[]> }> = {
+  livechat: { controls: IDEA_CONTROLS, groups: STEP_GROUPS },
+  guided: { controls: GUIDED_CONTROLS, groups: GUIDED_STEP_GROUPS },
+}
+
+/** A design's idea value for a group: the lab's value when the design offers it, else "now". */
+const valueFor = (controls: LabControl[], key: string, value: string | undefined) => (controls.find((c) => c.key === key)?.options.some((o) => o.value === value) ? value! : "now")
 
 /** A jump: the step to land on ("play" runs from the PDF at the chosen speed), and a counter that remounts the flow. */
 type Jump = { step: FlowStep | "play"; n: number }
@@ -90,7 +134,7 @@ function KeepFile({ file, seed, onFile }: { file: File | null; seed: boolean; on
 }
 
 /**
- * Add Book variant lab (dev builds only, `/books/new?lab`), centred on Living chat. The bar's
+ * Add Book variant lab (dev builds only, `/books/new?lab`), centred on Living chat and Guided. The bar's
  * stepper jumps the real thread to any step of the flow, with the steps before it answered with
  * the assistant's guesses, and follows the thread when you click through it by hand. Only the idea
  * groups that change the current step are in the bar; the design, the book answer, speed and error
@@ -138,10 +182,10 @@ export default function AddBookLab() {
 
   const variant = VARIANTS.find((v) => v.id === values.variant) ?? VARIANTS[0]!
   const Variant = variant.Component
-  const chatLike = variant.id === "livechat" || variant.id === "chat"
-  const living = variant.id === "livechat"
+  const chatLike = variant.id === "livechat" || variant.id === "chat" || variant.id === "guided"
+  const design = DESIGN_IDEAS[variant.id]
   const scenario = SCENARIOS.find((s) => s.id === values.book)
-  const ideas = useMemo(() => Object.fromEntries(IDEA_GROUPS.map((g) => [g.key, living ? values[g.key] : "now"])) as Ideas, [living, values])
+  const ideas = useMemo(() => Object.fromEntries(IDEA_GROUPS.map((g) => [g.key, design ? valueFor(design.controls, g.key, values[g.key]) : "now"])) as Ideas, [design, values])
 
   const steps = FLOW.filter((s) => !(s.id === "q1" && questions === 0) && !(s.id === "q2" && questions !== null && questions < 2))
 
@@ -193,8 +237,8 @@ export default function AddBookLab() {
         onStep={goTo}
         pdfName={file?.name ?? null}
         settings={SETTINGS}
-        ideas={living ? IDEA_CONTROLS : []}
-        shownGroups={STEP_GROUPS[actual]}
+        ideas={design?.controls ?? []}
+        shownGroups={design?.groups[actual] ?? []}
         values={values}
         onChange={onChange}
         onReplay={() => goTo("play")}
