@@ -114,6 +114,35 @@ describe("prepareCoreTtsCatalog", () => {
     expect(signatureOf(authoredChanged, "pg001_t002")).toBe(signatureOf(base, "pg001_t002"))
   })
 
+  it("AC-25: prepareCoreTtsCatalog and resolveCoreTtsSpeechCatalog agree on the artifact set", async () => {
+    const authored = new Set(["pg001_im001_audio"])
+    const profile = { key: "default", guidance: "Normalize." }
+    const entries = [
+      { id: "pg001_t001", text: "Hello" },
+      { id: "pg001_im001_audio", text: "Mago" },
+      { id: "pg001_t002", text: "Bye" },
+    ]
+    const prepared = await prepareCoreTtsCatalog({
+      entries,
+      language: "en",
+      config,
+      profile,
+      authoredElementAudioIds: authored,
+      llmModel: modelWith([
+        { id: "pg001_t001", speech_text: "Hello", transformation_kinds: ["language-normalization"], failure_reason: null },
+        { id: "pg001_im001_audio", speech_text: "Mago", transformation_kinds: [], failure_reason: null },
+        { id: "pg001_t002", speech_text: "Bye", transformation_kinds: ["language-normalization"], failure_reason: null },
+      ]),
+    })
+    const resolved = resolveCoreTtsSpeechCatalog({
+      entries, language: "en", config, profile, previous: prepared, authoredElementAudioIds: authored,
+    })
+    for (const id of ["pg001_t001", "pg001_im001_audio", "pg001_t002"]) {
+      expect(resolved.entries.find((entry) => entry.id === id)?.input?.signature)
+        .toBe(prepared.entries.find((entry) => entry.id === id)?.input?.signature)
+    }
+  })
+
   it("uses one structured call for LaTeX and normalization", async () => {
     const llm = modelWith([{ id: "t1", speech_text: "one half", transformation_kinds: ["latex-to-speech", "language-normalization"], failure_reason: null }])
     const result = await prepareCoreTtsCatalog({
