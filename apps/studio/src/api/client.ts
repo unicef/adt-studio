@@ -18,6 +18,9 @@ import type {
   AdtBundleImportPreview,
   AdtImportUnreadableDetails,
   BookDetail,
+  ChatStreamEvent,
+  ChatThread,
+  ChatThreadSummary,
   BookFont,
   BookFontRole,
   BookMetadata,
@@ -1737,6 +1740,31 @@ export const api = {
         body: JSON.stringify({ source, targets, instruction }),
         signal: AbortSignal.timeout(30_000),
       },
+    ),
+
+  listChatThreads: (label: string) =>
+    request<{ threads: ChatThreadSummary[] }>(`/books/${label}/chat/threads`),
+
+  createChatThread: (label: string) =>
+    request<ChatThread>(`/books/${label}/chat/threads`, { method: "POST" }),
+
+  getChatThread: (label: string, threadId: string) =>
+    request<ChatThread>(`/books/${label}/chat/threads/${threadId}`),
+
+  deleteChatThread: (label: string, threadId: string) =>
+    request<{ ok: true }>(`/books/${label}/chat/threads/${threadId}`, { method: "DELETE" }),
+
+  streamChatTurn: async (
+    label: string,
+    threadId: string,
+    input: { text: string } | { decisions: Record<string, boolean> },
+    onEvent: (event: ChatStreamEvent) => void,
+    signal?: AbortSignal,
+  ) =>
+    postEventStream<ChatStreamEvent>(
+      `/books/${label}/chat/threads/${threadId}/${"text" in input ? "messages" : "approval"}`,
+      input,
+      { headers: await buildApiHeaders(""), onEvent, signal },
     ),
 
   agentGenerateActivity: async (

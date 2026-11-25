@@ -2066,6 +2066,9 @@ msgstr "Aplicar a todos os erros desta execução"
 msgid "Applying changes…"
 msgstr "Aplicando alterações…"
 
+msgid "Approve"
+msgstr "Aprovar"
+
 msgid "Archive"
 msgstr "Arquivo"
 
@@ -2115,8 +2118,14 @@ msgstr "Inteligência artificial"
 msgid "Aside"
 msgstr "Conteúdo lateral"
 
+msgid "Ask about this book…"
+msgstr "Pergunte sobre este livro…"
+
 msgid "Ask AI to edit..."
 msgstr "Peça para a IA editar..."
+
+msgid "Ask questions about this book or request a change. Changes wait for your approval."
+msgstr "Faça perguntas sobre este livro ou peça uma alteração. As alterações aguardam sua aprovação."
 
 msgid "Ask the person who sent you this link to share it again."
 msgstr "Peça a quem enviou este link para compartilhá-lo novamente."
@@ -2400,6 +2409,9 @@ msgstr "Livro"
 
 msgid "Book artwork"
 msgstr "Ilustrações do livro"
+
+msgid "Book assistant"
+msgstr "Assistente do livro"
 
 msgid "Book coverage"
 msgstr "Cobertura do livro"
@@ -3050,6 +3062,9 @@ msgstr "Falha ao clonar"
 msgid "Close"
 msgstr "Fechar"
 
+msgid "Close assistant"
+msgstr "Fechar assistente"
+
 msgid "Close edit panel"
 msgstr "Fechar painel de edição"
 
@@ -3450,6 +3465,9 @@ msgstr "Controla como o conteúdo da página é agrupado durante o passo de secc
 
 msgid "Controls whether ElevenLabs expands abbreviations, numbers, and symbols into spoken words (e.g. \"N.º\" → \"Número\"). \"Auto\" lets ElevenLabs decide per request; \"On\" always normalizes; \"Off\" reads the text as written, which is safer for codes, IDs, or text that shouldn't be expanded."
 msgstr "Controla se o ElevenLabs expande abreviações, números e símbolos em palavras faladas (ex.: “N.º” → “Número”). “Automático” deixa o ElevenLabs decidir a cada solicitação; “Ligado” sempre normaliza; “Desligado” lê o texto como está escrito, o que é mais seguro para códigos, IDs ou textos que não devem ser expandidos."
+
+msgid "Conversation"
+msgstr "Conversa"
 
 msgid "Conversion failed"
 msgstr "Falha na conversão"
@@ -3855,6 +3873,9 @@ msgstr "Decidir se uma afirmação é verdadeira ou falsa."
 msgid "Decide whether to keep or replace protected content."
 msgstr "Decida se deseja manter ou substituir o conteúdo protegido."
 
+msgid "Decline"
+msgstr "Recusar"
+
 msgid "Decorative"
 msgstr "Decorativa"
 
@@ -3999,6 +4020,9 @@ msgstr "Excluir todo o áudio"
 
 msgid "Delete book"
 msgstr "Excluir livro"
+
+msgid "Delete conversation"
+msgstr "Excluir conversa"
 
 msgid "Delete element"
 msgstr "Excluir elemento"
@@ -7140,6 +7164,9 @@ msgstr "Mesclando páginas duplas…"
 msgid "Merging…"
 msgstr "Mesclando…"
 
+msgid "Message"
+msgstr "Mensagem"
+
 msgid "Message copied"
 msgstr "Mensagem copiada"
 
@@ -7450,6 +7477,9 @@ msgstr "Novo código definido — copie a mensagem de novo para que os leitores 
 #. placeholder {0}: first.author_name
 msgid "New comment from {0}"
 msgstr "Novo comentário de {0}"
+
+msgid "New conversation"
+msgstr "Nova conversa"
 
 msgid "New Entry"
 msgstr "Nova entrada"
@@ -8326,6 +8356,9 @@ msgstr "Abra um projeto ADT que <0>já existe</0> — um backup, uma parte de li
 
 #~ msgid "Open API key settings"
 #~ msgstr "Abrir configurações de chaves de API"
+
+msgid "Open book assistant"
+msgstr "Abrir assistente do livro"
 
 msgid "Open command palette"
 msgstr "Abrir paleta de comandos"
@@ -11074,6 +11107,9 @@ msgstr "Selecionar “Nenhum” permite que o LLM escolha o próprio estilo de c
 msgid "Self-contained ADT web app"
 msgstr "Aplicativo web ADT autônomo"
 
+msgid "Send"
+msgstr "Enviar"
+
 msgid "Send a fresh copy"
 msgstr "Enviar uma cópia nova"
 
@@ -12318,6 +12354,9 @@ msgstr "O arquivo contém uma pasta ou um arquivo fora da estrutura ADT padrão.
 msgid "The archive must contain a project database and its PDF. Re-export it from ADT Studio."
 msgstr "O arquivo deve conter um banco de dados de projeto e seu PDF. Exporte-o novamente do ADT Studio."
 
+msgid "The assistant wants to change the book:"
+msgstr "O assistente quer alterar o livro:"
+
 msgid "The back cover of the book."
 msgstr "A contracapa do livro."
 
@@ -12808,6 +12847,9 @@ msgstr "Produzem flores para atrair polinizadores."
 
 msgid "They release oxygen directly into the air."
 msgstr "Liberam oxigênio diretamente no ar."
+
+msgid "Thinking…"
+msgstr "Pensando…"
 
 msgid "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
 msgstr "Esta atividade não tem textos nem respostas endereçáveis. Gere-a novamente ou use “Editar layout” para alterar a página diretamente."
@@ -13626,6 +13668,9 @@ msgstr "Desembaraçando divs aninhadas com cuidado..."
 
 msgid "Untitled"
 msgstr "Sem título"
+
+msgid "Untitled conversation"
+msgstr "Conversa sem título"
 
 msgid "Untitled entry"
 msgstr "Entrada sem título"

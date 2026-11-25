@@ -8,8 +8,10 @@ import {
   useMatchRoute,
   type ErrorComponentProps,
 } from "@tanstack/react-router"
-import { Home, Terminal } from "lucide-react"
+import { Home, MessageSquare, Terminal } from "lucide-react"
+import { useLingui } from "@lingui/react/macro"
 import { Button } from "@/components/ui/button"
+import { BookChatPanel } from "@/components/chat/BookChatPanel/BookChatPanel"
 import { DebugPanel } from "@/components/debug/DebugPanel"
 import { DebugPanelStateProvider, type DebugTabValue } from "@/components/debug/debug-panel-state"
 import { StoryboardThumbnailProvider } from "@/components/pipeline/components/storyboard-thumbnails"
@@ -61,7 +63,9 @@ function BookLayoutInner({ label, isRunning }: { label: string; isRunning: boole
   const { step, pageId } = useParams({ strict: false }) as { step?: string; pageId?: string }
   const matchRoute = useMatchRoute()
   const navigate = useNavigate()
+  const { t } = useLingui()
   const [debugOpen, setDebugOpen] = useState(false)
+  const [chatOpen, setChatOpen] = useState(false)
   const [debugDefaultTab, setDebugDefaultTab] = useState<DebugTabValue>("stats")
   const isDebugRoute = !!matchRoute({ to: "/books/$label/debug", params: { label } })
   const exportWatcher = useExportWatcherSetup(label)
@@ -195,6 +199,8 @@ function BookLayoutInner({ label, isRunning }: { label: string; isRunning: boole
                   <Outlet />
                 </ExportWatcherProvider>
               </div>
+
+              {chatOpen && <BookChatPanel label={label} onClose={() => setChatOpen(false)} />}
             </div>
 
             {debugOpen && !isDebugRoute && (
@@ -207,7 +213,19 @@ function BookLayoutInner({ label, isRunning }: { label: string; isRunning: boole
             )}
           </div>
 
-          {!debugOpen && !isDebugRoute && (
+          {!chatOpen && (
+            <Button
+              variant="outline"
+              size="icon"
+              className="fixed bottom-28 right-4 z-50 h-8 w-8 rounded-full shadow-md opacity-60 hover:opacity-100"
+              onClick={() => setChatOpen(true)}
+              title={t`Open book assistant`}
+            >
+              <MessageSquare className="h-4 w-4" />
+            </Button>
+          )}
+
+          {!debugOpen && !chatOpen && !isDebugRoute && (
             <Button
               variant="outline"
               size="icon"

@@ -32,7 +32,9 @@ export interface AgentLogContext {
 export interface RunAgentLoopOptions {
   modelId: string
   system: string
-  prompt: string
+  prompt?: string
+  messages?: AgentMessage[]
+  requiresApproval?: (call: AgentToolCall) => boolean
   tools: AgentToolSet
   /** Max inference turns. Default 20. */
   maxSteps?: number
@@ -98,7 +100,11 @@ export async function runAgentLoop(
         : "Agent run aborted",
     )
 
-  const messages: AgentMessage[] = [{ role: "user", content: options.prompt }]
+  const messages: AgentMessage[] = [
+    ...(options.messages ?? []),
+    ...(options.prompt ? [{ role: "user" as const, content: options.prompt }] : []),
+  ]
+  if (messages.length === 0) throw new Error("Agent run needs a prompt or messages")
   const turns: AgentTurn[] = []
   const usage = { inputTokens: 0, outputTokens: 0 }
   let text = ""
@@ -121,6 +127,7 @@ export async function runAgentLoop(
     })
 
     const t0 = Date.now()
+    const turnStart = messages.length
     const cached = options.cacheDir
       ? readCache<AgentTurnResponse>(options.cacheDir, hash)
       : null
@@ -150,6 +157,7 @@ export async function runAgentLoop(
         success: false,
         errors: [message],
         messages,
+        turnStart,
         response: undefined,
         toolResults: [],
       })
@@ -166,12 +174,17 @@ export async function runAgentLoop(
     if (response.text.trim()) text = response.text
 
     const toolResults: AgentToolResult[] = []
-    if (response.toolCalls.length > 0) {
+    const awaitingApproval =
+      options.requiresApproval !== undefined &&
+      response.toolCalls.some((call) => options.requiresApproval?.(call))
+    if (response.toolCalls.length > 0 || response.text.trim()) {
       messages.push({
         role: "assistant",
         text: response.text,
         toolCalls: response.toolCalls,
       })
+    }
+    if (response.toolCalls.length > 0 && !awaitingApproval) {
       try {
         for (const call of response.toolCalls) {
           toolResults.push(
@@ -190,6 +203,7 @@ export async function runAgentLoop(
           success: false,
           errors: [message],
           messages,
+          turnStart,
           response,
           toolResults,
         })
@@ -222,6 +236,7 @@ export async function runAgentLoop(
       success: true,
       errors: toolResults.filter((r) => r.isError).map(describeToolError),
       messages,
+      turnStart,
       response,
       toolResults,
     })
@@ -232,12 +247,23 @@ export async function runAgentLoop(
       // never let an observer error break the agent loop
     }
 
+    if (awaitingApproval) {
+      return {
+        text,
+        stepCount: turns.length,
+        usage,
+        finishReason: "approval-required",
+        turns,
+        messages,
+        pendingToolCalls: response.toolCalls,
+      }
+    }
     if (response.toolCalls.length === 0) {
-      return { text, stepCount: turns.length, usage, finishReason, turns }
+      return { text, stepCount: turns.length, usage, finishReason, turns, messages }
     }
   }
 
-  return { text, stepCount: turns.length, usage, finishReason: "max-steps", turns }
+  return { text, stepCount: turns.length, usage, finishReason: "max-steps", turns, messages }
 }
 
 /**
@@ -263,7 +289,7 @@ async function raceRunAbort<T>(
   }
 }
 
-async function executeToolCall(
+export async function executeToolCall(
   tools: AgentToolSet,
   call: AgentToolCall,
 ): Promise<AgentToolResult> {
@@ -303,6 +329,7 @@ interface TurnLogInput {
   success: boolean
   errors: string[]
   messages: AgentMessage[]
+  turnStart: number
   response: AgentTurnResponse | undefined
   toolResults: AgentToolResult[]
 }
@@ -341,10 +368,7 @@ function buildTurnLog(system: string, input: TurnLogInput): LlmLogMessage[] {
     { role: "system", content: [{ type: "text", text: system }] },
   ]
 
-  const upToTurn = input.response
-    ? input.messages.slice(0, transcriptLength(input))
-    : input.messages
-  for (const message of upToTurn) {
+  for (const message of input.messages.slice(0, input.turnStart)) {
     entries.push({ role: message.role, content: [{ type: "text", text: describe(message) }] })
   }
 
@@ -362,13 +386,6 @@ function buildTurnLog(system: string, input: TurnLogInput): LlmLogMessage[] {
   }
 
   return entries
-}
-
-/** The assistant + tool messages this turn produced are logged separately. */
-function transcriptLength(input: TurnLogInput): number {
-  return input.response && input.response.toolCalls.length > 0
-    ? input.messages.length - 2
-    : input.messages.length
 }
 
 function describe(message: AgentMessage): string {

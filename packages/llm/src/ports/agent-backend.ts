@@ -84,4 +84,6 @@ export interface AgentRunResult {
   usage: TokenUsage
   finishReason: string
   turns: AgentTurn[]
+  messages: AgentMessage[]
+  pendingToolCalls?: AgentToolCall[]
 }

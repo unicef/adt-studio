@@ -36,6 +36,7 @@ export {
 
 export {
   runAgentLoop,
+  executeToolCall,
   type AgentLogContext,
   type RunAgentLoopOptions,
 } from "./agent-loop.js"

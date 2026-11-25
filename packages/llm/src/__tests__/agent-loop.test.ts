@@ -335,6 +335,77 @@ describe("runAgentLoop", () => {
   })
 })
 
+describe("runAgentLoop conversations", () => {
+  it("continues from earlier messages and returns the whole transcript", async () => {
+    const { registry, requests } = makeRegistry([textTurn("second answer")])
+    const history = [
+      { role: "user" as const, content: "first question" },
+      { role: "assistant" as const, text: "first answer", toolCalls: [] },
+    ]
+
+    const result = await runAgentLoop({
+      modelId: "fake:fake-1",
+      system: "sys",
+      messages: history,
+      prompt: "second question",
+      tools: {},
+      registry,
+      logLevel: "silent",
+    })
+
+    expect(requests[0]?.messages).toEqual([...history, { role: "user", content: "second question" }])
+    expect(result.messages).toEqual([
+      ...history,
+      { role: "user", content: "second question" },
+      { role: "assistant", text: "second answer", toolCalls: [] },
+    ])
+  })
+
+  it("stops before executing a turn that has a call needing approval", async () => {
+    const write = vi.fn(async () => ({ ok: true }))
+    const read = vi.fn(async () => ({ value: 1 }))
+    const tools: AgentToolSet = {
+      read: { description: "read", parameters: z.object({}), execute: read },
+      write: { description: "write", parameters: z.object({}), execute: write },
+    }
+    const turn: AgentTurnResponse = {
+      text: "I will write",
+      toolCalls: [
+        { id: "c1", toolName: "read", args: {} },
+        { id: "c2", toolName: "write", args: {} },
+      ],
+      finishReason: "tool-calls",
+      usage: { inputTokens: 1, outputTokens: 1 },
+    }
+    const { registry, turnCount } = makeRegistry([turn, textTurn("unreachable")])
+
+    const result = await runAgentLoop({
+      modelId: "fake:fake-1",
+      system: "sys",
+      prompt: "change it",
+      tools,
+      requiresApproval: (call) => call.toolName === "write",
+      registry,
+      logLevel: "silent",
+    })
+
+    expect(turnCount()).toBe(1)
+    expect(read).not.toHaveBeenCalled()
+    expect(write).not.toHaveBeenCalled()
+    expect(result.finishReason).toBe("approval-required")
+    expect(result.pendingToolCalls).toEqual(turn.toolCalls)
+    expect(result.messages.at(-1)).toEqual({ role: "assistant", text: "I will write", toolCalls: turn.toolCalls })
+  })
+
+  it("rejects a run with neither prompt nor messages", async () => {
+    const { registry } = makeRegistry([textTurn("x")])
+
+    await expect(
+      runAgentLoop({ modelId: "fake:fake-1", system: "sys", tools: {}, registry, logLevel: "silent" }),
+    ).rejects.toThrow(/prompt or messages/)
+  })
+})
+
 describe("runAgentLoop caching", () => {
   it("caches each inference turn but re-runs tool executions", async () => {
     const execute = vi.fn(async () => ({ ok: true }))

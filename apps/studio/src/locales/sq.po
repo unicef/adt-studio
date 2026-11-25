@@ -2068,6 +2068,9 @@ msgstr "Zbato për të gjitha gabimet e këtij ekzekutimi"
 msgid "Applying changes…"
 msgstr "Duke zbatuar ndryshimet…"
 
+msgid "Approve"
+msgstr "Mirato"
+
 msgid "Archive"
 msgstr "Arkivi"
 
@@ -2117,8 +2120,14 @@ msgstr "Inteligjenca artificiale"
 msgid "Aside"
 msgstr "Shënim anësor"
 
+msgid "Ask about this book…"
+msgstr "Pyet për këtë libër…"
+
 msgid "Ask AI to edit..."
 msgstr "Kërko nga AI të redaktojë..."
+
+msgid "Ask questions about this book or request a change. Changes wait for your approval."
+msgstr "Bëj pyetje për këtë libër ose kërko një ndryshim. Ndryshimet presin miratimin tënd."
 
 msgid "Ask the person who sent you this link to share it again."
 msgstr "Kërkojini personit që ju dërgoi këtë lidhje ta ndajë përsëri."
@@ -2402,6 +2411,9 @@ msgstr "Libër"
 
 msgid "Book artwork"
 msgstr "Ilustrimet e librit"
+
+msgid "Book assistant"
+msgstr "Asistenti i librit"
 
 msgid "Book coverage"
 msgstr "Mbulimi i librit"
@@ -3052,6 +3064,9 @@ msgstr "Klonifikimi dështoi"
 msgid "Close"
 msgstr "Mbyll"
 
+msgid "Close assistant"
+msgstr "Mbyll asistentin"
+
 msgid "Close edit panel"
 msgstr "Mbyll panelin e redaktimit"
 
@@ -3452,6 +3467,9 @@ msgstr "Kontrollon si grupohet përmbajtja e faqes gjatë hapit të seksionimit.
 
 msgid "Controls whether ElevenLabs expands abbreviations, numbers, and symbols into spoken words (e.g. \"N.º\" → \"Número\"). \"Auto\" lets ElevenLabs decide per request; \"On\" always normalizes; \"Off\" reads the text as written, which is safer for codes, IDs, or text that shouldn't be expanded."
 msgstr "Kontrollon nëse ElevenLabs zgjeron shkurtimet, numrat dhe simbolet në fjalë të folura (p.sh. \"N.º\" → \"Número\"). \"Auto\" e lë ElevenLabs të vendosë për çdo kërkesë; \"Aktivizuar\" gjithmonë normalizon; \"Çaktivizuar\" e lexon tekstin ashtu siç është shkruar, gjë që është më e sigurt për kode, ID-të ose tekst që nuk duhet zgjeruar."
+
+msgid "Conversation"
+msgstr "Bisedë"
 
 msgid "Conversion failed"
 msgstr "Konvertimi dështoi"
@@ -3857,6 +3875,9 @@ msgstr "Vendos nëse një pohim është i vërtetë apo i rremë."
 msgid "Decide whether to keep or replace protected content."
 msgstr "Vendosni nëse do ta mbani ose zëvendësoni përmbajtjen e mbrojtur."
 
+msgid "Decline"
+msgstr "Refuzo"
+
 msgid "Decorative"
 msgstr "Dekorativ"
 
@@ -4001,6 +4022,9 @@ msgstr "Fshi të gjitha fjalët"
 
 msgid "Delete book"
 msgstr "Fshi librin"
+
+msgid "Delete conversation"
+msgstr "Fshi bisedën"
 
 msgid "Delete element"
 msgstr "Fshi elementin"
@@ -7142,6 +7166,9 @@ msgstr "Duke bashkuar fletët e dyfishta…"
 msgid "Merging…"
 msgstr "Po bashkohet…"
 
+msgid "Message"
+msgstr "Mesazh"
+
 msgid "Message copied"
 msgstr "Mesazhi u kopjua"
 
@@ -7452,6 +7479,9 @@ msgstr "U caktua kod i ri — kopjoni mesazhin përsëri që lexuesit ta marrin.
 #. placeholder {0}: first.author_name
 msgid "New comment from {0}"
 msgstr "Koment i ri nga {0}"
+
+msgid "New conversation"
+msgstr "Bisedë e re"
 
 msgid "New Entry"
 msgstr "Hyrje e re"
@@ -8328,6 +8358,9 @@ msgstr "Hap një projekt ADT që <0>tashmë ekziston</0> — një kopje rezervë
 
 #~ msgid "Open API key settings"
 #~ msgstr "Hap cilësimet e çelësave API"
+
+msgid "Open book assistant"
+msgstr "Hap asistentin e librit"
 
 msgid "Open command palette"
 msgstr "Hap paletën e komandave"
@@ -11076,6 +11109,9 @@ msgstr "Zgjedhja e \"Asnjë\" i lejon LLM-it të zgjedhë stilin e tij për çdo
 msgid "Self-contained ADT web app"
 msgstr "Aplikacion web ADT i pavarur"
 
+msgid "Send"
+msgstr "Dërgo"
+
 msgid "Send a fresh copy"
 msgstr "Dërgo një kopje të re"
 
@@ -12320,6 +12356,9 @@ msgstr "Arkivi përmban një dosje ose skedar jashtë strukturës standarde ADT.
 msgid "The archive must contain a project database and its PDF. Re-export it from ADT Studio."
 msgstr "Arkivi duhet të përmbajë një bazë të dhënash projekti dhe PDF-në e tij. Eksportojeni përsëri nga ADT Studio."
 
+msgid "The assistant wants to change the book:"
+msgstr "Asistenti dëshiron të ndryshojë librin:"
+
 msgid "The back cover of the book."
 msgstr "Kapaku i pasëm i librit."
 
@@ -12810,6 +12849,9 @@ msgstr "Ato prodhojnë lule për të tërhequr polenizuesit."
 
 msgid "They release oxygen directly into the air."
 msgstr "Ato lëshojnë oksigjen drejtpërdrejt në ajër."
+
+msgid "Thinking…"
+msgstr "Duke menduar…"
 
 msgid "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
 msgstr "Ky aktivitet nuk ka tekste apo përgjigje të adresueshme. Rigjeneroni atë ose përdorni \"Ndrysho paraqitjen\" për ta ndryshuar faqen drejtpërdrejt."
@@ -13628,6 +13670,9 @@ msgstr "Po zgjidhen divët e mbivendosur me kujdes..."
 
 msgid "Untitled"
 msgstr "Pa titull"
+
+msgid "Untitled conversation"
+msgstr "Bisedë pa titull"
 
 msgid "Untitled entry"
 msgstr "Hyrje pa titull"

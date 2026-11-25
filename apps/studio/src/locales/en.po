@@ -2066,6 +2066,9 @@ msgstr "Apply to all errors in this run"
 msgid "Applying changes…"
 msgstr "Applying changes…"
 
+msgid "Approve"
+msgstr "Approve"
+
 msgid "Archive"
 msgstr "Archive"
 
@@ -2115,8 +2118,14 @@ msgstr "Artificial intelligence"
 msgid "Aside"
 msgstr "Aside"
 
+msgid "Ask about this book…"
+msgstr "Ask about this book…"
+
 msgid "Ask AI to edit..."
 msgstr "Ask AI to edit..."
+
+msgid "Ask questions about this book or request a change. Changes wait for your approval."
+msgstr "Ask questions about this book or request a change. Changes wait for your approval."
 
 msgid "Ask the person who sent you this link to share it again."
 msgstr "Ask the person who sent you this link to share it again."
@@ -2400,6 +2409,9 @@ msgstr "Book"
 
 msgid "Book artwork"
 msgstr "Book artwork"
+
+msgid "Book assistant"
+msgstr "Book assistant"
 
 msgid "Book coverage"
 msgstr "Book coverage"
@@ -3050,6 +3062,9 @@ msgstr "Clone failed"
 msgid "Close"
 msgstr "Close"
 
+msgid "Close assistant"
+msgstr "Close assistant"
+
 msgid "Close edit panel"
 msgstr "Close edit panel"
 
@@ -3450,6 +3465,9 @@ msgstr "Controls how page content is grouped during the sectioning step."
 
 msgid "Controls whether ElevenLabs expands abbreviations, numbers, and symbols into spoken words (e.g. \"N.º\" → \"Número\"). \"Auto\" lets ElevenLabs decide per request; \"On\" always normalizes; \"Off\" reads the text as written, which is safer for codes, IDs, or text that shouldn't be expanded."
 msgstr "Controls whether ElevenLabs expands abbreviations, numbers, and symbols into spoken words (e.g. \"N.º\" → \"Número\"). \"Auto\" lets ElevenLabs decide per request; \"On\" always normalizes; \"Off\" reads the text as written, which is safer for codes, IDs, or text that shouldn't be expanded."
+
+msgid "Conversation"
+msgstr "Conversation"
 
 msgid "Conversion failed"
 msgstr "Conversion failed"
@@ -3855,6 +3873,9 @@ msgstr "Decide whether a statement is true or false."
 msgid "Decide whether to keep or replace protected content."
 msgstr "Decide whether to keep or replace protected content."
 
+msgid "Decline"
+msgstr "Decline"
+
 msgid "Decorative"
 msgstr "Decorative"
 
@@ -3999,6 +4020,9 @@ msgstr "Delete all speech"
 
 msgid "Delete book"
 msgstr "Delete book"
+
+msgid "Delete conversation"
+msgstr "Delete conversation"
 
 msgid "Delete element"
 msgstr "Delete element"
@@ -7140,6 +7164,9 @@ msgstr "Merging spreads…"
 msgid "Merging…"
 msgstr "Merging…"
 
+msgid "Message"
+msgstr "Message"
+
 msgid "Message copied"
 msgstr "Message copied"
 
@@ -7450,6 +7477,9 @@ msgstr "New code set — copy the message again so readers get it."
 #. placeholder {0}: first.author_name
 msgid "New comment from {0}"
 msgstr "New comment from {0}"
+
+msgid "New conversation"
+msgstr "New conversation"
 
 msgid "New Entry"
 msgstr "New Entry"
@@ -8326,6 +8356,9 @@ msgstr "Open an ADT project that <0>already exists</0> — a backup, a book part
 
 #~ msgid "Open API key settings"
 #~ msgstr "Open API key settings"
+
+msgid "Open book assistant"
+msgstr "Open book assistant"
 
 msgid "Open command palette"
 msgstr "Open command palette"
@@ -11074,6 +11107,9 @@ msgstr "Selecting \"None\" lets the LLM choose its own styling for each page."
 msgid "Self-contained ADT web app"
 msgstr "Self-contained ADT web app"
 
+msgid "Send"
+msgstr "Send"
+
 msgid "Send a fresh copy"
 msgstr "Send a fresh copy"
 
@@ -12318,6 +12354,9 @@ msgstr "The archive contains a folder or file outside the standard ADT layout."
 msgid "The archive must contain a project database and its PDF. Re-export it from ADT Studio."
 msgstr "The archive must contain a project database and its PDF. Re-export it from ADT Studio."
 
+msgid "The assistant wants to change the book:"
+msgstr "The assistant wants to change the book:"
+
 msgid "The back cover of the book."
 msgstr "The back cover of the book."
 
@@ -12808,6 +12847,9 @@ msgstr "They produce flowers to attract pollinators."
 
 msgid "They release oxygen directly into the air."
 msgstr "They release oxygen directly into the air."
+
+msgid "Thinking…"
+msgstr "Thinking…"
 
 msgid "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
 msgstr "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
@@ -13626,6 +13668,9 @@ msgstr "Untangling nested divs with care..."
 
 msgid "Untitled"
 msgstr "Untitled"
+
+msgid "Untitled conversation"
+msgstr "Untitled conversation"
 
 msgid "Untitled entry"
 msgstr "Untitled entry"

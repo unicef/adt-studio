@@ -57,7 +57,7 @@ export function agentModelForDefaultModel(
  * sensible default. Mirrors how page-edit-service derives the editing model
  * from page_sectioning config — both are "thoughtful" LLM tasks.
  */
-function resolveAgentModelId(
+export function resolveAgentModelId(
   label: string,
   booksDir: string,
   configPath: string | undefined,
@@ -75,7 +75,7 @@ function resolveAgentModelId(
   )
 }
 
-function resolveStyleguide(
+export function resolveStyleguide(
   label: string,
   booksDir: string,
   configPath: string | undefined,
