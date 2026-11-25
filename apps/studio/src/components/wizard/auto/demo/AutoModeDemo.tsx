@@ -9,6 +9,7 @@ import { useEngineRun } from "../engine/useEngineRun"
 import { FACT_QUESTION } from "../engine/words"
 import { Card, Kind, ms, num, Page, Pages, Stat, Tag } from "./parts"
 import { Rulebook } from "./Rulebook"
+import { Walkthrough } from "./walkthrough/Walkthrough"
 
 // Recorded runs from the lab, dev builds only (they describe real books).
 const SAVED: Record<string, () => Promise<SetupRecommendation>> = import.meta.env.DEV ? import.meta.glob<SetupRecommendation>("../lab/fixtures/*.json", { import: "default" }) : {}
@@ -48,6 +49,7 @@ export function AutoModeDemo() {
 }
 
 function Demo({ source, onSource }: { source: Source; onSource: (s: Source) => void }) {
+  const [tab, setTab] = useTab()
   const [file, setFile] = useState<File | null>(null)
   const [go, setGo] = useState<{ file: File; n: number } | null>(null)
   const input = useRef<HTMLInputElement>(null)
@@ -72,64 +74,97 @@ function Demo({ source, onSource }: { source: Source; onSource: (s: Source) => v
             </p>
           </header>
 
-          <Overview rec={rec} running={run.status === "running"} elapsed={elapsed} />
+          <div role="tablist" aria-label="Demo views" className="flex gap-1 self-start rounded-full bg-muted p-1">
+            {TABS.map(([id, label]) => (
+              <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)} className={cn("h-9 rounded-full px-4 text-[13.5px] font-semibold transition-colors", tab === id ? "bg-card text-foreground shadow-sm ring-1 ring-border" : "text-muted-foreground hover:text-foreground")}>
+                {label}
+              </button>
+            ))}
+          </div>
 
-          <section className="flex flex-wrap items-center gap-3 rounded-2xl bg-card p-4 ring-1 ring-border">
-            <input
-              ref={input}
-              type="file"
-              accept="application/pdf"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0] ?? null
-                setFile(f)
-                e.target.value = ""
-              }}
-            />
-            <button type="button" onClick={() => input.current?.click()} className="h-10 rounded-full bg-muted px-4 text-[13.5px] font-semibold hover:bg-muted/70">
-              {file ? `📄 ${file.name}` : "Choose a PDF"}
-            </button>
-            <label className="flex items-center gap-2 text-[13px] text-muted-foreground">
-              Engine
-              <select
-                value={source.kind === "real" ? "real" : source.name}
-                onChange={(e) => onSource(e.target.value === "real" ? { kind: "real" } : { kind: "saved", name: e.target.value })}
-                className="h-10 rounded-full bg-muted px-3 text-[13.5px] font-semibold text-foreground"
+          {tab === "raven" ? (
+            <Walkthrough />
+          ) : (
+            <>
+            <Overview rec={rec} running={run.status === "running"} elapsed={elapsed} />
+
+            <section className="flex flex-wrap items-center gap-3 rounded-2xl bg-card p-4 ring-1 ring-border">
+              <input
+                ref={input}
+                type="file"
+                accept="application/pdf"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] ?? null
+                  setFile(f)
+                  e.target.value = ""
+                }}
+              />
+              <button type="button" onClick={() => input.current?.click()} className="h-10 rounded-full bg-muted px-4 text-[13.5px] font-semibold hover:bg-muted/70">
+                {file ? `📄 ${file.name}` : "Choose a PDF"}
+              </button>
+              <label className="flex items-center gap-2 text-[13px] text-muted-foreground">
+                Engine
+                <select
+                  value={source.kind === "real" ? "real" : source.name}
+                  onChange={(e) => onSource(e.target.value === "real" ? { kind: "real" } : { kind: "saved", name: e.target.value })}
+                  className="h-10 rounded-full bg-muted px-3 text-[13.5px] font-semibold text-foreground"
+                >
+                  <option value="real">Real engine (AI calls)</option>
+                  {SAVED_NAMES.map((n) => (
+                    <option key={n} value={n}>
+                      Saved run: {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                disabled={run.status === "running" || (source.kind === "real" && !file)}
+                onClick={() => start()}
+                className="h-10 rounded-full bg-brand-600 px-5 text-[13.5px] font-semibold text-white shadow-sm hover:bg-brand-600/90 disabled:opacity-40"
               >
-                <option value="real">Real engine (AI calls)</option>
-                {SAVED_NAMES.map((n) => (
-                  <option key={n} value={n}>
-                    Saved run: {n}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button
-              type="button"
-              disabled={run.status === "running" || (source.kind === "real" && !file)}
-              onClick={() => start()}
-              className="h-10 rounded-full bg-brand-600 px-5 text-[13.5px] font-semibold text-white shadow-sm hover:bg-brand-600/90 disabled:opacity-40"
-            >
-              {run.status === "running" ? `Running… ${(elapsed / 1000).toFixed(1)} s` : rec ? "Run again" : "Run auto mode"}
-            </button>
-            <span className="text-[12.5px] text-muted-foreground">
-              {source.kind === "real"
-                ? "Sends page images to your AI provider. About 2 calls, a few cents."
-                : "Replays a recorded run, no AI call. Load the same PDF to see its pages."}
-            </span>
-          </section>
+                {run.status === "running" ? `Running… ${(elapsed / 1000).toFixed(1)} s` : rec ? "Run again" : "Run auto mode"}
+              </button>
+              <span className="text-[12.5px] text-muted-foreground">
+                {source.kind === "real"
+                  ? "Sends page images to your AI provider. About 2 calls, a few cents."
+                  : "Replays a recorded run, no AI call. Load the same PDF to see its pages."}
+              </span>
+            </section>
 
-          {run.status === "failed" && (
-            <div className="rounded-2xl bg-rose-50 p-4 text-[14px] text-rose-900 ring-1 ring-rose-200 dark:bg-rose-500/10 dark:text-rose-200 dark:ring-rose-500/30">
-              <b>{run.failure.kind}</b>: {run.failure.detail}
-            </div>
+            {run.status === "failed" && (
+              <div className="rounded-2xl bg-rose-50 p-4 text-[14px] text-rose-900 ring-1 ring-rose-200 dark:bg-rose-500/10 dark:text-rose-200 dark:ring-rose-500/30">
+                <b>{run.failure.kind}</b>: {run.failure.detail}
+              </div>
+            )}
+
+            {rec && <Result rec={rec} file={file && file.size ? file : null} />}
+            </>
           )}
-
-          {rec && <Result rec={rec} file={file && file.size ? file : null} />}
         </div>
       </div>
     </div>
   )
+}
+
+const TABS = [
+  ["run", "Run the engine"],
+  ["raven", "Raven, step by step"],
+] as const
+type Tab = (typeof TABS)[number][0]
+
+/** The open tab, kept in the URL (?tab=raven) so a link opens it. */
+function useTab(): [Tab, (t: Tab) => void] {
+  const [tab, set] = useState<Tab>(() => (new URLSearchParams(window.location.search).get("tab") === "raven" ? "raven" : "run"))
+  const setTab = (t: Tab) => {
+    const url = new URL(window.location.href)
+    if (t === "run") url.searchParams.delete("tab")
+    else url.searchParams.set("tab", t)
+    window.history.replaceState(window.history.state, "", url)
+    set(t)
+  }
+  return [tab, setTab]
 }
 
 function useElapsed(since: number | null) {
