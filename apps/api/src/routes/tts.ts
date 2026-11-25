@@ -4,7 +4,7 @@ import { catalogOutputs, assertEditVersion } from "../services/catalog-output-se
 import { assertOutputPublication, outputIdentityKey, selectedForGeneration, outputEvidence, timestampInputSignature } from "@adt/pipeline"
 import { OutputReplacement, OutputRunScope, WordTimestampSaveRequest } from "@adt/types"
 import { publishSpeechOutput, publishSpeechTimings, bookAssetExists } from "@adt/storage"
-import { reconcileSpeechInputs, loadCoreTtsProfiles } from "@adt/pipeline"
+import { reconcileSpeechInputs, loadCoreTtsProfiles, collectElementAudioTextIds } from "@adt/pipeline"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
@@ -293,8 +293,9 @@ function getTtsCompletionSummary(
         voiceSlotEntryId(entry.textId, entry.voiceSlot)
       )
     )
+    const authoredElementAudioIds = collectElementAudioTextIds(storage)
     for (const entry of expectedEntries) {
-      if (isTtsExcluded(entry.id, config.speech)) continue
+      if (isTtsExcluded(entry.id, config.speech, authoredElementAudioIds)) continue
       for (const slot of configuredSlots) {
         if (!availableIds.has(voiceSlotEntryId(entry.id, slot))) {
           remainingItems++
@@ -939,6 +940,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         : []
       const bookDir = path.join(path.resolve(booksDir), safeLabel)
       const cacheDir = path.join(bookDir, ".cache")
+      const authoredElementAudioIds = collectElementAudioTextIds(storage)
 
       // Request parameters recorded on the debug log entry so the settings that
       // produced this audio are inspectable. Takes provider/model/voice per call
@@ -961,10 +963,10 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
               // Must match what generateEntry sends below, or the log would
               // describe a request we didn't make.
               previousText: config.speech?.elevenlabs_use_context
-                ? findAdjacentSpeechText(languageEntries, entryIndex, -1, config.speech)
+                ? findAdjacentSpeechText(languageEntries, entryIndex, -1, config.speech, authoredElementAudioIds)
                 : undefined,
               nextText: config.speech?.elevenlabs_use_context
-                ? findAdjacentSpeechText(languageEntries, entryIndex, 1, config.speech)
+                ? findAdjacentSpeechText(languageEntries, entryIndex, 1, config.speech, authoredElementAudioIds)
                 : undefined,
               ...elevenLabsVoiceSettingsFromConfig(config.speech),
             })
@@ -976,12 +978,12 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         targetModel: string
         targetVoice: string
       }) => {
-        const pageId = speechPageId(textEntry.id, status.pageIds)
+        const pageId = speechPageId(textEntry.id, status.pageIds, authoredElementAudioIds)
         const pageBatch = isBatchableSpeechEntry(pageId, options.targetProvider, normalizedLanguage, config.speech)
         const itemFallback = !!pageBatch && !openaiApiKey && !config.speech?.word_highlighting
         if (pageBatch && !itemFallback) {
           if (!openaiApiKey) throw new HTTPException(400, { message: "Page-batched speech requires an OpenAI key for audio alignment." })
-          const pageEntries = languageEntries.filter((item) => speechPageId(item.id, before.find((output) => output.identity.kind === "audio" && output.identity.id === item.id && output.identity.language === normalizedLanguage)?.pageIds ?? []) === pageId && !isTtsExcluded(item.id, config.speech))
+          const pageEntries = languageEntries.filter((item) => speechPageId(item.id, before.find((output) => output.identity.kind === "audio" && output.identity.id === item.id && output.identity.language === normalizedLanguage)?.pageIds ?? [], authoredElementAudioIds) === pageId && !isTtsExcluded(item.id, config.speech, authoredElementAudioIds))
           const generated = await generatePageSpeechFiles({
             entries: pageEntries, language: normalizedLanguage, model: options.targetModel, voice: options.targetVoice,
             instructions: resolveInstructions(normalizedLanguage, instructionsMap), format, bookDir, cacheDir,
@@ -1052,11 +1054,11 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           // and pipeline-dag.ts so the cache key stays in sync across paths.
           elevenLabsPreviousText:
             options.targetProvider === "elevenlabs" && config.speech?.elevenlabs_use_context
-              ? findAdjacentSpeechText(languageEntries, entryIndex, -1, config.speech)
+              ? findAdjacentSpeechText(languageEntries, entryIndex, -1, config.speech, authoredElementAudioIds)
               : undefined,
           elevenLabsNextText:
             options.targetProvider === "elevenlabs" && config.speech?.elevenlabs_use_context
-              ? findAdjacentSpeechText(languageEntries, entryIndex, 1, config.speech)
+              ? findAdjacentSpeechText(languageEntries, entryIndex, 1, config.speech, authoredElementAudioIds)
               : undefined,
           elevenLabsApplyTextNormalization: config.speech?.elevenlabs_apply_text_normalization,
           // Voice-tuning overrides. Shared helper so this path hashes the same

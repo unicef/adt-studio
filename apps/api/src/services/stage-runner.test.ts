@@ -3393,3 +3393,98 @@ describe("processWithConcurrency launch ramp", () => {
     expect(started).toEqual([0])
   })
 })
+
+describe("createStageRunner element-audio TTS", () => {
+  let tmpDir = ""
+
+  afterEach(() => {
+    if (tmpDir) {
+      fs.rmSync(tmpDir, { recursive: true, force: true })
+      tmpDir = ""
+    }
+  })
+
+  it("AC-17/21: generates authored audio and skips a legacy _audio caption", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-element-audio-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: gemini
+  providers:
+    gemini:
+      languages:
+        - en
+  excluded_categories:
+    - captions
+`,
+    )
+    seedTextAndSpeechBook(booksDir, "element-audio-tts")
+
+    const storage = createBookStorage("element-audio-tts", booksDir)
+    try {
+      storage.putNodeData("element-audio", "pg001", {
+        entries: [{ nodeId: "pg001_im001", text: "Mago" }],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+      storage.putNodeData("web-rendering", "pg001", {
+        sections: [{
+          sectionIndex: 0,
+          sectionId: "pg001_sec001",
+          sectionType: "content",
+          reasoning: "",
+          html: '<p data-id="pg001_t001">Hello world</p><p data-id="pg001_im001_audio">Mago</p><p data-id="pg003_im007_audio">Legacy caption</p>',
+        }],
+      })
+      storage.putNodeData("text-catalog", "book", {
+        entries: [
+          { id: "pg001_t001", text: "Hello world" },
+          { id: "pg001_im001_audio", text: "Mago" },
+          { id: "pg003_im007_audio", text: "Legacy caption" },
+        ],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+      storage.putNodeData("core-tts-catalog", "en", {
+        language: "en",
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        entries: [
+          readyCoreTtsEntry("pg001_t001", "Hello world"),
+          readyCoreTtsEntry("pg001_im001_audio", "Mago"),
+          readyCoreTtsEntry("pg003_im007_audio", "Legacy caption"),
+        ],
+      })
+    } finally {
+      storage.close()
+    }
+
+    generateSpeechFileMock.mockReset()
+    generateSpeechFileMock.mockResolvedValue(undefined)
+    const runner = createStageRunner()
+    await runner.run(
+      "element-audio-tts",
+      {
+        booksDir,
+        credentials: { gemini: { apiKey: "gm-test" }, openai: { apiKey: "sk-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "speech",
+        toStage: "speech",
+      },
+      { emit: () => undefined },
+    )
+
+    const ids = generateSpeechFileMock.mock.calls.map(
+      ([input]) => (input as { textId: string }).textId,
+    )
+    expect(ids).toContain("pg001_im001_audio")
+    expect(ids).not.toContain("pg003_im007_audio")
+  })
+})

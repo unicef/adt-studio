@@ -15,7 +15,7 @@ import { outputSkipped } from "@adt/pipeline"
 import { retainedCoreTts, retainedEasyRead } from "@adt/pipeline"
 import { outputIdentityKey } from "@adt/pipeline"
 import { createHash } from "node:crypto"
-import { speechPageId, reconcileSpeechInputs, translateCatalog, inputSignature, reconcileTextCatalog, readOutputCatalog, buildImageInventory, selectedForGeneration, outputEvidence, assertOutputPublication, timestampInputSignature, deriveOutputStatus } from "@adt/pipeline"
+import { speechPageId, collectElementAudioTextIds, reconcileSpeechInputs, translateCatalog, inputSignature, reconcileTextCatalog, readOutputCatalog, buildImageInventory, selectedForGeneration, outputEvidence, assertOutputPublication, timestampInputSignature, deriveOutputStatus } from "@adt/pipeline"
 import { prepareSectioningRun, completeSectioning, storyboardCoverage, missingStoryboardInputMessage, createStoryboardPublication, activeSectioningPages, sectioningReplacementSignature } from "@adt/pipeline"
 import { admitSectioningRun, resetSectioningStoryboard, SectioningSafetyError } from "@adt/pipeline"
 import crypto from "node:crypto"
@@ -2814,6 +2814,7 @@ async function runTranslateStep(
       : path.resolve(process.cwd(), "config")
     const profiles = loadCoreTtsProfiles(coreTtsConfigDir)
     const sourceDisplayEntries = translationEntries
+    const authoredElementAudioIds = collectElementAudioTextIds(storage)
     const sourcePrepBefore = readRunOutputs(label, options, storage)
     const sourcePrepVersion = storage.getLatestNodeData("core-tts-catalog", language)?.version
     const sourceCoreTts = await prepareCoreTtsCatalog({
@@ -2826,6 +2827,7 @@ async function runTranslateStep(
       llmModel: coreTtsModel,
       previous: retainedCoreTts(storage, language, sourceDisplayEntries.map((entry) => entry.id)),
       scope: options.outputScope, signal: options.signal,
+      authoredElementAudioIds,
     })
     options.signal?.throwIfAborted()
     const sourcePrepIdentities = sourcePrepBefore.filter(status => status.identity.kind === "preparation" && status.identity.language === language).map(status => status.identity)
@@ -2863,6 +2865,7 @@ async function runTranslateStep(
         previous: retainedCoreTts(storage, lang, targetDisplayEntries.map((entry) => entry.id)),
         scope: options.outputScope, signal: options.signal,
         sourceContext,
+        authoredElementAudioIds,
       })
       options.signal?.throwIfAborted()
       const targetPrepIdentities = targetPrepBefore.filter(status => status.identity.kind === "preparation" && status.identity.language === lang).map(status => status.identity)
@@ -3200,12 +3203,13 @@ async function runSpeechStep(
     // Expose the (live-mutated) result arrays so GET /tts can serve a
     // progressive snapshot while this run is active. Cleared in `finally`.
     beginSpeechRun(label, ttsResultsByLang, failedByLang)
+    const authoredElementAudioIds = collectElementAudioTextIds(storage)
 
     for (const lang of outputLanguages) {
       const existingSpeechEntries = getExistingSpeechEntries(storage, lang)
 
       const entries = getReadyCoreTtsEntries(storage, lang)
-      const pageById = new Map(capturedOutputs.filter((output) => output.identity.kind === "preparation" && output.identity.language === lang).map((output) => [output.identity.id, speechPageId(output.identity.id, output.pageIds)]))
+      const pageById = new Map(capturedOutputs.filter((output) => output.identity.kind === "preparation" && output.identity.language === lang).map((output) => [output.identity.id, speechPageId(output.identity.id, output.pageIds, authoredElementAudioIds)]))
       if (entries.length === 0) {
         console.warn(`[stage-run] ${label}: no ready Core TTS entries for ${lang}, skipping TTS for this language`)
         continue
@@ -3242,7 +3246,7 @@ async function runSpeechStep(
         const entry = entries[entryIndex]
         // Excluded entries get no audio at all — not generated, not reused
         // into the new TTS output version.
-        if (isTtsExcluded(entry.id, config.speech)) continue
+        if (isTtsExcluded(entry.id, config.speech, authoredElementAudioIds)) continue
         languageTextMap.set(entry.id, entry.text)
 
         for (const { slot, profile, batchThisVoice } of configuredVoices) {
@@ -3281,7 +3285,7 @@ async function runSpeechStep(
                 model: providerModel,
                 voice,
                 voiceLabel,
-                entries: entries.filter((candidate) => pageById.get(candidate.id) === pageKey && !isTtsExcluded(candidate.id, config.speech)),
+                entries: entries.filter((candidate) => pageById.get(candidate.id) === pageKey && !isTtsExcluded(candidate.id, config.speech, authoredElementAudioIds)),
                 publishIds: new Set<string>(),
               }
               pageGroups.set(groupKey, group)
@@ -3308,11 +3312,11 @@ async function runSpeechStep(
           // the cache key stays in sync with canReuseSpeechEntry.
           const previousText =
             provider === "elevenlabs" && config.speech?.elevenlabs_use_context
-              ? findAdjacentSpeechText(entries, entryIndex, -1, config.speech)
+              ? findAdjacentSpeechText(entries, entryIndex, -1, config.speech, authoredElementAudioIds)
               : undefined
           const nextText =
             provider === "elevenlabs" && config.speech?.elevenlabs_use_context
-              ? findAdjacentSpeechText(entries, entryIndex, 1, config.speech)
+              ? findAdjacentSpeechText(entries, entryIndex, 1, config.speech, authoredElementAudioIds)
               : undefined
           const existingEntry = existingSpeechEntries.get(slotEntryId)
 
