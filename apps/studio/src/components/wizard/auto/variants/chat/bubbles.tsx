@@ -11,7 +11,7 @@ import { useLiving } from "./look"
 
 const SHADOW = "shadow-[0_6px_18px_-10px_rgba(15,23,42,0.3)]"
 
-/** Living chat's assistant: the board's small rainbow orb (spins slowly while it writes). Decoration only. */
+/** Living chat's assistant: the board's small orb in brand blue (turns slowly while it writes; idea G31 gives it a face). Decoration only. */
 export function Orb({ typing, hidden, size = 28, className }: { typing?: boolean; hidden?: boolean; size?: number; className?: string }) {
   return <span aria-hidden data-typing={typing || undefined} data-hidden={hidden || undefined} className={cn("lc-orb", className)} style={{ "--lc-orb": `${size}px` } as CSSProperties} />
 }

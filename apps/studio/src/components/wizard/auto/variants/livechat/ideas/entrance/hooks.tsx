@@ -13,7 +13,8 @@ type Veil = { left: number; top: number; width: number; height: number; delay: n
 /**
  * Idea A3 "Words that fade in from blur", for the "what I found" message only. The words are not
  * split in the DOM (React owns those text nodes): each word gets a veil in the bubble's colour that
- * blurs what is under it and fades away, one word after the other, all within a second.
+ * blurs what is under it and fades away, one word after the other (70 ms apart, as on the board,
+ * squeezed so a long message still ends within a second).
  */
 export function useWordBlur(bubble: RefObject<HTMLElement | null>, on: boolean) {
   const reduced = useReducedEffects()
@@ -40,7 +41,7 @@ export function useWordBlur(bubble: RefObject<HTMLElement | null>, on: boolean) 
       }
     }
     if (!found.length) return
-    const step = Math.min(45, 620 / found.length)
+    const step = Math.min(70, 800 / found.length)
     setVeils(found.map((v, i) => ({ ...v, delay: 120 + i * step })))
     setEnd(120 + found.length * step)
     const id = window.setTimeout(() => setVeils([]), 120 + found.length * step + 600)
@@ -54,7 +55,7 @@ export function useWordBlur(bubble: RefObject<HTMLElement | null>, on: boolean) 
 
 /**
  * Idea A4 "Gentle and Slam": the "book is ready" card stamps down (CSS); as it lands the whole
- * thread takes the hit and shakes once.
+ * thread takes the hit and shakes once (the board's a4shake: down, up, still, in a fifth of a second).
  */
 export function useSlam(row: RefObject<HTMLElement | null>, on: boolean) {
   const reduced = useReducedEffects()
@@ -64,17 +65,21 @@ export function useSlam(row: RefObject<HTMLElement | null>, on: boolean) {
     const log = el.closest<HTMLElement>("[role='log']")
     const id = window.setTimeout(() => {
       log?.animate(
-        [{ transform: "none" }, { transform: "translateY(5px)" }, { transform: "translateY(-3px)" }, { transform: "translateY(1.5px)" }, { transform: "none" }],
-        { duration: 360, easing: "ease-out" },
+        [{ transform: "none" }, { transform: "translateY(4px)" }, { transform: "translateY(-3px)" }, { transform: "translateY(1px)" }, { transform: "none" }],
+        { duration: 220, easing: "ease-out" },
       )
-    }, 300)
+    }, 400)
     return () => window.clearTimeout(id)
   }, [])
 }
 
+/** Messages that already flew in (idea A2). */
+const flown = new Set<string>()
+
 /**
- * Idea A2 "The composer text becomes the bubble": the PDF card flies out of the drop zone and the
- * "Create …" bubble out of the name field, instead of popping in on their own.
+ * Idea A2 "The composer text becomes the bubble": the PDF card flies out of the drop zone, the
+ * "Create …" bubble out of the name field, and every other reply out of the composer, instead of
+ * popping in on their own.
  */
 export function useHandoff(el: RefObject<HTMLElement | null>, on: boolean) {
   const reduced = useReducedEffects()
@@ -82,10 +87,16 @@ export function useHandoff(el: RefObject<HTMLElement | null>, on: boolean) {
     const node = el.current
     if (!on || reduced || !node) return
     const id = messageId(node)
-    const kind: HandoffKind | null = id.startsWith("pdf-") ? "pdf" : id.startsWith("create-") ? "name" : null
-    if (!kind) return
+    // Each message flies once: not again when React runs the effect twice or the row remounts
+    // into a folded step (then it just stays put).
+    if (flown.has(id)) {
+      node.style.animation = "none"
+      return
+    }
+    const kind: HandoffKind = id.startsWith("pdf-") ? "pdf" : id.startsWith("create-") ? "name" : "text"
     const from = takeHandoff(kind)
     if (!from) return
+    flown.add(id)
     node.style.animation = "none"
     const target = kind === "pdf" ? ((node.firstElementChild as HTMLElement | null) ?? node) : node
     flyFrom(target, from, kind)

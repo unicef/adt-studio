@@ -3,7 +3,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { ArrowUp, Loader2, Paperclip } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { UploadFlow } from "../../../start/upload/useUploadFlow"
-import { rememberHandoff } from "../livechat/ideas/entrance/handoff"
+import { COMPOSER_ATTR, rememberHandoff } from "../livechat/ideas/entrance/handoff"
 import { NAME_INPUT } from "./Create"
 import { useIdea } from "./ideas"
 import { useLiving } from "./look"
@@ -17,11 +17,13 @@ export function Composer({ flow, replies, hint }: { flow: UploadFlow; replies: R
   const hasFile = !!flow.file && !flow.error
   const drop = useHandoffSource(hasFile)
   const living = useLiving()
+  // G34 tints the whole window, so a page-coloured fade above the composer would show as a band.
+  const tinted = useIdea("ambient") === "g34" && living
   return (
     <div className="relative mx-auto w-full max-w-[760px] px-4 pb-4 pt-2 sm:px-6 sm:pb-5">
-      <div aria-hidden className={cn("pointer-events-none absolute inset-x-0 -top-8 h-10", living ? "bg-background [mask-image:linear-gradient(to_top,black,transparent)]" : "bg-gradient-to-t from-background to-transparent")} />
+      {!tinted && <div aria-hidden className={cn("pointer-events-none absolute inset-x-0 -top-8 h-10", living ? "bg-background [mask-image:linear-gradient(to_top,black,transparent)]" : "bg-gradient-to-t from-background to-transparent")} />}
       {hasFile ? (
-        <div className={cn("relative flex items-center gap-1.5 p-1.5", living ? "lc-surface rounded-[18px]" : "rounded-[26px] bg-card ring-1 ring-border shadow-[0_12px_32px_-18px_rgba(15,23,42,0.35)]")}>
+        <div {...{ [COMPOSER_ATTR]: "" }} className={cn("relative flex items-center gap-1.5 p-1.5", living ? "lc-surface rounded-[18px]" : "rounded-[26px] bg-card ring-1 ring-border shadow-[0_12px_32px_-18px_rgba(15,23,42,0.35)]")}>
           <button type="button" onClick={flow.openPicker} aria-label={t`Send another PDF`} className="hidden size-10 shrink-0 sm:grid place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-[0.96]">
             <Paperclip className="size-[18px]" />
           </button>
@@ -63,7 +65,8 @@ export function Composer({ flow, replies, hint }: { flow: UploadFlow; replies: R
 
 /**
  * Idea A2 (Living chat lab only): remembers where what the user sends was, so their bubble can
- * fly out of it. The drop zone for the PDF; the name field when they create the book.
+ * fly out of it. The drop zone for the PDF; the name field when they create the book. Other replies
+ * fly out of the composer surface itself (marked with COMPOSER_ATTR).
  */
 function useHandoffSource(hasFile: boolean) {
   const living = useLiving()

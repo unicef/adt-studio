@@ -11,8 +11,8 @@ const NAME_INPUT = "wizard-project-name"
 
 /**
  * The "ambient" ideas of Living chat (lab only), drawn behind or around the whole thread:
- * G30 a glow on the window edge while the assistant works, G31 the avatar's mood (CSS keyed off
- * this layer's data-phase), G33 press and shake feedback, G34 a background tint per phase.
+ * G30 a brand-blue glow on the window edge while the assistant works, G31 the orb's face and mood
+ * (CSS keyed off this layer's data-phase), G33 press and shake feedback, G34 a blue tint per phase.
  * G32 lives in the bubbles. Renders nothing for "now" or outside Living chat.
  */
 export function AmbientLayer({ phase }: { phase: AmbientPhase }) {
@@ -29,10 +29,10 @@ export function AmbientLayer({ phase }: { phase: AmbientPhase }) {
       )}
       {idea === "g34" && (
         <>
-          <span className="lc-g34" data-tint="blue" />
-          <span className="lc-g34" data-tint="amber" />
-          <span className="lc-g34" data-tint="green" />
-          <span className="lc-g34" data-tint="rose" />
+          <span className="lc-g34" data-tint="read" />
+          <span className="lc-g34" data-tint="ask" />
+          <span className="lc-g34" data-tint="ready" />
+          <span className="lc-g34" data-tint="error" />
         </>
       )}
       {idea === "g33" && <PressFeedback />}
@@ -41,7 +41,7 @@ export function AmbientLayer({ phase }: { phase: AmbientPhase }) {
 }
 
 /**
- * G33 "Haptic-like feedback without sound": every button in the thread sinks a little while held
+ * G33 "Haptic-like feedback without sound": every button in the thread sinks to 0.97 while held
  * and springs back on release; Create with a missing or bad name shakes the field once (the check
  * for a good name is CSS).
  */
@@ -55,14 +55,14 @@ function PressFeedback() {
     const down = (e: PointerEvent) => {
       const el = (e.target as HTMLElement | null)?.closest<HTMLElement>("button:not(:disabled)")
       if (!el || !root.contains(el)) return
-      held = { el, anim: el.animate([{ scale: "1" }, { scale: "0.95" }], { duration: 110, easing: "ease-out", fill: "forwards" }) }
+      held = { el, anim: el.animate([{ scale: "1" }, { scale: "0.97" }], { duration: 110, easing: "ease-out", fill: "forwards" }) }
     }
     const up = () => {
       if (!held) return
       const { el, anim } = held
       held = null
       anim.cancel()
-      el.animate([{ scale: "0.95" }, { scale: "1.03" }, { scale: "1" }], { duration: 300, easing: "cubic-bezier(0.34, 1.56, 0.64, 1)" })
+      el.animate([{ scale: "0.97" }, { scale: "1.02" }, { scale: "1" }], { duration: 300, easing: "cubic-bezier(0.34, 1.56, 0.64, 1)" })
     }
     let shakeTimer = 0
     const click = (e: MouseEvent) => {

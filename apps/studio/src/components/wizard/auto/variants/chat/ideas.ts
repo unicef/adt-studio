@@ -8,10 +8,10 @@ import { createContext, useContext } from "react"
  */
 export const IDEA_GROUPS = [
   { key: "entrance", label: "Entrance", options: [
-    ["a1", "Spring from avatar", "Each bubble pops out of the avatar's corner with a small overshoot."],
-    ["a2", "Composer → bubble", "Your text flies up from the composer and becomes your bubble. Send or answer something."],
+    ["a1", "Spring from avatar", "Each bubble grows out of the avatar's corner from half size, overshoots a little and settles."],
+    ["a2", "Composer → bubble", "What you send flies up out of where it was and becomes your bubble: the PDF from the drop zone, the name from its field, replies from the composer. Drop a PDF or click Create."],
     ["a3", "Words from blur", "The assistant's words fade in from a blur, one by one."],
-    ["a4", "Gentle / Slam", "Routine messages slip in softly; the big moment (book ready) stamps down."],
+    ["a4", "Gentle / Slam", "Routine messages grow in softly; only the book-ready card stamps down and the thread shakes. See Done."],
   ] },
   { key: "expand", label: "Expand", options: [
     ["b6", "Bubble → panel", "The setup and past steps fold to soft pills; Change stretches the pill into its panel in place, Done shrinks it back. Click Change."],
@@ -48,11 +48,11 @@ export const IDEA_GROUPS = [
     ["f29", "Done in N steps", "The progress steps fold into one line: Done in N steps."],
   ] },
   { key: "ambient", label: "Ambient", options: [
-    ["g30", "Edge glow", "A soft moving glow around the screen edge while it works."],
-    ["g31", "Avatar moods", "The avatar breathes when idle, looks busy while working, hops when done."],
+    ["g30", "Edge glow", "A blue glow turns around the window edge while it reads or creates."],
+    ["g31", "Avatar moods", "The orb gets a face: breathes and blinks when idle, looks away as a wobbly blob while working, nods when asking, hops with happy eyes when done."],
     ["g32", "Dots → message", "The typing dots widen into the message instead of being replaced."],
-    ["g33", "Press feedback", "Buttons squish when pressed; wrong input shakes. Click things."],
-    ["g34", "Tint per phase", "The background tint changes with each phase."],
+    ["g33", "Press feedback", "Buttons squish when pressed; an empty name shakes on Create, a good one gets a check. Click things on Ready."],
+    ["g34", "Tint per phase", "The background takes its own blue tint for reading, asking and ready, crossfading between them."],
   ] },
 ] as const
 
