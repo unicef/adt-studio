@@ -131,6 +131,56 @@ export function suggestedTypesFor(controls: ActivityReviewItem["controls"]): str
   return [...new Set(types)].slice(0, 3)
 }
 
+/**
+ * What each accessibility check a page failed means, by rule id (the rule
+ * `name` in the pipeline's validate-activity-structure.ts). Null for an id
+ * Studio doesn't know yet: the caller shows the pipeline's own message.
+ */
+export function useActivityCheckLabel() {
+  const { t } = useLingui()
+  return (check: string): string | null => {
+    switch (check) {
+      case "option-label-class": return t`An answer option’s label is missing the class the reader needs`
+      case "radio-has-name": return t`A choice button has no group name`
+      case "label-wraps-radio": return t`A choice button isn’t inside its label`
+      case "checkbox-has-name": return t`A checkbox has no group name`
+      case "label-wraps-checkbox": return t`A checkbox isn’t inside its label`
+      case "unique-items": return t`Two items share the same activity id`
+      case "has-options": return t`The activity has no words or phrases to underline`
+      case "items-present": return t`An underline option has no item id`
+      case "question-group-present": return t`An underline option isn’t in a question group`
+      case "options-have-text": return t`An underline option has no text`
+      case "word-level-fully-tokenized": return t`A sentence isn’t fully split into selectable words`
+      case "fieldset-paired-radios": return t`A true-or-false question doesn’t have exactly two answers`
+      case "validation-mark-present": return t`A true-or-false answer has no mark to show the result`
+      case "markers-well-formed": return t`A blank is written in the wrong format`
+      case "inputs-have-item": return t`An answer field has no item id`
+      case "inputs-have-aria-label": return t`A text box has no accessible name`
+      case "drop-zones-accessible": return t`A drop zone has no accessible name`
+      case "cards-accessible": return t`A card has no accessible name or can’t be used with a keyboard`
+      case "inputs-have-label": return t`A field has no accessible name`
+      case "section-has-label": return t`The activity has no accessible name`
+      case "has-live-region": return t`Results aren’t announced to screen readers`
+      case "ordering-contract": return t`The ordering list or its items aren’t marked up as the reader expects`
+      default: return null
+    }
+  }
+}
+
+/** A page's failed checks, each once and in first-seen order, with how many
+ * times it failed. A known rule id is named; an unknown one keeps its message. */
+export function groupFailedChecks(item: ActivityReviewItem): Array<{ check: string | null; message: string; count: number }> {
+  const groups = new Map<string, { check: string | null; message: string; count: number }>()
+  item.validationErrors.forEach((message, index) => {
+    const check = item.failedChecks?.[index] ?? null
+    const key = check ?? message
+    const group = groups.get(key)
+    if (group) group.count += 1
+    else groups.set(key, { check, message, count: 1 })
+  })
+  return [...groups.values()]
+}
+
 export function useActivityReasonLabel() {
   const { t } = useLingui()
   return (reason: ActivityReviewItem["reasons"][number]): string => {

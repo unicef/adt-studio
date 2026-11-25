@@ -93,6 +93,10 @@ msgstr "(shabllon)"
 msgid "(this section)"
 msgstr "(ky seksion)"
 
+#. placeholder {0}: group.count
+msgid "{0, plural, one {(# time)} other {(# times)}}"
+msgstr "{0, plural, one {(# herë)} other {(# herë)}}"
+
 #. placeholder {0}: books.length
 msgid "{0, plural, one {# book in your library} other {# books in your library}}"
 msgstr "{0, plural, one {# libër në bibliotekën tuaj} other {# libra në bibliotekën tuaj}}"
@@ -497,6 +501,14 @@ msgstr "Edhe {availableCount} që mund t’i gjeneroni pas importimit:"
 #. placeholder {0}: items.length
 msgid "{classifiedCount} of {0} classified"
 msgstr "{classifiedCount} nga {0} të klasifikuara"
+
+#. placeholder {0}: items.length
+msgid "{classifiedCount} of {0} confirmed"
+msgstr "{classifiedCount} nga {0} të konfirmuara"
+
+#. placeholder {0}: items.length
+msgid "{classifiedCount} of {0} reviewed"
+msgstr "{classifiedCount} nga {0} të rishikuara"
 
 msgid "{clock} elapsed · usually 1 to 5 minutes"
 msgstr "{clock} kaluar · zakonisht 1 deri në 5 minuta"
@@ -997,11 +1009,29 @@ msgstr "A → Z"
 msgid "A balanced glossary for most books."
 msgstr "Një glosar i ekuilibruar për shumicën e librave."
 
+msgid "A blank is written in the wrong format"
+msgstr "Një vend bosh është shkruar në format të gabuar"
+
 msgid "A book is still being shared, or sharing is still being set up. Quitting stops it partway — you can start it again next time."
 msgstr "Një libër po ndahet ende, ose ndarja po konfigurohet ende. Nëse dilni tani, procesi ndalet në mes — mund ta nisni përsëri herën tjetër."
 
 msgid "A book with this name already exists."
 msgstr "Një libër me këtë emër ekziston tashmë."
+
+msgid "A card has no accessible name or can’t be used with a keyboard"
+msgstr "Një kartë nuk ka emër të aksesueshëm ose nuk mund të përdoret me tastierë"
+
+msgid "A checkbox has no group name"
+msgstr "Një kuti zgjedhjeje nuk ka emër grupi"
+
+msgid "A checkbox isn’t inside its label"
+msgstr "Një kuti zgjedhjeje nuk është brenda etiketës së saj"
+
+msgid "A choice button has no group name"
+msgstr "Një buton zgjedhjeje nuk ka emër grupi"
+
+msgid "A choice button isn’t inside its label"
+msgstr "Një buton zgjedhjeje nuk është brenda etiketës së tij"
 
 msgid "A close, long-term relationship between two different species, often benefiting both."
 msgstr "Një marrëdhënie e ngushtë afatgjatë midis dy specieve të ndryshme, shpesh duke përfituar të dyja."
@@ -1015,8 +1045,14 @@ msgstr "Është caktuar një kod, por jo në këtë kompjuter. Krijoni një të 
 msgid "A comment you pick opens here, next to its page."
 msgstr "Komenti që zgjidhni hapet këtu, pranë faqes së tij."
 
+msgid "A drop zone has no accessible name"
+msgstr "Një zonë lëshimi nuk ka emër të aksesueshëm"
+
 msgid "A few spreads in a single book"
 msgstr "Disa faqe të përbashkëta në një libër të vetëm"
+
+msgid "A field has no accessible name"
+msgstr "Një fushë nuk ka emër të aksesueshëm"
 
 msgid "A figure of speech that describes one thing as if it were another to draw a comparison."
 msgstr "Një figurë stilistike që përshkruan diçka sikur të ishte tjetër gjë për të bërë një krahasim."
@@ -1108,6 +1144,9 @@ msgstr "Një seksion me tekst në një kuti të theksuar."
 msgid "A select-all-that-apply activity where the learner can choose more than one option per question."
 msgstr "Një aktivitet zgjidh-të-gjitha-që-zbatohen ku nxënësi mund të zgjedhë më shumë se një opsion për pyetje."
 
+msgid "A sentence isn’t fully split into selectable words"
+msgstr "Një fjali nuk është ndarë plotësisht në fjalë të përzgjedhshme"
+
 msgid "A separator page between sections."
 msgstr "Një faqe ndarëse midis seksioneve."
 
@@ -1150,8 +1189,17 @@ msgstr "Një njoftim i sistemit kur dritarja është në sfond."
 msgid "A table-filling activity."
 msgstr "Një aktivitet me plotësim tabele."
 
+msgid "A text box has no accessible name"
+msgstr "Një kuti teksti nuk ka emër të aksesueshëm"
+
 msgid "A true or false activity."
 msgstr "Një aktivitet i vërtetë ose i gabuar."
+
+msgid "A true-or-false answer has no mark to show the result"
+msgstr "Një përgjigje e vërtetë ose e gabuar nuk ka shenjën që tregon rezultatin"
+
+msgid "A true-or-false question doesn’t have exactly two answers"
+msgstr "Një pyetje e vërtetë ose e gabuar nuk ka saktësisht dy përgjigje"
 
 msgid "A unique identifier used as the book folder name."
 msgstr "Një identifikues unik i përdorur si emër dosje e librit."
@@ -1946,6 +1994,12 @@ msgstr "Një aktivitet ku nxënësi nënvizon një ose më shumë fjalë, fraza 
 msgid "An AI image is being generated. Cancel it and navigate?"
 msgstr "Po gjenerohet një imazh me AI. Ta anulosh dhe të vazhdosh?"
 
+msgid "An answer field has no item id"
+msgstr "Një fushë përgjigjeje nuk ka id elementi"
+
+msgid "An answer option’s label is missing the class the reader needs"
+msgstr "Etiketës së një opsioni përgjigjeje i mungon klasa që i nevojitet lexuesit"
+
 msgid "An API key set in the server environment takes precedence over this sign-in. Remove it there to run on the signed-in account."
 msgstr "Një kyç API i caktuar në mjedisin e serverit ka përparësi ndaj kësaj hyrjeje. Hiqeni atje për të përdorur llogarinë me të cilën keni hyrë."
 
@@ -1960,6 +2014,15 @@ msgstr "Një e dhënë hyrëse ka nevojë për rishikim."
 
 msgid "An open-ended answer activity."
 msgstr "Një aktivitet me përgjigje të hapur."
+
+msgid "An underline option has no item id"
+msgstr "Një opsion për nënvizim nuk ka id elementi"
+
+msgid "An underline option has no text"
+msgstr "Një opsion për nënvizim nuk ka tekst"
+
+msgid "An underline option isn’t in a question group"
+msgstr "Një opsion për nënvizim nuk është në një grup pyetjesh"
 
 msgid "An update is going out. These can be changed once it's done."
 msgstr "Po dërgohet një përditësim. Këto mund të ndryshohen sapo të përfundojë."
@@ -3294,6 +3357,9 @@ msgstr "Konfiguroni zërat dhe thekset"
 
 msgid "Confirm activity pages"
 msgstr "Konfirmoni faqet e aktiviteteve"
+
+msgid "Confirm every page"
+msgstr "Konfirmoni çdo faqe"
 
 msgid "Confirm merge"
 msgstr "Konfirmoni bashkimin"
@@ -5003,6 +5069,9 @@ msgstr "dështoi"
 
 msgid "Failed"
 msgstr "Dështoi"
+
+msgid "Failed checks"
+msgstr "Kontrollet që dështuan"
 
 msgid "Failed to create book."
 msgstr "Dështoi krijimi i librit."
@@ -10305,6 +10374,9 @@ msgstr "Licencë e kufizuar"
 msgid "Results"
 msgstr "Rezultatet"
 
+msgid "Results aren’t announced to screen readers"
+msgstr "Rezultatet nuk u njoftohen lexuesve të ekranit"
+
 msgid "Resume sharing"
 msgstr "Vazhdo ndarjen"
 
@@ -10394,6 +10466,9 @@ msgstr "Rishikimi përfundoi: të gjitha {0} përkthimet e rishikuara janë të 
 
 msgid "Review each heading’s level, page, confidence, style cluster, and storyboard assignment."
 msgstr "Rishikoni nivelin, faqen, besueshmërinë, grupin e stileve dhe caktimin në storyboard për çdo titull."
+
+msgid "Review every page"
+msgstr "Rishikoni çdo faqe"
 
 msgid "Review items"
 msgstr "Shqyrto elementet"
@@ -12381,6 +12456,12 @@ msgstr "Përgjigjja nuk u dërgua. Provoni përsëri."
 msgid "The activity changed while feedback was being generated. Review your draft and try again."
 msgstr "Aktiviteti ndryshoi gjatë gjenerimit të komenteve. Shqyrtoni draftin tuaj dhe provoni përsëri."
 
+msgid "The activity has no accessible name"
+msgstr "Aktiviteti nuk ka emër të aksesueshëm"
+
+msgid "The activity has no words or phrases to underline"
+msgstr "Aktiviteti nuk ka fjalë ose fraza për t’u nënvizuar"
+
 msgid "The activity structure needs confirmation."
 msgstr "Struktura e aktivitetit ka nevojë për konfirmim."
 
@@ -12619,6 +12700,9 @@ msgstr "Mesazhi përmban titullin, lidhjen dhe kodin."
 
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "Modeli zbulон kufijtë e elementeve vizualë që çdo element mund të ruhet dhe të vendoset veçmas."
+
+msgid "The ordering list or its items aren’t marked up as the reader expects"
+msgstr "Lista e renditjes ose elementet e saj nuk kanë shënimin që pret lexuesi"
 
 msgid "The original history could not be verified. Existing records and assets have been retained. Recovery requires trustworthy evidence for these exact versions."
 msgstr "Historiku origjinal nuk mund të verifikohej. Regjistrimet dhe burimet ekzistuese janë ruajtur. Rikuperimi kërkon prova të besueshme për këto versione të sakta."
@@ -13557,6 +13641,9 @@ msgstr "Tregim me Dy Kolona"
 
 msgid "Two elements share a data-id but their content differs."
 msgstr "Dy elemente ndajnë të njëjtin data-id, por përmbajtja e tyre ndryshon."
+
+msgid "Two items share the same activity id"
+msgstr "Dy elemente ndajnë të njëjtin id aktiviteti"
 
 msgid "Two ways to start — from a source PDF, or from a project that already exists."
 msgstr "Dy mënyra për të filluar — nga një PDF burimor, ose nga një projekt që tashmë ekziston."

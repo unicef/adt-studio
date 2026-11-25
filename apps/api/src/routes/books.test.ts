@@ -1860,7 +1860,14 @@ describe("POST /books/preview-import", () => {
     expect(body.activityReview.items[0].previewHtml).toContain(
       "data:image/png;base64,iVBORw==",
     )
-    expect(body.agentGuide.activityPrompt).toContain("<activity_review_candidates_json>")
+    // #1155: each failed check's rule id comes with its message.
+    expect(body.activityReview.items[0].failedChecks).toHaveLength(body.activityReview.items[0].validationErrors.length)
+    // The compact page list replaces the pretty-printed JSON (#1185), and the
+    // assistant fixes the failed checks as well as classifying.
+    expect(body.agentGuide.activityPrompt).toContain("<activity_pages>")
+    expect(body.agentGuide.activityPrompt).not.toContain("<activity_review_candidates_json>")
+    expect(body.agentGuide.activityPrompt).toContain("make the markup change each failed check describes")
+    expect(body.agentGuide.activityPrompt).toContain("keep its type")
     expect(body.agentGuide.activityPrompt).toContain("pg001_sec001")
     expect(body.agentGuide.activityPrompt).toContain("data-adt-non-activity")
     // Classifying is a move between the two lists. Saying only "update" let an

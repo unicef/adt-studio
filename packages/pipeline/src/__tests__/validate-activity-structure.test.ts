@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { parseDocument, DomUtils } from "htmlparser2"
-import { validateActivityStructure } from "../validate-activity-structure.js"
+import { validateActivityStructure, validateActivityStructureChecks } from "../validate-activity-structure.js"
 
 function sectionFromHtml(html: string): {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -833,5 +833,32 @@ describe("validateActivityStructure — ordering", () => {
         expect.stringContaining("every data-activity-item"),
       ]),
     )
+  })
+})
+
+// #1155: the import review names each failed check, so the rule id travels
+// with its message.
+describe("validateActivityStructureChecks", () => {
+  const html = `
+    <section data-section-type="activity_custom">
+      <h2>Me gustaría conocerte</h2>
+      <label for="activity-item-1">Nombre</label>
+      <input id="activity-item-1" data-activity-item="item-1" type="text">
+      <label for="activity-item-2">Edad</label>
+      <input id="activity-item-2" data-activity-item="item-2" type="text">
+    </section>`
+
+  it("names the rule behind each failure, in the same order as the messages", () => {
+    const { section, sectionType } = sectionFromHtml(html)
+    const checks = validateActivityStructureChecks(section, sectionType)
+    expect(checks.map((c) => c.check)).toEqual(expect.arrayContaining(["inputs-have-label", "section-has-label", "has-live-region"]))
+    // One entry per failure: both unnamed fields fail the same rule.
+    expect(checks.filter((c) => c.check === "inputs-have-label")).toHaveLength(2)
+    expect(checks.map((c) => c.message)).toEqual(validateActivityStructure(section, sectionType))
+  })
+
+  it("returns nothing for a section type without rules", () => {
+    const { section } = sectionFromHtml(`<section data-section-type="content"><p>Text</p></section>`)
+    expect(validateActivityStructureChecks(section, "content")).toEqual([])
   })
 })

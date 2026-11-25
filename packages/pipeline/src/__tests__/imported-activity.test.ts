@@ -66,6 +66,21 @@ describe("inspectImportedActivity", () => {
     expect(result.signals).toContain("custom-registration")
   })
 
+  // #1155: Studio names each failed check, so the rule ids come with the messages.
+  it("lists the rule id of each failed check beside its message", () => {
+    const result = inspectImportedActivity(`
+      <div id="content">
+        <section data-section-id="pg003_sec001" data-section-type="activity_custom">
+          <h2>Leemos juntos</h2>
+          <button type="button">Comprobar</button>
+        </section>
+      </div>
+    `, "pg003_sec001")
+
+    expect(result.failedChecks).toEqual(expect.arrayContaining(["section-has-label", "has-live-region"]))
+    expect(result.failedChecks).toHaveLength(result.validationErrors.length)
+  })
+
   it("restores documented custom registration scripts only for matching custom sections", () => {
     const source = `<html><body><section data-section-id="sec-1" data-section-type="activity_custom_crossword">
       <button>Check</button>

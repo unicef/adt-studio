@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useId, useMemo, useState } from "react"
 import { ArrowLeft, ArrowRight, Check, Puzzle } from "lucide-react"
 import { Plural, Trans, useLingui } from "@lingui/react/macro"
 
@@ -18,8 +18,10 @@ import { ActivityTypePanel } from "./ActivityTypePanel"
 import {
   activityReviewKind,
   failsOnlyChecks,
+  groupFailedChecks,
   hasDecision,
   pageName,
+  useActivityCheckLabel,
   useActivityReasonLabel,
   useActivityTypeLabel,
   useControlsLabel,
@@ -58,6 +60,8 @@ export function ActivityClassificationDialog({
   const activityTypeLabel = useActivityTypeLabel()
   const controlsLabel = useControlsLabel()
   const reasonLabel = useActivityReasonLabel()
+  const checkLabel = useActivityCheckLabel()
+  const failedChecksId = useId()
   const items = useMemo(
     () => review.items.filter((item) => item.status === "needs-review"),
     [review.items],
@@ -125,7 +129,11 @@ export function ActivityClassificationDialog({
               />
             </div>
             <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
-              <Trans>{classifiedCount} of {items.length} classified</Trans>
+              {kind === "checks"
+                ? <Trans>{classifiedCount} of {items.length} confirmed</Trans>
+                : kind === "mixed"
+                  ? <Trans>{classifiedCount} of {items.length} reviewed</Trans>
+                  : <Trans>{classifiedCount} of {items.length} classified</Trans>}
             </span>
           </div>
         </DialogHeader>
@@ -167,7 +175,8 @@ export function ActivityClassificationDialog({
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-xs font-semibold">{pageName(item)}</span>
-                        <span className="mt-0.5 block truncate text-[11px] font-normal text-muted-foreground">
+                        {/* The grey on the selected tint measured 4.33:1, under AA's 4.5:1. */}
+                        <span className={cn("mt-0.5 block truncate text-[11px] font-normal", selected ? "text-foreground/75" : "text-muted-foreground")}>
                           {classified
                             ? decisions[item.sectionId] === null
                               ? t`Not an activity`
@@ -227,6 +236,20 @@ export function ActivityClassificationDialog({
                         ? <>{reasonLabel(activeItem.reasons[0])} <Trans>Outlined: {controlsLabel(activeItem.controls)} found on this page.</Trans></>
                         : reasonLabel(activeItem.reasons[0])}
                 </p>
+                {activeItem.validationErrors.length > 0 ? (
+                  <div className="max-h-32 shrink-0 overflow-y-auto border-t border-border px-5 py-2.5 text-xs">
+                    <p id={failedChecksId} className="font-semibold text-foreground"><Trans>Failed checks</Trans></p>
+                    <ul aria-labelledby={failedChecksId} className="mt-1 list-disc space-y-0.5 pl-4 text-muted-foreground marker:text-muted-foreground">
+                      {groupFailedChecks(activeItem).map((group) => (
+                        <li key={group.check ?? group.message}>
+                          {/* An unknown check keeps the pipeline's English message. */}
+                          {group.check && checkLabel(group.check) ? checkLabel(group.check) : <span lang="en">{group.message}</span>}
+                          {group.count > 1 ? <> <Plural value={group.count} one="(# time)" other="(# times)" /></> : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
               </section>
               <aside className="flex w-[22rem] shrink-0 flex-col border-l border-border bg-background">
                 <ActivityTypePanel
@@ -273,7 +296,13 @@ export function ActivityClassificationDialog({
             onClick={() => onOpenChange(false)}
           >
             <Check className="size-4" />
-            {allClassified ? <Trans>Finish review</Trans> : <Trans>Classify every page</Trans>}
+            {allClassified
+              ? <Trans>Finish review</Trans>
+              : kind === "checks"
+                ? <Trans>Confirm every page</Trans>
+                : kind === "mixed"
+                  ? <Trans>Review every page</Trans>
+                  : <Trans>Classify every page</Trans>}
           </Button>
         </DialogFooter>
       </DialogContent>

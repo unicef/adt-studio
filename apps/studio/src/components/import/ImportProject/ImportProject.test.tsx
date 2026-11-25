@@ -500,7 +500,13 @@ describe("ImportProject", () => {
     compatibility: { supported: true, issues: [] },
     match: { confidence: "none", recommendedProjectLabel: null, candidates: [] },
   })
-  const checksOnly = (sectionId: string, heading: string, failed: number, controls: Array<{ kind: string; count: number }>) => ({
+  const checksOnly = (
+    sectionId: string,
+    heading: string,
+    failed: number,
+    controls: Array<{ kind: string; count: number }>,
+    failedChecks?: string[],
+  ) => ({
     sectionId,
     href: `${sectionId}.html`,
     heading,
@@ -510,6 +516,7 @@ describe("ImportProject", () => {
     reasons: ["invalid-structure"],
     validationErrors: Array.from({ length: failed }, (_, index) => `Check ${index + 1} failed.`),
     controls,
+    ...(failedChecks ? { failedChecks } : {}),
   })
 
   it("asks to confirm pages that only fail accessibility checks, not to choose a type", async () => {
@@ -537,6 +544,9 @@ describe("ImportProject", () => {
     fireEvent.click(screen.getByRole("button", { name: "Confirm pages" }))
     const dialog = screen.getByRole("dialog")
     expect(within(dialog).getByText("Confirm activity pages")).toBeTruthy()
+    // Progress and the finish button speak of confirming, not classifying.
+    expect(within(dialog).getByText("0 of 2 confirmed")).toBeTruthy()
+    expect(within(dialog).getByRole("button", { name: "Confirm every page" })).toHaveProperty("disabled", true)
     expect(within(dialog).getByText(/Its type, Custom activity, is accepted/).textContent).toContain("2 accessibility problems were found")
     // Keeping the type is offered first, and a person still chooses it.
     const keep = within(dialog).getByRole("radio", { name: /Keep Custom activity/ })
@@ -557,6 +567,28 @@ describe("ImportProject", () => {
       },
       expect.any(Object),
     )
+  })
+
+  // #1155: the dialog names each failed check, in the reader's language.
+  it("names each failed accessibility check in the dialog", async () => {
+    previewImport.mockResolvedValue(activityPreview([
+      checksOnly("pg001_sec001", "Me gustaría conocerte", 4, [{ kind: "text-field", count: 2 }],
+        ["inputs-have-label", "inputs-have-label", "section-has-label", "some-future-check"]),
+    ]))
+
+    const view = render(<ImportProject />)
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement
+    fireEvent.change(input, { target: { files: [new File(["zip"], "workbook.zip", { type: "application/zip" })] } })
+
+    fireEvent.click(await screen.findByRole("button", { name: "Confirm pages" }))
+    const checks = within(screen.getByRole("dialog")).getByRole("list", { name: "Failed checks" })
+    const items = within(checks).getAllByRole("listitem").map((item) => item.textContent)
+    expect(items).toEqual([
+      "A field has no accessible name (2 times)",
+      "The activity has no accessible name",
+      // A check Studio doesn't know yet shows the pipeline's own message.
+      "Check 4 failed.",
+    ])
   })
 
   it("asks to review pages when some need a type and others only fail checks", async () => {
