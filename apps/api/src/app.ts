@@ -40,6 +40,7 @@ import { createSignLanguageVideoRoutes } from "./routes/sign-language-videos.js"
 import { createEditableActivitiesRoutes } from "./routes/editable-activities.js"
 import { createAgentRoutes } from "./routes/agents.js"
 import { createChatRoutes } from "./routes/chat.js"
+import { createReaderSourceRoutes } from "./routes/reader-source.js"
 import { createTranslationEvaluationRoutes } from "./routes/translation-evaluations.js"
 import { createProviderRoutes } from "./routes/providers.js"
 import { createCloudflareRoutes } from "./routes/cloudflare.js"
@@ -144,6 +145,7 @@ app.route("/api", createReviewerValidationRoutes(booksDir, configFolderPath, con
 app.route("/api", createSignLanguageVideoRoutes(booksDir))
 app.route("/api", createAgentRoutes(booksDir, promptsDir, configPath, taskService))
 app.route("/api", createChatRoutes(booksDir, promptsDir, configPath))
+app.route("/api", createReaderSourceRoutes(booksDir, webAssetsDir))
 app.route("/api", createTranslationEvaluationRoutes(booksDir, configPath, taskService))
 /** One Cloudflare login service for both route groups below, so a renewal is never raced by a
  *  second service on the same saved login. */

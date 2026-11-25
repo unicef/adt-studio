@@ -91,6 +91,9 @@ import { orderTocEntries } from "../toc-reading-order.js"
 import { normalizeSectionRoles, promoteFirstHeadingToH1 } from "../html-semantics.js"
 import { escapeHtml, escapeAttr, escapeInlineScriptJson, stripXmlInvalid } from "../html-escape.js"
 import { buildTailwindCss } from "../tailwind.js"
+import { globalReaderSourceDir, readerRuntimeDir, runtimeSourceFingerprint } from "../reader-runtime/base-source.js"
+import { compileReaderRuntime, COMPILED_READER_FILES } from "../reader-runtime/compile.js"
+import { readerOverlayHash, resolveReaderOverlay, type ReaderOverlayFile } from "../reader-runtime/overlay.js"
 
 export interface PackageAdtWebOptions {
   signal?: AbortSignal
@@ -221,8 +224,8 @@ export function buildRuntimeTimecodeMap(
 // Folded into the packaging cache hash so already-packaged books regenerate
 // when renderPageHtml's output format changes (which book inputs don't capture).
 // Bump on any such change.
-// Regenerate bundles with round-trip metadata and staged imported presentation.
-const PACKAGING_FORMAT_VERSION = 19
+// Regenerate bundles whose runtime now carries component source tags (SPEC-0027).
+const PACKAGING_FORMAT_VERSION = 20
 
 export interface ComputePackagingInputHashOptions {
   storage: Storage
@@ -274,6 +277,16 @@ export function computePackagingInputHash(options: ComputePackagingInputHashOpti
     bundleVersion: options.bundleVersion ?? "1",
     applyBodyBackground: options.applyBodyBackground ?? false,
   }))
+
+  const readerOverlay = resolveReaderOverlay(options.storage, globalReaderSourceDir(path.dirname(options.bookDir)))
+  if (readerOverlay.files.length > 0) {
+    const runtimeDir = readerRuntimeDir(options.webAssetsDir)
+    hash.update(JSON.stringify({
+      readerSource: readerOverlayHash(readerOverlay.files),
+      layers: readerOverlay.files.map(({ path: file, layer, version }) => [file, layer, version]),
+      runtime: runtimeDir ? runtimeSourceFingerprint(runtimeDir) : null,
+    }))
+  }
 
   // 3. Book config (affects rendering, accessibility, etc.)
   hash.update(JSON.stringify(options.config))
@@ -1158,6 +1171,11 @@ async function buildWebPackage(
     }
   }
 
+  const readerOverlay = resolveReaderOverlay(storage, globalReaderSourceDir(path.dirname(bookDir)))
+  if (readerOverlay.files.length > 0) {
+    configJson.readerSource = readerOverlay.files.map(({ path: file, layer, version }) => ({ path: file, layer, version }))
+  }
+
   // Write config.json (overwrites the template one from assets)
   writeJson(path.join(assetsDir, "config.json"), configJson)
 
@@ -1167,13 +1185,18 @@ async function buildWebPackage(
   progress.emit({ type: "step-progress", step, message: "Building JS bundle..." })
   options.signal?.throwIfAborted()
   await buildJsBundle(webAssetsDir, assetsDir)
+  if (readerOverlay.files.length > 0) {
+    progress.emit({ type: "step-progress", step, message: "Compiling customized reader..." })
+    await installCustomReaderBundle(readerOverlay.files, webAssetsDir, path.join(bookDir, ".cache"), assetsDir)
+  }
   options.signal?.throwIfAborted()
 
   // ------------------------------------------------------------------
   // Build Tailwind CSS
   // ------------------------------------------------------------------
   progress.emit({ type: "step-progress", step, message: "Building Tailwind CSS..." })
-  await buildTailwindCss(adtDir, webAssetsDir, typographyCss)
+  const readerGlobalsCss = readerOverlay.files.find((file) => file.path === READER_GLOBALS_CSS)?.content
+  await buildTailwindCss(adtDir, webAssetsDir, typographyCss, readerGlobalsCss)
   options.signal?.throwIfAborted()
 
   // ------------------------------------------------------------------
@@ -2540,6 +2563,26 @@ function convertLatexInFragment(html: string): string {
 // ---------------------------------------------------------------------------
 // JS bundle build (base.js → base.bundle.min.js via esbuild)
 // ---------------------------------------------------------------------------
+
+export const READER_GLOBALS_CSS = "styles/globals.css"
+
+async function installCustomReaderBundle(
+  files: ReaderOverlayFile[],
+  webAssetsDir: string,
+  cacheDir: string,
+  outputAssetsDir: string,
+): Promise<void> {
+  const runtimeDir = readerRuntimeDir(webAssetsDir)
+  if (!runtimeDir) throw new Error("This book has a customized reader, but the reader source is not available in this installation.")
+  const result = await compileReaderRuntime({ runtimeDir, files, cacheDir })
+  if (!result.ok) {
+    const details = result.errors.map((error) => `${error.path}:${error.line}:${error.column} ${error.message}`).join("\n")
+    throw new Error(`The customized reader does not compile:\n${details}`)
+  }
+  for (const file of COMPILED_READER_FILES) {
+    fs.copyFileSync(path.join(result.dir, file), path.join(outputAssetsDir, file))
+  }
+}
 
 async function buildJsBundle(
   webAssetsDir: string,

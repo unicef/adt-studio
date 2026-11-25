@@ -795,3 +795,4 @@ export { PackageOwnershipReceipt, DerivedWebpubFiles } from "./package-ownership
 export { type TextDirection, getTextDirection } from "./text-direction.js"
 
 export * from "./chat.js"
+export * from "./reader-source.js"

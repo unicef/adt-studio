@@ -154,10 +154,13 @@ Decisions D1, D2, D5, D10 and D11 were set by the owner on 2026-11-25.
   - "Revert" writes a tombstone (`deleted: true`) and never deletes rows.
   - Saves are guarded by `baseVersion`.
   - Being in the book `.db`, overrides travel with export and import (principle 1).
-- **D4 — The global layer is file-based and versioned.** It lives under
-  `READER_SOURCE_DIR` (default `<BOOKS_DIR>/.reader-source`) with the prompts layout
-  (`.versions/<path>/<timestamp>-NNN.txt` + `.current`). Reset writes a tombstone
-  version instead of `rmSync`ing the history.
+- **D4 — The global layer is file-based and versioned.**
+  - **Location:** `<BOOKS_DIR>/.reader-source/files/<src path>/NNNNNN.json`. Each
+    file holds `{ content, baseHash, deleted? }`. Versions are created with an
+    exclusive write and never rewritten.
+  - **Latest version:** the highest number.
+  - **Reset:** writes a tombstone version.
+  - **Restore:** copies an older version as a new one, so the history only grows.
 - **D5 — Any customization detaches a book from the global layer.**
   - A global change reaches every book that follows the global layer, at its next
     build or preview.
@@ -177,8 +180,9 @@ Decisions D1, D2, D5, D10 and D11 were set by the owner on 2026-11-25.
   - **Bundle record.** Packaging records the layer and version of every compiled
     override in the bundle's `config.json` (`readerSource`), so a shipped bundle
     states exactly what it contains.
-- **D6 — Drift detection.** `baseHash` is the hash of the file the override was made
-  from (global or base). A mismatch marks the file *outdated*. Studio offers a 3-way
+- **D6 — Drift detection.** `baseHash` is the hash of the base file the override derives
+  from. A global override copied into a book keeps its `baseHash`. A mismatch with the
+  current base marks the file *outdated*. Studio offers a 3-way
   compare in Monaco's `DiffEditor`. Updating is the author's action, optionally done
   by the chat.
 - **D7 — Imports allowlist.**
@@ -246,7 +250,13 @@ compileReaderRuntime({ baseSrcDir, overlay, cacheDir }): Promise<
 Compiling at runtime needs the base runtime source, `@adt/types/src` and the
 runtime's `dependencies` on disk next to the API.
 
-- **Option A (preferred):** copy the source to `assets/adt/runtime-src/` at build
+- **Location:** the compiler looks for the runtime (`src/`, `build-options.mjs`,
+  `package.json`) at `<webAssetsDir>/../adt-runtime`, then at
+  `<webAssetsDir>/../../apps/adt-runtime` (the development checkout).
+  - It must never be inside `webAssetsDir`, which packaging copies into every book.
+  - The path is resolved with `realpath`, so a symlinked or junctioned install also
+    works.
+- **Option A (preferred):** copy the runtime to `assets/adt-runtime/` at build
   time. Install the runtime deps through `install-server-runtime.mjs` and the
   Dockerfile npm step, the same way jsdom and playwright are installed.
 - **Option B (fallback):** at runtime-build time, emit one pre-bundled ESM "vendor"
@@ -266,13 +276,18 @@ Paths are validated with `resolvePathWithin` against the runtime `src/` (D2).
 | `PUT /books/:label/reader-source/file` | `{ path, content, baseVersion }` → new version; 409 when the version is stale |
 | `POST /books/:label/reader-source/revert` | `{ path, baseVersion }` → tombstone version (the file falls back to the base) |
 | `GET /books/:label/reader-source/base?path=` | Base content and, when present, the global version (for compare) |
-| `POST /books/:label/reader-source/follow-global` | `{ baseVersion }` → `reader-source-mode` version with `followsGlobal: true` |
+| `GET /books/:label/reader-source/history?path=` | Every book version of the file, oldest first, with tombstones |
+| `POST /books/:label/reader-source/restore` | `{ path, version, baseVersion }` → a new version with that version's content |
+| `POST /books/:label/reader-source/follow-global` | → `reader-source-mode` version with `followsGlobal: true` |
 | `POST /books/:label/reader-source/compile` | `{ drafts?: Record<path, content> }` → `{ hash, errors }`; keeps the latest draft build for the preview |
 | `GET/PUT/POST /reader-source/global/...` | Same surface for the global layer (D4) |
 
-History and restore reuse `GET /books/:label/debug/versions/:node/:itemId` and
-`POST /books/:label/versions/:node/:itemId/restore`, with `reader-source` added to
-`RestorableNode`.
+History and restore are routes of their own.
+- The shared `/versions/:node/:itemId/restore` route clears derived outputs (captions,
+  source-generation state) that a reader change doesn't touch.
+- That route's `:itemId` can't carry a path with `/`.
+- Restoring by copying the old content as a new version keeps a single,
+  append-only history, the same as the global layer.
 
 ### Chat reader tools (first implementation phase after the spike)
 
@@ -357,7 +372,7 @@ step. The request carries `scope: "reader"`, and `ChatSendRequest` gains an opti
   - `apps/adt-runtime/build.config.mjs` → the shared build module; `inspector.ts`;
     the chrome error boundary.
   - `apps/api/src/routes/reader-source.ts` (new), `services/chat/reader-tools.ts`
-    (new), `adt-preview.ts`, `pages.ts` (`RestorableNode`),
+    (new), `adt-preview.ts`,
     `scripts/install-server-runtime.mjs`, `bundle-server.mjs`, `Dockerfile`.
   - `apps/studio/src/components/pipeline/stages/reader/*` (new), `stage-config.ts`
     (sidebar entry), Settings → global reader source, `ChatApprovalCard` (diff).
@@ -371,7 +386,7 @@ step. The request carries `scope: "reader"`, and `ChatSendRequest` gains an opti
 - **Docs:**
   - `docs/ARCHITECTURE.md`: the book tree, the `.cache/reader-runtime` cache and
     `<BOOKS_DIR>/.chats`.
-  - `AGENTS.md`: `READER_SOURCE_DIR`, the externals and the runtime source shipping.
+  - `AGENTS.md`: `<BOOKS_DIR>/.reader-source`, the externals and the runtime source shipping.
   - `docs/SECURITY_MODEL.md` (planned): author code runs unsandboxed.
 - **Collisions:**
   - SPEC-0004 (style guide and Styles panel), for the reader-vs-page theming
@@ -389,24 +404,24 @@ step. The request carries `scope: "reader"`, and `ChatSendRequest` gains an opti
 - [x] AC-5: Sending while an approval is pending, or approving with nothing pending, is refused (409); unknown books or threads are 404; empty messages are 400.
 
 **Compiler and packaging**
-- [ ] AC-6: An effective file resolves book version, else global version, else base; a tombstone at a layer falls through to the next one.
-- [ ] AC-7: A bare import not in the runtime `dependencies` or `@adt/types/*` fails the compile with an error naming the import; `node:*`, absolute paths and relative paths escaping `src/` fail the same way.
-- [ ] AC-8: Syntax and resolve errors are returned as `{ path, line, column, message }` with `src/`-relative paths.
-- [ ] AC-9: With no overrides, the packaged `base.bundle.min.js` and `base.bundle.local.js` are byte-identical to the prebuilt ones.
-- [ ] AC-10: Compiling the same base and overlay twice returns the cached output without invoking esbuild.
-- [ ] AC-11: A Tailwind class used only in an override appears in the packaged `tailwind_output.css`; the effective `globals.css` is the Tailwind input.
-- [ ] AC-12: The packaging input hash changes when any effective file changes; a compile failure fails packaging with the error list and writes no bundle.
-- [ ] AC-13: The packaged `config.json` lists each overridden file with its layer and version.
+- [x] AC-6: An effective file resolves book version, else global version, else base; a tombstone at a layer falls through to the next one.
+- [x] AC-7: A bare import not in the runtime `dependencies` or `@adt/types/*` fails the compile with an error naming the import; `node:*`, absolute paths and relative paths escaping `src/` fail the same way.
+- [x] AC-8: Syntax and resolve errors are returned as `{ path, line, column, message }` with `src/`-relative paths.
+- [x] AC-9: With no overrides, the packaged `base.bundle.min.js` and `base.bundle.local.js` are byte-identical to the prebuilt ones.
+- [x] AC-10: Compiling the same base and overlay twice returns the cached output without invoking esbuild.
+- [x] AC-11: A Tailwind class used only in an override appears in the packaged `tailwind_output.css`; the effective `globals.css` is the Tailwind input.
+- [x] AC-12: The packaging input hash changes when any effective file changes; a compile failure fails packaging with the error list and writes no bundle.
+- [x] AC-13: The packaged `config.json` lists each overridden file with its layer and version.
 
 **Storage, layers and versioning**
-- [ ] AC-14: Saving a file writes a new `reader-source` version (MAX+1) and never updates a row in place.
-- [ ] AC-15: A save or revert with a stale `baseVersion` is rejected with 409 and writes nothing.
-- [ ] AC-16: Revert writes a tombstone; all earlier versions remain listable and restorable through the restore route.
-- [ ] AC-17: A file whose `baseHash` differs from the current hash of its base file is reported `outdated`.
-- [ ] AC-18: Any path under `src/` can be read and written; paths outside `src/` or escaping it are rejected (400/403).
-- [ ] AC-19: No stage rerun or clear list deletes `reader-source` rows (source-scan invariant test).
-- [ ] AC-20: A global change reaches a book that follows the global layer and never reaches a customized book; the first save in a book copies the current global overrides into it; "follow global again" makes the global layer apply again without deleting book rows.
-- [ ] AC-21: Resetting a global file writes a tombstone and keeps its history.
+- [x] AC-14: Saving a file writes a new `reader-source` version (MAX+1) and never updates a row in place.
+- [x] AC-15: A save or revert with a stale `baseVersion` is rejected with 409 and writes nothing.
+- [x] AC-16: Revert writes a tombstone; all earlier versions remain listable and restorable; restoring one appends it as a new version.
+- [x] AC-17: A file whose `baseHash` differs from the current hash of its base file is reported `outdated`.
+- [x] AC-18: Any path under `src/` can be read and written; paths outside `src/` or escaping it are rejected (400/403).
+- [x] AC-19: No stage rerun or clear list deletes `reader-source` rows (source-scan invariant test).
+- [x] AC-20: A global change reaches a book that follows the global layer and never reaches a customized book; the first save in a book copies the current global overrides into it; "follow global again" makes the global layer apply again without deleting book rows.
+- [x] AC-21: Resetting a global file writes a tombstone and keeps its history.
 
 **Chat reader tools**
 - [ ] AC-22: In `reader` scope, `write_reader_file` and `revert_reader_file` need approval, and an approved call creates exactly one `reader-source` version.
@@ -435,22 +450,22 @@ step. The request carries `scope: "reader"`, and `ChatSendRequest` gains an opti
 | AC-3 | unit | `apps/api/src/services/chat/chat-service.test.ts` | `answers, streams the reply and persists the conversation with a title` |
 | AC-4 | unit | same | `stops for approval before a write and resumes after the user declines`; `executes an approved write and feeds its result back to the model` |
 | AC-5 | API | `apps/api/src/routes/chat.test.ts` | `rejects unknown books, unknown threads, empty messages and approvals with nothing pending` |
-| AC-6 | unit | `packages/pipeline/src/reader-runtime/__tests__/compile.test.ts` | `AC-6: resolves book, then global, then base; tombstones fall through` |
+| AC-6 | unit | `packages/pipeline/src/__tests__/reader-runtime.test.ts` | `AC-6: a book follows the global layer until customized; tombstones fall back to the base`; `AC-6 / AC-10: compiles an override into the bundle and reuses the cache` |
 | AC-7 | unit | same | `AC-7: rejects imports outside the runtime dependencies` |
-| AC-8 | unit | same | `AC-8: reports errors with relative path, line and column` |
-| AC-9 | unit | `packages/pipeline/src/__tests__/package-web.test.ts` | `AC-9: no overrides ships the prebuilt bundles unchanged` |
-| AC-10 | unit | `compile.test.ts` | `AC-10: identical overlay hits the cache` |
-| AC-11 | integration | `package-web.test.ts` | `AC-11: override-only classes reach tailwind_output.css` |
-| AC-12 | unit | `package-web.test.ts` | `AC-12: overlay changes the input hash; compile failure fails packaging` |
-| AC-13 | unit | `package-web.test.ts` | `AC-13: config.json records compiled overrides` |
-| AC-14 | unit | `packages/storage/src/__tests__/reader-source.test.ts` | `AC-14: save appends a version` |
-| AC-15 | API | `apps/api/src/routes/reader-source.test.ts` | `AC-15: stale baseVersion returns 409` |
-| AC-16 | API | same | `AC-16: revert writes a tombstone and history stays restorable` |
-| AC-17 | API | same | `AC-17: hash mismatch marks the file outdated` |
-| AC-18 | API | same | `AC-18: any src path is writable; paths outside src are rejected` |
-| AC-19 | unit | `packages/storage/src/__tests__/invariants-authored.test.ts` | `AC-19: reader-source is never in a clear list` |
-| AC-20 | API | `reader-source.test.ts` | `AC-20: a customized book detaches from the global layer` |
-| AC-21 | API | same | `AC-21: global reset keeps history` |
+| AC-8 | unit | same | `AC-8: reports syntax errors with src-relative path, line and column` |
+| AC-9 | API | `apps/api/src/routes/package-reader-source.test.ts` | `AC-9: a book without overrides ships the prebuilt bundles unchanged` |
+| AC-10 | unit | `reader-runtime.test.ts` | `AC-6 / AC-10: compiles an override into the bundle and reuses the cache` |
+| AC-11 | API | `package-reader-source.test.ts` | `AC-11 / AC-12 / AC-13: compiles overrides, styles their classes, records them and fails on broken source` |
+| AC-12 | API | same | same |
+| AC-13 | API | same | same |
+| AC-14 | unit | `reader-runtime.test.ts` | `AC-14: every save appends a version` |
+| AC-15 | unit + API | `reader-runtime.test.ts`; `apps/api/src/routes/reader-source.test.ts` | `AC-15: a stale base version is rejected and nothing is written`; `AC-15: a stale save returns 409` |
+| AC-16 | unit + API | same | `AC-16: revert writes a tombstone and an older version can be restored as a new one`; `AC-16: revert and restore append versions and keep the history` |
+| AC-17 | unit + API | same | `AC-17: an override keeps the base hash it was made from`; `AC-17: an override made from an older base is outdated` |
+| AC-18 | API | `reader-source.test.ts` | `AC-18: any src path is writable; paths outside src are rejected` |
+| AC-19 | API | `reader-source.test.ts` | `AC-19: reader-source is never in a clear list or a clear call` |
+| AC-20 | unit + API | `reader-runtime.test.ts`; `reader-source.test.ts` | `AC-20: customizing detaches the book, and following the global layer again keeps its rows`; `AC-20: a global save reaches a following book until it is customized` |
+| AC-21 | unit + API | same | `AC-21: a global reset is a tombstone that keeps the history`; `AC-21: a global reset keeps its history` |
 | AC-22 | unit | `apps/api/src/services/chat/reader-tools.test.ts` | `AC-22: reader writes need approval and save one version` |
 | AC-23 | unit | same | `AC-23: compile_reader matches the compile route; paths are scoped` |
 | AC-24 | unit | `apps/studio/src/components/chat/BookChatPanel/__tests__/ChatApprovalCard.test.tsx` | `AC-24: file writes show a line diff` |
@@ -474,7 +489,7 @@ the owner decides.
 | 0 | `feature/book-chat` | **Done:** chat foundation on the ADT agent loop | AC-1…AC-5 |
 | 1 | experiment | Spike: compile the runtime with an overlay from shipped source in Electron and Docker; record sizes and times; pick distribution option A or B and amend this spec | — |
 | 2 | spec PR | This spec, reviewed and approved | — |
-| 3 | `feature/reader-source-customization` | Compiler + plugin + shared build module + `reader-source` entity + global layer storage + API routes + packaging | AC-6…AC-21 |
+| 3 | `feature/reader-source-customization` | **Done locally:** compiler + plugin + shared build module + `reader-source` entity + global layer storage + API routes + packaging. Shipping the runtime with the installers waits for phase 1 | AC-6…AC-21 |
 | 4 | same | Chat reader tools + diff in the approval card (the chat comes first in the UI work) | AC-22…AC-25 |
 | 5 | same | Reader step: explorer, Monaco, draft preview, history, compare, revert, error boundary, global editor | AC-26…AC-28, AC-32, AC-33 |
 | 6 | same | Inspect mode | AC-29…AC-31 |

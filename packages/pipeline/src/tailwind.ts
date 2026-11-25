@@ -16,6 +16,7 @@ export async function buildTailwindCss(
   adtDir: string,
   webAssetsDir: string,
   typographyCss?: string,
+  readerGlobalsCss?: string,
 ): Promise<void> {
   const outputPath = path.join(adtDir, "content", "tailwind_output.css")
   // The .adt-* rules live in @layer components, so they default the role sizes
@@ -25,7 +26,7 @@ export async function buildTailwindCss(
   // In Tauri sidecar mode, postcss/tailwindcss cannot run inside the pkg binary.
   // bundle.mjs pre-builds tailwind_output.css into webAssetsDir before zipping.
   const preBuilt = path.join(webAssetsDir, "tailwind_output.css")
-  if (fs.existsSync(preBuilt)) {
+  if (readerGlobalsCss === undefined && fs.existsSync(preBuilt)) {
     fs.copyFileSync(preBuilt, outputPath)
     if (suffix) fs.appendFileSync(outputPath, suffix)
     return
@@ -39,9 +40,9 @@ export async function buildTailwindCss(
   const tailwindcss = (await import("@tailwindcss/postcss")).default
 
   const inputCssPath = path.join(webAssetsDir, "tailwind_css.css")
-  const inputCss = fs.existsSync(inputCssPath)
+  const inputCss = readerGlobalsCss ?? (fs.existsSync(inputCssPath)
     ? fs.readFileSync(inputCssPath, "utf-8")
-    : '@import "tailwindcss";'
+    : '@import "tailwindcss";')
 
   // Inject content sources via @source directives. Tailwind v4 scans only
   // files on disk, so compiled chrome bundles + book HTML files are
