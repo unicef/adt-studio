@@ -4521,6 +4521,9 @@ msgstr "Audio e elementit"
 msgid "Element audio script"
 msgstr "Skenari i audios së elementit"
 
+msgid "Element duplicated. Authored element audio is not copied to the new element."
+msgstr "Elementi u kopjua. Audioja e autorit e elementit nuk kopjohet në elementin e ri."
+
 msgid "Element style editor"
 msgstr "Redaktues i stilit të elementit"
 
@@ -10857,6 +10860,9 @@ msgstr "Seksioni 3.2"
 
 msgid "Section actions"
 msgstr "Veprimet e seksionit"
+
+msgid "Section duplicated. Authored element audio is not copied to the new section."
+msgstr "Seksioni u kopjua. Audioja e autorit e elementit nuk kopjohet në seksionin e ri."
 
 msgid "Section heading"
 msgstr "Titull seksioni"

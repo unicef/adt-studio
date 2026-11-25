@@ -1167,6 +1167,8 @@ export function StoryboardSectionDetail({
       await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, pageId] })
       invalidateStoryboardDependents(queryClient, bookLabel)
       onNavigateSection?.(result.clonedSectionIndex)
+      // New section ids cannot inherit the source section's authored scripts.
+      toast.info(t`Section duplicated. Authored element audio is not copied to the new section.`)
     } catch (err) {
       setAiError(err instanceof Error ? err.message : t`Clone failed`)
     } finally {

@@ -4519,6 +4519,9 @@ msgstr "Audio del elemento"
 msgid "Element audio script"
 msgstr "Guion de audio del elemento"
 
+msgid "Element duplicated. Authored element audio is not copied to the new element."
+msgstr "Elemento duplicado. El audio autorado del elemento no se copia al nuevo elemento."
+
 msgid "Element style editor"
 msgstr "Editor de estilo de elemento"
 
@@ -10855,6 +10858,9 @@ msgstr "Sección 3.2"
 
 msgid "Section actions"
 msgstr "Acciones de la sección"
+
+msgid "Section duplicated. Authored element audio is not copied to the new section."
+msgstr "Sección duplicada. El audio autorado del elemento no se copia a la nueva sección."
 
 msgid "Section heading"
 msgstr "Encabezado de sección"

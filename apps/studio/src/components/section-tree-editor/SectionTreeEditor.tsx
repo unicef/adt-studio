@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState, type ComponentType } from "react"
 import { ActionMenu, type ActionMenuItem } from "@/components/ui/action-menu"
 import { useLingui } from "@lingui/react/macro"
+import { toast } from "@/components/ui/sonner"
 import {
   ChevronDown,
   FilePlus,
@@ -180,13 +181,15 @@ export function SectionTreeEditor({
         return id
       }
       applyNodes(duplicateNode(section.nodes, nodeId, wrappedFactory))
+      // A duplicate gets new node ids, so it cannot inherit an authored script.
+      toast.info(t`Element duplicated. Authored element audio is not copied to the new element.`)
       if (node?.role && node.role !== "image" && firstNewId) {
         onLeafDuplicated?.(nodeId, firstNewId)
       } else {
         onStructuralChange?.()
       }
     },
-    [section.nodes, applyNodes, idFactory, onLeafDuplicated, onStructuralChange]
+    [section.nodes, applyNodes, idFactory, onLeafDuplicated, onStructuralChange, t]
   )
 
   const handleNest = useCallback(
@@ -333,7 +336,7 @@ export function SectionTreeEditor({
         canHostContainer
       />
       {section.nodes.map((node, i) => (
-        <div key={node.nodeId}>
+        <div key={node.nodeId} data-node-id={node.nodeId}>
           <TreeNode
             node={node}
             parentNodeId={null}
