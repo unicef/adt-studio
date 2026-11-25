@@ -1,3 +1,4 @@
+import { serializeHtml } from "./html-serialize.js"
 import { parseDocument, DomUtils } from "htmlparser2"
 import { stripXmlInvalid } from "./html-escape.js"
 
@@ -273,7 +274,7 @@ export function normalizeHtmlSectionSemantics(html: string): string {
     normalizeSectionSemantics(section)
   }
 
-  return DomUtils.getOuterHTML(doc)
+  return serializeHtml(doc)
 }
 
 export function promoteFirstHeadingToH1(html: string): string {
@@ -309,7 +310,7 @@ function repairForXml(nodes: any[]): void {
 export function htmlToXhtml(html: string): string {
   const doc = parseDocument(html)
   repairForXml(doc.children)
-  let xhtml = DomUtils.getOuterHTML(doc, { xmlMode: true })
+  let xhtml = serializeHtml(doc, { xmlMode: true })
   // Replace common HTML named entities not valid in XML
   xhtml = xhtml.replace(/&nbsp;/g, "&#160;")
   xhtml = xhtml.replace(/&mdash;/g, "&#8212;")
