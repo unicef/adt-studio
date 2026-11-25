@@ -192,6 +192,11 @@ msgstr "{0} — tapez un pays ou Entrée pour base"
 msgid "{0} (default)"
 msgstr "{0} (par défaut)"
 
+#. placeholder {0}: adt.bookFont.family
+msgctxt "book font"
+msgid "{0} (default)"
+msgstr "{0} (par défaut)"
+
 #. placeholder {0}: tab.label
 msgid "{0} (unsaved changes)"
 msgstr "{0} (modifications non enregistrées)"
@@ -2391,6 +2396,9 @@ msgstr "Illustrations du livre"
 
 msgid "Book coverage"
 msgstr "Couverture du livre"
+
+msgid "Book font"
+msgstr "Police du livre"
 
 msgid "Book Fonts"
 msgstr "Polices du livre"

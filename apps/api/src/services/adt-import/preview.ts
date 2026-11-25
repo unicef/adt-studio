@@ -1,5 +1,5 @@
-import { normalizeLocale, readAdtAgentGuideTemplate } from "@adt/pipeline"
-import type { AdtBundleImportPreview, AdtImportFeatureRecovery } from "@adt/types"
+import { detectBundleReflowableFont, normalizeLocale, readAdtAgentGuideTemplate } from "@adt/pipeline"
+import { REFLOWABLE_FONTS, resolveReflowableFont, type AdtBundleImportPreview, type AdtImportFeatureRecovery } from "@adt/types"
 
 import { extractAdtBundleArchiveFiles, readAdtBundle, type ReadAdtBundle } from "./bundle-reader.js"
 import { analyzeImportedActivities } from "./activity-reconciliation.js"
@@ -210,6 +210,7 @@ export function previewAdtRecoveryImport(
     translationLanguageCount,
     contentChanged,
     exportComparisonStatus: compareWithExportBaseline(bundle),
+    ...(bundle.presentation.fixedLayout ? {} : { bookFont: previewBookFont(bundle) }),
     activityReview,
     compatibility,
     featureRecovery: planImportedFeatureRecovery(bundle, {
@@ -235,4 +236,14 @@ export function previewAdtRecoveryImport(
     }),
     agentGuide: createAdtImportRepairGuide(bundle, compatibility, template, activityReview, archiveName, allIssues),
   }
+}
+
+/** The font the import will write for this book: the same detection the seed
+ * runs, or the default font when the export declared none (#1158). */
+function previewBookFont(bundle: ReadAdtBundle): { family: string; detected: boolean } {
+  const id = detectBundleReflowableFont(Object.values(bundle.pageHtml), bundle.fontsCss)
+  const declared = id ? REFLOWABLE_FONTS.find((font) => font.id === id) : undefined
+  if (declared) return { family: declared.family, detected: true }
+  // What `auto` resolves to for an imported book, which has no font profile.
+  return { family: resolveReflowableFont("auto", null).family, detected: false }
 }
