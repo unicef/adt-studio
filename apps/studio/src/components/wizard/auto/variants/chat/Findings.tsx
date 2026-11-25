@@ -9,7 +9,8 @@ import { PageStrip } from "./Evidence"
 import { useIdea } from "./ideas"
 import { settingsWaitingOn, type Derived } from "./useAnswers"
 import { Why } from "./Why"
-import { KIND_SAYS, SETTING_LABEL, valueTitle } from "./words"
+import { useLiving } from "./look"
+import { KIND_SAYS, plainTitle, SETTING_LABEL, valueTitle } from "./words"
 
 // eslint-disable-next-line lingui/no-unlocalized-strings -- setting ids
 const LEAD: SetupSettingId[] = ["preset", "renderStrategy", "pageGrouping"]
@@ -17,7 +18,13 @@ const LEAD: SetupSettingId[] = ["preset", "renderStrategy", "pageGrouping"]
 /** A setting as a pill, toned by where its value came from. */
 export function Pill({ id, derived }: { id: SetupSettingId; derived: Derived }) {
   const { i18n } = useLingui()
+  const living = useLiving()
   const value = derived.effective[id]?.value
+  // Living chat: the value in plain words only ("Picture beside the words"), no setting name.
+  if (living) {
+    const plain = plainTitle(id, value)
+    return <SettingPill value={plain ? i18n._(plain) : String(value)} tone={derived.source(id)} />
+  }
   const title = valueTitle(id, value)
   return <SettingPill label={i18n._(SETTING_LABEL[id])} value={title ? i18n._(title) : String(value)} tone={derived.source(id)} />
 }

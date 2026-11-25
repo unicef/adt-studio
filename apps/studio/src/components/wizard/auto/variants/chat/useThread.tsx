@@ -22,7 +22,8 @@ import { FlyIn } from "../livechat/ideas/question/FlyIn"
 import { useIdea } from "./ideas"
 import type { Answers, SettingValue } from "./useAnswers"
 import type { useCreateRun } from "./useCreateRun"
-import { QUESTION_SHORT, valueTitle } from "./words"
+import { useLiving } from "./look"
+import { plainTitle, QUESTION_SHORT, valueTitle } from "./words"
 
 export type Message = {
   id: string
@@ -71,6 +72,7 @@ export function useThread(input: ThreadInput): { messages: Message[]; summaries:
   const loader = useLoaderIdea()
   const questionIdea = useIdea("question")
   const evidenceIdea = useIdea("evidence")
+  const living = useLiving()
   const file = flow.file
   const scope = useScopeSummary(flow.pageCount)
   // Ids end up in CSS selectors (focus), so the file key is made safe for them.
@@ -135,7 +137,7 @@ export function useThread(input: ThreadInput): { messages: Message[]; summaries:
   const derived = chat.derived
   if (!rec || !derived) return done
   const title = (id: SetupSettingId) => {
-    const v = valueTitle(id, derived.effective[id]?.value)
+    const v = (living ? plainTitle : valueTitle)(id, derived.effective[id]?.value)
     return v ? i18n._(v) : String(derived.effective[id]?.value)
   }
 

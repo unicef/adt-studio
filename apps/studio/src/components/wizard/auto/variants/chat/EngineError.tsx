@@ -4,7 +4,9 @@ import { Trans } from "@lingui/react/macro"
 import { Loader2, Plug, RotateCcw, WifiOff } from "lucide-react"
 import type { SetupFailure } from "../../recommendation/client"
 import { ErrorDetails } from "../../errors/ErrorState"
+import { cn } from "@/lib/utils"
 import { Chip } from "./bubbles"
+import { useLiving } from "./look"
 
 /**
  * Why the assistant couldn't read the book, said as its own message, with what to do next. The
@@ -12,6 +14,7 @@ import { Chip } from "./bubbles"
  * connection returns) and anything else. "Set it up myself" keeps the PDF.
  */
 export function EngineError({ failure, onRetry, onManual, current }: { failure: SetupFailure; onRetry: () => void; onManual: () => void; current: boolean }) {
+  const living = useLiving()
   useEffect(() => {
     if (!current || failure.kind !== "offline") return
     window.addEventListener("online", onRetry)
@@ -54,7 +57,7 @@ export function EngineError({ failure, onRetry, onManual, current }: { failure: 
       {current && (
         <div className="flex flex-wrap gap-1.5 pt-1">
           {failure.kind === "auth" ? (
-            <Link to="/settings/providers" className="inline-flex h-10 items-center gap-1.5 rounded-full bg-brand-600 px-4 text-[14px] font-semibold text-primary-foreground shadow-[0_8px_20px_-8px_rgba(43,127,255,0.8)] transition-[transform,background-color] duration-150 hover:bg-brand-600/90 active:scale-[0.97]">
+            <Link to="/settings/providers" className={cn("inline-flex items-center gap-1.5 rounded-full bg-brand-600 px-4 text-primary-foreground transition-[transform,background-color] duration-150 hover:bg-brand-600/90 active:scale-[0.97]", living ? "h-11 text-[14.5px] font-medium" : "h-10 text-[14px] font-semibold shadow-[0_8px_20px_-8px_rgba(43,127,255,0.8)]")}>
               <Plug className="size-4" />
               <Trans>Open AI providers</Trans>
             </Link>

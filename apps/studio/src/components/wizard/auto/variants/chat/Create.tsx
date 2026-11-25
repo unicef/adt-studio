@@ -17,19 +17,22 @@ import type { CreateRun } from "./useCreateRun"
 
 export const NAME_INPUT = "wizard-project-name"
 
+/** Living chat's filled button: the board's flat button (no glow), in the app's brand blue. */
+export const LC_PRIMARY = "rounded-[12px] shadow-none hover:shadow-none"
+
 /** The ready step: the setup on one line (`setup`), the wizard's Project Name field (same validation) and the one Create action. */
 export function ReadyCard({ setup, onCreate, locked }: { setup: ReactNode; onCreate: () => void; locked: boolean }) {
   const create = useCreate(onCreate)
   const living = useLiving()
   const expand = useIdea("expand")
   const [view, setView] = useState<"main" | "change">("main")
-  const box = "flex w-full flex-col gap-3 rounded-[22px] bg-card/95 p-4 ring-1 ring-border shadow-[0_18px_44px_-26px_rgba(15,23,42,0.5)] backdrop-blur"
+  const box = living ? "lc-surface flex w-full flex-col gap-3 p-4" : "flex w-full flex-col gap-3 rounded-[22px] bg-card/95 p-4 ring-1 ring-border shadow-[0_18px_44px_-26px_rgba(15,23,42,0.5)] backdrop-blur"
   const rest = (
     <>
       <div className="h-px bg-border/70" />
       <NameField />
       <div className="flex justify-end">
-        <PrimaryButton onClick={create} disabled={locked} icon={<Sparkles className="size-4" />}>
+        <PrimaryButton onClick={create} disabled={locked} icon={<Sparkles className="size-4" />} className={living ? LC_PRIMARY : undefined}>
           <Trans>Create the book</Trans>
         </PrimaryButton>
       </div>
@@ -62,8 +65,9 @@ export function ReadyCard({ setup, onCreate, locked }: { setup: ReactNode; onCre
 type StepState = "todo" | "doing" | "done" | "failed" | "warning"
 
 function StepDot({ state }: { state: StepState }) {
+  const living = useLiving()
   return (
-    <span className={cn("grid size-5 shrink-0 place-items-center rounded-full transition-colors duration-300", state === "done" ? "bg-emerald-500 text-white" : state === "failed" ? "bg-destructive text-white" : state === "warning" ? "bg-amber-500 text-white" : "bg-muted")}>
+    <span className={cn("grid size-5 shrink-0 place-items-center rounded-full transition-colors duration-300", state === "done" ? (living ? "bg-brand-600 text-primary-foreground" : "bg-emerald-500 text-white") : state === "failed" ? "bg-destructive text-white" : state === "warning" ? "bg-amber-500 text-white" : "bg-muted")}>
       {state === "doing" && <Loader2 className="size-3 animate-spin text-brand-600 motion-reduce:animate-none" />}
       {state === "done" && <Check className="size-3 stroke-[3]" />}
       {state === "failed" && <X className="size-3 stroke-[3]" />}
@@ -171,14 +175,23 @@ function ReadyWith({ run, onOpen, art, late }: { run: CreateRun; onOpen: () => v
 }
 
 function ReadyText({ run, onOpen, bare }: { run: CreateRun; onOpen: () => void; bare?: boolean }) {
+  const living = useLiving()
   return (
-    <div className={cn("flex w-full flex-col items-start gap-3", !bare && "rounded-[22px] bg-gradient-to-br from-emerald-50 via-card to-card p-4 ring-1 ring-emerald-200 shadow-[0_18px_44px_-26px_rgba(16,185,129,0.6)] dark:from-emerald-500/15 dark:ring-emerald-500/30")}>
-      <p className="text-[22px] font-bold leading-tight tracking-[-0.02em]">
-        <Trans>
-          {run.name} is <span className="bg-gradient-to-br from-emerald-400 to-emerald-700 bg-clip-text text-transparent dark:from-emerald-300 dark:to-emerald-500">ready</span>
-        </Trans>
-      </p>
-      <p className="text-[14px] text-muted-foreground">
+    <div className={cn("flex w-full flex-col items-start gap-3", !bare && (living ? "lc-surface p-5" : "rounded-[22px] bg-gradient-to-br from-emerald-50 via-card to-card p-4 ring-1 ring-emerald-200 shadow-[0_18px_44px_-26px_rgba(16,185,129,0.6)] dark:from-emerald-500/15 dark:ring-emerald-500/30"))}>
+      {living ? (
+        <p className="text-[20px] font-semibold leading-tight tracking-[-0.02em]">
+          <Trans>
+            {run.name} is <span className="text-brand-700">ready</span>
+          </Trans>
+        </p>
+      ) : (
+        <p className="text-[22px] font-bold leading-tight tracking-[-0.02em]">
+          <Trans>
+            {run.name} is <span className="bg-gradient-to-br from-emerald-400 to-emerald-700 bg-clip-text text-transparent dark:from-emerald-300 dark:to-emerald-500">ready</span>
+          </Trans>
+        </p>
+      )}
+      <p className={cn("text-muted-foreground", living ? "text-[15px] leading-relaxed" : "text-[14px]")}>
         {run.warning ? (
           <Trans>Processing didn&apos;t start, so no pages are converted yet. You can start it from the book page.</Trans>
         ) : run.extract ? (
@@ -188,7 +201,7 @@ function ReadyText({ run, onOpen, bare }: { run: CreateRun; onOpen: () => void; 
         )}
       </p>
       {run.warning && <ErrorDetails detail={run.warning} className="items-start [&>button]:-ml-2" />}
-      <PrimaryButton onClick={onOpen} icon={<BookOpen className="size-4" />} className="h-12 px-7 text-[15px]">
+      <PrimaryButton onClick={onOpen} icon={<BookOpen className="size-4" />} className={cn("h-12 px-7 text-[15px]", living && LC_PRIMARY)}>
         <Trans>Open the book</Trans>
       </PrimaryButton>
     </div>

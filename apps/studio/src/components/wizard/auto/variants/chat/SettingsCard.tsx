@@ -17,7 +17,7 @@ import { PageStrip } from "./Evidence"
 import { useIdea } from "./ideas"
 import { useLiving } from "./look"
 import { strategiesFor, type Derived, type SettingValue } from "./useAnswers"
-import { SETTING_LABEL, SETTING_OPTIONS, valueTitle } from "./words"
+import { plainTitle, SETTING_LABEL, SETTING_OPTIONS, valueTitle } from "./words"
 
 function Row({ label, value, tag, locked, open, onToggle, children, id }: { label: ReactNode; value: ReactNode; tag?: ReactNode; locked?: boolean; open: boolean; onToggle: () => void; children: ReactNode; id: string }) {
   const { t } = useLingui()
@@ -48,6 +48,7 @@ function Row({ label, value, tag, locked, open, onToggle, children, id }: { labe
 
 function Options({ id, only, current, onPick, label }: { id: SetupSettingId; only: string[] | null; current: SettingValue | undefined; onPick: (v: SettingValue) => void; label: string }) {
   const { i18n } = useLingui()
+  const living = useLiving()
   return (
     <div role="group" aria-label={label} className="flex flex-wrap gap-1.5">
       {SETTING_OPTIONS[id].filter((o) => !only || only.includes(String(o.value))).map((o) => {
@@ -58,7 +59,7 @@ function Options({ id, only, current, onPick, label }: { id: SetupSettingId; onl
             type="button"
             aria-pressed={on}
             onClick={() => onPick(o.value)}
-            className={cn("inline-flex h-9 items-center rounded-full px-3.5 text-[13px] font-semibold transition-[background-color,box-shadow,color,transform] duration-150 active:scale-[0.97]", on ? "bg-brand-600 text-primary-foreground shadow-[0_6px_16px_-8px_rgba(43,127,255,0.9)]" : "bg-card text-foreground ring-1 ring-border hover:ring-brand-300")}
+            className={cn("inline-flex h-9 items-center rounded-full px-3.5 text-[13px] font-semibold transition-[background-color,box-shadow,color,transform] duration-150 active:scale-[0.97]", living ? "font-medium" : "", on ? cn("bg-brand-600 text-primary-foreground", !living && "shadow-[0_6px_16px_-8px_rgba(43,127,255,0.9)]") : cn("text-foreground ring-1 ring-border hover:ring-brand-300", living ? "bg-[var(--lc-bubble)]" : "bg-card"))}
           >
             {i18n._(o.title)}
           </button>
@@ -83,6 +84,7 @@ function useExpandIdea() {
 export function SettingsCard({ rec, derived, onChange, frozen, numPages, file, onAllSettings }: { rec: SetupRecommendation; derived: Derived; onChange: (id: SetupSettingId, value: SettingValue) => void; frozen: boolean; numPages: number; file: File | null | undefined; onAllSettings: () => void }) {
   const { i18n, t } = useLingui()
   const idea = useExpandIdea()
+  const living = useLiving()
   const morph = useMorph()
   const ready = useReadyView()
   const [shownAll, setShownAll] = useState(false)
@@ -103,7 +105,14 @@ export function SettingsCard({ rec, derived, onChange, frozen, numPages, file, o
     return v ? i18n._(v) : String(derived.effective[id]?.value)
   }
   // eslint-disable-next-line lingui/no-unlocalized-strings -- setting ids
-  const summary = (["preset", "renderStrategy", "pageGrouping"] as SetupSettingId[]).map(title).join(" · ")
+  const summary = (["preset", "renderStrategy", "pageGrouping"] as SetupSettingId[])
+    .map((id) => {
+      if (!living) return title(id)
+      // Living chat: the setup in plain words ("Story · Picture beside the words · …").
+      const plain = plainTitle(id, derived.effective[id]?.value)
+      return plain ? i18n._(plain) : title(id)
+    })
+    .join(" · ")
   const all = (
     <div id="chat-settings-all" inert={!expanded} className={idea === "b9" ? undefined : "pt-2"}>
       <ul className="-mx-2 flex flex-col">
@@ -187,13 +196,13 @@ export function SettingsCard({ rec, derived, onChange, frozen, numPages, file, o
     <div inert={frozen}>
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <p key={summary} className={cn("text-[16px] font-bold leading-snug tracking-[-0.01em]", SWAP)}>
+          <p key={summary} className={cn(living ? "text-[15.5px] font-medium leading-snug" : "text-[16px] font-bold leading-snug tracking-[-0.01em]", SWAP)}>
             {summary}
           </p>
-          <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-muted-foreground">
+          <p className={cn("mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground", living ? "text-[13.5px]" : "text-[12.5px]")}>
             <span>{scope}</span>
             {changed === 0 ? (
-              <span className="inline-flex items-center gap-1 font-semibold text-brand-700">
+              <span className={cn("inline-flex items-center gap-1 text-brand-700", living ? "font-medium" : "font-semibold")}>
                 <Sparkles className="size-3" />
                 <Trans>Picked by AI</Trans>
               </span>
@@ -204,7 +213,7 @@ export function SettingsCard({ rec, derived, onChange, frozen, numPages, file, o
             )}
           </p>
         </div>
-        <button type="button" aria-expanded={expanded} aria-controls="chat-settings-all" onClick={toggleAll} className={cn("inline-flex h-9 shrink-0 items-center gap-1 rounded-full px-3 text-[13.5px] font-semibold text-brand-700 ring-1 ring-brand-200 transition-colors hover:bg-brand-50", idea === "b9" && expanded && "bg-brand-50 ring-brand-300")}>
+        <button type="button" aria-expanded={expanded} aria-controls="chat-settings-all" onClick={toggleAll} className={cn("inline-flex h-9 shrink-0 items-center gap-1 rounded-full px-3 text-[13.5px] text-brand-700 transition-colors hover:bg-brand-50", living ? "font-medium" : "font-semibold ring-1 ring-brand-200", idea === "b9" && expanded && "bg-brand-50 ring-brand-300")}>
           {expanded ? <Trans>Done</Trans> : <Trans>Change</Trans>}
           <ChevronDown className={cn("size-3.5 transition-transform duration-200 motion-reduce:transition-none", expanded && "rotate-180")} />
         </button>

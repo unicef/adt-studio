@@ -4,13 +4,15 @@ import { ChevronLeft, ChevronRight, FileText } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { usePageThumb } from "../../../core/pdf/usePageThumb"
+import { useLiving } from "./look"
 
 function Thumb({ file, page, onOpen, small }: { file: File; page: number; onOpen: () => void; small?: boolean }) {
   const { t } = useLingui()
   const src = usePageThumb(file, page, 56)
+  const living = useLiving()
   if (small)
     return (
-      <button type="button" onClick={onOpen} className="group inline-flex items-center gap-2 rounded-full py-0.5 pl-0.5 pr-2.5 text-[13px] font-semibold text-brand-700 transition-colors hover:bg-brand-50">
+      <button type="button" onClick={onOpen} className={cn("group inline-flex items-center gap-2 rounded-full py-0.5 pl-0.5 pr-2.5 text-brand-700 transition-colors hover:bg-brand-50", living ? "text-[13.5px] font-medium" : "text-[13px] font-semibold")}>
         <span className="grid h-[34px] w-[26px] place-items-center overflow-hidden rounded-[3px] bg-muted ring-1 ring-border">{src ? <img src={src} alt="" className="max-h-full max-w-full" /> : <FileText className="size-3 text-muted-foreground/60" />}</span>
         <Trans>See page {page}</Trans>
       </button>

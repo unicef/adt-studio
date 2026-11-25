@@ -2,6 +2,7 @@ import type { MessageDescriptor } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
 import type { SetupSettingId } from "@adt/types"
 import { PRESETS, RENDER_STRATEGIES } from "@/components/wizard/core/constants"
+import { SETTING_VALUE } from "../../engine/words"
 
 /**
  * The settings in the old wizard's own names (the user insists on them): Preset, Render Strategy,
@@ -72,4 +73,9 @@ export const FACT_HINT: Record<string, Record<string, MessageDescriptor>> = {
   exercises: { none: msg`Only reading, colouring or drawing.`, some: msg`Answers to write on a few pages.`, many: msg`Answers to write on most pages.` },
   composition: { "text-in-art": msg`Printed over the picture itself.`, "text-beside-art": msg`Beside, above or below the picture.`, "text-mostly": msg`Mostly text, few pictures.` },
   diagrams: { none: msg`Only illustrations or photos.`, some: msg`A few maps, charts or diagrams.`, many: msg`Maps, charts or diagrams on many pages.` },
+}
+
+/** A setting's value in plain words ("Picture beside the words"), for Living chat; the wizard label when there are none. */
+export function plainTitle(id: SetupSettingId, value: string | boolean | undefined): MessageDescriptor | undefined {
+  return SETTING_VALUE[id]?.[String(value)]?.name ?? valueTitle(id, value)
 }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Check, Quote } from "lucide-react"
-import type { SetupFact, SetupRecommendation } from "@adt/types"
+import type { SetupFact, SetupRecommendation, SetupSettingId } from "@adt/types"
 import { cn } from "@/lib/utils"
 import { FACT_OPTIONS, settingsFor, type FactAnswers } from "../../engine/answers"
 import { FACT_SHORT } from "../../engine/words"
@@ -12,23 +12,25 @@ import { SmartDefault } from "../livechat/ideas/question/SmartDefault"
 import "../livechat/ideas/question/question.css"
 import { PageStrip } from "./Evidence"
 import { useIdea } from "./ideas"
-import { settingsTouchedBy } from "./useAnswers"
+import { useLiving } from "./look"
+import { settingsTouchedBy, type SettingValue } from "./useAnswers"
 import { Why } from "./Why"
-import { ASK_WHY, FACT_HINT, QUESTION_SHORT, SETTING_LABEL, valueTitle } from "./words"
+import { ASK_WHY, FACT_HINT, plainTitle, QUESTION_SHORT, SETTING_LABEL, valueTitle } from "./words"
 
 /** The question in the assistant's bubble: where it is in the run ("1 of 2"), then the question, short. */
 export function QuestionText({ fact, index, total, mark }: { fact: SetupFact; index: number; total: number; mark?: ReactNode }) {
   const { i18n } = useLingui()
+  const living = useLiving()
   return (
     <>
       {total > 1 && (
-        <span className="mb-0.5 block text-[12px] font-bold uppercase tracking-[0.08em] text-brand-700">
+        <span className={living ? "mb-0.5 block text-[13px] text-muted-foreground" : "mb-0.5 block text-[12px] font-bold uppercase tracking-[0.08em] text-brand-700"}>
           <Trans>
             {index} of {total}
           </Trans>
         </span>
       )}
-      <strong className="block font-semibold">
+      <strong className={cn("block", living ? "font-medium" : "font-semibold")}>
         {i18n._(QUESTION_SHORT[fact.id]!)}
         {mark}
       </strong>
@@ -66,8 +68,18 @@ export function QuestionCard({ rec, fact, answers, chosen, onAnswer, frozen, fil
     onAnswer(value)
   }
   const smart = idea === "d21" && !chosen && !others
+  const living = useLiving()
+  // What an answer sets: plain words in Living chat ("One column, like an article"), the wizard's names otherwise.
+  const sets = (id: SetupSettingId, value: SettingValue | undefined) => {
+    if (living) {
+      const plain = plainTitle(id, value)
+      return plain ? i18n._(plain) : String(value)
+    }
+    const title = valueTitle(id, value)
+    return `${i18n._(SETTING_LABEL[id])}: ${title ? i18n._(title) : String(value)}`
+  }
   return (
-    <div inert={frozen} className="flex w-full flex-col gap-1 rounded-[22px] bg-card/95 p-2 ring-1 ring-border shadow-[0_14px_36px_-24px_rgba(15,23,42,0.45)] backdrop-blur">
+    <div inert={frozen} className={living ? "lc-surface flex w-full flex-col gap-0.5 p-1.5" : "flex w-full flex-col gap-1 rounded-[22px] bg-card/95 p-2 ring-1 ring-border shadow-[0_14px_36px_-24px_rgba(15,23,42,0.45)] backdrop-blur"}>
       {smart ? (
         <SmartDefault
           fact={fact}
@@ -90,17 +102,22 @@ export function QuestionCard({ rec, fact, answers, chosen, onAnswer, frozen, fil
               aria-pressed={selected}
               onClick={(e) => pick(value, e.currentTarget)}
               data-flown={flown ? (flown === value ? "went" : "other") : undefined}
-              className={cn("relative flex w-full flex-col rounded-[16px] px-3.5 py-2.5 pr-10 text-left transition-[background-color,box-shadow,transform] duration-150 active:scale-[0.99]", idea === "d19" && "qd19-fade", selected ? "bg-brand-50 ring-2 ring-brand-500" : "ring-1 ring-transparent hover:bg-muted/70 hover:ring-border")}
+              className={cn(
+                "relative flex w-full flex-col text-left transition-[background-color,box-shadow,transform] duration-150 active:scale-[0.99]",
+                living ? "min-h-11 gap-0.5 rounded-[14px] px-3.5 py-2.5 pr-10" : "rounded-[16px] px-3.5 py-2.5 pr-10",
+                idea === "d19" && "qd19-fade",
+                selected ? (living ? "bg-brand-50 ring-1 ring-brand-600" : "bg-brand-50 ring-2 ring-brand-500") : living ? "ring-1 ring-transparent hover:bg-[var(--lc-stage)]" : "ring-1 ring-transparent hover:bg-muted/70 hover:ring-border",
+              )}
             >
               <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                <span className="text-[15px] font-semibold">{i18n._(FACT_SHORT[fact.id][value]!)}</span>
+                <span className={cn("text-[15px]", living ? "font-medium" : "font-semibold")}>{i18n._(FACT_SHORT[fact.id][value]!)}</span>
                 {value === fact.value && (
-                  <span className="whitespace-nowrap rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-700 ring-1 ring-brand-200">
+                  <span className={living ? "whitespace-nowrap rounded-full bg-brand-50 px-2 py-0.5 text-[11.5px] font-medium text-brand-700" : "whitespace-nowrap rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-700 ring-1 ring-brand-200"}>
                     <Trans>My guess</Trans>
                   </span>
                 )}
               </span>
-              <span className="text-[13px] text-muted-foreground">{i18n._(FACT_HINT[fact.id]![value]!)}</span>
+              <span className={cn("text-muted-foreground", living ? "text-[13.5px]" : "text-[13px]")}>{i18n._(FACT_HINT[fact.id]![value]!)}</span>
               <span aria-hidden className={cn("absolute right-3 top-1/2 grid size-5 -translate-y-1/2 place-items-center rounded-full transition-[transform,opacity] duration-200", selected ? "scale-100 bg-brand-600 text-primary-foreground opacity-100" : "scale-75 opacity-0")}>
                 <Check className="size-3 stroke-[3]" />
               </span>
@@ -109,7 +126,7 @@ export function QuestionCard({ rec, fact, answers, chosen, onAnswer, frozen, fil
         })}
       </div>
       )}
-      <div className="border-t border-border/70 px-2 pb-1 pt-1.5">
+      <div className={living ? "mx-2 border-t border-border/70 pb-0.5 pt-1" : "border-t border-border/70 px-2 pb-1 pt-1.5"}>
         <Why aside={fact.evidencePages.length > 0 && !inlinePages ? <PageStrip file={file} pages={fact.evidencePages.slice(0, 1)} className="shrink-0" small /> : undefined}>
           {fact.askReason && <p>{i18n._(ASK_WHY[fact.askReason]!)}</p>}
           {other && fact.reason && (
@@ -126,14 +143,9 @@ export function QuestionCard({ rec, fact, answers, chosen, onAnswer, frozen, fil
                 const then = settingsFor(rec, { ...answers, [fact.id]: value })
                 return (
                   <li key={value}>
-                    <span className="font-semibold text-foreground">{i18n._(FACT_SHORT[fact.id][value]!)}</span>
+                    <span className={cn("text-foreground", living ? "font-medium" : "font-semibold")}>{i18n._(FACT_SHORT[fact.id][value]!)}</span>
                     {" → "}
-                    {touched
-                      .map((id) => {
-                        const title = valueTitle(id, then[id]?.value)
-                        return `${i18n._(SETTING_LABEL[id])}: ${title ? i18n._(title) : String(then[id]?.value)}`
-                      })
-                      .join(", ")}
+                    {touched.map((id) => sets(id, then[id]?.value)).join(living ? " · " : ", ")}
                   </li>
                 )
               })}

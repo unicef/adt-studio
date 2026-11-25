@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from "react"
+import { useRef, type CSSProperties, type ReactNode } from "react"
 import { Trans } from "@lingui/react/macro"
 import { Check, ChevronDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -10,6 +10,11 @@ import { useIdea } from "./ideas"
 import { useLiving } from "./look"
 
 const SHADOW = "shadow-[0_6px_18px_-10px_rgba(15,23,42,0.3)]"
+
+/** Living chat's assistant: the board's small rainbow orb (spins slowly while it writes). Decoration only. */
+export function Orb({ typing, hidden, size = 28, className }: { typing?: boolean; hidden?: boolean; size?: number; className?: string }) {
+  return <span aria-hidden data-typing={typing || undefined} data-hidden={hidden || undefined} className={cn("lc-orb", className)} style={{ "--lc-orb": `${size}px` } as CSSProperties} />
+}
 
 /**
  * One assistant message: the avatar sits beside the last message of a run (the "tail"), like any
@@ -25,11 +30,11 @@ export function AssistantRow({ tail, children, card, className }: { tail?: boole
   const morph = useTypingMorph(bubble, ambient === "g32" && !!children)
   useSlam(row, entrance === "a4")
   return (
-    <div ref={row} data-entrance={entrance} className={cn("flex items-end", living ? "gap-3.5" : "gap-2.5", className)}>
-      <span className={living && tail ? cn("lc-avatar flex self-end", ambient === "g31" && "lc-mood") : "contents"}>
-        <Avatar hidden={!tail} size={living ? "lg" : "md"} />
+    <div ref={row} data-entrance={entrance} className={cn("flex items-end", living ? "gap-3" : "gap-2.5", className)}>
+      <span className={living && tail ? cn("lc-avatar flex self-end", ambient === "g31" && "lc-mood") : living ? "flex self-end" : "contents"}>
+        {living ? <Orb hidden={!tail} /> : <Avatar hidden={!tail} />}
       </span>
-      <div className={cn("flex min-w-0 flex-1 flex-col items-start", living ? "max-w-[min(720px,calc(100%-62px))] gap-3" : "max-w-[min(560px,calc(100%-46px))] gap-2")}>
+      <div className={cn("flex min-w-0 flex-1 flex-col items-start", living ? "max-w-[min(600px,calc(100%-40px))] gap-2.5" : "max-w-[min(560px,calc(100%-46px))] gap-2")}>
         <AssistantLabel />
         {children && (
           <div
@@ -38,9 +43,8 @@ export function AssistantRow({ tail, children, card, className }: { tail?: boole
             data-a3={words.active || undefined}
             style={words.style}
             className={cn(
-              "bg-card text-foreground ring-1 ring-border",
-              living ? "lc-ai rounded-[28px] px-6 py-4 text-[19px] leading-[1.4] shadow-[0_14px_34px_-16px_rgba(15,23,42,0.35)]" : cn("origin-bottom-left rounded-[20px] px-4 py-2.5 text-[15.5px] leading-snug", SHADOW, POP),
-              tail && !card && (living ? "rounded-bl-[8px]" : "rounded-bl-[6px]"),
+              living ? "lc-ai lc-bubble px-4 py-2.5 text-[15.5px] leading-[1.5]" : cn("bg-card text-foreground ring-1 ring-border origin-bottom-left rounded-[20px] px-4 py-2.5 text-[15.5px] leading-snug", SHADOW, POP),
+              tail && !card && (living ? "lc-tail" : "rounded-bl-[6px]"),
               (morph || words.active) && "relative",
             )}
           >
@@ -50,7 +54,7 @@ export function AssistantRow({ tail, children, card, className }: { tail?: boole
           </div>
         )}
         {card && (
-          <div className={cn("w-full", living ? "lc-card [zoom:1.12]" : cn("origin-bottom-left", POP))} style={{ animationDelay: !living && children ? "90ms" : undefined }}>
+          <div className={cn("w-full", living ? "lc-card" : cn("origin-bottom-left", POP))} style={{ animationDelay: !living && children ? "90ms" : undefined }}>
             {card}
           </div>
         )}
@@ -65,20 +69,19 @@ export function UserRow({ children, className, plain }: { children: ReactNode; c
   const bubble = useRef<HTMLDivElement>(null)
   useHandoff(bubble, entrance === "a2")
   return (
-    <div data-entrance={entrance} className={cn("flex justify-end pl-10", className)}>
+    <div data-entrance={entrance} className={cn("flex justify-end", living ? "pl-16" : "pl-10", className)}>
       <YouLabel />
       {plain ? (
-        <div ref={bubble} className={cn("flex w-full justify-end", living ? "lc-you [zoom:1.12]" : cn("origin-bottom-right", POP))}>
+        <div ref={bubble} className={cn("flex w-full justify-end", living ? "lc-you" : cn("origin-bottom-right", POP))}>
           {children}
         </div>
       ) : (
         <div
           ref={bubble}
           className={cn(
-            "bg-brand-600 font-medium text-primary-foreground",
             living
-              ? "lc-you max-w-[600px] rounded-[28px] rounded-br-[8px] px-6 py-4 text-[19px] leading-[1.4] shadow-[0_16px_36px_-14px_rgba(43,127,255,0.9)]"
-              : cn("max-w-[480px] origin-bottom-right rounded-[20px] rounded-br-[6px] px-4 py-2.5 text-[15.5px] leading-snug shadow-[0_10px_24px_-12px_rgba(43,127,255,0.9)]", POP),
+              ? "lc-you lc-user max-w-[480px] px-4 py-2.5 text-[15.5px] leading-[1.5]"
+              : cn("bg-brand-600 font-medium text-primary-foreground max-w-[480px] origin-bottom-right rounded-[20px] rounded-br-[6px] px-4 py-2.5 text-[15.5px] leading-snug shadow-[0_10px_24px_-12px_rgba(43,127,255,0.9)]", POP),
           )}
         >
           {children}
@@ -100,17 +103,17 @@ export function TypingRow() {
       </div>
     )
   return (
-    <div className="flex items-end gap-3.5" aria-hidden>
+    <div className="flex items-end gap-3" aria-hidden>
       {ambient === "g31" ? (
         <span className="lc-mood-typing flex">
-          <Avatar typing size="lg" />
+          <Orb typing />
         </span>
       ) : (
-        <Avatar typing size="lg" />
+        <Orb typing />
       )}
-      <span className="lc-ai lc-typing flex h-[58px] w-[96px] items-center justify-center gap-2 rounded-[28px] rounded-bl-[8px] bg-card shadow-[0_14px_34px_-16px_rgba(15,23,42,0.35)] ring-1 ring-border">
+      <span className="lc-ai lc-typing lc-bubble lc-tail flex h-11 w-[68px] items-center justify-center gap-1.5">
         {[0, 1, 2].map((i) => (
-          <span key={i} className="lc-dot size-2.5 rounded-full bg-brand-500/70" style={{ animationDelay: `${i * 0.16}s` }} />
+          <span key={i} className="lc-dot size-2 rounded-full bg-muted-foreground/60" style={{ animationDelay: `${i * 0.16}s` }} />
         ))}
       </span>
     </div>
@@ -125,7 +128,16 @@ function useLabIdea(group: "entrance" | "ambient") {
 }
 
 /** A setting named the wizard's way, with its value: "Page Grouping · Spread". */
-export function SettingPill({ label, value, tone = "ai" }: { label: ReactNode; value: ReactNode; tone?: "ai" | "asked" | "changed" }) {
+export function SettingPill({ label, value, tone = "ai" }: { label?: ReactNode; value: ReactNode; tone?: "ai" | "asked" | "changed" }) {
+  const living = useLiving()
+  // Living chat: one plain word on a quiet chip; violet tint when it came from an answer or a change.
+  if (living)
+    return (
+      <span className={cn("lc-chip max-w-full px-3 py-1 text-[13.5px]", tone !== "ai" && "bg-brand-50 text-brand-700")}>
+        {label && <span className="truncate text-muted-foreground">{label}</span>}
+        <span className="truncate">{value}</span>
+      </span>
+    )
   return (
     <span
       className={cn(
@@ -155,8 +167,9 @@ export function Chip({ onClick, children, icon, primary, pressed, disabled, clas
       aria-pressed={pressed}
       className={cn(
         "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full font-semibold transition-[transform,background-color,box-shadow,color] duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50",
-        living ? "h-12 px-5 text-[16px] hover:-translate-y-0.5" : "h-10 px-4 text-[14px]",
-        primary ? "bg-brand-600 text-primary-foreground shadow-[0_8px_20px_-8px_rgba(43,127,255,0.8)] hover:bg-brand-600/90" : "bg-card text-brand-700 ring-1 ring-brand-200 hover:bg-brand-50 hover:ring-brand-300",
+        living
+          ? cn("h-11 px-4 text-[14.5px] font-medium", primary ? "lc-btn rounded-full" : "bg-[var(--lc-bubble)] text-foreground ring-1 ring-border hover:bg-[var(--lc-stage)]")
+          : cn("h-10 px-4 text-[14px]", primary ? "bg-brand-600 text-primary-foreground shadow-[0_8px_20px_-8px_rgba(43,127,255,0.8)] hover:bg-brand-600/90" : "bg-card text-brand-700 ring-1 ring-brand-200 hover:bg-brand-50 hover:ring-brand-300"),
         className,
       )}
     >
@@ -190,8 +203,24 @@ function AssistantLabel() {
 /** A step the thread has moved past, folded to one line. Tapping it opens the step again, to change it. */
 export function Folded({ summary, open, onToggle, locked }: { summary: { text: ReactNode; tone?: "done" | "failed" }; open: boolean; onToggle: () => void; locked?: boolean }) {
   const living = useLiving()
+  if (living)
+    return (
+      <div className="flex pl-10">
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={onToggle}
+          className="group -ml-2.5 inline-flex min-h-9 min-w-0 max-w-full items-center gap-2 rounded-full py-1 pl-2.5 pr-3 text-left text-[14px] text-muted-foreground transition-colors hover:bg-[var(--lc-bubble)] hover:text-foreground"
+        >
+          {summary.tone === "failed" ? <X aria-hidden className="size-3.5 shrink-0 stroke-[2.5] text-destructive" /> : <Check aria-hidden className="size-3.5 shrink-0 stroke-[2.5] text-brand-700" />}
+          <span className="min-w-0 truncate">{summary.text}</span>
+          <span className="sr-only shrink-0 text-[13px] font-medium text-brand-700 group-hover:not-sr-only group-focus-visible:not-sr-only group-aria-expanded:not-sr-only">{open ? <Trans>Hide</Trans> : locked ? <Trans>Show</Trans> : <Trans>Change</Trans>}</span>
+          <ChevronDown aria-hidden className={cn("size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none", open && "rotate-180")} />
+        </button>
+      </div>
+    )
   return (
-    <div className={cn("flex", living ? "pl-[62px] [zoom:1.12]" : "pl-[46px]")}>
+    <div className="flex pl-[46px]">
       <button
         type="button"
         aria-expanded={open}

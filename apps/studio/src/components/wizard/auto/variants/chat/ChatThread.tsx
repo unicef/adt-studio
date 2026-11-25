@@ -20,7 +20,7 @@ import { FoldedStep } from "../livechat/ideas/expand/FoldedStep"
 import { Island } from "../livechat/ideas/expand/Island"
 import { CANVAS_WIDTH, CanvasContext } from "../livechat/ideas/expand/SideCanvas"
 import { ENDS_IN_PLACE, FinishContext } from "../livechat/ideas/finish/context"
-import { AssistantRow, Folded, TypingRow, UserRow } from "./bubbles"
+import { AssistantRow, Folded, Orb, TypingRow, UserRow } from "./bubbles"
 import { Composer, ComposerReply } from "./Composer"
 import { NAME_INPUT } from "./Create"
 import { useIdea } from "./ideas"
@@ -220,13 +220,15 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
   return (
     <FinishContext.Provider value={{ onOpen: create.open }}>
     <CanvasContext.Provider value={{ el: canvasEl, setOpen: setCanvasOpen }}>
-    <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-background">
+    <div className={cn("relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-background", living && "lc-root")}>
       <FlowTopBar title={t`Add Book`} />
       <FileDropOverlay overlay={flow.overlay} dropLabel={<Trans>Drop PDF here</Trans>} errorLabel={<Trans>Only PDF files are supported</Trans>} accent="blue" />
       <input ref={flow.inputRef} type="file" accept="application/pdf" className="hidden" onChange={flow.onInputChange} />
-      <DotGrid>
-        <div className="absolute left-1/2 top-[-120px] h-[380px] w-[760px] -translate-x-1/2 rounded-full bg-brand-300/20 blur-3xl motion-reduce:hidden" />
-      </DotGrid>
+      {!living && (
+        <DotGrid>
+          <div className="absolute left-1/2 top-[-120px] h-[380px] w-[760px] -translate-x-1/2 rounded-full bg-brand-300/20 blur-3xl motion-reduce:hidden" />
+        </DotGrid>
+      )}
       <AmbientLayer phase={ambientPhase(engineBusy, last?.id)} />
 
       <div
@@ -238,8 +240,25 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
         className={cn("relative flex-1 overflow-y-auto overflow-x-hidden", expandIdea === "b9" && "ix-shift")}
         style={shift}
       >
-        <div className={cn("mx-auto flex w-full flex-col px-4 pb-8 pt-8 sm:px-6 sm:pt-12", living ? "max-w-[960px]" : "max-w-[760px]", expandIdea === "b7" && validFile && "sm:pt-[104px]")}>
-          {!validFile && (
+        <div className={cn("mx-auto flex w-full flex-col px-4 pb-8 pt-8 sm:px-6 sm:pt-12", "max-w-[760px]", expandIdea === "b7" && validFile && "sm:pt-[104px]")}>
+          {!validFile && living && (
+            <header className="mb-10 flex flex-col items-start gap-5 animate-[am-fade-up_0.5s_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none">
+              <span className="lc-avatar flex">
+                <Orb size={40} />
+              </span>
+              <div className="flex flex-col gap-2">
+                <h1 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.025em] sm:text-[34px]">
+                  <Trans>
+                    Let&apos;s set up your <span className="text-brand-700">book</span>, together.
+                  </Trans>
+                </h1>
+                <p className="max-w-[520px] text-[15.5px] leading-relaxed text-muted-foreground">
+                  <Trans>Send a PDF, answer a question or two, done.</Trans>
+                </p>
+              </div>
+            </header>
+          )}
+          {!validFile && !living && (
             <header className="mb-8 flex flex-col items-start gap-4 animate-[am-fade-up_0.5s_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none">
               <span className={living ? "lc-avatar" : undefined}>
                 <Avatar size="lg" />
@@ -265,7 +284,7 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
                 const next = g.messages[i + 1]
                 const lastShown = current && i === g.messages.length - 1
                 const tail = m.from === "ai" && (!next || next.from !== "ai") && !(lastShown && reveal.typing)
-                const gap = i === 0 ? "" : g.messages[i - 1]!.from === m.from ? (living ? "mt-2.5" : "mt-1.5") : living ? "mt-6" : "mt-4"
+                const gap = i === 0 ? "" : g.messages[i - 1]!.from === m.from ? (living ? "mt-2" : "mt-1.5") : living ? "mt-5" : "mt-4"
                 return (
                   <div key={m.id} id={`msg-${m.id}`} data-handoff={m.from === "ai" && m.focus ? "" : undefined} className={gap}>
                     {m.from === "ai" ? (
@@ -287,7 +306,7 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
                   </section>
                 )
               return (
-                <section key={g.step} className={gi === 0 ? "" : current ? (living ? "mt-9" : "mt-6") : living ? "mt-3" : "mt-2"}>
+                <section key={g.step} className={gi === 0 ? "" : current ? (living ? "mt-7" : "mt-6") : living ? "mt-0.5" : "mt-2"}>
                   {!current && summary && <Folded summary={summary} open={open} locked={create.locked} onToggle={toggleStep} />}
                   {living && !current && summary ? (
                     <div className="lc-fold" data-open={open} inert={!open}>
@@ -303,7 +322,7 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
             })}
           </div>
           {reveal.typing && (
-            <div className={cn(shown[shown.length - 1]?.from === "ai" ? (living ? "mt-2.5" : "mt-1.5") : living ? "mt-7" : "mt-5")}>
+            <div className={cn(shown[shown.length - 1]?.from === "ai" ? (living ? "mt-2" : "mt-1.5") : living ? "mt-5" : "mt-5")}>
               <TypingRow />
             </div>
           )}
