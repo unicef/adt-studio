@@ -99,7 +99,7 @@ describe("GET /providers", () => {
     const body = await getProviders()
     expect(body.defaults["structured-text"]).toBe(DEFAULT_LLM_MODEL_ID)
     expect(body.defaults.agent).toBe("openai:gpt-5.5")
-    expect(body.defaults.image).toBe("openai:gpt-image-2")
+    expect(body.defaults.image).toBe("openai:gpt-image-2.6-flare")
     expect(body.defaults.tts).toBe("openai:gpt-4o-mini-tts")
     expect(body.defaults.stt).toBe("openai:whisper-1")
   })

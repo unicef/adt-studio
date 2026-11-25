@@ -91,7 +91,7 @@ export const openaiManifest: ProviderManifest = {
   defaultModels: {
     "structured-text": "gpt-6-luna",
     agent: "gpt-6.1-sol",
-    image: "gpt-image-2",
+    image: "gpt-image-2.6-flare",
     tts: "gpt-4o-mini-tts",
     stt: "whisper-1",
   },

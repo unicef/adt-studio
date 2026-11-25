@@ -120,6 +120,7 @@ describe("ADT recovery workspace", () => {
     expect(assessArchive(diverged)).toEqual({
       supported: false,
       issues: [{ code: "duplicate-data-id", pageHref: "index.html", detail: "pg001_t001" }],
+      issueCounts: { "duplicate-data-id": 1 },
     })
     expect(previewAdtRecoveryImport(diverged).compatibility.supported).toBe(false)
   })
@@ -150,6 +151,7 @@ describe("ADT recovery workspace", () => {
         pageHref: "pg001_sec002.html",
         detail: "pg001 resumes after pg002_sec001",
       }],
+      issueCounts: { "interleaved-reading-order": 1 },
     })
   })
 
@@ -198,6 +200,19 @@ describe("ADT recovery workspace", () => {
     } finally {
       storage.close()
     }
+  })
+
+  // #1154: a root HTML page outside the reading order is named as a page, not
+  // as a stray folder, and is listed with the book's own problems.
+  it("reports a root HTML page that is not in the reading order as an unlisted page", () => {
+    const files = unzipSync(makeCurrentBundleWithExternallyAddedPage())
+    files["credits.html"] = strToU8("<!doctype html><html><body><p>Credits</p></body></html>")
+    files["notes.txt"] = strToU8("scratch")
+    const { issues } = assessArchive(Buffer.from(zipSync(files)))
+    expect(issues).toEqual([
+      { code: "unlisted-root-page", pageHref: "credits.html", detail: "credits.html" },
+      { code: "unexpected-bundle-entry", pageHref: "notes.txt", detail: "notes.txt" },
+    ])
   })
 
   it("rejects folders outside the canonical ADT bundle root", () => {

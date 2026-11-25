@@ -55,7 +55,7 @@ function client(adapterVersion?: string, onLog?: (entry: LlmLogEntry) => void) {
 describe("Sol migration", () => {
   it("AC-1: uses the default model for text and Sol for agents while retaining base provenance and specialized models", () => {
     expect(DEFAULT_BASE_PROMPT_MODEL_ID).toBe("openai:gpt-5.4")
-    expect(openaiProvider.manifest.defaultModels).toMatchObject({ "structured-text": DEFAULT_LLM_MODEL_ID.replace(/^openai:/, ""), agent: "gpt-6.1-sol", image: "gpt-image-2", tts: "gpt-4o-mini-tts", stt: "whisper-1" })
+    expect(openaiProvider.manifest.defaultModels).toMatchObject({ "structured-text": DEFAULT_LLM_MODEL_ID.replace(/^openai:/, ""), agent: "gpt-6.1-sol", image: "gpt-image-2.6-flare", tts: "gpt-4o-mini-tts", stt: "whisper-1" })
   })
 
   it.each([undefined, "none", "minimal", "low", "medium", "high", "xhigh", "max"])(

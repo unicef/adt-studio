@@ -14,7 +14,7 @@ ADT Studio is a desktop-first application for automated book production — extr
 ## 6 Core Principles (Non-Negotiable)
 
 1. **Book-Level Storage** — All book data lives in one directory (zippable, shareable). Never store book data elsewhere.
-2. **Entity-Level Versioning** — NEVER overwrite entities. Always create new versions. Users must be able to roll back.
+2. **Entity-Level Versioning** — NEVER overwrite entities. Always create new versions. Users must be able to roll back. The sole physical-recovery exception is SPEC-0003's explicitly confirmed, verified exact-byte restoration of a damaged historical tuple: uninterrupted tuple evidence, a transaction-scoped permit and an immutable damage audit are required; a selected repaired row also receives a new selected version. This does not authorize arbitrary historical editing or regeneration in place.
 3. **LLM-Level Caching** — Cache at the LLM call level. Hash ordered inputs for cache keys. Reruns are fast if params unchanged.
 4. **Maximum Transparency** — All LLM calls, prompts, and responses must be user-inspectable. No black boxes.
 5. **Minimize Dependencies** — Avoid new deps. Flat files > database when sufficient. In-memory queues > external services.
@@ -41,7 +41,7 @@ for every PR. Resolve an uncertain lane at triage before implementation.
 |-----------------------------|-------------------------------------------------------------------------------------|
 | an entity, save, regenerate | docs/ARCHITECTURE.md#book-directory-structure (an `#entities` section is planned), docs/INVARIANTS.md |
 | staleness, re-render, cache | docs/specs/SPEC-0001-per-section-staleness.md (in review — arrives with PR #879)     |
-| sectioning, reading order   | docs/specs/SPEC-0003-sectioning-modes.md (planned), #834                            |
+| sectioning, reading order   | docs/specs/SPEC-0003-sectioning-modes.md (approved), #834                            |
 | a prompt under prompts/     | docs/PROMPTS.md (planned; prompt contracts), the prompt validator                   |
 | the reader (adt-runtime)    | docs/ARCHITECTURE.md#runtime (planned), docs/SECURITY_MODEL.md (planned)            |
 | exports or publishing       | docs/PRODUCT.md#registry (planned), docs/specs/SPEC-0006-publishing (planned)       |
@@ -151,7 +151,7 @@ pnpm test          # Run tests (builds first via pretest)
 pnpm typecheck     # TypeScript strict check (tsc --build; excludes apps/adt-runtime)
 pnpm lint          # Lint apps/studio — the only package with an eslint config
 pnpm build         # Build all packages
-pnpm pipeline doctor [books-dir]   # Read-only compatibility check of existing books (schema, locks, ownership, duplicate ids, re-keyed catalog ids)
+pnpm pipeline doctor [books-dir]   # Read-only compatibility check (schema, locks, ownership, duplicate or re-keyed IDs). A connection held by another process returns BOOK_BUSY; retry after it closes.
 ```
 
 ESLint is configured for `apps/studio` only (`apps/studio/eslint.config.js`), so

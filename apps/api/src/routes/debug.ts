@@ -2,6 +2,7 @@ import { createHash } from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
+import { getBookConfig } from "../services/book-service.js"
 import { HTTPException } from "hono/http-exception"
 import { AccessibilityAssessmentOutput, parseBookLabel, withResolvedQuizIds, type QuizGenerationOutput } from "@adt/types"
 import { openBookDb, readCurrentNodeRow } from "@adt/storage"
@@ -176,7 +177,7 @@ export function createDebugRoutes(
     // Dynamic import to avoid coupling at module level
     const { loadBookConfig } = await import("@adt/pipeline")
     const merged = loadBookConfig(safeLabel, booksDir, configPath)
-    const hasBookOverride = fs.existsSync(path.join(bookDir, "config.yaml"))
+    const hasBookOverride = getBookConfig(safeLabel, booksDir) !== null
 
     return c.json({ merged, hasBookOverride })
   })

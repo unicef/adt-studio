@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { SectioningMode } from "./sectioning-lifecycle.js"
 import { QualifiedModelId } from "./model-id.js"
 import { ImageFilters } from "./image-filtering.js"
 import { SpeechConfig } from "./speech.js"
@@ -10,7 +11,7 @@ import { ReasoningEffort } from "./llm-inference.js"
 
 export const DEFAULT_LLM_MAX_RETRIES = 5
 export const DEFAULT_LLM_MODEL_ID = "openai:gpt-6-luna"
-export const DEFAULT_IMAGE_GENERATION_MODEL_ID = "openai:gpt-image-2"
+export const DEFAULT_IMAGE_GENERATION_MODEL_ID = "openai:gpt-image-2.6-flare"
 export const DEFAULT_OPENAI_TTS_MODEL_ID = "gpt-4o-mini-tts"
 export const DEFAULT_ELEVENLABS_TTS_MODEL_ID = "eleven_multilingual_v2"
 // Rachel — a stable ElevenLabs premade voice ID, used when no voice is
@@ -167,7 +168,7 @@ export type EasyReadConfig = z.infer<typeof EasyReadConfig>
 
 export const PageSectioningConfig = StepConfig.extend({
   max_refinements: z.number().int().min(0).optional(),
-  mode: z.enum(["page", "dynamic"]).catch("dynamic").optional(),
+  mode: SectioningMode.optional(),
 })
 export type PageSectioningConfig = z.infer<typeof PageSectioningConfig>
 

@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { RepairGuide } from "./RepairGuide"
 import { RepairRequest } from "./RepairRequest"
-import { IssueList, Panel, StatusRow } from "./ReviewParts"
-import type { Issue, Status } from "./use-review-model"
+import { IssueGroupList, Panel, StatusRow } from "./ReviewParts"
+import type { IssueGroup, Status } from "./use-review-model"
 
 const SWAP = "transition-[opacity,translate] duration-[280ms] ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:translate-x-0 motion-reduce:transition-opacity"
 
@@ -17,7 +17,7 @@ const SWAP = "transition-[opacity,translate] duration-[280ms] ease-[cubic-bezier
 const GUIDE_APPENDIX = "\n\n<current_adt_agent_guide>"
 
 /**
- * The repair layout: the problems on the left, the repair request itself on
+ * The repair layout: the summary and the problems on the left, the repair request itself on
  * the right, readable before it is copied. Opening the guide widens the right
  * column to two thirds while the request fades out and the guide fades in, so
  * the problems stay readable beside the rules.
@@ -25,11 +25,11 @@ const GUIDE_APPENDIX = "\n\n<current_adt_agent_guide>"
 export function RepairView({
   preview,
   status,
-  issues,
+  issueGroups,
 }: {
   preview: AdtBundleImportPreview
   status: Status
-  issues: Issue[]
+  issueGroups: IssueGroup[]
 }) {
   const { t } = useLingui()
   const request = preview.agentGuide.repairPrompt
@@ -51,10 +51,19 @@ export function RepairView({
         guideOpen && "lg:grid-cols-[1fr_2fr]",
       )}
     >
-      <Panel title={<Trans>To fix</Trans>}>
-        <StatusRow status={status} />
-        <IssueList issues={issues} />
-      </Panel>
+      {/* The summary stays in view above the list, which scrolls on its own. */}
+      <div className="flex min-h-0 min-w-0 flex-col gap-3">
+        <StatusRow status={status}>
+          {preview.compatibility.omittedIssueCount ? (
+            <p className="mt-1.5 text-[12.5px] leading-relaxed text-foreground text-pretty">
+              <Trans>The list below shows a few examples of each problem. The repair request lists every affected file.</Trans>
+            </p>
+          ) : null}
+        </StatusRow>
+        <Panel title={<Trans>To fix</Trans>} className="flex-1">
+          <IssueGroupList groups={issueGroups} />
+        </Panel>
+      </div>
       <div className="grid min-h-0 min-w-0 [&>*]:col-start-1 [&>*]:row-start-1">
         <Panel className={cn(SWAP, guideOpen ? "pointer-events-none -translate-x-2.5 opacity-0" : "opacity-100")}>
           <RepairRequest

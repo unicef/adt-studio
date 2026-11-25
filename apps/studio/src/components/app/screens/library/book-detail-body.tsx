@@ -8,6 +8,7 @@ import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { progressFor } from "../shared/kit"
 import type { DetailBook } from "./BookDetailDialog"
 import { DialogComments } from "./DialogComments"
+import { RecoverBookCopyButton } from "./RecoverBookCopyButton"
 
 export const PRESS = "transition-transform active:scale-[0.98]"
 
@@ -99,6 +100,10 @@ export function DetailInfo({ book, handlers }: { book: DetailBook; handlers: Det
   const hasError = book.needsRebuild || !!book.hasError
   return (
     <div className="space-y-4">
+      {book.raw.storyboardVerificationPending && <p className="text-sm text-muted-foreground"><Trans>Open the book to verify Storyboard and Preview</Trans></p>}
+      {book.raw.storyboardNeedsReview && <p className="text-sm text-amber-900"><Trans>Source content changed after some Storyboard output was saved. The saved output remains available.</Trans></p>}
+      {book.raw.readUnavailable && <p className="text-sm text-muted-foreground"><Trans>This book is temporarily unavailable. Its saved content is preserved. Try opening it for details and retry after resolving the reported problem.</Trans></p>}
+      {book.raw.readUnavailable && <RecoverBookCopyButton key={book.label} label={book.label} reason={book.raw.readUnavailableReason} onOpen={handlers.onEdit} />}
       {hasError ? (
         <div className="flex items-center gap-3 rounded-xl border border-stage-toc/30 bg-stage-toc/10 px-3.5 py-3 text-[13px]">
           <TriangleAlert className="size-4 shrink-0 text-stage-toc" />

@@ -3,7 +3,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
-import { getRenderSectioning, getRenderSectioningRow, renderedSectionId } from "../render-sectioning.js"
+import { getRenderSectioning, getRenderSectioningRow, renderedSectionId, withLegacyRenderingOwnership } from "../render-sectioning.js"
 
 describe("render-sectioning resolver", () => {
   const tmpDirs: string[] = []
@@ -27,7 +27,7 @@ describe("render-sectioning resolver", () => {
   const positioned = {
     reasoning: "fixed",
     sections: [
-      { sectionId: "pg001_sec001", sectionType: "fixed-layout-page", nodes: [], placement: {}, isPruned: false, pageNumber: 1 },
+      { sectionId: "pg001_sec001", sectionType: "fixed-layout-page", nodes: [], backgroundColor: "white", textColor: "black", isPruned: false, pageNumber: 1 },
     ],
   }
 
@@ -67,6 +67,23 @@ describe("render-sectioning resolver", () => {
       storage.setCurrentNodeVersion("fixed-layout-sectioning", "pg001", fixedVersion)
       expect(reasoningOf(getRenderSectioningRow(storage, "pg001"))).toBe("fixed")
       expect(storage.getLatestNodeData("page-sectioning", "pg001")?.version).toBe(1)
+    } finally { storage.close() }
+  })
+
+  it.each(["data-section-id", "DATA-SECTION-ID", "dAtA-SeCtIoN-Id"])("never reassigns a fixed rendering with an explicit %s", attribute => {
+    const storage = makeStorage()
+    try {
+      storage.putNodeData("fixed-layout-sectioning", "pg001", positioned)
+      const unstamped = { sectionIndex: 0, sectionType: "fixed-layout-page", reasoning: "", html: '<div id="content">Legacy fixed output</div>' }
+      expect(withLegacyRenderingOwnership(storage, "pg001", { sections: [unstamped] }).sections[0].sectionId).toBe("pg001_sec001")
+      const mixed = { ...unstamped, html: unstamped.html + "<p>Unrelated work outside the fixed root</p>" }
+      expect(withLegacyRenderingOwnership(storage, "pg001", { sections: [mixed] }).sections[0].sectionId).toBeUndefined()
+      for (const owner of ["retired-other-owner", ""]) {
+        const entry = { sectionIndex: 0, sectionType: "fixed-layout-page", reasoning: "imported",
+          html: `<div id="content" ${attribute}="${owner}">Other owner's work</div>` }
+        const projection = withLegacyRenderingOwnership(storage, "pg001", { sections: [entry] }, true)
+        expect(projection.sections[0]).toEqual({ ...entry, sectionIndex: -1 })
+      }
     } finally { storage.close() }
   })
 

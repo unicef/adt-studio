@@ -8,6 +8,7 @@
  * and `fetchContentFiles`, restructured around atoms.
  */
 import { getDefaultStore } from "jotai"
+import { appConfigAtom } from "@/shared/state/config.atoms"
 import { runtimeBase } from "@/shared/runtime/base-path.js"
 import {
   audioFilesAtom,
@@ -282,11 +283,15 @@ async function loadContentFiles(
   versionParam: string,
 ): Promise<ContentBundle> {
   const base = `${runtimeBase()}content/i18n/${lang}`
+  // A book with one narrator has no audio_voices.json (#1157).
+  const voiceVariants = getDefaultStore().get(appConfigAtom).features?.voiceVariants !== false
   const [texts, speechTexts, audios, audioVoices, videos, images] = await Promise.all([
     safeJsonFetch<Record<string, string>>(`${base}/texts.json${versionParam}`, "texts.json"),
     safeJsonFetch<Record<string, string>>(`${base}/speech_texts.json${versionParam}`, "speech_texts.json"),
     safeJsonFetch<Record<string, string>>(`${base}/audios.json${versionParam}`, "audios.json"),
-    safeOptionalJsonFetch<AudioVoicesManifest>(`${base}/audio_voices.json${versionParam}`),
+    voiceVariants
+      ? safeOptionalJsonFetch<AudioVoicesManifest>(`${base}/audio_voices.json${versionParam}`)
+      : Promise.resolve(null),
     safeJsonFetch<Record<string, string>>(`${base}/videos.json${versionParam}`, "videos.json"),
     safeJsonFetch<Record<string, string>>(`${base}/images.json${versionParam}`, "images.json"),
   ])

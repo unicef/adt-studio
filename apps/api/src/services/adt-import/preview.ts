@@ -3,7 +3,7 @@ import type { AdtBundleImportPreview, AdtImportFeatureRecovery } from "@adt/type
 
 import { extractAdtBundleArchiveFiles, readAdtBundle, type ReadAdtBundle } from "./bundle-reader.js"
 import { analyzeImportedActivities } from "./activity-reconciliation.js"
-import { assessAdtImportCompatibility } from "./compatibility.js"
+import { collectAdtImportIssues, summarizeAdtImportIssues } from "./compatibility.js"
 import {
   compareWithExportBaseline,
   createRecoveredCatalog,
@@ -162,6 +162,9 @@ export function previewAdtRecoveryImport(
     bundle.pages,
     bundle.pageHtml,
     bundle.sourceFormat === "legacy-studio-export",
+    // Repeated ids are listed by the compatibility report below, which blocks
+    // the import; the preview keeps the first copy so it can still be shown.
+    { onDuplicate: "keep-first" },
   )
   const outputLanguages = [...new Set(
     bundle.manifest.languages.output
@@ -169,7 +172,10 @@ export function previewAdtRecoveryImport(
       .filter((language) => language !== sourceLanguage),
   )]
   const activityReview = analyzeImportedActivities(bundle, { includePreviews: true })
-  const compatibility = assessAdtImportCompatibility(bundle, files)
+  // Collected once: the review gets a few examples of each problem type, the
+  // repair request every affected file.
+  const allIssues = collectAdtImportIssues(bundle, files)
+  const compatibility = summarizeAdtImportIssues(allIssues)
   const template = agentGuideTemplate ?? readAdtAgentGuideTemplate()
   if (template === null) {
     throw new AdtImportError("ADT Studio repair guide is unavailable")
@@ -227,6 +233,6 @@ export function previewAdtRecoveryImport(
       }).length,
       signLanguageVideoCount: recoverImportedSignLanguageVideos(bundle, files).length,
     }),
-    agentGuide: createAdtImportRepairGuide(bundle, compatibility, template, activityReview, archiveName),
+    agentGuide: createAdtImportRepairGuide(bundle, compatibility, template, activityReview, archiveName, allIssues),
   }
 }

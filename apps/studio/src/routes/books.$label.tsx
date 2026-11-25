@@ -12,6 +12,7 @@ import { Home, Terminal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DebugPanel } from "@/components/debug/DebugPanel"
 import { DebugPanelStateProvider, type DebugTabValue } from "@/components/debug/debug-panel-state"
+import { StoryboardThumbnailProvider } from "@/components/pipeline/components/storyboard-thumbnails"
 import { StageSidebar } from "@/components/pipeline/components/StageSidebar"
 import { PageErrorDecisionDialog } from "@/components/pipeline/components/PageErrorDecisionDialog"
 import { FloatingSaveProvider } from "@/components/pipeline/components/floating-save"
@@ -151,6 +152,10 @@ function BookLayoutInner({ label, isRunning }: { label: string; isRunning: boole
         <SettingsDirtyTabsProvider>
         <UnsavedChangesGuard />
         <SectionNavCtx.Provider value={sectionNav}>
+        <StoryboardThumbnailProvider
+          scopeKey={JSON.stringify([label, activeStep, pageId, sectionIndex])}
+          waitForPreview={activeStep === "storyboard"}
+        >
           <div className="flex min-h-0 flex-1 flex-col">
             <div className="flex min-h-0 flex-1">
               <div className="relative w-[280px] shrink-0">
@@ -213,6 +218,7 @@ function BookLayoutInner({ label, isRunning }: { label: string; isRunning: boole
               <Terminal className="h-4 w-4" />
             </Button>
           )}
+        </StoryboardThumbnailProvider>
         </SectionNavCtx.Provider>
         </SettingsDirtyTabsProvider>
       </FloatingSaveProvider>

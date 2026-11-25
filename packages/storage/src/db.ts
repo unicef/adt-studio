@@ -1,10 +1,12 @@
 import fs from "node:fs"
 import path from "node:path"
-import sqlite from "node-sqlite3-wasm"
-import { SCHEMA_VERSION } from "@adt/types"
-import { withBookWriter, BookBusyError } from "./book-writer.js"
+import type sqlite from "node-sqlite3-wasm"
+import { SCHEMA_VERSION, BOOK_RECOVERY_PENDING_FILE } from "@adt/types"
+import { BookBusyError, ownsBookWriter, withBookWriter } from "./book-writer.js"
 
-const { Database } = sqlite
+import { initHistoryEvidence } from "./history-schema.js"
+import { captureLegacyHistory } from "./history-evidence.js"
+import { openCoordinatedDatabase } from "./database-admission.js"
 
 const SCHEMA_SQL = `
 PRAGMA journal_mode = WAL;
@@ -84,8 +86,19 @@ CREATE TABLE IF NOT EXISTS sign_language_videos (
 );
 `
 
+export function assertRecoveryCopyReady(bookDir: string): void {
+  if (fs.existsSync(path.join(bookDir, BOOK_RECOVERY_PENDING_FILE))) {
+    throw new BookBusyError("This recovery copy has not been validated. Use the preserved original book to start a new recovery copy.")
+  }
+}
+
 export function openBookDb(dbPath: string): sqlite.Database {
-  const db = new Database(dbPath)
+  const bookDir = path.dirname(dbPath)
+  assertRecoveryCopyReady(bookDir)
+  if (fs.existsSync(path.join(bookDir, ".sectioning-transition.json")) && !ownsBookWriter(bookDir)) {
+    throw new BookBusyError("Sectioning configuration recovery is pending. Reopen the book configuration to reconcile it before reading completion state.")
+  }
+  const db = openCoordinatedDatabase(dbPath)
   try {
     db.exec("PRAGMA busy_timeout = 1000")
     db.exec("PRAGMA foreign_keys = ON")
@@ -101,7 +114,7 @@ export function openBookDb(dbPath: string): sqlite.Database {
 /** Read a book database's schema version without opening it for writing and
  * without running migrations. Null means the file has no schema table. */
 export function readBookSchemaVersion(dbPath: string): number | null {
-  const db = new Database(dbPath, { readOnly: true, fileMustExist: true })
+  const db = openCoordinatedDatabase(dbPath, { readOnly: true, fileMustExist: true })
   try {
     const tables = db.all(
       "SELECT name FROM sqlite_master WHERE type='table' AND name='schema_version'"
@@ -123,6 +136,7 @@ function initSchema(db: sqlite.Database): void {
 
   if (tables.length === 0) {
     upsertSchemaVersion(db, SCHEMA_VERSION)
+    initHistoryEvidence(db, captureLegacyHistory)
     return
   }
 
@@ -132,6 +146,7 @@ function initSchema(db: sqlite.Database): void {
   const existing = rows[0]?.version ?? 0
 
   if (existing === SCHEMA_VERSION) {
+    initHistoryEvidence(db, captureLegacyHistory)
     cleanupDeprecatedSchema(db)
     return
   }
@@ -195,6 +210,7 @@ function initSchema(db: sqlite.Database): void {
   if (version === SCHEMA_VERSION) {
     cleanupDeprecatedSchema(db)
     upsertSchemaVersion(db, SCHEMA_VERSION)
+    initHistoryEvidence(db, captureLegacyHistory)
     return
   }
 
@@ -492,7 +508,8 @@ function upsertSchemaVersion(db: sqlite.Database, version: number): void {
 /**
  * On server startup, scan all book DBs and mark any steps left in 'running'
  * state as 'error' with an 'Interrupted' message. This handles the case where
- * the server was killed mid-run.
+ * the server was killed mid-run. This is telemetry housekeeping only: it must
+ * not migrate content/history for every book before the server can listen.
  */
 export function cleanupInterruptedSteps(booksDir: string): void {
   const resolvedDir = path.resolve(booksDir)
@@ -516,18 +533,12 @@ export function cleanupInterruptedSteps(booksDir: string): void {
     // recovery: deleting WAL/journal files here can discard committed content.
     try {
       withBookWriter(bookDir, () => {
-        // Holding the lease proves no live writer. A `<label>.db.lock` directory
-        // is node-sqlite3-wasm's own mutex, left behind only by a killed process;
-        // it never self-heals and makes every later statement fail with
-        // "database is locked". WAL and journal files stay: SQLite recovers them.
-        const databaseLock = `${dbPath}.lock`
-        if (fs.existsSync(databaseLock)) {
-          fs.rmSync(databaseLock, { recursive: true, force: true })
-          console.log(`[startup] ${entry}: removed stale ${path.basename(databaseLock)} left by an interrupted process`)
-        }
+        // Shared admission coordinates every supported reader and owns any
+        // proven-dead mutex recovery. Startup never removes a mutex separately.
         let db: sqlite.Database | null = null
         try {
-          db = openBookDb(dbPath)
+          db = openCoordinatedDatabase(dbPath, { fileMustExist: true })
+          db.exec("PRAGMA busy_timeout = 1000")
           // Check if step_runs table exists (handles pre-v8 DBs gracefully)
           const tables = db.all(
             "SELECT name FROM sqlite_master WHERE type='table' AND name='step_runs'"

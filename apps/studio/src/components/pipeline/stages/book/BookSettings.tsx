@@ -3,8 +3,19 @@ import { ProviderCardGroups } from "@/components/app/screens/settings/providers/
 import { useProviders } from "@/components/app/screens/settings/providers/useProviders"
 import { useLinkedCard } from "@/components/app/screens/settings/providers/useLinkedCard"
 import { BookModelSettings } from "./BookModelSettings"
+import { HistoryRecoveryPanel } from "./HistoryRecoveryPanel"
 
 export function BookSettings({ bookLabel, tab = "general" }: { bookLabel: string; tab?: string }) {
+  // Book-wide repair tool for damaged identity history. It is rarely needed,
+  // so it lives here rather than on a stage landing page.
+  if (tab === "history") {
+    return (
+      <div className="mx-auto w-full max-w-4xl p-4">
+        <HistoryRecoveryPanel bookLabel={bookLabel} />
+      </div>
+    )
+  }
+
   if (tab === "models") {
     return (
       <div className="mx-auto w-full max-w-6xl p-4">

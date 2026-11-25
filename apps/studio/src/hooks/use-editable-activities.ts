@@ -47,9 +47,11 @@ export function useConvertEditableActivity(label: string, pageId: string) {
 export function useSaveEditableActivities(label: string, pageId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (activities: Record<string, EditableActivity>) =>
-      api.updateEditableActivities(label, pageId, activities),
-    onSuccess: () => {
+    mutationFn: ({ activities, baseVersion }: { activities: Record<string, EditableActivity>; baseVersion: number }) =>
+      api.updateEditableActivities(label, pageId, activities, baseVersion),
+    onSuccess: (result, submitted) => {
+      queryClient.setQueryData<Awaited<ReturnType<typeof api.getEditableActivities>>>(["editable-activities", label, pageId], current =>
+        current && current.version <= result.version ? { ...current, activities: submitted.activities, version: result.version } : current)
       queryClient.invalidateQueries({ queryKey: ["editable-activities", label, pageId] })
     },
   })

@@ -5,7 +5,9 @@
  * attention on this version: schema version, stale lock files, rendered
  * sections with no provable owner (omitted from preview and export), duplicate
  * text ids, and catalog ids that re-key on this version (whose translations and
- * audio detach). It writes nothing, migrates nothing and calls no model.
+ * audio detach). It does not repair content or call a model. Database reads
+ * use shared admission (including temporary ownership metadata) and normal
+ * current-schema initialization; ambiguous lock evidence is never removed.
  */
 import fs from "node:fs"
 import path from "node:path"
@@ -151,7 +153,7 @@ export function diagnoseBook(booksDir: string, label: string): BookDiagnosis {
   }
   if (diagnosis.staleLockDir) {
     // Opening would fail with "database is locked"; nothing else is provable.
-    diagnosis.error = `stale lock directory ${label}.db.lock; remove it before opening this book`
+    diagnosis.error = `database mutex ${label}.db.lock has unverified ownership; retain it and check for active processes before recovery`
     return diagnosis
   }
   try {
