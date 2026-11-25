@@ -15,7 +15,7 @@ merge PR head into develop (fails if it conflicts)
         |
         v
 staging/pr-123
-version: X.Y.Z-beta-pr-123
+version: X.Y.Z-beta-pr-123.<run number>
         |
         | signed desktop artifacts + pre-release for QA
         v
@@ -25,7 +25,7 @@ merge PR -> beta release -> merge to main -> stable release
 | Branch              | Purpose                          | Version example       |
 | ------------------- | -------------------------------- | --------------------- |
 | `feature/*`, `fix/*`| Development                      | Existing package version |
-| `staging/pr-123`    | Test PR #123 merged into develop | `0.7.5-beta-pr-123`   |
+| `staging/pr-123`    | Test PR #123 merged into develop | `0.7.5-beta-pr-123.41` |
 | `develop`           | Beta releases                    | `0.7.5-beta.1`        |
 | `main`              | Stable releases                  | `0.7.5`               |
 
@@ -57,7 +57,7 @@ staging-only version commit on top:
 
 ```text
 branch:  staging/pr-123
-version: 0.7.5-beta-pr-123
+version: 0.7.5-beta-pr-123.41
 package: apps/desktop/package.json
 ```
 
@@ -94,7 +94,7 @@ The pre-release is tagged with the version itself — `0.7.5-beta-pr-<n>` (or
 Staging notes and covers remain factual by default. To test AI-generated
 release content before merging its implementation, run **Regenerate release
 assets** from the release-tooling branch and enter the staging tag exactly as
-shown on its prerelease (for example `0.7.5-beta-pr-123`). Staging targets must
+shown on its prerelease (for example `0.7.5-beta-pr-123.41`). Staging targets must
 belong to an open same-repository PR into `develop`; they use the
 `release-ai-preview` environment and are updated live. Closing the target PR
 removes the staging release through the normal cleanup workflow.
@@ -164,7 +164,7 @@ active one: after `v0.8.0-beta.1`, plain `beta` continues with `v0.8.0-beta.2`,
 while `beta-major` starts `v1.0.0-beta.1`.
 
 Staging uses the same next-beta core but substitutes the beta increment with the
-PR slug. For example, PR #123 becomes `0.7.5-beta-pr-123`. Staging versions are
+PR slug plus a build number. For example, PR #123 becomes `0.7.5-beta-pr-123.41`. Staging versions are
 never used as release tags.
 
 ## Tag protection
@@ -447,7 +447,7 @@ file and lets `gh release create --generate-notes` produce the release normally.
 
 Beta and stable are separate desktop products and can be installed together.
 Any version containing `-beta` uses the beta product identity and updater
-channel, including staging versions such as `0.7.5-beta-pr-123`.
+channel, including staging versions such as `0.7.5-beta-pr-123.41`.
 
 | Installed build               | Updater channel | Offered automatically   |
 | ----------------------------- | --------------- | ----------------------- |

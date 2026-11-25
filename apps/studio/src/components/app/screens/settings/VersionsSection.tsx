@@ -85,7 +85,11 @@ export function VersionsSection() {
             onInstallNow={install}
             onInstallLater={() => {
               const version = status.phase === "downloaded" ? status.version : undefined
-              void installOnQuit().then(() => setDeferredVersion(version))
+              // A failed request leaves the install panel up, so "Install later" can be tried again.
+              void installOnQuit().then(
+                () => setDeferredVersion(version),
+                () => undefined,
+              )
             }}
             onClose={() => void navigate({ to: SETTINGS_PATHS.about })}
           />

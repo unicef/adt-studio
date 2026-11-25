@@ -308,6 +308,9 @@ export async function selectVersion(version: string): Promise<UpdateStatus> {
   }
 
   configure();
+  // A different version was picked, so an earlier "Install on quit" no longer
+  // applies: whatever this downloads must not install on quit without asking.
+  autoUpdater.autoInstallOnAppQuit = false;
 
   try {
     if (!betaReleases.some((release) => release.version === version)) {

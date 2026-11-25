@@ -323,7 +323,10 @@ jobs:
 
           for release in $EXISTING; do
             if [ "$release" != "$TAG" ] && [ "$release" != "v$TAG" ]; then
-              gh release delete "$release" --repo "$REPO" --yes --cleanup-tag
+              # The new build is already published; a failed delete only leaves an
+              # older build listed, so warn instead of failing the job.
+              gh release delete "$release" --repo "$REPO" --yes --cleanup-tag \
+                || echo "::warning::Could not delete the older staging release $release."
             fi
           done
 

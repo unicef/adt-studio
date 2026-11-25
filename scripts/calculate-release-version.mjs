@@ -64,9 +64,9 @@ export function calculateReleaseVersion(tags, releaseType, stagingSlug, stagingB
 /**
  * Re-staging a PR must not reuse its version: the in-app updater refuses to
  * install a version equal to the running one, so a rebuild with the same tag
- * could never reach anyone already on the previous build. The first build keeps
- * the bare `-beta-<slug>` tag; each rebuild on the same core appends `.2`, `.3`…,
- * which semver orders after the bare tag and after each other.
+ * could never reach anyone already on the previous build. Counting the tags, the
+ * first build would be the bare `-beta-<slug>` tag and each rebuild on the same
+ * core `.2`, `.3`…, which semver orders after the bare tag and after each other.
  *
  * Counting tags alone can go backwards: staging cleanup (or deleting a preview by
  * hand) removes the tags, and the next build would restart at the bare tag, below
