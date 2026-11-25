@@ -321,6 +321,7 @@ export {
   elementAudioTextId,
   parseElementAudioTextId,
   isElementAudioTextId,
+  isElementAudioNodeId,
   type AuthoredElementAudioIds,
   EMPTY_AUTHORED_ELEMENT_AUDIO_IDS,
   isAuthoredElementAudioId,

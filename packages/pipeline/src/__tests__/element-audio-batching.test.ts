@@ -18,7 +18,7 @@ const entry = (id: string, text: string): TextCatalogEntry => ({ id, text })
 const authored = new Set(["pg001_im001_audio"])
 
 describe("collectElementAudioTextIds", () => {
-  it("AC-14: derives the synthetic ids from the artifact rows only", () => {
+  it("derives the synthetic ids from the artifact rows only", () => {
     const storage = {
       getNodeItemIds: (node: string) => (node === "element-audio" ? ["pg001", "pg002"] : []),
       getLatestNodeData: (node: string, pageId: string) =>
@@ -30,6 +30,7 @@ describe("collectElementAudioTextIds", () => {
                     ? [{ nodeId: "pg001_im001", text: "Mago" }]
                     : [
                         { nodeId: "pg002_im002", text: "Maga" },
+                        { nodeId: "pg002_t001", text: "not an image" },
                         { nodeId: "", text: "invalid" },
                       ],
               },

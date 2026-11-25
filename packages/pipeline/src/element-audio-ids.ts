@@ -3,6 +3,7 @@ import {
   ELEMENT_AUDIO_NODE,
   ElementAudioEntry,
   elementAudioTextId,
+  isElementAudioNodeId,
 } from "@adt/types"
 
 /**
@@ -19,7 +20,9 @@ export function collectElementAudioTextIds(storage: Storage): Set<string> {
     if (!Array.isArray(entries)) continue
     for (const candidate of entries) {
       const parsed = ElementAudioEntry.safeParse(candidate)
-      if (parsed.success) ids.add(elementAudioTextId(parsed.data.nodeId))
+      if (parsed.success && isElementAudioNodeId(parsed.data.nodeId)) {
+        ids.add(elementAudioTextId(parsed.data.nodeId))
+      }
     }
   }
   return ids
