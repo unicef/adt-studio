@@ -177,7 +177,14 @@ export function LabBar({
         e.preventDefault()
         setHidden((h) => !h)
       } else if (e.key === "Escape") setOpen(null)
-      else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+      else if ((e.key === "ArrowUp" || e.key === "ArrowDown") && open?.kind === "idea") {
+        const c = ideas.find((x) => x.key === open.key)
+        if (!c) return
+        e.preventDefault()
+        const i = c.options.findIndex((o) => o.value === values[c.key])
+        const next = c.options[(i + (e.key === "ArrowDown" ? 1 : -1) + c.options.length) % c.options.length]
+        if (next) onChange(c.key, next.value)
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
         e.preventDefault()
         move(e.key === "ArrowRight" ? 1 : -1)
       }
@@ -241,17 +248,28 @@ export function LabBar({
   return (
     <div ref={root} data-lab-toolbar="" className="pointer-events-none fixed inset-x-0 bottom-6 z-[2147483000] flex flex-col items-center px-4">
       {ideaControl && (
-        <Panel title={`${ideaControl.label} ideas`} onClose={() => setOpen(null)}>
+        <Panel title={`${ideaControl.label} · ${stepLabel(actual)}`} onClose={() => setOpen(null)}>
           <div role="radiogroup" aria-label={String(ideaControl.label)} className="flex flex-col gap-0.5">
             {ideaControl.options.map((o) => {
               const on = o.value === values[ideaControl.key]
               const liked = picks.liked.includes(o.value)
               return (
-                <div key={o.value} className={`flex items-center gap-1 rounded-xl pr-1 ${on ? "bg-white/10" : ""}`}>
-                  <button type="button" role="radio" aria-checked={on} onClick={() => onChange(ideaControl.key, o.value)} className="flex h-9 flex-1 items-center gap-2 rounded-xl px-3 text-left text-[13px] font-semibold hover:bg-white/5">
-                    <span className={`size-2 shrink-0 rounded-full ${on ? "bg-brand-400" : "bg-white/15"}`} />
-                    <span className={on ? "text-white" : "text-white/75"}>{o.label}</span>
-                    {o.value !== "now" && <span className="text-[11px] font-medium text-white/30">{o.value}</span>}
+                <div key={o.value} className={`flex items-start gap-1 rounded-xl pr-1 ${on ? "bg-white/10" : ""}`}>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => onChange(ideaControl.key, o.value)}
+                    className="flex min-h-9 flex-1 items-start gap-2.5 rounded-xl px-3 py-2 text-left hover:bg-white/5"
+                  >
+                    <span className={`mt-[5px] size-2 shrink-0 rounded-full ${on ? "bg-brand-400" : "bg-white/15"}`} />
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      <span className={`text-[13px] font-semibold ${on ? "text-white" : "text-white/80"}`}>
+                        {o.label}
+                        {o.value !== "now" && <span className="ml-1.5 text-[11px] font-medium text-white/30">{o.value}</span>}
+                      </span>
+                      <span className="text-[11.5px] leading-snug text-white/50">{o.value === "now" ? "Living chat as it is, no idea on." : o.hint}</span>
+                    </span>
                   </button>
                   {o.value !== "now" && (
                     <button
@@ -259,7 +277,7 @@ export function LabBar({
                       onClick={() => toggleLike(o.value)}
                       aria-pressed={liked}
                       aria-label={liked ? `Unlike ${String(o.label)}` : `Like ${String(o.label)}`}
-                      className={`${ICON} size-7 ${liked ? "text-rose-400" : "text-white/35 hover:bg-white/10 hover:text-white"}`}
+                      className={`${ICON} mt-1 size-7 ${liked ? "text-rose-400" : "text-white/35 hover:bg-white/10 hover:text-white"}`}
                     >
                       {liked ? "♥" : "♡"}
                     </button>
@@ -268,7 +286,12 @@ export function LabBar({
               )
             })}
           </div>
-          <p className="mt-3 border-t border-white/10 pt-3 text-[11.5px] text-white/45">Switches live. Ideas picked at other steps stay on ({onCount} on now).</p>
+          <div className="mt-3 flex items-center gap-2 border-t border-white/10 pt-3">
+            <button type="button" onClick={() => onStep(actual)} disabled={!pdfName} className={`${GHOST} h-7 bg-white text-zinc-900 disabled:opacity-40`}>
+              ↻ Play {stepLabel(actual)} again
+            </button>
+            <span className="text-[11.5px] text-white/45">↑ ↓ try the next one · {onCount} on in all steps</span>
+          </div>
         </Panel>
       )}
       {open?.kind === "settings" && (
@@ -411,10 +434,10 @@ export function LabBar({
                   onClick={() => toggle({ kind: "idea", key: c.key })}
                   aria-expanded={isOpen}
                   title={on ? `${c.label}: ${labelOf(c, value)}` : `${c.label}: Now`}
-                  className={`h-7 max-w-[150px] truncate whitespace-nowrap rounded-full px-2 text-[12px] font-semibold transition-colors ${isOpen ? "bg-white text-zinc-900" : on ? "bg-brand-500 text-white hover:bg-brand-500/90" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
+                  className={`h-7 max-w-[220px] truncate whitespace-nowrap rounded-full px-2 text-[12px] font-semibold transition-colors ${isOpen ? "bg-white text-zinc-900" : on ? "bg-brand-500 text-white hover:bg-brand-500/90" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
                 >
                   {c.label}
-
+                  {on && <span className="font-medium opacity-80">: {labelOf(c, value)}</span>}
                 </button>
               )
             })}

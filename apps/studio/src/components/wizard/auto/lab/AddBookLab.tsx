@@ -63,7 +63,7 @@ const STEP_CONTROL: LabControl = { key: "step", label: "Step", default: "start",
 const IDEA_CONTROLS: LabControl[] = IDEA_GROUPS.map((g) => ({
   key: g.key,
   label: g.label,
-  options: [{ value: "now", label: "Now" }, ...g.options.map(([value, label]) => ({ value, label }))],
+  options: [{ value: "now", label: "Now" }, ...g.options.map(([value, label, hint]) => ({ value, label, hint }))],
 }))
 const ALL_CONTROLS = [...SETTINGS, STEP_CONTROL, ...IDEA_CONTROLS]
 
@@ -166,8 +166,9 @@ export default function AddBookLab() {
   const onChange = (key: string, value: string) => {
     if (key === "step") return goTo(value as FlowStep)
     set(key, value)
-    // A new design or engine answer replays the flow to the step you were at.
-    if (SETTINGS.some((c) => c.key === key)) setJump((j) => ({ step: j.step === "play" ? "play" : actual, n: j.n + 1 }))
+    // A new design, engine answer or idea replays the flow to the step you were at, so entrances
+    // and loaders play again with the new pick.
+    if (key !== "speed" && key !== "error") setJump((j) => ({ step: j.step === "play" ? "play" : actual, n: j.n + 1 }))
   }
 
   return (

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 export interface LabOption {
   value: string
   label: ReactNode
+  /** One line on what to look for (shown by bars that have room for it). */
+  hint?: string
 }
 
 export interface LabControl {
