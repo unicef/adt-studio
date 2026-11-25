@@ -92,6 +92,10 @@ it("publishes truthful item evidence, remains current across neighbor changes, a
 it("AC-17: an element-audio entry never takes the page-batch signature", () => {
   const db = storage()
   try {
+    db.putNodeData("element-audio", "pg001", {
+      entries: [{ nodeId: "pg001_im001", text: "Mago" }],
+      generatedAt: "fixture",
+    })
     db.putNodeData("text-catalog", "book", {
       entries: [
         { id: "pg001_t001", text: "Hello" },
