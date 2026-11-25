@@ -122,7 +122,8 @@ export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: Se
       api.cloneSection(bookLabel, pageId, sectionIndex, sectionVersion(pageId)),
     onSuccess: (_data, vars) => {
       invalidatePages(vars.pageId)
-      // New section ids cannot inherit the source section's authored scripts.
+      // Container/text ids are fresh; image leaves keep their ids, so their
+      // authored element audio still resolves in the clone.
       toast.info(t`Section duplicated. Its images keep their authored element audio.`)
     },
   })
