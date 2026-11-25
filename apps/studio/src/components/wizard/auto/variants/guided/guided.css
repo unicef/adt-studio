@@ -1,6 +1,6 @@
 /*
  * Guided: the reference board's look (calm single surfaces, soft shadows, small orb) in ADT Studio's
- * own theme colours. It sits inside `.lc-root`, so it shares Living chat's tokens (--lc-bubble,
+ * own theme colours. It sits inside `.lc-root`, so it uses the tokens of shared/look.css (--lc-bubble,
  * --lc-accent…); this file adds only the step colour and its tint (idea g34).
  *
  *   --gd-step      the colour of the step on screen (stepper dot, line, ticks, tint)

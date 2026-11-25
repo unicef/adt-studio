@@ -5,12 +5,12 @@ import type { SetupBookFactId, SetupFact, SetupRecommendation } from "@adt/types
 import { cn } from "@/lib/utils"
 import { FACT_OPTIONS, factsThatMatter, settingsFor, type FactAnswers } from "../../engine/answers"
 import { FACT_SHORT } from "../../engine/words"
-import { ClaimMark } from "../livechat/ideas/evidence/ClaimMark"
-import { PreviewChoices, Screen } from "../livechat/ideas/question/PreviewChoices"
-import type { Answers } from "../chat/useAnswers"
-import { FACT_HINT, QUESTION_SHORT } from "../chat/words"
-import { screenPages, useScreenImages } from "../preview/stage/pages"
-import { lookOf } from "../preview/useSetup"
+import { ClaimMark } from "./shared/ideas/evidence/ClaimMark"
+import { PreviewChoices, Screen } from "./shared/ideas/question/PreviewChoices"
+import type { Answers } from "./shared/useAnswers"
+import { FACT_HINT, QUESTION_SHORT } from "./shared/words"
+import { screenPages, useScreenImages } from "./shared/screens/pages"
+import { lookOf } from "./shared/screens/look"
 import { Morph } from "./Morph"
 
 /** The book as it would come out with the current answers, on the page that shows the fact. */

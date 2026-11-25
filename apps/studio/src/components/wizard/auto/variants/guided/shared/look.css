@@ -1,0 +1,89 @@
+/*
+ * The Add Book look Guided is built on: the reference board's shapes, spacing, type scale, calm
+ * surfaces, orb avatar, shadows and motion (.context/issue-333/refboard), in ADT Studio's own theme
+ * colours (brand blue, the app's background/card/muted/border tokens, light and dark). Scoped to
+ * `.lc-root`, Guided's root.
+ *
+ * Tokens (all derived from the app theme; use them as var(--lc-…)):
+ *   --lc-bg        page: the app background with a faint muted tint (light) / the app background (dark)
+ *   --lc-bubble    the one message surface (card)    --lc-stage  quiet inner fill (chips, thumbs, hovers)
+ *   --lc-line      hairlines (border)                --lc-ink / --lc-muted  text
+ *   --lc-accent    brand-600 fill, --lc-accent-ink its text, --lc-accent-hover
+ *   --lc-accent-text  brand-700 for links and words  --lc-accent-soft  brand-50 tint (selected, tags)
+ *   --lc-shadow (cards) / --lc-shadow-bubble (bubbles)
+ *   --lc-spring / --lc-pop / --lc-out / --lc-drawer   the board's easings
+ * Inside .lc-root `bg-background` is that tinted page, so fades to the page still match.
+ *
+ * Vocabulary (in @layer components, so Tailwind utilities still win):
+ *   .lc-orb        the assistant: small brand-blue orb (size with --lc-orb; data-typing turns it)
+ *   .lc-bubble     assistant bubble
+ *   .lc-surface    a card under a message: one surface, soft shadow, no outline
+ *   .lc-btn        brand button
+ *   .lc-link       accent text action, tinted on hover
+ */
+.lc-root {
+  --background: color-mix(in oklab, var(--muted) 65%, var(--card));
+  --lc-bg: var(--background);
+  --lc-bubble: var(--card); --lc-stage: var(--muted); --lc-line: var(--border);
+  --lc-ink: var(--foreground); --lc-muted: var(--muted-foreground);
+  --lc-accent: var(--brand-600); --lc-accent-hover: var(--brand-700); --lc-accent-ink: var(--primary-foreground);
+  --lc-accent-text: var(--brand-700); --lc-accent-soft: var(--brand-50);
+  --lc-shadow: 0 1px 2px rgb(15 23 42 / 0.06), 0 4px 14px rgb(15 23 42 / 0.05);
+  --lc-shadow-bubble: 0 1px 1px rgb(15 23 42 / 0.06), 0 1px 3px rgb(15 23 42 / 0.04);
+  --lc-spring: linear(0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.723 12.9%, 0.938 16.7%, 1.017 19.4%, 1.067, 1.099 24.3%, 1.104 26.9%, 1.098 29.6%, 1.061 34.9%, 1.026 40.5%, 1.004 47.1%, 0.991 55.1%, 0.996 72.5%, 1);
+  --lc-pop: cubic-bezier(0.34, 1.56, 0.64, 1); --lc-out: cubic-bezier(0.23, 1, 0.32, 1); --lc-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  background: var(--lc-bg);
+  color: var(--lc-ink);
+}
+.dark .lc-root {
+  --background: inherit;
+  /* The dark card sits too close to the page, so surfaces step up toward muted. */
+  --lc-bubble: color-mix(in oklab, var(--muted) 80%, var(--border));
+  --lc-stage: color-mix(in oklab, var(--muted) 25%, var(--border));
+  --lc-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 14px rgb(0 0 0 / 0.3);
+  --lc-shadow-bubble: 0 1px 2px rgb(0 0 0 / 0.35);
+}
+
+@layer components {
+  .lc-orb {
+    flex: none; width: var(--lc-orb, 28px); height: var(--lc-orb, 28px); border-radius: 9999px;
+    background:
+      radial-gradient(circle at 30% 28%, rgb(255 255 255 / 0.7), transparent 30%),
+      radial-gradient(circle at 78% 22%, var(--brand-300), transparent 45%),
+      radial-gradient(circle at 70% 80%, var(--brand-800), transparent 55%),
+      radial-gradient(circle at 20% 75%, var(--brand-400), transparent 50%),
+      var(--brand-600);
+    box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.3);
+    transition: opacity 0.2s ease;
+  }
+  .lc-orb[data-hidden] { opacity: 0; }
+  .lc-orb[data-typing] { animation: lc-orb-turn 2.4s linear infinite; }
+  .lc-bubble {
+    background: var(--lc-bubble); color: var(--lc-ink); border-radius: 20px;
+    box-shadow: var(--lc-shadow-bubble);
+  }
+  .lc-surface { background: var(--lc-bubble); color: var(--lc-ink); border-radius: 20px; box-shadow: var(--lc-shadow); }
+  .lc-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 12px;
+    background: var(--lc-accent); color: var(--lc-accent-ink); font-weight: 600;
+    transition: background-color 0.15s ease, transform 0.12s ease;
+  }
+  .lc-btn:hover { background: var(--lc-accent-hover); }
+  .lc-btn:active { transform: scale(0.97); }
+  .lc-link { color: var(--lc-accent-text); border-radius: 9999px; transition: background-color 0.15s ease; }
+  .lc-link:hover { background: var(--lc-accent-soft); }
+}
+@keyframes lc-orb-turn { to { transform: rotate(360deg); } }
+
+/* Motion: the avatar pops in. */
+@keyframes lc-avatar {
+  0% { transform: scale(0.4) rotate(-30deg); opacity: 0; }
+  70% { transform: scale(1.12) rotate(6deg); opacity: 1; }
+  100% { transform: none; }
+}
+.lc-avatar { animation: lc-avatar 0.55s var(--lc-pop, cubic-bezier(0.34, 1.56, 0.64, 1)) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lc-avatar, .lc-orb { animation: none; }
+}
+.reduce-effects :is(.lc-avatar, .lc-orb) { animation: none; }

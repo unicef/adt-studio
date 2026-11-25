@@ -1,7 +1,7 @@
 import { Trans } from "@lingui/react/macro"
 import { ArrowRight, FileUp } from "lucide-react"
 import type { UploadFlow } from "../../../start/upload/useUploadFlow"
-import { Attachment } from "../chat/Attachment"
+import { Attachment } from "./shared/Attachment"
 
 /** Upload's bubble: what to do, or what went wrong with the file. */
 export function UploadSays({ flow, rejected }: { flow: UploadFlow; rejected: boolean }) {

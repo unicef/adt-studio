@@ -1,14 +1,13 @@
 import { createElement, useContext, useMemo, type ReactNode } from "react"
-import type { FlowStep } from "../chat/labDrive"
-import { IdeasContext, NO_IDEAS, useIdea, type IdeaGroup, type Ideas } from "../chat/ideas"
+import type { FlowStep } from "./shared/labDrive"
+import { IdeasContext, NO_IDEAS, useIdea, type IdeaGroup, type Ideas } from "./shared/ideaGroups"
 
 /** Guided's own value for "none of the ideas": plain swaps, no tint. Only the lab sets it. */
 export const PLAIN = "off"
 
 /**
- * The reference-board ideas that apply to Guided, per group, and the one it uses when the lab says
- * "now" (its default, what looks best here). Chat-only ideas (entrances, side canvas, composer →
- * bubble, folded steps, tool-call card) have no place in a stepper, so they're left out.
+ * The reference-board ideas Guided plays, per group, and the one it uses when the lab says "now"
+ * (its default, what looks best here).
  */
 export const GUIDED_IDEAS = {
   loader: { default: "c12", options: ["c12", "c13", "c14", "c15", "c16", "c17"] },
@@ -43,8 +42,8 @@ export function guidedIdea(group: IdeaGroup, value: string | undefined): string 
 }
 
 /**
- * Guided's ideas for everything inside it: the parts shared with Living chat (questions, evidence,
- * finish, settings) read `useIdea`, so they get Guided's resolved picks; groups that don't apply are "now".
+ * Guided's ideas for everything inside it: the parts under `shared/` (questions, evidence, finish,
+ * settings) read `useIdea`, so they get Guided's resolved picks.
  */
 export function GuidedIdeas({ children }: { children: ReactNode }) {
   const lab = useContext(IdeasContext)

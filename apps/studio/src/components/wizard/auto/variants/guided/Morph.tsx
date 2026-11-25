@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
-import { HeightMorph } from "../livechat/ideas/expand/HeightMorph"
+import { HeightMorph } from "./shared/ideas/expand/HeightMorph"
 import { useGuidedIdea } from "./ideas"
 
 /**

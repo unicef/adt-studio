@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { Trans } from "@lingui/react/macro"
-import { Orb } from "../chat/bubbles"
+import { Orb } from "./shared/bubbles"
 import { Morph } from "./Morph"
 
 /**

@@ -1,7 +1,7 @@
 /* eslint-disable lingui/no-unlocalized-strings -- dev-only lab chrome, never shipped */
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import type { LabControl, LabValues } from "@/lab/DevToolbar"
-import type { FlowStep } from "../variants/chat/labDrive"
+import type { FlowStep } from "../variants/guided/shared/labDrive"
 
 const STORE_KEY = "add-book-lab-picks-v1"
 const HIDDEN_KEY = "lab:toolbar-hidden"
@@ -48,8 +48,6 @@ function readHidden() {
   }
 }
 
-const PILL = "h-7 whitespace-nowrap rounded-full px-2.5 text-[12px] font-semibold transition-[background-color,color] duration-150"
-const pill = (active: boolean) => `${PILL} ${active ? "bg-white text-zinc-900 shadow-sm" : "text-white/70 hover:bg-white/10 hover:text-white"}`
 const GHOST = "h-8 shrink-0 whitespace-nowrap rounded-full px-3 text-[12px] font-semibold transition-colors"
 const ICON = "grid size-8 shrink-0 place-items-center rounded-full text-[14px] transition-colors"
 const labelOf = (c: LabControl, v: string) => {
@@ -101,10 +99,10 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
 type Open = { kind: "settings" } | { kind: "saved" } | { kind: "idea"; key: string } | null
 
 /**
- * The Add Book lab's bar, for Living chat: a stepper through the flow (it jumps the real thread
- * there, and follows the thread as you click through it), the idea groups that change the current
- * step (each opens its options), Save / Saved, Replay, and ⚙ settings (design, book answer, speed,
- * error, the saved PDF). ← / → move one step; ` hides the bar.
+ * The Add Book lab's bar, for Guided: a stepper through the flow (it jumps the real flow
+ * there, and follows the flow as you click through it), the idea groups that change the current
+ * step (each opens its options), Save / Saved, Replay, and ⚙ settings (book answer, speed, error,
+ * the saved PDF). ← / → move one step; ` hides the bar.
  */
 export function LabBar({
   steps,
@@ -114,13 +112,11 @@ export function LabBar({
   settings,
   ideas,
   shownGroups,
-  shownIdeas,
   values,
   onChange,
   onReplay,
   onForgetPdf,
   note,
-  designName,
 }: {
   steps: StepItem[]
   actual: FlowStep
@@ -129,14 +125,11 @@ export function LabBar({
   settings: LabControl[]
   ideas: LabControl[]
   shownGroups: string[]
-  /** When set, the only ideas the popovers list at this step (plus Now and the one picked). */
-  shownIdeas?: string[]
   values: LabValues
   onChange: (key: string, value: string) => void
   onReplay: () => void
   onForgetPdf: () => void
   note?: string
-  designName: string
 }) {
   const [hidden, setHidden] = useState(readHidden)
   const [open, setOpen] = useState<Open>(null)
@@ -184,7 +177,7 @@ export function LabBar({
         const c = ideas.find((x) => x.key === open.key)
         if (!c) return
         e.preventDefault()
-        const list = c.options.filter((o) => !shownIdeas || o.value === "now" || shownIdeas.includes(o.value))
+        const list = c.options
         const i = list.findIndex((o) => o.value === values[c.key])
         const next = list[(i + (e.key === "ArrowDown" ? 1 : -1) + list.length) % list.length]
         if (next) onChange(c.key, next.value)
@@ -204,7 +197,7 @@ export function LabBar({
 
   const stepLabel = (id: string) => steps.find((s) => s.id === id)?.label ?? id
   const describe = (v: LabValues) => {
-    const parts = [labelOf(settings[0]!, v[settings[0]!.key] ?? ""), stepLabel(v.step ?? "start")]
+    const parts = [stepLabel(v.step ?? "start")]
     for (const c of ideas) if (v[c.key] && v[c.key] !== "now") parts.push(`${c.label}: ${labelOf(c, v[c.key]!)}`)
     return parts.join(" · ")
   }
@@ -254,7 +247,7 @@ export function LabBar({
       {ideaControl && (
         <Panel title={`${ideaControl.label} · ${stepLabel(actual)}`} onClose={() => setOpen(null)}>
           <div role="radiogroup" aria-label={String(ideaControl.label)} className="flex flex-col gap-0.5">
-            {ideaControl.options.filter((o) => !shownIdeas || o.value === "now" || shownIdeas.includes(o.value) || o.value === values[ideaControl.key]).map((o) => {
+            {ideaControl.options.map((o) => {
               const on = o.value === values[ideaControl.key]
               const liked = picks.liked.includes(o.value)
               return (
@@ -301,24 +294,15 @@ export function LabBar({
       {open?.kind === "settings" && (
         <Panel title="Lab settings" onClose={() => setOpen(null)}>
           <div className="flex flex-col gap-4">
-            <Row label="Design" hint={["livechat", "guided"].includes(values[settings[0]!.key] ?? "") ? undefined : "The stepper works on Living chat, Guided and Chat; ideas only on Living chat and Guided."}>
-              <div role="radiogroup" aria-label="Design" className="flex flex-wrap gap-0.5 rounded-full bg-white/5 p-0.5">
-                {settings[0]!.options.map((o) => (
-                  <button key={o.value} type="button" role="radio" aria-checked={o.value === values[settings[0]!.key]} onClick={() => onChange(settings[0]!.key, o.value)} className={pill(o.value === values[settings[0]!.key])}>
-                    {o.label}
-                  </button>
-                ))}
-              </div>
-            </Row>
             <Row label="Book answer" hint={note}>
-              <Select control={settings[1]!} value={values[settings[1]!.key]!} onChange={(v) => onChange(settings[1]!.key, v)} />
+              <Select control={settings[0]!} value={values[settings[0]!.key]!} onChange={(v) => onChange(settings[0]!.key, v)} />
             </Row>
             <div className="grid grid-cols-2 gap-3">
               <Row label="Speed" hint="When you drop a PDF on Start, or Replay.">
-                <Select control={settings[2]!} value={values[settings[2]!.key]!} onChange={(v) => onChange(settings[2]!.key, v)} />
+                <Select control={settings[1]!} value={values[settings[1]!.key]!} onChange={(v) => onChange(settings[1]!.key, v)} />
               </Row>
               <Row label="Error" hint="Shown on the Error step (API key when none), and on Replay.">
-                <Select control={settings[3]!} value={values[settings[3]!.key]!} onChange={(v) => onChange(settings[3]!.key, v)} />
+                <Select control={settings[2]!} value={values[settings[2]!.key]!} onChange={(v) => onChange(settings[2]!.key, v)} />
               </Row>
             </div>
             <Row label="PDF">
@@ -387,7 +371,7 @@ export function LabBar({
       )}
 
       <div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-zinc-900/90 p-1.5 text-white shadow-[0_12px_32px_rgba(0,0,0,0.28)] ring-1 ring-white/10 backdrop-blur-md [scrollbar-width:none]">
-        {steps.length > 0 ? (
+        {steps.length > 0 && (
           <nav aria-label="Flow steps" className="flex shrink-0 items-center gap-0.5 rounded-full bg-white/5 p-0.5">
             <button type="button" onClick={() => move(-1)} disabled={at === 0} aria-label="Previous step" title="Previous step (←)" className={`${ICON} size-7 text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-30`}>
               ‹
@@ -419,8 +403,6 @@ export function LabBar({
               ›
             </button>
           </nav>
-        ) : (
-          <span className="shrink-0 px-3 text-[12px] font-semibold text-white/70">{designName}</span>
         )}
         {!pdfName && actual === "start" && steps.length > 0 && <span className="shrink-0 px-1.5 text-[11.5px] text-amber-300">Drop a PDF once</span>}
 
@@ -452,7 +434,7 @@ export function LabBar({
         )}
 
         <span className="mx-0.5 h-5 w-px shrink-0 bg-white/15" />
-        <button type="button" onClick={saveCombo} title="Save this design, step and ideas" className={`${GHOST} bg-white/10 px-2.5 hover:bg-white/20`}>
+        <button type="button" onClick={saveCombo} title="Save this step and ideas" className={`${GHOST} bg-white/10 px-2.5 hover:bg-white/20`}>
           {flash || "★ Save"}
         </button>
         <button type="button" title="Saved picks" aria-label="Saved picks" onClick={() => toggle({ kind: "saved" })} aria-expanded={open?.kind === "saved"} className={`${GHOST} px-2.5 ${open?.kind === "saved" ? "bg-white text-zinc-900" : "bg-white/10 hover:bg-white/20"}`}>

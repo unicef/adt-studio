@@ -1,0 +1,14 @@
+/*
+ * Expand idea b10 (Guided's default), after the reference board's card, in ADT colours: the place
+ * keeps its spot, only its height eases, and the content swaps in with a short blur.
+ */
+.ix-morph { transition: height 0.5s cubic-bezier(0.32, 0.72, 0, 1); overflow: clip; }
+@keyframes ix-swap { from { opacity: 0; filter: blur(4px); transform: translateY(6px) scale(0.98); } }
+.ix-swap { animation: ix-swap 0.45s cubic-bezier(0.23, 1, 0.32, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ix-morph { transition: none; }
+  .ix-swap { animation: none; }
+}
+.reduce-effects .ix-morph { transition: none; }
+.reduce-effects .ix-swap { animation: none; }

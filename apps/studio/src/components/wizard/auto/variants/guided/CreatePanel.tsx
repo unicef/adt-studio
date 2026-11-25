@@ -1,7 +1,7 @@
 import { Trans } from "@lingui/react/macro"
-import { ENDS_IN_PLACE } from "../livechat/ideas/finish/context"
-import { CreateFailed, CreateSteps, Ready } from "../chat/Create"
-import type { CreateRun } from "../chat/useCreateRun"
+import { ENDS_IN_PLACE } from "./shared/ideas/finish/context"
+import { CreateFailed, CreateSteps, Ready } from "./shared/Create"
+import type { CreateRun } from "./shared/useCreateRun"
 import { useGuidedIdea } from "./ideas"
 
 /** The Create step's bubble: what's happening, then that it's done (or why it isn't). */
