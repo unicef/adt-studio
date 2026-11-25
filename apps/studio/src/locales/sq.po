@@ -192,6 +192,11 @@ msgstr "{0} — shkruani vendin ose Enter për bazë"
 msgid "{0} (default)"
 msgstr "{0} (parazgjedhje)"
 
+#. placeholder {0}: adt.bookFont.family
+msgctxt "book font"
+msgid "{0} (default)"
+msgstr "{0} (e parazgjedhur)"
+
 #. placeholder {0}: tab.label
 msgid "{0} (unsaved changes)"
 msgstr "{0} (ndryshime të paruajtura)"
@@ -2391,6 +2396,9 @@ msgstr "Ilustrimet e librit"
 
 msgid "Book coverage"
 msgstr "Mbulimi i librit"
+
+msgid "Book font"
+msgstr "Fonti i librit"
 
 msgid "Book Fonts"
 msgstr "Fontet e librit"
