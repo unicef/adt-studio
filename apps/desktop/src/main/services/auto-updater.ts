@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from "electron";
 import {
   autoUpdater,
+  BaseUpdater,
   CancellationToken,
   type ProgressInfo,
   type UpdateInfo,
@@ -408,4 +409,29 @@ export function quitAndInstall(): void {
 export function deferInstallUntilQuit(): void {
   if (lastStatus.phase !== "downloaded") return;
   autoUpdater.autoInstallOnAppQuit = true;
+  armInstallOnQuit();
+}
+
+let installOnQuitArmed = false;
+
+/**
+ * electron-updater only adds its own install-on-quit handler when a download
+ * finishes with `autoInstallOnAppQuit` already on. We keep it off while
+ * downloading so nothing installs unasked, so the handler is never added and
+ * quitting would not install. Add our own. It reads the flag at quit time, so
+ * picking another version (which turns the flag off) still cancels it.
+ *
+ * Windows and Linux only: on macOS Squirrel has to fetch the update before
+ * quit, which electron-updater gives no public way to start.
+ */
+function armInstallOnQuit(): void {
+  if (installOnQuitArmed || !(autoUpdater instanceof BaseUpdater)) return;
+  const updater = autoUpdater;
+  installOnQuitArmed = true;
+  app.once("quit", (_event, exitCode) => {
+    if (!updater.autoInstallOnAppQuit || exitCode !== 0) return;
+    // install() ignores a second call, so this is safe if electron-updater's
+    // own handler was added too.
+    updater.install(true, false);
+  });
 }
