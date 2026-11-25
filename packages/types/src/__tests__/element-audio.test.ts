@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   ElementAudioOutput,
   elementAudioTextId,
+  isAuthoredElementAudioId,
   isElementAudioTextId,
   parseElementAudioTextId,
 } from "../element-audio.js"
@@ -80,5 +81,17 @@ describe("elementAudioTextId", () => {
     expect(parseElementAudioTextId("pg001_im001_easy_read")).toBeNull()
     expect(parseElementAudioTextId("_audio")).toBeNull()
     expect(isElementAudioTextId("pg001_t001")).toBe(false)
+  })
+})
+
+describe("isAuthoredElementAudioId", () => {
+  it("AC-14: uses the artifact set, not the id shape", () => {
+    const legacy = new Set<string>()
+    const authored = new Set(["pg003_im007_audio"])
+    expect(isAuthoredElementAudioId("pg003_im007_audio", legacy)).toBe(false)
+    expect(isAuthoredElementAudioId("pg003_im007_audio", authored)).toBe(true)
+    expect(isAuthoredElementAudioId("pg003_im007_audio_easy_read", authored)).toBe(true)
+    expect(isAuthoredElementAudioId("pg003_im007_audio_easy_read", legacy)).toBe(false)
+    expect(isAuthoredElementAudioId("pg003_im007", authored)).toBe(false)
   })
 })

@@ -56,6 +56,27 @@ export function parseElementAudioTextId(id: string): string | null {
   return nodeId.length > 0 && IMAGE_ID_BASE_RE.test(nodeId) ? nodeId : null
 }
 
+/** Shape-only helper for the synthetic namespace. Do not use it to decide
+ * whether a rendered id is authored: a legacy image id can share the shape.
+ * Classification must use the artifact-derived set below. */
 export function isElementAudioTextId(id: string): boolean {
   return parseElementAudioTextId(id) !== null
+}
+
+/** Synthetic catalog ids that are actually authored in `element-audio`. */
+export type AuthoredElementAudioIds = ReadonlySet<string>
+
+/** Empty set for callers that cannot have authored audio (legacy books/tests). */
+export const EMPTY_AUTHORED_ELEMENT_AUDIO_IDS: AuthoredElementAudioIds = new Set()
+
+/**
+ * Whether `id` is an authored synthetic slot. The artifact-derived set is the
+ * source of truth; the `_easy_read` variant of an authored slot is included.
+ */
+export function isAuthoredElementAudioId(
+  id: string,
+  authoredElementAudioIds: AuthoredElementAudioIds,
+): boolean {
+  if (authoredElementAudioIds.has(id)) return true
+  return id.endsWith("_easy_read") && authoredElementAudioIds.has(id.slice(0, -"_easy_read".length))
 }

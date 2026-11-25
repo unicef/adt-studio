@@ -23,6 +23,7 @@ import {
 } from "../text-catalog.js"
 
 describe("getTextCatalogCategory", () => {
+  const authored = new Set(["pg001_im001_audio"])
   it("classifies catalog entry ids by their conventions", () => {
     expect(getTextCatalogCategory("pg001_t001")).toBe("text")
     expect(getTextCatalogCategory("qz001_que")).toBe("text")
@@ -32,8 +33,13 @@ describe("getTextCatalogCategory", () => {
     expect(getTextCatalogCategory("gl001_def")).toBe("glossary")
     expect(getTextCatalogCategory("gl_manual_1")).toBe("glossary")
     expect(getTextCatalogCategory("pg001_t001_easy_read")).toBe("easy-read")
-    expect(getTextCatalogCategory("pg001_im001_audio")).toBe("text")
+    expect(getTextCatalogCategory("pg001_im001_audio", authored)).toBe("text")
     expect(getTextCatalogCategory("pg001_listen_audio")).toBe("text")
+  })
+
+  it("AC-14: a legacy image id ending in _audio stays a caption unless the artifact authored it", () => {
+    expect(getTextCatalogCategory("pg003_im007_audio")).toBe("captions")
+    expect(getTextCatalogCategory("pg003_im007_audio", new Set(["pg003_im007_audio"]))).toBe("text")
   })
 
   it("prefers easy-read over the source entry's category", () => {
@@ -113,12 +119,19 @@ describe("isTtsExcluded", () => {
   it("AC-21: authored element audio is not muted by the captions or text categories", () => {
     const captions = { excluded_categories: ["captions"] as const }
     const text = { excluded_categories: ["text"] as const }
-    expect(isTtsExcluded("pg001_im001_audio", captions)).toBe(false)
-    expect(isTtsExcluded("pg001_im001_audio", text)).toBe(false)
+    const authored = new Set(["pg001_im001_audio"])
+    expect(isTtsExcluded("pg001_im001_audio", captions, authored)).toBe(false)
+    expect(isTtsExcluded("pg001_im001_audio", text, authored)).toBe(false)
     expect(isTtsExcluded("pg001_im001", captions)).toBe(true)
     expect(isTtsExcluded("pg001_t001", text)).toBe(true)
     // A real text id ending _audio is not synthetic; it follows text rules.
     expect(isTtsExcluded("pg001_listen_audio", text)).toBe(true)
+  })
+
+  it("AC-14: a legacy image id ending in _audio follows caption muting", () => {
+    const captions = { excluded_categories: ["captions"] as const }
+    expect(isTtsExcluded("pg003_im007_audio", captions)).toBe(true)
+    expect(isTtsExcluded("pg003_im007_audio", captions, new Set(["pg003_im007_audio"]))).toBe(false)
   })
 
   it("AC-21: an explicit excluded_text_ids entry still mutes the authored audio", () => {

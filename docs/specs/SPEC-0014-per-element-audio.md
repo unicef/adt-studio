@@ -226,15 +226,18 @@ rows (page membership) and invalidates the text-catalog/outputs queries on save;
 draft that introduces both sides. The synthetic entry carries
 `locations: [{ pageId, sectionId: <the image's section>, role: "element-audio" }]`, so ownership,
 conflict reporting and packaging read the explicit location. Batching deliberately does **not**:
-`speechPageId` returns `undefined` for `_audio` (see §2), so the location's `pageId` never makes the
-node join a page batch.
+`speechPageId` returns `undefined` for ids derived from the `element-audio` artifact (see §2), so
+the location's `pageId` never makes an authored node join a page batch. A legacy rendered image
+whose own id ends in `_audio` is not in that set and keeps its normal page/neighbour behavior.
 
-In v1 the synthetic detection is **image-only**: `isElementAudioTextId` accepts only a base that
-looks like `_im{NNN}` (with optional suffix), so a real text id such as `pg001_listen_audio` is not
-misclassified and is not restale on upgrade. A new rendered **image** id ending in `_audio` is
-rejected by the page-save image-id check (`findIntroducedImageAudioCollision`, called with the full
-content-id set, not the text-only reuse set); a pre-existing one is preserved. Text ids can adopt the
-suffix only after SPEC-0008.
+In v1 the synthetic **namespace** is image-only: `isElementAudioTextId` accepts only a base that
+looks like `_im{NNN}` (with optional suffix), so a real text id such as `pg001_listen_audio` cannot
+claim the slot by accident. Classification is artifact-aware: `collectElementAudioTextIds(storage)`
+is the source of truth for the catalog/TTS category, mute, batching and neighbour predicates, so a
+pre-existing image id ending in `_audio` is never mistaken for an authored script. A new rendered
+**image** id ending in `_audio` is rejected by the page-save image-id check
+(`findIntroducedImageAudioCollision`, called with the full content-id set, not the text-only reuse
+set); a pre-existing one is preserved. Text ids can adopt the suffix only after SPEC-0008.
 
 **Concurrency guard.** The node is one versioned row per page holding every image's script, so two
 editors on the same page must not lose each other's work. The `PUT` carries `baseVersion`. It follows
@@ -497,14 +500,14 @@ Chosen: **Option A**. Rough costs are per rollout PR; refer to the §9 review bu
 - [ ] **AC-14** Existing books (no `element-audio` node and no `element_audio.json`) open and export unchanged.
 - [ ] **AC-15** Changing one element's script makes **only that element's** audio stale — including with `speech.batch_by_page`, Speech Preparation transformations, ElevenLabs context and easy-read mode enabled: the `_audio` entry never enters another entry's page context or neighbour window, **no real neighbour enters the script's preparation or ElevenLabs context**, the `${nodeId}_easy_read` audio key is removed so the easy-read lookup falls back to the authored file, and **nothing is deleted** (hash-keyed reuse); restoring an earlier script deletes nothing.
 - [ ] **AC-16** An authored script goes through Speech Preparation; with normalization disabled the display text is used unchanged; a failed preparation is surfaced (not silent).
-- [ ] **AC-17** `element-audio` entries are excluded at **`speechPageId`** (it returns `undefined` for `_audio`), so they never join a page batch or another entry's page context: `output-catalog.ts:222-224`, `stage-runner.ts:3098/3162/3177` and `tts.ts:980` all inherit that exclusion, and the remaining provider/config predicate is the single shared `isBatchableSpeechEntry()` at `output-catalog.ts:222/237`, `stage-runner.ts:3119-3122` and `tts.ts:980`.
+- [ ] **AC-17** `element-audio` entries are excluded at **`speechPageId`** (it returns `undefined` for ids authored in the artifact), so they never join a page batch or another entry's page context: `output-catalog.ts:222-224`, `stage-runner.ts:3098/3162/3177` and `tts.ts:980` all inherit that exclusion, and the remaining provider/config predicate is the single shared `isBatchableSpeechEntry()` at `output-catalog.ts:222/237`, `stage-runner.ts:3119-3122` and `tts.ts:980`.
 - [ ] **AC-18** The authored audio under the element's `data-id` **takes precedence** over the element's own catalog entry / its `_easy_read` variant, in normal **and** easy-read modes, asserted by a test.
-- [x] **AC-19** `${imageId}_audio` is reserved as a derived id in both directions; a draft that introduces `X` and `X_audio` together is rejected, and the synthetic entry carries `locations: { pageId: <the element's current page>, sectionId: <the current section>, role: "element-audio" }` so it does not rely on the regex fallback. Detection is image-only (AC-24).
+- [x] **AC-19** `${imageId}_audio` is reserved as a derived id in both directions; a draft that introduces `X` and `X_audio` together is rejected, and the synthetic entry carries `locations: { pageId: <the element's current page>, sectionId: <the current section>, role: "element-audio" }` so it does not rely on the regex fallback. The namespace is image-only (AC-24); classification uses the artifact, not the suffix.
 - [ ] **AC-20** The runtime reads the optional `element_audio.json`; only ids listed there get the badge/trigger and the image sweep inclusion, and an absent manifest leaves existing books untouched.
 - [x] **AC-21** Muting captions or text does not silence authored element audio: `getTextCatalogCategory` classifies `_audio` as text and `isTtsExcluded` skips category mutes for it; an explicit `excluded_text_ids` entry still mutes it.
 - [x] **AC-22** An image that moves between pages keeps its script; the synthetic entry uses the element's current page and section, and authoring the same `nodeId` under the new page is a move/merge handled by PR 2 (a duplicate is a visible conflict, never silent).
 - [x] **AC-23** An orphan or pruned element keeps its artifact row but produces no synthetic catalog entry and no provider call; the entry returns when the element is rendered in an unpruned section.
-- [x] **AC-24** v1 synthetic detection is image-only; a real text id ending `_audio` is not treated as synthetic, a new rendered image id ending `_audio` is rejected, and existing legacy ids are preserved.
+- [x] **AC-24** v1 synthetic detection is artifact-aware: only ids authored in `element-audio` are treated as synthetic; a legacy rendered image id ending `_audio` keeps normal caption/TTS behavior, a new rendered image id ending `_audio` is rejected, and existing legacy ids are preserved.
 - [x] **AC-25** Editing a real neighbour (text, caption or audio) does not make the authored script's preparation or ElevenLabs audio stale; the script takes no neighbour context in either direction.
 - [x] **AC-26** A duplicate `nodeId` in the artifact does not hide the page: read-time keeps the first entry and emits the rest, while the write path (PR 2) rejects duplicates.
 
@@ -527,7 +530,7 @@ driven with a stub synthesizer and no API keys.
 | Packaging remap | `packages/pipeline/src/__tests__/package-web.test.ts` | AC-2 (`element_audio.json`, no `texts.json` leak), AC-4, AC-18 (precedence + easy-read key), AC-5 (no timings) |
 | API routes | `apps/api/src/routes/` | AC-1 (including `baseVersion` merge/409 and page membership), AC-8, AC-14, **AC-16** (preparation states) |
 | Staleness scoping | `apps/api/src/routes/` | **AC-15** — change one script, nothing else stale or deleted; a restore deletes nothing |
-| Batching exclusion | `gemini-item-compatibility.integration.test.ts`, `stage-runner.test.ts`, `output-catalog` tests | **AC-17** — `speechPageId` excludes `_audio` at every grouping site and the output-catalog wiring is exercised |
+| Batching exclusion | `gemini-item-compatibility.integration.test.ts`, `stage-runner.test.ts`, `output-catalog` tests | **AC-17** - `speechPageId` excludes artifact-authored `_audio` at every grouping site and the output-catalog wiring is exercised |
 | Preview mirrors | `apps/api/src/routes/adt-preview.test.ts` | AC-11 (mirrors), AC-20 (`element_audio.json`) |
 | Runtime | `apps/adt-runtime/src/features/audio/` (new; jsdom with scripts) | AC-3, AC-4 (sweep inclusion), AC-5, AC-10, **AC-9** (attributes + Enter/Space), **AC-20** (manifest gate) |
 | i18n | `apps/studio/src/locales/*.po` + the CI `i18n` job | **AC-13** |
@@ -564,17 +567,6 @@ last one.** (The four are tracked as #895–#898 under #894.)
 
 No feature flag; each PR reverts alone.
 
-## Known limitations (v1)
-
-- **A pre-existing image id that itself ends in `_audio` is still classified by shape in the catalog/TTS
-  predicates.** `getTextCatalogCategory`, `isTtsExcluded` and `speechPageId` receive only the id, so a
-  real rendered image such as `pg003_im007_audio` is indistinguishable from an authored script: it
-  ignores category mutes and is left out of page batching/neighbour context. The paths that have the
-  artifact are correct - the page-save namespace reservation, packaging/export (audio, word timings and
-  `texts.json`) and the preview mirrors detect it from `element-audio`, not from the suffix. This is the
-  remaining R-16/AC-24 edge; making those predicates artifact-aware is tracked in #1167 and is
-  deliberately out of the v1 scope so the stack stays within the §9 review budget.
-
 ## Decisions to ratify
 
 Each of these is a **proposed decision for the reviewer**, not an owner ratification
@@ -597,7 +589,7 @@ Each of these is a **proposed decision for the reviewer**, not an owner ratifica
 | R-13 | Element scripts are speech-only: no `texts.json`, no word timestamps, and the `_easy_read` audio key is removed | §2 | Block highlight only |
 | R-14 | The artifact stays keyed by its authored page; the derived entry's `locations` follow the element's **current** page/section across the book | §1, AC-22 | PR 2 resolves GET by `nodeId` |
 | R-15 | The derived catalog only emits while the element is rendered in an unpruned section; orphans and pruned sections keep the artifact but pay no provider call | §1, AC-23 | Text survives |
-| R-16 | v1 detection is image-only; new rendered image ids ending `_audio` are rejected; existing legacy ids are preserved | §1, AC-24 | Text ids after SPEC-0008 |
+| R-16 | Synthetic detection is artifact-aware (only `element-audio` entries); a legacy rendered image id ending `_audio` keeps normal caption/TTS behavior; new rendered image ids ending `_audio` are rejected | §1, AC-24 | Text ids after SPEC-0008 |
 | R-17 | The authored entry takes no preparation/ElevenLabs context from real neighbours, and real neighbours never see it | §2, AC-25 | Symmetric staleness |
 | R-18 | Muting captions or text does not silence authored element audio; an explicit `excluded_text_ids` entry still mutes it | §2, AC-21 | Target tap-to-hear use case |
 | R-19 | Read-time tolerates a duplicate `nodeId` with first-wins and emits the rest of the page; the write path rejects duplicates | §2, AC-26 | One bad write cannot hide a page |

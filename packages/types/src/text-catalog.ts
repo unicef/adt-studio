@@ -1,5 +1,9 @@
 import { OutputLocation, OutputMetadata } from "./output-freshness.js"
-import { isElementAudioTextId } from "./element-audio.js"
+import {
+  EMPTY_AUTHORED_ELEMENT_AUDIO_IDS,
+  isAuthoredElementAudioId,
+  type AuthoredElementAudioIds,
+} from "./element-audio.js"
 import { z } from "zod"
 
 export const TextCatalogEntry = z.object({
@@ -92,13 +96,16 @@ export function sectionIdOfAnswerTextId(textId: string): string | null {
   return index > 0 ? textId.slice(0, index) : null
 }
 
-export function getTextCatalogCategory(id: string): TextCatalogCategory {
+export function getTextCatalogCategory(
+  id: string,
+  authoredElementAudioIds: AuthoredElementAudioIds = EMPTY_AUTHORED_ELEMENT_AUDIO_IDS,
+): TextCatalogCategory {
   // Easy Read ids are `{sourceId}_easy_read`; check first so they are not
   // mistaken for their source entry's category.
   if (EASY_READ_ID_RE.test(id)) return "easy-read"
-  // The authored element-audio entry is not a caption: its id contains the
-  // image id, but muting captions must not silence it (SPEC-0014).
-  if (isElementAudioTextId(id)) return "text"
+  // Only the ids actually authored in the element-audio artifact are speech-only
+  // (SPEC-0014). A legacy image whose own id ends in `_audio` is a caption.
+  if (isAuthoredElementAudioId(id, authoredElementAudioIds)) return "text"
   if (IMAGE_ID_RE.test(id)) return "captions"
   if (sectionIdOfAnswerTextId(id) !== null) return "answers"
   if (GLOSSARY_ID_RE.test(id)) return "glossary"

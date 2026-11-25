@@ -11,10 +11,12 @@ import {
   DEFAULT_ELEVENLABS_VOICE_ID,
   ELEVENLABS_SHIPPED_VOICE_NAMES,
   isTtsExcluded,
-  isElementAudioTextId,
+  EMPTY_AUTHORED_ELEMENT_AUDIO_IDS,
+  isAuthoredElementAudioId,
   normalizeVoiceMapEntry,
   voiceSlotEntryId,
   parseVoicesConfigEntries,
+  type AuthoredElementAudioIds,
   type SpeechConfig,
   type SpeechFileEntry,
   type TTSProviderConfig,
@@ -42,8 +44,12 @@ import { computeEntryTimeRanges, buildPageTranscript, supportsPageBatchedSpeech,
 import { sliceWav, wavDurationSeconds, findQuietCutSeconds } from "./audio-wav.js"
 
 /** Active membership owns context; ID prefixes are only a legacy fallback. */
-export function speechPageId(id: string, pageIds: readonly string[] = []): string | undefined {
-  return id.endsWith("_easy_read") || isElementAudioTextId(id)
+export function speechPageId(
+  id: string,
+  pageIds: readonly string[] = [],
+  authoredElementAudioIds: AuthoredElementAudioIds = EMPTY_AUTHORED_ELEMENT_AUDIO_IDS,
+): string | undefined {
+  return id.endsWith("_easy_read") || isAuthoredElementAudioId(id, authoredElementAudioIds)
     ? undefined
     : pageIds[0] ?? /^(pg\d+)/.exec(id)?.[1]
 }
@@ -923,14 +929,15 @@ export function findAdjacentSpeechText(
   index: number,
   direction: 1 | -1,
   speechConfig: Parameters<typeof isTtsExcluded>[1],
+  authoredElementAudioIds: AuthoredElementAudioIds = EMPTY_AUTHORED_ELEMENT_AUDIO_IDS,
 ): string | undefined {
-  if (isElementAudioTextId(entries[index]?.id ?? "")) return undefined
+  if (isAuthoredElementAudioId(entries[index]?.id ?? "", authoredElementAudioIds)) return undefined
   const wantEasyRead = EASY_READ_ID_RE.test(entries[index]?.id ?? "")
   for (let i = index + direction; i >= 0 && i < entries.length; i += direction) {
     const entry = entries[i]
-    if (isElementAudioTextId(entry.id)) continue
+    if (isAuthoredElementAudioId(entry.id, authoredElementAudioIds)) continue
     if (EASY_READ_ID_RE.test(entry.id) !== wantEasyRead) continue
-    if (isTtsExcluded(entry.id, speechConfig)) continue
+    if (isTtsExcluded(entry.id, speechConfig, authoredElementAudioIds)) continue
     const text = stripEmojis(entry.text).trim()
     if (isSpeakableText(text)) return text
   }

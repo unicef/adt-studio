@@ -321,6 +321,9 @@ export {
   elementAudioTextId,
   parseElementAudioTextId,
   isElementAudioTextId,
+  type AuthoredElementAudioIds,
+  EMPTY_AUTHORED_ELEMENT_AUDIO_IDS,
+  isAuthoredElementAudioId,
 } from "./element-audio.js"
 
 export {

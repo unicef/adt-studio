@@ -214,6 +214,7 @@ export {
   extractTextCatalogEntriesFromHtml,
   exportedActivityCatalogIds,
 } from "./text-catalog.js"
+export { collectElementAudioTextIds } from "./element-audio-ids.js"
 export {
   projectImportedHtmlSection,
   createSafeImportedHtmlPreview,
