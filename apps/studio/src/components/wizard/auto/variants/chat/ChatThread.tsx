@@ -156,6 +156,15 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
   useEffect(() => {
     prevLastStep.current = lastStep
   }, [lastStep])
+  // a2: the step you just answered stays open until your reply has landed, then folds.
+  const entranceIdea = useIdea("entrance")
+  const [lingering, setLingering] = useState<string | undefined>()
+  useEffect(() => {
+    if (!living || entranceIdea !== "a2" || !justFolded) return
+    setLingering(justFolded)
+    const id = window.setTimeout(() => setLingering(undefined), 900)
+    return () => window.clearTimeout(id)
+  }, [lastStep])
   const canSkip = !!rec && !settingsShown && !create.locked
   // Dev lab only (no-op elsewhere): reports the step and plays the lab's jumps.
   useLabDrive({ validFile, failed: !!failures[attempt], rec, chat, create, lastStep, flush: reveal.flush })
@@ -297,7 +306,7 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
                   </div>
                 )
               })
-              const open = current || !summary || unfolded.has(g.step)
+              const open = current || !summary || unfolded.has(g.step) || lingering === g.step
               const toggleStep = () => setUnfolded((u) => (u.has(g.step) ? new Set([...u].filter((s) => s !== g.step)) : new Set(u).add(g.step)))
               if (!current && summary && (expandIdea === "b6" || expandIdea === "b8" || expandIdea === "b11"))
                 return (
