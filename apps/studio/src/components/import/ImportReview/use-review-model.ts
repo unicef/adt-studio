@@ -52,6 +52,9 @@ export interface ReviewModel {
   status: Status | null
   checks: Check[]
   issueGroups: IssueGroup[]
+  /** In repair mode, the activity pages the import will ask about once the
+   * files are fixed: the repair request already includes them. */
+  activityNotice: Status | null
   steps: Step[]
   facts: Array<{ label: string; value: string }> | null
 }
@@ -156,6 +159,7 @@ export function useReviewModel(
         { icon: FolderPlus, label: t`New, separate project`, value: t`Yes`, state: "ok" },
       ],
       issueGroups: [],
+      activityNotice: null,
       steps: [
         { title: t`Archive checked`, text: t`Part details, PDF and settings found`, state: "done", status: t`Done` },
         { title: t`Create the project`, text: t`Only pages ${range} of the book`, state: "later", status: t`On import` },
@@ -191,6 +195,7 @@ export function useReviewModel(
       { icon: FolderPlus, label: t`New, separate project`, value: blocked ? t`Not created` : t`Yes`, state: blocked ? "off" : "ok" },
     ],
     issueGroups: [],
+    activityNotice: null,
     steps: [
       { title: t`Archive checked`, text: preview.hasSourcePdf ? t`Project database and PDF found` : t`Project database found`, state: "done", status: t`Done` },
       { title: t`Create the project`, text: t`Separate from your other projects`, state: "later", status: t`On import` },
@@ -262,6 +267,15 @@ export function useReviewModel(
       unavailable: { status: { tone: "amber", icon: AlertCircle, title: t`This export has no fingerprints`, text: t`ADT Studio can’t tell whether its pages changed. They become the working source, so check generated features after import.` }, value: t`Can’t tell`, state: "warn" },
     }
     const change = changes[adt.exportComparisonStatus]
+    const pendingActivities = adt.activityReview?.needsReviewCount ?? 0
+    const activityNotice: Status | null = repair && pendingActivities > 0
+      ? {
+          tone: "amber",
+          icon: Puzzle,
+          title: t`${pendingActivities} {pendingActivities, plural, one {activity page also needs} other {activity pages also need}} a fix`,
+          text: t`Their activity type is missing or unclear, or they fail the accessibility checks for their type. ADT Studio asks about them once these problems are fixed. The repair request includes them, so your AI assistant can fix both at once.`,
+        }
+      : null
     const status: Status = repair
       ? { tone: "red", icon: TriangleAlert, title: t`${issueCount} {issueCount, plural, one {problem} other {problems}} to fix before import`, text: t`ADT Studio found the book, but these files don’t follow the editing rules. An AI assistant can fix them.` }
       : mode === "activity"
@@ -307,6 +321,7 @@ export function useReviewModel(
         { icon: ShieldCheck, label: t`Changes since export`, value: change.value, state: change.state },
         { icon: FolderPlus, label: t`New, separate project`, value: repair ? t`Not yet` : t`Yes`, state: repair ? "off" : "ok" },
       ],
+      activityNotice,
       issueGroups: [...new Set(issues.map((issue) => issue.code))].map((code) => {
         const examples = issues.filter((issue) => issue.code === code)
         const count = counts?.[code] ?? examples.length
