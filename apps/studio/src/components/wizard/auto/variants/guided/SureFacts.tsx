@@ -3,7 +3,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { Check, ChevronDown } from "lucide-react"
 import type { SetupBookFactId, SetupFact, SetupRecommendation } from "@adt/types"
 import { cn } from "@/lib/utils"
-import { FACT_OPTIONS, settingsFor, type FactAnswers } from "../../engine/answers"
+import { FACT_OPTIONS, factsThatMatter, settingsFor, type FactAnswers } from "../../engine/answers"
 import { FACT_SHORT } from "../../engine/words"
 import { ClaimMark } from "../livechat/ideas/evidence/ClaimMark"
 import { PreviewChoices, Screen } from "../livechat/ideas/question/PreviewChoices"
@@ -85,8 +85,11 @@ function SureCard({ rec, fact, chat, file, frozen, onAnswer }: { rec: SetupRecom
  * highlighted as the pick, with the book as it would come out, and its other options one tap away.
  */
 export function SureFacts({ rec, chat, file, frozen, onAnswer }: { rec: SetupRecommendation; chat: Answers; file: File | null | undefined; frozen: boolean; onAnswer: (fact: SetupBookFactId, value: string) => void }) {
-  const asked = new Set(chat.derived!.asked.map((f) => f.id))
-  const sure = rec.facts.filter((f) => f.matters && !asked.has(f.id))
+  const derived = chat.derived!
+  const asked = new Set(derived.asked.map((f) => f.id))
+  // What matters follows the current answers (an answer to the genre can make exercises matter), not the engine's guess.
+  const matters = new Set(factsThatMatter(rec, derived.current))
+  const sure = rec.facts.filter((f) => matters.has(f.id) && !asked.has(f.id))
   if (!sure.length) return null
   return (
     <section className="flex flex-col gap-2.5">

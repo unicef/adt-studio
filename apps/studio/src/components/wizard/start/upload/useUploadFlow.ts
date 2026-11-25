@@ -27,7 +27,10 @@ export function useUploadFlow() {
   const { data: books } = useBooks()
   const file = useStore(form.store, (s) => s.values.file)
   const inputRef = useRef<HTMLInputElement>(null)
-  const [pageCount, setPageCount] = useState<number>(() => (file ? getCachedPdfPageCount(file) ?? 0 : 0))
+  // The count is kept with the file it was read from, so for the render where a new PDF replaces the
+  // old one the new file never shows the old count (the engine would start once with it).
+  const [counted, setCounted] = useState<{ file: File | null; count: number }>({ file: null, count: 0 })
+  const pageCount = !file ? 0 : counted.file === file ? counted.count : (getCachedPdfPageCount(file) ?? 0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<UploadError | null>(null)
   const [replacing, setReplacing] = useState(false)
@@ -64,7 +67,7 @@ export function useUploadFlow() {
     form.setFieldValue("label", "")
     form.setFieldValue("startPage", "")
     form.setFieldValue("endPage", "")
-    setPageCount(0)
+    setCounted({ file: null, count: 0 })
     setError(null)
     setRejected(0)
     setReplacing(false)
@@ -72,24 +75,24 @@ export function useUploadFlow() {
 
   useEffect(() => {
     if (!file) {
-      setPageCount(0)
+      setCounted({ file: null, count: 0 })
       setLoading(false)
       setError(null)
       return
     }
     const cached = getCachedPdfPageCount(file)
     if (cached !== undefined) {
-      setPageCount(cached)
+      setCounted({ file, count: cached })
       return
     }
     let cancelled = false
-    setPageCount(0)
+    setCounted({ file, count: 0 })
     setLoading(true)
     setError(null)
     getPdfPageCount(file)
       .then((count) => {
         if (cancelled) return
-        setPageCount(count)
+        setCounted({ file, count })
         form.setFieldValue("startPage", "1")
         form.setFieldValue("endPage", String(count))
       })

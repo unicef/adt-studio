@@ -61,6 +61,7 @@ export function Guided({ onManual }: { onManual: () => void }) {
     setAttempt(0)
     setView(null)
     chat.reset()
+    create.reset()
   }, [flow.fileKey])
   useEffect(() => {
     if (flow.rejectedAt) setRejectedAt(flow.rejectedAt)

@@ -71,7 +71,7 @@ export const QUESTION_SHORT: Record<string, MessageDescriptor> = {
 export const FACT_HINT: Record<string, Record<string, MessageDescriptor>> = {
   genre: { story: msg`Characters and events, start to end.`, textbook: msg`Lessons with tasks for the learner.`, reference: msg`Information to look up, no tasks.` },
   exercises: { none: msg`Only reading, colouring or drawing.`, some: msg`Answers to write on a few pages.`, many: msg`Answers to write on most pages.` },
-  composition: { "text-in-art": msg`Printed over the picture itself.`, "text-beside-art": msg`Beside, above or below the picture.`, "text-mostly": msg`Mostly text, few pictures.` },
+  composition: { "text-in-art": msg`Inside the picture, even on a calm part like the sky.`, "text-beside-art": msg`In their own area outside the picture.`, "text-mostly": msg`Mostly text, few pictures.` },
   diagrams: { none: msg`Only illustrations or photos.`, some: msg`A few maps, charts or diagrams.`, many: msg`Maps, charts or diagrams on many pages.` },
 }
 

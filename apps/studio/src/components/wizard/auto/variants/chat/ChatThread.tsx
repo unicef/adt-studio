@@ -73,6 +73,7 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
     setFailures({})
     setUnfolded(new Set())
     chat.reset()
+    create.reset()
   }, [flow.fileKey])
   useEffect(() => {
     if (run.status === "failed") setFailures((f) => ({ ...f, [attempt]: run.failure }))

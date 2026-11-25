@@ -167,6 +167,21 @@ describe("POST /books", () => {
     ).toBe(true)
   })
 
+  it("still creates the book when the setup recommendation can't be attached, with a warning", async () => {
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append("label", "auto-book")
+    formData.append("pdf", new Blob(["%PDF-1.0 fake"], { type: "application/pdf" }), "test.pdf")
+    formData.append("setupRecommendationId", "expired-or-unknown")
+
+    const res = await app.request("/books", { method: "POST", body: formData })
+    expect(res.status).toBe(201)
+    const book = await res.json()
+    expect(book.label).toBe("auto-book")
+    expect(book.setupRecommendationWarning).toMatch(/expired/)
+    expect(fs.existsSync(path.join(tmpDir, "auto-book", "setup-recommendation.json"))).toBe(false)
+  })
+
   it("creates a book with config overrides", async () => {
     const app = createBookRoutes(tmpDir)
     const formData = new FormData()

@@ -1,5 +1,6 @@
 /* eslint-disable lingui/no-unlocalized-strings -- recommender protocol: option ids and schema messages, never shown */
 import { z } from "zod"
+import { SETTING_IDS } from "../engine/ids"
 
 /**
  * The setup recommendation as the recommender returns it (adt-poc-llm, variant `poc-v1`, prompt
@@ -69,7 +70,8 @@ export type SetupResult = z.infer<typeof setupResultSchema>
 /** What the frontend sends: the PDF, the language the reasons should be written in, and the pages to look at. */
 export type SetupRequest = { file: File; userLanguage: string; pages?: { start: number; end: number } }
 
-export const DECISION_IDS: DecisionId[] = ["preset", "renderStrategy", "pageGrouping", "sectioningMode", "activitiesGenerator", "figureExtraction"]
+/** The same six settings as the engine's, in the same order. */
+export const DECISION_IDS: DecisionId[] = SETTING_IDS
 
 /** Decisions the AI couldn't settle between two specific options. */
 export function ambiguousDecisions(rec: Recommendation): DecisionId[] {

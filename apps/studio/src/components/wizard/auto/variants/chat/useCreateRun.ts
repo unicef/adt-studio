@@ -26,11 +26,16 @@ export function useCreateRun() {
   const { createBook, willExtract, startExtract, openBook } = useBookCreation()
   const [runs, setRuns] = useState<CreateRun[]>([])
   const busy = useRef(false)
-  const update = (n: number, patch: Partial<CreateRun>) => setRuns((rs) => rs.map((r) => (r.n === n ? { ...r, ...patch } : r)))
+  // Bumped by reset(): a create started for the previous PDF can still finish, but its result no longer lands here.
+  const token = useRef(0)
 
   const start = async (settings: SetupDecided, recId: string) => {
     if (busy.current) return
     busy.current = true
+    const mine = token.current
+    const update = (n: number, patch: Partial<CreateRun>) => {
+      if (token.current === mine) setRuns((rs) => rs.map((r) => (r.n === n ? { ...r, ...patch } : r)))
+    }
     applySettings(form, settings)
     const values = form.state.values
     const n = runs.length
@@ -43,7 +48,7 @@ export function useCreateRun() {
       const failure = classifyCreateError(error)
       if (failure.kind === "taken") void queryClient.invalidateQueries({ queryKey: ["books"] })
       update(n, { status: "failed", failure })
-      busy.current = false
+      if (token.current === mine) busy.current = false
       return
     }
     if (!extract) return update(n, { status: "done", label })
@@ -60,6 +65,12 @@ export function useCreateRun() {
   return {
     runs,
     start,
+    /** A new PDF: forget the runs for the previous one and unlock its setup. */
+    reset: () => {
+      token.current += 1
+      busy.current = false
+      setRuns([])
+    },
     /** Creating, or created: the setup above can't change any more. */
     locked: !!last && last.status !== "failed",
     open: (label: string) => openBook(label, form.state.values),

@@ -70,6 +70,58 @@ export const SetupPageRange = z.object({
 })
 export type SetupPageRange = z.infer<typeof SetupPageRange>
 
+/** One answer of the questions reading, as the model gave it. */
+export const SetupQuestionAnswer = z.object({
+  answer: z.string(),
+  confidence: z.enum(["low", "medium", "high"]),
+  evidencePages: z.array(z.number().int()),
+  reason: z.string(),
+})
+export type SetupQuestionAnswer = z.infer<typeof SetupQuestionAnswer>
+
+/**
+ * The parsed responses of both AI readings, kept with the recommendation so a
+ * person can see why a fact was read the way it was (maximum transparency).
+ */
+export const SetupReadings = z.object({
+  /** The page-label reading: one label per page read, the whole-book guess, and the counted facts. Null when it failed. */
+  labels: z
+    .object({
+      pages: z.array(
+        z.object({
+          page: z.number().int(),
+          type: z.string(),
+          textPlacement: z.string(),
+          meaningfulFigure: z.boolean(),
+        }),
+      ),
+      bookGenre: z.string(),
+      facts: z.record(SetupBookFactId, z.string()),
+      /** Facts whose count was a close call (under 60% agreement, a tie, or too few pages). */
+      flags: z.array(SetupBookFactId),
+      /** Answers tied for the top count, per fact. */
+      ties: z.record(SetupBookFactId, z.array(z.string())),
+      counts: z.object({
+        body: z.number().int(),
+        story: z.number().int(),
+        textbook: z.number().int(),
+        reference: z.number().int(),
+        exercisePages: z.number().int(),
+        figurePages: z.number().int(),
+        placement: z.record(z.string(), z.number().int()),
+      }),
+    })
+    .nullable(),
+  /** The questions reading: the pages shown and each answer with its confidence and reason. Null when it failed. */
+  questions: z
+    .object({
+      pages: z.array(z.number().int()),
+      answers: z.record(SetupBookFactId, SetupQuestionAnswer),
+    })
+    .nullable(),
+})
+export type SetupReadings = z.infer<typeof SetupReadings>
+
 export const SetupRecommendation = z.object({
   id: z.string(),
   engine: z.literal("e3"),
@@ -84,6 +136,14 @@ export const SetupRecommendation = z.object({
     facingPairs: z.number().int(),
     textLayer: z.enum(["digital", "scanned", "scanned-with-ocr", "mixed"]),
     textLayerEvidence: z.array(z.number().int()),
+    /** Pages with exercise cues (blanks, numbered tasks, instruction verbs), counted without AI. */
+    exerciseCuePages: z.number().int().optional(),
+    /** Exercise cues on at least 10% of the pages. */
+    exerciseCues: z.boolean().optional(),
+    /** Drawn (vector) diagrams on at least 10% of the pages. */
+    vectorDiagrams: z.boolean().optional(),
+    /** Share of text pages whose words sit over a large picture in the PDF. */
+    textOverPicturesShare: z.number().optional(),
     medianChars: z.number(),
     language: z.string().nullable(),
   }),
@@ -97,6 +157,8 @@ export const SetupRecommendation = z.object({
   lockedSettings: z.array(SetupSettingId),
   pageRange: SetupPageRange.nullable(),
   pageLabels: z.array(z.object({ page: z.number().int(), type: z.string() })),
+  /** Both readings' parsed responses. Optional: recommendations saved before it was added don't have it. */
+  readings: SetupReadings.optional(),
   /** Both AI readings ran; false when one failed and only the other was used. */
   secondOpinion: z.boolean(),
   timings: z.object({

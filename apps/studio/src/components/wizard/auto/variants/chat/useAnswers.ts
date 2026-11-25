@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react"
-import type { SetupBookFactId, SetupDecided, SetupFact, SetupRecommendation, SetupSettingId } from "@adt/types"
-import { PRESETS } from "@/components/wizard/core/constants"
-import { askedFacts, FACT_OPTIONS, proposedAnswers, settingsChangedBy, settingsFor, SETTING_IDS, type FactAnswers } from "../../engine/answers"
+import type { SetupBookFactId, SetupFact, SetupRecommendation, SetupSettingId } from "@adt/types"
+import { askedFacts, fitPreset, genreFor, proposedAnswers, settingsChangedBy, settingsFor, settingsTouchedBy, type FactAnswers } from "../../engine/answers"
 
 export type Source = "ai" | "asked" | "changed"
 export type SettingValue = string | boolean
@@ -32,25 +31,39 @@ export function useAnswers(rec: SetupRecommendation | null) {
     return { asked, proposed, current, pending, fromAnswers, effective, source }
   }, [rec, answers, overrides])
 
+  /** A newer answer wins over a hand change to the settings it moves. */
+  const answer = (fact: SetupBookFactId, value: string) => {
+    if (rec && derived) {
+      const moved = settingsChangedBy(rec, derived.current, fact, value)
+      if (moved.length) setOverrides((o) => Object.fromEntries(Object.entries(o).filter(([id]) => !moved.includes(id as SetupSettingId))))
+    }
+    setAnswers((a) => ({ ...a, [fact]: value }))
+  }
+
   return {
     derived,
     answers,
     skipped,
     overrides,
-    /** A newer answer wins over a hand change to the settings it moves. */
-    answer: (fact: SetupBookFactId, value: string) => {
-      if (rec && derived) {
-        const moved = settingsChangedBy(rec, derived.current, fact, value)
-        if (moved.length) setOverrides((o) => Object.fromEntries(Object.entries(o).filter(([id]) => !moved.includes(id as SetupSettingId))))
-      }
-      setAnswers((a) => ({ ...a, [fact]: value }))
-    },
+    answer,
     /** Takes the engine's own guess for every question not answered yet. */
     skipRest: (facts: SetupFact[]) => {
       setSkipped(facts.map((f) => f.id))
       setAnswers((a) => ({ ...Object.fromEntries(facts.map((f) => [f.id, f.value])), ...a }))
     },
+    /**
+     * A hand change to one setting. The preset is the rulebook's answer to the genre fact (one to
+     * one), so changing it answers that fact instead and the rulebook works out the rest.
+     */
     override: (id: SetupSettingId, value: SettingValue) => {
+      const genre = id === "preset" ? genreFor(value) : null
+      if (genre) {
+        setOverrides((o) => {
+          const { preset: _, ...rest } = o
+          return rest
+        })
+        return answer("genre", genre)
+      }
       setOverrides((o) => {
         const next = { ...o, [id]: value }
         // Picking the rulebook's own value again is not a change.
@@ -68,27 +81,6 @@ export function useAnswers(rec: SetupRecommendation | null) {
 
 export type Answers = ReturnType<typeof useAnswers>
 export type Derived = NonNullable<Answers["derived"]>
-
-/** A preset only offers some render strategies; if the pick isn't one of them, use the preset's own. */
-function fitPreset(settings: SetupDecided): SetupDecided {
-  const preset = PRESETS.find((p) => p.id === settings.preset?.value)
-  const allowed = (preset?.renderStrategies ?? []) as readonly string[]
-  const strategy = settings.renderStrategy?.value
-  if (!preset || allowed.includes(String(strategy))) return settings
-  return { ...settings, renderStrategy: { value: String(preset.recommendations.renderStrategy ?? allowed[0]), rule: "preset-default" } }
-}
-
-/** The render strategies the current preset offers. */
-export function strategiesFor(preset: SettingValue | undefined): string[] {
-  return [...((PRESETS.find((p) => p.id === preset)?.renderStrategies ?? []) as readonly string[])]
-}
-
-/** Settings whose value depends on a fact: some other answer to it would change them. */
-export function settingsTouchedBy(rec: SetupRecommendation, answers: FactAnswers, fact: SetupBookFactId): SetupSettingId[] {
-  const changed = new Set<SetupSettingId>()
-  for (const v of FACT_OPTIONS[fact]) for (const id of settingsChangedBy(rec, answers, fact, v)) changed.add(id)
-  return SETTING_IDS.filter((id) => changed.has(id))
-}
 
 /** Settings that wait on a question: they'd change with another answer to a fact the engine asks about. */
 export function settingsWaitingOn(rec: SetupRecommendation, asked: SetupFact[], answers: FactAnswers): Set<SetupSettingId> {

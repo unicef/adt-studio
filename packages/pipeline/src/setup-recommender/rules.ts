@@ -50,6 +50,7 @@ export type RuleId =
   | "render-textbook-ai"
   | "render-keep-page"
   | "render-overlay-no-text-layer"
+  | "render-overlay-no-text-beside"
   | "render-side-by-side"
   | "render-reflow"
   | "group-joined-spreads"
@@ -57,15 +58,31 @@ export type RuleId =
   | "group-wide-pages"
   | "group-single"
   | "activities-on"
+  | "activities-few-cues"
   | "activities-not-in-preset"
   | "activities-none"
   | "sections-split"
+  | "sections-school-book"
   | "sections-page"
   | "figures-keep-together"
   | "figures-none"
   | "figures-no-text-layer"
 
 export type Decided = { [K in SettingId]: { value: RecommendedSettings[K]; rule: RuleId } }
+
+/**
+ * Whether the PDF's words can be read directly. A mixed book counts when most
+ * of its pages carry a real text layer (a few scanned pages don't take the
+ * text away from the rest).
+ */
+export function hasTextLayer(d: MeasuredFacts): boolean {
+  if (d.textLayer.value === "digital") return true
+  if (d.textLayer.value !== "mixed") return false
+  return d.textLayer.scannedPages < d.textLayer.pages / 2
+}
+
+/** Median page under this many characters: too few words to count exercise cues on. */
+export const MIN_CHARS_FOR_CUES = 100
 
 export function decide(d: MeasuredFacts, s: BookFacts): Decided {
   const preset = ({ story: "storybook", textbook: "textbook", reference: "reference" } as const)[s.genre]
@@ -75,7 +92,7 @@ export function decide(d: MeasuredFacts, s: BookFacts): Decided {
       ? { value: "spread", rule: d.pageStorage.via === "text-facing-picture" ? "group-facing-pages" : "group-joined-spreads" }
       : { value: "single", rule: d.pageStorage.value === "spreads-as-wide-pages" ? "group-wide-pages" : "group-single" }
 
-  const hasText = d.textLayer.value === "digital"
+  const hasText = hasTextLayer(d)
   let renderStrategy: Decided["renderStrategy"]
   if (preset === "reference") renderStrategy = { value: "single_column", rule: "render-reference-column" }
   else if (preset === "textbook") renderStrategy = { value: "llm", rule: "render-textbook-ai" }
@@ -83,20 +100,34 @@ export function decide(d: MeasuredFacts, s: BookFacts): Decided {
     renderStrategy = hasText
       ? { value: "fixed_layout", rule: "render-keep-page" }
       : { value: "llm-overlay", rule: "render-overlay-no-text-layer" }
-  else if (s.composition === "text-beside-art") renderStrategy = { value: "two_column_story", rule: "render-side-by-side" }
+  else if (s.composition === "text-beside-art")
+    // Side by side needs real words; a scanned picture book gets its words rebuilt over the page.
+    renderStrategy = hasText
+      ? { value: "two_column_story", rule: "render-side-by-side" }
+      : { value: "llm-overlay", rule: "render-overlay-no-text-beside" }
   else renderStrategy = { value: "llm", rule: "render-reflow" }
 
   const exercisesPresent = s.exercises !== "none"
   // Storybook and Reference presets drop activity sections, so activities stay
-  // off there (turning them on would delete the exercises).
+  // off there (turning them on would delete the exercises). In a school book
+  // with "some" exercises, the measured cues (blanks, numbered tasks,
+  // instruction verbs) must agree when the words can be measured: build-it
+  // projects at the end of a chapter (Elements of Computing Systems) are tasks
+  // but nothing the reader answers in the book.
+  const cuesMeasurable = d.textDensity.medianChars >= MIN_CHARS_FOR_CUES && hasText
+  const answeredInBook = s.exercises === "many" || (exercisesPresent && (d.exerciseCues.value || !cuesMeasurable))
   const activitiesGenerator: Decided["activitiesGenerator"] =
-    preset === "textbook" && exercisesPresent
-      ? { value: true, rule: "activities-on" }
-      : { value: false, rule: exercisesPresent ? "activities-not-in-preset" : "activities-none" }
+    preset !== "textbook"
+      ? { value: false, rule: exercisesPresent ? "activities-not-in-preset" : "activities-none" }
+      : answeredInBook
+        ? { value: true, rule: "activities-on" }
+        : { value: false, rule: exercisesPresent ? "activities-few-cues" : "activities-none" }
 
+  // School books are split into sections by the AI whatever their exercises;
+  // other presets read page by page.
   const sectioningMode: Decided["sectioningMode"] =
-    preset === "textbook" && exercisesPresent && renderStrategy.value !== "fixed_layout"
-      ? { value: "dynamic", rule: "sections-split" }
+    preset === "textbook"
+      ? { value: "dynamic", rule: exercisesPresent ? "sections-split" : "sections-school-book" }
       : { value: "page", rule: "sections-page" }
 
   const figureExtraction: Decided["figureExtraction"] =

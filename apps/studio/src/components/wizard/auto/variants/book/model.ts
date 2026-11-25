@@ -1,6 +1,6 @@
 import type { SetupBookFactId, SetupDecided, SetupFact, SetupRecommendation, SetupSettingId } from "@adt/types"
-import { PRESETS, RENDER_STRATEGIES } from "@/components/wizard/core/constants"
-import { askedFacts, factsBehind, FACT_IDS, SETTING_IDS, settingsFor, type FactAnswers } from "../../engine/answers"
+import { RENDER_STRATEGIES } from "@/components/wizard/core/constants"
+import { askedFacts, factsBehind, FACT_IDS, fitPreset, SETTING_IDS, settingsFor, strategiesFor as allowedStrategies, type FactAnswers } from "../../engine/answers"
 
 export type SettingValue = string | boolean
 export type Overrides = Partial<Record<SetupSettingId, SettingValue>>
@@ -33,7 +33,7 @@ export type Finding =
 const RULE_USER = "user"
 
 function strategiesFor(preset: SettingValue): string[] {
-  const allowed = (PRESETS.find((p) => p.id === preset)?.renderStrategies ?? []) as readonly string[]
+  const allowed = allowedStrategies(preset)
   return RENDER_STRATEGIES.filter((r) => !("hidden" in r && r.hidden) && allowed.includes(r.id)).map((r) => r.id)
 }
 
@@ -50,12 +50,7 @@ export function currentSettings(rec: SetupRecommendation, answers: FactAnswers, 
   const base = settingsFor(rec, answers)
   const out: SetupDecided = { ...base }
   for (const id of SETTING_IDS) if (overrides[id] !== undefined) out[id] = { value: overrides[id]!, rule: RULE_USER }
-  const strategies = strategiesFor(out.preset!.value)
-  if (!strategies.includes(String(out.renderStrategy!.value))) {
-    const fallback = PRESETS.find((p) => p.id === out.preset!.value)?.recommendations.renderStrategy ?? strategies[0]
-    out.renderStrategy = { value: String(fallback), rule: RULE_USER }
-  }
-  return out
+  return fitPreset(out, RULE_USER)
 }
 
 export function bookSettings(rec: SetupRecommendation, answers: FactAnswers, overrides: Overrides, answered: Set<SetupBookFactId>): BookSetting[] {

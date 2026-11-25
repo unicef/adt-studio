@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { useLingui } from "@lingui/react/macro"
 import type { SetupBookFactId, SetupRecommendation, SetupSettingId } from "@adt/types"
 import { PRESETS, RENDER_STRATEGIES } from "@/components/wizard/core/constants"
-import { askedFacts, proposedAnswers, settingsChangedBy, type FactAnswers } from "../../engine/answers"
+import { askedFacts, genreFor, proposedAnswers, settingsChangedBy, type FactAnswers } from "../../engine/answers"
 import { SETTING_VALUE } from "../../engine/words"
 import { bookSettings, currentSettings, findings, type Overrides, type SettingValue } from "./model"
 import { WIZARD_NAME, WIZARD_VALUE } from "./words"
@@ -78,6 +78,12 @@ export function useBookState(rec: SetupRecommendation | null) {
   const change = useCallback(
     (id: SetupSettingId, value: SettingValue) => {
       if (!rec || !current) return
+      // The preset is the rulebook's answer to the genre (one to one): changing it answers that fact.
+      const genre = id === "preset" ? genreFor(value) : null
+      if (genre) {
+        answer("genre", genre)
+        return
+      }
       const base = currentSettings(rec, current, {})
       setOverrides((o) => {
         const next = { ...o }
@@ -86,7 +92,7 @@ export function useBookState(rec: SetupRecommendation | null) {
         return next
       })
     },
-    [rec, current],
+    [rec, current, answer],
   )
 
   return {

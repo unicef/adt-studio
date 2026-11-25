@@ -7,7 +7,7 @@
  */
 import type { LLMModel } from "@adt/llm"
 import type { BookProfile } from "@adt/pdf"
-import type { SetupDecided, SetupFact, SetupRecommendation } from "@adt/types"
+import type { SetupDecided, SetupFact, SetupReadings, SetupRecommendation } from "@adt/types"
 import { measureFacts, type MeasuredFacts } from "./facts.js"
 import {
   readPageLabels,
@@ -76,7 +76,8 @@ function settingEvidence(id: SettingId, facts: SetupFact[], measured: MeasuredFa
     case "preset":
       return of("genre")
     case "renderStrategy":
-      return firstN([...of("composition"), ...of("genre")])
+      // Composition only explains a story's strategy; for other presets the kind of book decides it.
+      return facts.find((x) => x.id === "genre")?.value === "story" ? firstN([...of("composition"), ...of("genre")]) : of("genre")
     case "pageGrouping":
       return measured.pageStorage.evidence
     case "sectioningMode":
@@ -100,6 +101,88 @@ function allCombinations(measured: MeasuredFacts): Record<string, SetupDecided> 
             decide(measured, { genre, exercises, composition, diagrams }),
           )
   return out
+}
+
+/**
+ * The labels' facts, except that a tie in the labels' count (as many pages
+ * with words on the picture as beside it) takes the questions reading's
+ * answer when it is one of the tied answers. Otherwise the tie stays with the
+ * labels' pick and the readings disagree, so the fact is asked if it matters.
+ */
+export function breakTies(labels: Pick<PageLabelsReading, "facts" | "ties">, questions: Pick<QuestionsReading, "facts"> | null): BookFacts {
+  const facts = { ...labels.facts }
+  if (!questions) return facts
+  for (const id of BOOK_FACT_IDS) {
+    const tied = labels.ties[id]
+    if (tied && tied.includes(questions.facts[id])) (facts as Record<BookFactId, string>)[id] = questions.facts[id]
+  }
+  return facts
+}
+
+/** The parsed answers of both readings, kept with the recommendation (maximum transparency). */
+function readingsRecord(labels: PageLabelsReading | null, questions: QuestionsReading | null): SetupReadings {
+  return {
+    labels: labels
+      ? {
+          pages: labels.labels.map((l) => ({ page: l.page, type: l.type, textPlacement: l.textPlacement, meaningfulFigure: l.meaningfulFigure })),
+          bookGenre: labels.bookGenre,
+          facts: labels.facts,
+          flags: labels.flags,
+          ties: labels.ties,
+          counts: labels.counts,
+        }
+      : null,
+    questions: questions
+      ? {
+          pages: questions.pages,
+          answers: Object.fromEntries(
+            BOOK_FACT_IDS.map((id) => {
+              const a = questions.answers[id]
+              return [id, { answer: a.answer, confidence: a.confidence, evidencePages: a.evidencePages, reason: a.reason }]
+            }),
+          ) as NonNullable<SetupReadings["questions"]>["answers"],
+        }
+      : null,
+  }
+}
+
+export interface FactQuestion {
+  id: BookFactId
+  value: string
+  matters: boolean
+  affectsLocked: boolean
+  askReason: "readings-disagree" | "few-body-pages" | null
+}
+
+/**
+ * Which facts to put to the user (pure, so the saved runs can replay it).
+ * A fact matters when another answer would change a setting, under the
+ * proposal or under the second reading (a fact can matter only under the
+ * other reading's kind of book). It is asked when the readings disagree AND
+ * the second opinion leads to different settings (under either reading), or
+ * when the labels saw too few pages of the book itself.
+ */
+export function factQuestions(
+  measured: MeasuredFacts,
+  proposal: BookFacts,
+  second: BookFacts | null,
+  fewBodyPages: boolean,
+): FactQuestion[] {
+  const bases = second ? [proposal, second] : [proposal]
+  return BOOK_FACT_IDS.map((id) => {
+    const value = proposal[id]
+    const matters = bases.some((b) => factMatters(measured, b, id))
+    const affectsLocked = bases.some((b) =>
+      (BOOK_FACT_OPTIONS[id] as string[]).some((o) => settingsChangedBy(measured, b, id, o).some((s) => LOCKED_SETTINGS.includes(s))),
+    )
+    const other = second ? second[id] : null
+    const disagree =
+      second !== null &&
+      other !== value &&
+      (settingsChangedBy(measured, proposal, id, other!).length > 0 || settingsChangedBy(measured, second, id, value).length > 0)
+    const askReason = !matters ? null : disagree ? ("readings-disagree" as const) : fewBodyPages ? ("few-body-pages" as const) : null
+    return { id, value, matters, affectsLocked, askReason }
+  })
 }
 
 export interface RecommendSetupOptions {
@@ -129,31 +212,22 @@ export async function recommendSetup(opts: RecommendSetupOptions): Promise<Setup
   }
 
   // The page labels are the proposal; the questions are the second opinion.
-  const proposal: BookFacts = labels?.facts ?? questions!.facts
+  const proposal: BookFacts = labels ? breakTies(labels, questions) : questions!.facts
   const fewBodyPages = labels ? labels.counts.body < 2 : false
   const pageLabels = labels?.labels ?? []
 
-  const facts: SetupFact[] = BOOK_FACT_IDS.map((id) => {
-    const value = proposal[id]
-    const second = labels && questions ? questions.facts[id] : null
-    const matters = factMatters(measured, proposal, id)
-    const affectsLocked = (BOOK_FACT_OPTIONS[id] as string[]).some((o) =>
-      settingsChangedBy(measured, proposal, id, o).some((s) => LOCKED_SETTINGS.includes(s)),
-    )
-    const disagree = second !== null && second !== value
-    const askReason = !matters ? null : disagree ? ("readings-disagree" as const) : fewBodyPages ? ("few-body-pages" as const) : null
-    return {
-      id,
-      value,
-      secondOpinion: questions ? questions.facts[id] : null,
-      reason: questions?.answers[id].reason ?? null,
-      evidencePages: factEvidence(id, value, pageLabels, questions, measured),
-      matters,
-      affectsLocked,
-      ask: askReason !== null,
-      askReason,
-    }
-  })
+  const asks = factQuestions(measured, proposal, labels && questions ? questions.facts : null, fewBodyPages)
+  const facts: SetupFact[] = asks.map((a) => ({
+    id: a.id,
+    value: a.value,
+    secondOpinion: questions ? questions.facts[a.id] : null,
+    reason: questions?.answers[a.id].reason ?? null,
+    evidencePages: factEvidence(a.id, a.value, pageLabels, questions, measured),
+    matters: a.matters,
+    affectsLocked: a.affectsLocked,
+    ask: a.askReason !== null,
+    askReason: a.askReason,
+  }))
 
   const decided = decide(measured, proposal)
   const bodyPage = pageLabels.find((l) => ["story", "lesson", "exercise", "informational"].includes(l.type))?.page
@@ -172,6 +246,10 @@ export async function recommendSetup(opts: RecommendSetupOptions): Promise<Setup
       facingPairs: measured.pageStorage.pairs,
       textLayer: measured.textLayer.value,
       textLayerEvidence: measured.textLayer.evidence,
+      exerciseCuePages: measured.exerciseCues.pagesWithCues,
+      exerciseCues: measured.exerciseCues.value,
+      vectorDiagrams: measured.vectorDiagrams.value,
+      textOverPicturesShare: measured.textOverPictures.share,
       medianChars: measured.textDensity.medianChars,
       language: measured.language.pdfTag ?? measured.language.guess,
     },
@@ -182,6 +260,7 @@ export async function recommendSetup(opts: RecommendSetupOptions): Promise<Setup
     lockedSettings: LOCKED_SETTINGS,
     pageRange: labels?.range ?? null,
     pageLabels: pageLabels.map((l) => ({ page: l.page, type: l.type })),
+    readings: readingsRecord(labels, questions),
     secondOpinion: labels !== null && questions !== null,
     timings: {
       profileMs: profile.ms,

@@ -2,6 +2,7 @@
 import { setupFactsKey, type SetupBookFactId, type SetupDecided, type SetupFact, type SetupRecommendation, type SetupSettingId } from "@adt/types"
 import { PRESETS, type PresetId, type RenderStrategyId, type WizardPageGrouping, type WizardSectioningMode } from "@/components/wizard/core/constants"
 import { defaultWizardValues, type useWizardForm } from "@/components/wizard/core/wizardForm"
+import { FACT_IDS, FACT_OPTIONS, SETTING_IDS } from "./ids"
 
 /**
  * What every Add Book variant does with an engine answer. The engine settles the book's *facts*
@@ -12,16 +13,7 @@ import { defaultWizardValues, type useWizardForm } from "@/components/wizard/cor
 
 export type FactAnswers = Record<SetupBookFactId, string>
 
-export const FACT_IDS: SetupBookFactId[] = ["genre", "exercises", "composition", "diagrams"]
-export const SETTING_IDS: SetupSettingId[] = ["preset", "renderStrategy", "pageGrouping", "sectioningMode", "activitiesGenerator", "figureExtraction"]
-
-/** The answers each fact can take, in the order a question lists them. */
-export const FACT_OPTIONS: Record<SetupBookFactId, string[]> = {
-  genre: ["story", "textbook", "reference"],
-  exercises: ["none", "some", "many"],
-  composition: ["text-in-art", "text-beside-art", "text-mostly"],
-  diagrams: ["none", "some", "many"],
-}
+export { FACT_IDS, FACT_OPTIONS, SETTING_IDS } from "./ids"
 
 /** The engine's own answers, before the user says anything. */
 export function proposedAnswers(rec: SetupRecommendation): FactAnswers {
@@ -43,6 +35,57 @@ export function settingsChangedBy(rec: SetupRecommendation, answers: FactAnswers
   const now = settingsFor(rec, answers)
   const then = settingsFor(rec, { ...answers, [fact]: value })
   return SETTING_IDS.filter((id) => now[id]?.value !== then[id]?.value)
+}
+
+/** Settings whose value depends on a fact: some other answer to it would change them. */
+export function settingsTouchedBy(rec: SetupRecommendation, answers: FactAnswers, fact: SetupBookFactId): SetupSettingId[] {
+  const changed = new Set<SetupSettingId>()
+  for (const v of FACT_OPTIONS[fact]) for (const id of settingsChangedBy(rec, answers, fact, v)) changed.add(id)
+  return SETTING_IDS.filter((id) => changed.has(id))
+}
+
+/**
+ * The facts that matter for the current answers: another answer to them would change a setting.
+ * The engine's own `matters` flag is worked out for its proposal only, so once the user answers
+ * differently (another kind of book, say) other facts may matter and some may stop mattering.
+ */
+export function factsThatMatter(rec: SetupRecommendation, answers: FactAnswers): SetupBookFactId[] {
+  return FACT_IDS.filter((fact) => settingsTouchedBy(rec, answers, fact).length > 0)
+}
+
+/** Each preset is the rulebook's answer to one kind of book; the reverse lets a hand change of the preset go through the genre fact. */
+const GENRE_OF_PRESET: Partial<Record<string, string>> = { storybook: "story", textbook: "textbook", reference: "reference" }
+
+/** The genre fact that gives this preset, or null for a preset the rulebook never picks. */
+export function genreFor(preset: unknown): string | null {
+  return GENRE_OF_PRESET[String(preset)] ?? null
+}
+
+/** The render strategies a preset offers. */
+export function strategiesFor(preset: unknown): string[] {
+  return [...((PRESETS.find((p) => p.id === preset)?.renderStrategies ?? []) as readonly string[])]
+}
+
+/**
+ * A preset only offers some render strategies. Keeps `strategy` if the preset allows it, otherwise
+ * the `alternative` if allowed, otherwise the preset's own default. The rulebook never breaks this;
+ * it guards hand changes and older answers.
+ */
+export function fitStrategy(preset: unknown, strategy: string, alternative?: string | null): string {
+  const p = PRESETS.find((x) => x.id === preset)
+  if (!p) return strategy
+  const allowed = strategiesFor(preset)
+  if (allowed.includes(strategy)) return strategy
+  if (alternative && allowed.includes(alternative)) return alternative
+  return String(p.recommendations.renderStrategy ?? allowed[0] ?? strategy)
+}
+
+/** A decided row with its render strategy fitted to its preset (`rule` names the fix when one was needed). */
+export function fitPreset(settings: SetupDecided, rule = "preset-default"): SetupDecided {
+  const strategy = settings.renderStrategy
+  if (!strategy) return settings
+  const fitted = fitStrategy(settings.preset?.value, String(strategy.value))
+  return fitted === strategy.value ? settings : { ...settings, renderStrategy: { value: fitted, rule } }
 }
 
 /** Which facts a setting depends on: those whose other answers change it. */

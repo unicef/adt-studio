@@ -77,6 +77,18 @@ export function questionPages(b: BookProfile, f: MeasuredFacts): number[] {
 }
 
 // ---------------------------------------------------------------------------
+// One definition of where the words sit, shared by both readings (and by the
+// question the user answers in Studio), so the two readings can't drift apart
+// on a picture that runs across the fold.
+// ---------------------------------------------------------------------------
+
+export const WORDS_ON_PICTURE =
+  "The words sit inside the picture's area, even on a calm part of it such as sky, sea or a coloured band of the illustration, and the picture may continue onto the facing page."
+export const WORDS_BESIDE_PICTURE =
+  "The words sit in their own area outside the picture: above, below or next to it, or on the facing page."
+export const WORDS_MOSTLY = "It is mostly words. Pictures are few or small."
+
+// ---------------------------------------------------------------------------
 // Reading 1: plain questions
 // ---------------------------------------------------------------------------
 
@@ -102,9 +114,9 @@ export const PLAIN_QUESTIONS: Record<BookFactId, { ask: string; options: Record<
   composition: {
     ask: "Where are the words on a page?",
     options: {
-      "text-in-art": "Printed on the picture itself, for example over the sky or the grass.",
-      "text-beside-art": "In their own space: above, below or next to the picture, or on the opposite page.",
-      "text-mostly": "It is mostly words. Pictures are few or small.",
+      "text-in-art": `On the picture. ${WORDS_ON_PICTURE}`,
+      "text-beside-art": `Beside the picture. ${WORDS_BESIDE_PICTURE}`,
+      "text-mostly": WORDS_MOSTLY,
     },
   },
   diagrams: {
@@ -226,8 +238,8 @@ export const PAGE_TYPES = {
   blank: "Empty or nearly empty page, or a picture with no text that does not carry a story.",
 } as const
 export const PLACEMENTS = {
-  "on-art": "The text is placed on top of a picture that fills most of the page.",
-  "beside-art": "The text sits in its own area next to, above or below a picture.",
+  "on-art": `On the picture. ${WORDS_ON_PICTURE}`,
+  "beside-art": `Beside the picture. ${WORDS_BESIDE_PICTURE}`,
   "text-only": "Mostly text; pictures small or absent.",
   "no-text": "No readable text.",
 } as const
@@ -269,12 +281,15 @@ export interface LabelCounts {
 export function countLabels(labels: PageLabel[], bookGuess: BookFacts["genre"]) {
   const body = labels.filter((l) => !NON_VOTING.includes(l.type))
   const flags: BookFactId[] = []
+  /** Answers tied for the top count, per fact (only when there was a tie). */
+  const ties: Partial<Record<BookFactId, string[]>> = {}
   const argmax = (m: Record<string, number>) => {
     const e = Object.entries(m).sort((a, b) => b[1] - a[1])
     return {
       key: e[0][0],
       share: e[0][1] / Math.max(1, e.reduce((s, x) => s + x[1], 0)),
       tie: e.length > 1 && e[0][1] === e[1][1],
+      tied: e.filter((x) => x[1] === e[0][1]).map((x) => x[0]),
     }
   }
   const genreCounts = {
@@ -299,13 +314,13 @@ export function countLabels(labels: PageLabel[], bookGuess: BookFacts["genre"]) 
   for (const l of withText) placeCounts[l.textPlacement]++
   const pl = argmax(placeCounts)
   if (withText.length === 0 || pl.tie || pl.share < 0.6) flags.push("composition")
-  const composition = ({ "on-art": "text-in-art", "beside-art": "text-beside-art", "text-only": "text-mostly" } as const)[
-    pl.key as "on-art" | "beside-art" | "text-only"
-  ]
+  const PLACEMENT_FACT = { "on-art": "text-in-art", "beside-art": "text-beside-art", "text-only": "text-mostly" } as const
+  if (withText.length > 0 && pl.tie) ties.composition = pl.tied.map((k) => PLACEMENT_FACT[k as keyof typeof PLACEMENT_FACT])
+  const composition = PLACEMENT_FACT[pl.key as keyof typeof PLACEMENT_FACT]
   const fig = body.filter((l) => l.meaningfulFigure).length
   const diagrams: BookFacts["diagrams"] = fig === 0 ? "none" : fig < body.length / 3 ? "some" : "many"
   const counts: LabelCounts = { body: body.length, ...genreCounts, exercisePages: ex, figurePages: fig, placement: placeCounts }
-  return { facts: { genre, exercises, composition, diagrams } as BookFacts, flags, counts }
+  return { facts: { genre, exercises, composition, diagrams } as BookFacts, flags, ties, counts }
 }
 
 export interface PageRangeSuggestion {
@@ -359,6 +374,8 @@ export interface PageLabelsReading {
   facts: BookFacts
   /** Facts whose count was close (under 60% agreement, a tie, or too few pages). */
   flags: BookFactId[]
+  /** Answers tied for the top count, per fact. The proposal takes the questions reading's answer on a tie. */
+  ties: Partial<Record<BookFactId, string[]>>
   counts: LabelCounts
   range: PageRangeSuggestion | null
   usage: TokenUsage
@@ -419,6 +436,7 @@ export async function readPageLabels(opts: {
     bookGenre: res.object.bookGenre,
     facts: counted.facts,
     flags: counted.flags,
+    ties: counted.ties,
     counts: counted.counts,
     range: suggestRange(labels, profile.pageCount),
     usage: res.usage ?? { inputTokens: 0, outputTokens: 0 },

@@ -2,6 +2,7 @@ export { measureFacts, type MeasuredFacts } from "./facts.js"
 export {
   decide,
   factMatters,
+  hasTextLayer,
   settingsChangedBy,
   BOOK_FACT_IDS,
   BOOK_FACT_OPTIONS,
@@ -22,4 +23,4 @@ export {
   type PageLabel,
   type RenderPages,
 } from "./readings.js"
-export { recommendSetup, type RecommendSetupOptions } from "./recommend.js"
+export { recommendSetup, factQuestions, breakTies, type FactQuestion, type RecommendSetupOptions } from "./recommend.js"

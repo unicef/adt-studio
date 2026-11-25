@@ -133,6 +133,9 @@ function measureSplitSpreads(b: BookProfile): {
   }
 }
 
+/** Share of interior pages that must be scans with OCR for a book to count as mixed. */
+export const MIXED_SHARE = 0.1
+
 export function measureFacts(b: BookProfile): MeasuredFacts {
   const pages = interior(b.pages)
   const n = pages.length
@@ -170,7 +173,12 @@ export function measureFacts(b: BookProfile): MeasuredFacts {
       evidence: scanned.slice(0, 3).map((p) => p.page),
       ...layerBase,
     }
-  else if (ocr.length >= 2) textLayer = { value: "mixed", evidence: ocr.slice(0, 3).map((p) => p.page), ...layerBase }
+  // Mixed only when a real share of the pages are scans with OCR: two scanned
+  // pages in a 400-page digital book don't make it a scan. The rulebook then
+  // reads the words directly when most pages have a real text layer
+  // (rules.ts hasTextLayer).
+  else if (ocr.length >= Math.max(2, MIXED_SHARE * n))
+    textLayer = { value: "mixed", evidence: ocr.slice(0, 3).map((p) => p.page), ...layerBase }
   else textLayer = { value: "digital", evidence: [], ...layerBase }
 
   const overPages = pages.filter((p) => p.visibleChars >= 20 && p.textOverImageChars >= 0.5 * p.visibleChars)

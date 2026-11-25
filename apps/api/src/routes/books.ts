@@ -262,16 +262,9 @@ export function createBookRoutes(
       ? (JSON.parse(configJson as string) as Record<string, unknown>)
       : undefined
 
+    let book: ReturnType<typeof createBook>
     try {
-      const book = createBook(label, pdfBuffer, booksDir, configOverrides)
-      // Auto mode (issue #333): keep the recommendation and its AI log with the book.
-      const setupRecommendationId = formData.get("setupRecommendationId")
-      if (typeof setupRecommendationId === "string" && setupRecommendationId) {
-        attachSetupRecommendation(setupRecommendationId, path.join(path.resolve(booksDir), book.label), {
-          config: configOverrides,
-        })
-      }
-      return c.json(book, 201)
+      book = createBook(label, pdfBuffer, booksDir, configOverrides)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       if (message.includes("already exists")) {
@@ -279,6 +272,22 @@ export function createBookRoutes(
       }
       throw new HTTPException(400, { message })
     }
+    // Auto mode (issue #333): keep the recommendation and its AI log with the
+    // book. The book already exists here, so a failure only adds a warning.
+    const setupRecommendationId = formData.get("setupRecommendationId")
+    if (typeof setupRecommendationId === "string" && setupRecommendationId) {
+      let setupRecommendationWarning: string | null = null
+      try {
+        const attached = attachSetupRecommendation(setupRecommendationId, path.join(path.resolve(booksDir), book.label), {
+          config: configOverrides,
+        })
+        if (!attached) setupRecommendationWarning = "The setup recommendation expired, so it was not saved with the book."
+      } catch (err) {
+        setupRecommendationWarning = `The setup recommendation was not saved with the book: ${err instanceof Error ? err.message : String(err)}`
+      }
+      if (setupRecommendationWarning) return c.json({ ...book, setupRecommendationWarning }, 201)
+    }
+    return c.json(book, 201)
   })
 
   app.post("/books/preview-import", archiveImportBodyLimit, async (c) => {

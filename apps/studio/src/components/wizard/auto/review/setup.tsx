@@ -6,6 +6,7 @@ import { BookOpen, Columns2, LayoutTemplate, Rows3, type LucideIcon } from "luci
 import { PRESETS, RENDER_STRATEGIES, type PresetId, type RenderStrategyId, type WizardPageGrouping, type WizardSectioningMode } from "@/components/wizard/core/constants"
 import { defaultWizardValues, useWizardForm } from "@/components/wizard/core/wizardForm"
 import { STRATEGY_OPTIONS, type StrategyId } from "../decide/questions"
+import { fitStrategy as fitPresetStrategy } from "../engine/answers"
 import type { FigureExtractionMode } from "@adt/types"
 import type { Decision, DecisionId, Recommendation } from "../recommendation/contract"
 import { useRecommendation } from "../recommendation/RecommendationContext"
@@ -29,11 +30,7 @@ export const DECISION_OF: Record<SettingKey, DecisionId> = { type: "preset", loo
  * the preset's own default — and the setting says what was changed.
  */
 export function fitStrategy(preset: PresetId, d: Recommendation["renderStrategy"]): StrategyId {
-  const p = PRESETS.find((x) => x.id === preset)
-  const allowed = (p?.renderStrategies ?? []) as readonly string[]
-  if (allowed.includes(d.choice)) return d.choice
-  if (d.alternative && allowed.includes(d.alternative)) return d.alternative
-  return (p?.recommendations.renderStrategy ?? allowed[0] ?? d.choice) as StrategyId
+  return fitPresetStrategy(preset, d.choice, d.alternative) as StrategyId
 }
 
 export function toAiPicks(rec: Recommendation, asked: SettingKey[] = []): AiPicks {

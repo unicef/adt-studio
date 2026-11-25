@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest"
 import type { BookProfile } from "@adt/pdf"
 import { measureFacts, type MeasuredFacts } from "../setup-recommender/facts.js"
-import { decide, factMatters } from "../setup-recommender/rules.js"
-import { countLabels, samplePlan, suggestRange, type PageLabel } from "../setup-recommender/readings.js"
+import { decide, factMatters, type BookFacts } from "../setup-recommender/rules.js"
+import { breakTies, factQuestions } from "../setup-recommender/recommend.js"
+import { countLabels, PLACEMENTS, PLAIN_QUESTIONS, samplePlan, suggestRange, type PageLabel } from "../setup-recommender/readings.js"
 
 const measured = (over: Partial<MeasuredFacts> = {}): MeasuredFacts => ({
   pageStorage: { value: "single-pages", via: null, evidence: [], seams: 0, pairs: 5, wideShare: 0 },
@@ -41,11 +42,44 @@ describe("setup recommender rules", () => {
   })
 
   it("turns activities on only for school books with exercises", () => {
-    const school = decide(measured(), { genre: "textbook", exercises: "some", composition: "text-beside-art", diagrams: "none" })
+    const cues = { value: true, pagesWithCues: 5, evidence: [] }
+    const school = decide(measured({ exerciseCues: cues }), { genre: "textbook", exercises: "some", composition: "text-beside-art", diagrams: "none" })
     expect(school.activitiesGenerator.value).toBe(true)
     expect(school.sectioningMode.value).toBe("dynamic")
     const story = decide(measured(), { genre: "story", exercises: "some", composition: "text-beside-art", diagrams: "none" })
     expect(story.activitiesGenerator).toEqual({ value: false, rule: "activities-not-in-preset" })
+  })
+
+  it("keeps activities off for a school book whose few tasks the measured cues don't confirm (build-it projects)", () => {
+    const facts: BookFacts = { genre: "textbook", exercises: "some", composition: "text-mostly", diagrams: "some" }
+    const d = decide(measured(), facts)
+    expect(d.activitiesGenerator).toEqual({ value: false, rule: "activities-few-cues" })
+    // The preset decides the sections, not the exercises.
+    expect(d.sectioningMode).toEqual({ value: "dynamic", rule: "sections-split" })
+    // "many" exercises, or pages with too few words to count cues on, still turn them on.
+    expect(decide(measured(), { ...facts, exercises: "many" }).activitiesGenerator.value).toBe(true)
+    expect(decide(measured({ textDensity: { medianChars: 0, class: "sparse" } }), facts).activitiesGenerator.value).toBe(true)
+    const scan = measured({ textLayer: { value: "scanned", evidence: [], scannedPages: 9, ocrPages: 0, pages: 10 } })
+    expect(decide(scan, facts).activitiesGenerator.value).toBe(true)
+  })
+
+  it("splits every school book into sections, with or without exercises", () => {
+    const d = decide(measured(), { genre: "textbook", exercises: "none", composition: "text-mostly", diagrams: "none" })
+    expect(d.sectioningMode).toEqual({ value: "dynamic", rule: "sections-school-book" })
+    expect(d.activitiesGenerator).toEqual({ value: false, rule: "activities-none" })
+  })
+
+  it("rebuilds the words over the page for a scanned story with words beside the pictures", () => {
+    const scan = measured({ textLayer: { value: "scanned", evidence: [], scannedPages: 9, ocrPages: 0, pages: 10 } })
+    const d = decide(scan, { genre: "story", exercises: "none", composition: "text-beside-art", diagrams: "none" })
+    expect(d.renderStrategy).toEqual({ value: "llm-overlay", rule: "render-overlay-no-text-beside" })
+  })
+
+  it("reads the words directly in a mixed book when most pages have a real text layer", () => {
+    const mixed = (scannedPages: number) => measured({ textLayer: { value: "mixed", evidence: [], scannedPages, ocrPages: scannedPages, pages: 100 } })
+    const facts: BookFacts = { genre: "story", exercises: "none", composition: "text-in-art", diagrams: "none" }
+    expect(decide(mixed(20), facts).renderStrategy.value).toBe("fixed_layout")
+    expect(decide(mixed(60), facts).renderStrategy.value).toBe("llm-overlay")
   })
 
   it("joins facing pages only when pictures run across the gutter", () => {
@@ -62,7 +96,47 @@ describe("setup recommender rules", () => {
   })
 })
 
+describe("ask policy", () => {
+  it("doesn't ask when the second opinion leads to the same settings", () => {
+    const m = measured({ exerciseCues: { value: true, pagesWithCues: 30, evidence: [] } })
+    const proposal: BookFacts = { genre: "textbook", exercises: "some", composition: "text-mostly", diagrams: "many" }
+    // "some" against "many" diagrams: Figures stays Auto either way.
+    const q = factQuestions(m, proposal, { ...proposal, diagrams: "some" }, false)
+    expect(q.find((f) => f.id === "diagrams")).toMatchObject({ matters: true, askReason: null })
+    // "some" against "none" diagrams (with no drawn diagrams measured) turns Figures off: asked.
+    const q2 = factQuestions(m, proposal, { ...proposal, diagrams: "none" }, false)
+    expect(q2.find((f) => f.id === "diagrams")?.askReason).toBe("readings-disagree")
+  })
+
+  it("asks about a fact that only matters under the other reading's kind of book", () => {
+    const proposal: BookFacts = { genre: "story", exercises: "none", composition: "text-beside-art", diagrams: "none" }
+    const second: BookFacts = { genre: "textbook", exercises: "many", composition: "text-beside-art", diagrams: "none" }
+    const q = factQuestions(measured(), proposal, second, false)
+    // Under Storybook exercises change nothing; under School book they turn activities on.
+    expect(factMatters(measured(), proposal, "exercises")).toBe(false)
+    expect(q.find((f) => f.id === "exercises")).toMatchObject({ matters: true, askReason: "readings-disagree" })
+    expect(q.find((f) => f.id === "genre")?.askReason).toBe("readings-disagree")
+  })
+})
+
 describe("page labels", () => {
+  it("breaks a tie on where the words sit with the questions reading's answer", () => {
+    const labels = [label(1, "story", "on-art"), label(2, "story", "on-art"), label(3, "story", "beside-art"), label(4, "story", "beside-art")]
+    const counted = countLabels(labels, "story")
+    expect(counted.flags).toContain("composition")
+    expect(counted.ties.composition?.sort()).toEqual(["text-beside-art", "text-in-art"])
+    const q = (composition: BookFacts["composition"]) => ({ facts: { ...counted.facts, composition } })
+    expect(breakTies(counted, q("text-beside-art")).composition).toBe("text-beside-art")
+    expect(breakTies(counted, q("text-in-art")).composition).toBe("text-in-art")
+    // An answer outside the tie leaves the labels' pick; the readings then disagree and the fact is asked.
+    expect(breakTies(counted, q("text-mostly")).composition).toBe(counted.facts.composition)
+  })
+
+  it("defines words on the picture the same way in both readings", () => {
+    expect(PLACEMENTS["on-art"]).toBe(PLAIN_QUESTIONS.composition.options["text-in-art"])
+    expect(PLACEMENTS["beside-art"]).toBe(PLAIN_QUESTIONS.composition.options["text-beside-art"])
+  })
+
   it("counts the book's kind from body pages only and flags close calls", () => {
     const labels = [label(1, "cover"), label(2, "front-matter"), label(3, "story"), label(4, "story"), label(5, "exercise")]
     const { facts, flags } = countLabels(labels, "story")
@@ -111,6 +185,16 @@ function bookOf(kinds: string): BookProfile {
   const edges = pages.map((p) => ({ pageNumber: p.page, leftEdge: flat, rightEdge: flat, textLength: p.visibleChars, textNearLeftEdge: 0, textNearRightEdge: 0 }))
   return { pageCount: pages.length, language: "en", producer: "", pages, edges, ms: 0 }
 }
+
+describe("text layer", () => {
+  it("doesn't call a long digital book mixed for two scanned pages with OCR", () => {
+    const b = bookOf("T".repeat(40))
+    for (const n of [5, 20]) Object.assign(b.pages[n], { visibleChars: 0, invisibleChars: 500, imageCoverage: 1, maxImageCoverage: 1 })
+    expect(measureFacts(b).textLayer.value).toBe("digital")
+    for (const n of [6, 7, 8, 21]) Object.assign(b.pages[n], { visibleChars: 0, invisibleChars: 500, imageCoverage: 1, maxImageCoverage: 1 })
+    expect(measureFacts(b).textLayer.value).toBe("mixed")
+  })
+})
 
 describe("split spreads", () => {
   it("finds two-page openings where a text page faces a picture page", () => {

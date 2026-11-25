@@ -1,0 +1,5984 @@
+{
+ "note": "Saved engine E3 runs (issue #333) on 14 books, frozen with the user's right settings. Facts only: no PDF content. Built from experiments/setup-recommender/results/app-e3-books (r1) and app-e3-books-r2 (r2) and the user's review. exerciseCues and textOverPicturesShare were measured without AI on the local PDFs (measureFacts on profileBook).",
+ "books": {
+  "pra-ticas-de-alfabetizac-a-o-e-de-matema-tica-vol-ii": {
+   "title": "Pr\u00e1ticas de Alfabetiza\u00e7\u00e3o e de Matem\u00e1tica, Vol. II",
+   "pages": 212,
+   "right": {
+    "activitiesGenerator": true,
+    "figureExtraction": "auto",
+    "pageGrouping": "single",
+    "preset": "textbook",
+    "renderStrategy": "llm",
+    "sectioningMode": "dynamic"
+   },
+   "alsoRight": {},
+   "exerciseCues": {
+    "pagesWithCues": 118,
+    "interiorPages": 210,
+    "value": true
+   },
+   "textOverPicturesShare": 0.01
+  },
+  "1930-el-viaje-pdf": {
+   "title": "1930 el viaje - PDF",
+   "pages": 224,
+   "right": {
+    "activitiesGenerator": false,
+    "pageGrouping": "single",
+    "preset": "storybook",
+    "renderStrategy": "llm",
+    "sectioningMode": "page"
+   },
+   "alsoRight": {},
+   "exerciseCues": {
+    "pagesWithCues": 0,
+    "interiorPages": 222,
+    "value": false
+   },
+   "textOverPicturesShare": 0
+  },
+  "capi-tulo-01": {
+   "title": "Cap\u00edtulo 01",
+   "pages": 24,
+   "right": {
+    "activitiesGenerator": false,
+    "figureExtraction": "off",
+    "pageGrouping": "single",
+    "preset": "storybook",
+    "renderStrategy": "llm-overlay",
+    "sectioningMode": "page"
+   },
+   "alsoRight": {},
+   "exerciseCues": {
+    "pagesWithCues": 0,
+    "interiorPages": 22,
+    "value": false
+   },
+   "textOverPicturesShare": 0
+  },
+  "lp-4-volcanoes": {
+   "title": "LP-4 Volcanoes",
+   "pages": 52,
+   "right": {
+    "activitiesGenerator": false,
+    "figureExtraction": "auto",
+    "pageGrouping": "spread",
+    "preset": "storybook",
+    "renderStrategy": "fixed_layout",
+    "sectioningMode": "page"
+   },
+   "alsoRight": {},
+   "exerciseCues": {
+    "pagesWithCues": 0,
+    "interiorPages": 50,
+    "value": false
+   },
+   "textOverPicturesShare": 0.896
+  },
+  "leonardo-guimara-es-tangon-roge-rio-carlos-dos-santos-arquit": {
+   "title": "Leonardo Guimar\u00e3es Tangon, Rog\u00e9rio Carlos dos Santos - Arquitetura e organiza\u00e7\u00e3o de computadores (2016, Editora e Distribuidora Educacional S.A) - libgen.li",
+   "pages": 240,
+   "right": {
+    "activitiesGenerator": true,
+    "figureExtraction": "auto",
+    "pageGrouping": "single",
+    "preset": "textbook",
+    "renderStrategy": "llm",
+    "sectioningMode": "dynamic"
+   },
+   "alsoRight": {},
+   "exerciseCues": {
+    "pagesWithCues": 42,
+    "interiorPages": 238,
+    "value": true
+   },
+   "textOverPicturesShare": 0
+  },
+  "matematica-volume-1": {
+   "title": "Matematica-Volume-1",
+   "pages": 80,
+   "right": {
+    "activitiesGenerator": true,
+    "figureExtraction": "auto",
+    "pageGrouping": "single",
+    "preset": "textbook",
+    "renderStrategy": "llm",
+    "sectioningMode": "dynamic"
+   },
+   "alsoRight": {},
+   "exerciseCues": {
+    "pagesWithCues": 35,
+    "interiorPages": 78,
+    "value": true
+   },
+   "textOverPicturesShare": 0
+  },
+  "noam-nisan-shimon-schocken-the-elements-of-computing-systems": {
+   "title": "Noam Nisan, Shimon Schocken - The Elements of Computing Systems _ Building a Modern Computer from First Principles (2021, MIT Press Ltd) - libgen.li",
+   "pages": 427,
+   "right": {
+    "activitiesGenerator": false,
+    "figureExtraction": "auto",
+    "pageGrouping": "single",
+    "preset": "textbook",
+    "renderStrategy": "llm",
+    "sectioningMode": "dynamic"
+   },
+   "alsoRight": {},
+   "exerciseCues": {
+    "pagesWithCues": 34,
+    "interiorPages": 425,
+    "value": false
+   },
+   "textOverPicturesShare": 0
+  },
+  "alfabetizacao_e_matematica": {
+   "title": "alfabetizacao_e_matematica",
+   "pages": 212,
+   "right": {
+    "activitiesGenerator": true,
+    "pageGrouping": "single",
+    "preset": "textbook",
+    "renderStrategy": "llm",
+    "sectioningMode": "dynamic"
+   },
+   "alsoRight": {},
+   "exerciseCues": {
+    "pagesWithCues": 0,
+    "interiorPages": 210,
+    "value": false
+   },
+   "textOverPicturesShare": 0
+  },
+  "biomolecules": {
+   "title": "biomolecules",
+   "pages": 13,
+   "right": {
+    "activitiesGenerator": false,
+    "figureExtraction": "auto",
+    "pageGrouping": "single",
+    "preset": "reference",
+    "renderStrategy": "single_column",
+    "sectioningMode": "page"
+   },
+   "alsoRight": {},
+   "exerciseCues": {
+    "pagesWithCues": 0,
+    "interiorPages": 11,
+    "value": false
+   },
+   "textOverPicturesShare": 0
+  },
+  "colouring-my-school": {
+   "title": "colouring-my-school",
+   "pages": 24,
+   "right": {
+    "activitiesGenerator": false,
+    "figureExtraction": "off",
+    "pageGrouping": "spread",
+    "preset": "storybook",
+    "renderStrategy": "fixed_layout",
+    "sectioningMode": "page"
+   },
+   "alsoRight": {},
+   "exerciseCues": {
+    "pagesWithCues": 0,
+    "interiorPages": 22,
+    "value": false
+   },
+   "textOverPicturesShare": 1
+  },
+  "cuaderno5": {
+   "title": "cuaderno5",
+   "pages": 100,
+   "right": {
+    "activitiesGenerator": true,
+    "figureExtraction": "auto",
+    "pageGrouping": "single",
+    "preset": "textbook",
+    "renderStrategy": "llm",
+    "sectioningMode": "dynamic"
+   },
+   "alsoRight": {},
+   "exerciseCues": {
+    "pagesWithCues": 0,
+    "interiorPages": 98,
+    "value": false
+   },
+   "textOverPicturesShare": 0
+  },
+  "raven": {
+   "title": "raven",
+   "pages": 12,
+   "right": {
+    "activitiesGenerator": false,
+    "figureExtraction": "off",
+    "pageGrouping": "single",
+    "preset": "storybook",
+    "renderStrategy": "two_column_story",
+    "sectioningMode": "page"
+   },
+   "alsoRight": {},
+   "exerciseCues": {
+    "pagesWithCues": 0,
+    "interiorPages": 10,
+    "value": false
+   },
+   "textOverPicturesShare": 0
+  },
+  "superacao-arte": {
+   "title": "superacao-arte",
+   "pages": 228,
+   "right": {
+    "activitiesGenerator": true,
+    "pageGrouping": "single",
+    "preset": "textbook",
+    "renderStrategy": "llm",
+    "sectioningMode": "dynamic"
+   },
+   "alsoRight": {},
+   "exerciseCues": {
+    "pagesWithCues": 0,
+    "interiorPages": 226,
+    "value": false
+   },
+   "textOverPicturesShare": 0
+  },
+  "triste": {
+   "title": "triste",
+   "pages": 76,
+   "right": {
+    "activitiesGenerator": false,
+    "figureExtraction": "off",
+    "pageGrouping": "spread",
+    "preset": "storybook",
+    "sectioningMode": "page",
+    "renderStrategy": "llm"
+   },
+   "alsoRight": {
+    "renderStrategy": [
+     "llm",
+     "two_column_story"
+    ]
+   },
+   "exerciseCues": {
+    "pagesWithCues": 0,
+    "interiorPages": 74,
+    "value": false
+   },
+   "textOverPicturesShare": 0.478
+  }
+ },
+ "rounds": {
+  "r1": [
+   {
+    "book": "pra-ticas-de-alfabetizac-a-o-e-de-matema-tica-vol-ii",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 700
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "pra-ticas-de-alfabetizac-a-o-e-de-matema-tica-vol-ii",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 700
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "pra-ticas-de-alfabetizac-a-o-e-de-matema-tica-vol-ii",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 700
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "exercises"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "pra-ticas-de-alfabetizac-a-o-e-de-matema-tica-vol-ii",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 700
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "pra-ticas-de-alfabetizac-a-o-e-de-matema-tica-vol-ii",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 700
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "pra-ticas-de-alfabetizac-a-o-e-de-matema-tica-vol-ii",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 700
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "1930-el-viaje-pdf",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 1135
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "1930-el-viaje-pdf",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 1135
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "composition",
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "1930-el-viaje-pdf",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 1135
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "asked": [
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "1930-el-viaje-pdf",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 1135
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "1930-el-viaje-pdf",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 1135
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "1930-el-viaje-pdf",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 1135
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "capi-tulo-01",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm-overlay",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "capi-tulo-01",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm-overlay",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "capi-tulo-01",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm-overlay",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "capi-tulo-01",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm-overlay",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "capi-tulo-01",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "two_column_story",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "capi-tulo-01",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "two_column_story",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "lp-4-volcanoes",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 137
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "some",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "fixed_layout",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "lp-4-volcanoes",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 137
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "some",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "fixed_layout",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "lp-4-volcanoes",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 137
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "some",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "fixed_layout",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "lp-4-volcanoes",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 137
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "fixed_layout",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "lp-4-volcanoes",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 137
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "fixed_layout",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "lp-4-volcanoes",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 137
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "fixed_layout",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "leonardo-guimara-es-tangon-roge-rio-carlos-dos-santos-arquit",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 1276
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "leonardo-guimara-es-tangon-roge-rio-carlos-dos-santos-arquit",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 1276
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "leonardo-guimara-es-tangon-roge-rio-carlos-dos-santos-arquit",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 1276
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "leonardo-guimara-es-tangon-roge-rio-carlos-dos-santos-arquit",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 1276
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "leonardo-guimara-es-tangon-roge-rio-carlos-dos-santos-arquit",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 1276
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "leonardo-guimara-es-tangon-roge-rio-carlos-dos-santos-arquit",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 1276
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "matematica-volume-1",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 1710
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "matematica-volume-1",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 1710
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "matematica-volume-1",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 1710
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "matematica-volume-1",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 1710
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [
+     "exercises"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "matematica-volume-1",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 1710
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [
+     "exercises"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "matematica-volume-1",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 1710
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [
+     "exercises"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "noam-nisan-shimon-schocken-the-elements-of-computing-systems",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 1379
+    },
+    "proposal": {
+     "genre": "reference",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "genre",
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "reference",
+     "renderStrategy": "single_column",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "noam-nisan-shimon-schocken-the-elements-of-computing-systems",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 1379
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [
+     "exercises",
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "noam-nisan-shimon-schocken-the-elements-of-computing-systems",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 1379
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "noam-nisan-shimon-schocken-the-elements-of-computing-systems",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 1379
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "noam-nisan-shimon-schocken-the-elements-of-computing-systems",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 1379
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "noam-nisan-shimon-schocken-the-elements-of-computing-systems",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 1379
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "alfabetizacao_e_matematica",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "alfabetizacao_e_matematica",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "alfabetizacao_e_matematica",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "alfabetizacao_e_matematica",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "alfabetizacao_e_matematica",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "alfabetizacao_e_matematica",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "biomolecules",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 3188
+    },
+    "proposal": {
+     "genre": "reference",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "reference",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "reference",
+     "renderStrategy": "single_column",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "biomolecules",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 3188
+    },
+    "proposal": {
+     "genre": "reference",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "reference",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "reference",
+     "renderStrategy": "single_column",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "biomolecules",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 3188
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "reference",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "asked": [
+     "genre"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "biomolecules",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 3188
+    },
+    "proposal": {
+     "genre": "reference",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "reference",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "reference",
+     "renderStrategy": "single_column",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "biomolecules",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 3188
+    },
+    "proposal": {
+     "genre": "reference",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "reference",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "reference",
+     "renderStrategy": "single_column",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "biomolecules",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 3188
+    },
+    "proposal": {
+     "genre": "reference",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "reference",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "reference",
+     "renderStrategy": "single_column",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "colouring-my-school",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "spreads-as-separate-pages",
+     "via": "joined-pictures",
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 58
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "fixed_layout",
+     "pageGrouping": "spread",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "colouring-my-school",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "spreads-as-separate-pages",
+     "via": "joined-pictures",
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 58
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "fixed_layout",
+     "pageGrouping": "spread",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "colouring-my-school",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "spreads-as-separate-pages",
+     "via": "joined-pictures",
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 58
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "fixed_layout",
+     "pageGrouping": "spread",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "colouring-my-school",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "spreads-as-separate-pages",
+     "via": "joined-pictures",
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 58
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "fixed_layout",
+     "pageGrouping": "spread",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "colouring-my-school",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "spreads-as-separate-pages",
+     "via": "joined-pictures",
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 58
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "two_column_story",
+     "pageGrouping": "spread",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "colouring-my-school",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "spreads-as-separate-pages",
+     "via": "joined-pictures",
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 58
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "fixed_layout",
+     "pageGrouping": "spread",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "cuaderno5",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "exercises",
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "cuaderno5",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-in-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "exercises",
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "cuaderno5",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "exercises",
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "cuaderno5",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "cuaderno5",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "cuaderno5",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "raven",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "spreads-as-wide-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 80
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "two_column_story",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "raven",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "spreads-as-wide-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 80
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "two_column_story",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "raven",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "spreads-as-wide-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 80
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "two_column_story",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "raven",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "spreads-as-wide-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 80
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "two_column_story",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "raven",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "spreads-as-wide-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 80
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "two_column_story",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "raven",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "spreads-as-wide-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 80
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "two_column_story",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "superacao-arte",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-in-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "exercises"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "superacao-arte",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "exercises"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "superacao-arte",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "exercises"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "superacao-arte",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "exercises"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "superacao-arte",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "exercises"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "superacao-arte",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "exercises"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "triste",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 531
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "triste",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 531
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "asked": [
+     "genre"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "triste",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 531
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "asked": [
+     "genre"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "triste",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 531
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "triste",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 531
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "triste",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 531
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   }
+  ],
+  "r2": [
+   {
+    "book": "pra-ticas-de-alfabetizac-a-o-e-de-matema-tica-vol-ii",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 700
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "pra-ticas-de-alfabetizac-a-o-e-de-matema-tica-vol-ii",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 700
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "pra-ticas-de-alfabetizac-a-o-e-de-matema-tica-vol-ii",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 700
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "pra-ticas-de-alfabetizac-a-o-e-de-matema-tica-vol-ii",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 700
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "pra-ticas-de-alfabetizac-a-o-e-de-matema-tica-vol-ii",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 700
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "pra-ticas-de-alfabetizac-a-o-e-de-matema-tica-vol-ii",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 700
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "1930-el-viaje-pdf",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 1135
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "composition",
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "1930-el-viaje-pdf",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 1135
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "1930-el-viaje-pdf",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 1135
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "1930-el-viaje-pdf",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 1135
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "1930-el-viaje-pdf",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 1135
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "1930-el-viaje-pdf",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 1135
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "capi-tulo-01",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm-overlay",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "capi-tulo-01",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm-overlay",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "capi-tulo-01",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm-overlay",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "capi-tulo-01",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "two_column_story",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "capi-tulo-01",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "two_column_story",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "capi-tulo-01",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "two_column_story",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "lp-4-volcanoes",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "spreads-as-separate-pages",
+     "via": "joined-pictures",
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 137
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "some",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "fixed_layout",
+     "pageGrouping": "spread",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "lp-4-volcanoes",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "spreads-as-separate-pages",
+     "via": "joined-pictures",
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 137
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "some",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "fixed_layout",
+     "pageGrouping": "spread",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "lp-4-volcanoes",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "spreads-as-separate-pages",
+     "via": "joined-pictures",
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 137
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "some",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "fixed_layout",
+     "pageGrouping": "spread",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "lp-4-volcanoes",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "spreads-as-separate-pages",
+     "via": "joined-pictures",
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 137
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "two_column_story",
+     "pageGrouping": "spread",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "lp-4-volcanoes",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "spreads-as-separate-pages",
+     "via": "joined-pictures",
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 137
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "two_column_story",
+     "pageGrouping": "spread",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "lp-4-volcanoes",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "spreads-as-separate-pages",
+     "via": "joined-pictures",
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 137
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "two_column_story",
+     "pageGrouping": "spread",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "leonardo-guimara-es-tangon-roge-rio-carlos-dos-santos-arquit",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 1276
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "leonardo-guimara-es-tangon-roge-rio-carlos-dos-santos-arquit",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 1276
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "leonardo-guimara-es-tangon-roge-rio-carlos-dos-santos-arquit",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 1276
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "leonardo-guimara-es-tangon-roge-rio-carlos-dos-santos-arquit",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 1276
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "leonardo-guimara-es-tangon-roge-rio-carlos-dos-santos-arquit",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 1276
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "leonardo-guimara-es-tangon-roge-rio-carlos-dos-santos-arquit",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 1276
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "matematica-volume-1",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 1710
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "matematica-volume-1",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 1710
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "matematica-volume-1",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 1710
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "matematica-volume-1",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 1710
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [
+     "exercises"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "matematica-volume-1",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 1710
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [
+     "exercises"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "matematica-volume-1",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 1710
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [
+     "exercises"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "noam-nisan-shimon-schocken-the-elements-of-computing-systems",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 1379
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "noam-nisan-shimon-schocken-the-elements-of-computing-systems",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 1379
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "noam-nisan-shimon-schocken-the-elements-of-computing-systems",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 1379
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [
+     "exercises",
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "noam-nisan-shimon-schocken-the-elements-of-computing-systems",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 1379
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "noam-nisan-shimon-schocken-the-elements-of-computing-systems",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 1379
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "noam-nisan-shimon-schocken-the-elements-of-computing-systems",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 1379
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "alfabetizacao_e_matematica",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "alfabetizacao_e_matematica",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "exercises"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "alfabetizacao_e_matematica",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "exercises"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "alfabetizacao_e_matematica",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [
+     "exercises"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "alfabetizacao_e_matematica",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "exercises"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "alfabetizacao_e_matematica",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "biomolecules",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 3188
+    },
+    "proposal": {
+     "genre": "reference",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "reference",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "reference",
+     "renderStrategy": "single_column",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "biomolecules",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 3188
+    },
+    "proposal": {
+     "genre": "reference",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "reference",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "reference",
+     "renderStrategy": "single_column",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "biomolecules",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 3188
+    },
+    "proposal": {
+     "genre": "reference",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "reference",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "reference",
+     "renderStrategy": "single_column",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "biomolecules",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 3188
+    },
+    "proposal": {
+     "genre": "reference",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "reference",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "reference",
+     "renderStrategy": "single_column",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "biomolecules",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 3188
+    },
+    "proposal": {
+     "genre": "reference",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "reference",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "reference",
+     "renderStrategy": "single_column",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "biomolecules",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": true,
+     "medianChars": 3188
+    },
+    "proposal": {
+     "genre": "reference",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "reference",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "reference",
+     "renderStrategy": "single_column",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "colouring-my-school",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "spreads-as-separate-pages",
+     "via": "joined-pictures",
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 58
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "fixed_layout",
+     "pageGrouping": "spread",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "colouring-my-school",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "spreads-as-separate-pages",
+     "via": "joined-pictures",
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 58
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "fixed_layout",
+     "pageGrouping": "spread",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "colouring-my-school",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "spreads-as-separate-pages",
+     "via": "joined-pictures",
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 58
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "fixed_layout",
+     "pageGrouping": "spread",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "colouring-my-school",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "spreads-as-separate-pages",
+     "via": "joined-pictures",
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 58
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "fixed_layout",
+     "pageGrouping": "spread",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "colouring-my-school",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "spreads-as-separate-pages",
+     "via": "joined-pictures",
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 58
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "fixed_layout",
+     "pageGrouping": "spread",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "colouring-my-school",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "spreads-as-separate-pages",
+     "via": "joined-pictures",
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 58
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "fixed_layout",
+     "pageGrouping": "spread",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "cuaderno5",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "cuaderno5",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-mostly",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "cuaderno5",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "cuaderno5",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "cuaderno5",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "cuaderno5",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "exercises",
+     "diagrams"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "auto"
+    }
+   },
+   {
+    "book": "raven",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "spreads-as-wide-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 80
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "two_column_story",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "raven",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "spreads-as-wide-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 80
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "two_column_story",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "raven",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "spreads-as-wide-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 80
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "two_column_story",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "raven",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "spreads-as-wide-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 80
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "two_column_story",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "raven",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "spreads-as-wide-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 80
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "two_column_story",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "raven",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "spreads-as-wide-pages",
+     "via": null,
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 80
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "two_column_story",
+     "pageGrouping": "single",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "superacao-arte",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "superacao-arte",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "many"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "superacao-arte",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "asked": [
+     "exercises"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "superacao-arte",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "superacao-arte",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "superacao-arte",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "single-pages",
+     "via": null,
+     "textLayer": "scanned",
+     "vectorDiagrams": false,
+     "medianChars": 0
+    },
+    "proposal": {
+     "genre": "textbook",
+     "exercises": "many",
+     "composition": "text-beside-art",
+     "diagrams": "some"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-beside-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "exercises"
+    ],
+    "saved": {
+     "preset": "textbook",
+     "renderStrategy": "llm",
+     "pageGrouping": "single",
+     "sectioningMode": "dynamic",
+     "activitiesGenerator": true,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "triste",
+    "model": "openai:gpt-5.4-mini",
+    "run": 1,
+    "measured": {
+     "pageStorage": "spreads-as-separate-pages",
+     "via": "text-facing-picture",
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 531
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "asked": [
+     "genre"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm",
+     "pageGrouping": "spread",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "triste",
+    "model": "openai:gpt-5.4-mini",
+    "run": 2,
+    "measured": {
+     "pageStorage": "spreads-as-separate-pages",
+     "via": "text-facing-picture",
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 531
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "textbook",
+     "exercises": "some",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "asked": [
+     "genre"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm",
+     "pageGrouping": "spread",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "triste",
+    "model": "openai:gpt-5.4-mini",
+    "run": 3,
+    "measured": {
+     "pageStorage": "spreads-as-separate-pages",
+     "via": "text-facing-picture",
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 531
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "asked": [],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm",
+     "pageGrouping": "spread",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "triste",
+    "model": "openai:gpt-5.4",
+    "run": 1,
+    "measured": {
+     "pageStorage": "spreads-as-separate-pages",
+     "via": "text-facing-picture",
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 531
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm",
+     "pageGrouping": "spread",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "triste",
+    "model": "openai:gpt-5.4",
+    "run": 2,
+    "measured": {
+     "pageStorage": "spreads-as-separate-pages",
+     "via": "text-facing-picture",
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 531
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm",
+     "pageGrouping": "spread",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   },
+   {
+    "book": "triste",
+    "model": "openai:gpt-5.4",
+    "run": 3,
+    "measured": {
+     "pageStorage": "spreads-as-separate-pages",
+     "via": "text-facing-picture",
+     "textLayer": "digital",
+     "vectorDiagrams": false,
+     "medianChars": 531
+    },
+    "proposal": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-mostly",
+     "diagrams": "none"
+    },
+    "second": {
+     "genre": "story",
+     "exercises": "none",
+     "composition": "text-in-art",
+     "diagrams": "none"
+    },
+    "asked": [
+     "composition"
+    ],
+    "saved": {
+     "preset": "storybook",
+     "renderStrategy": "llm",
+     "pageGrouping": "spread",
+     "sectioningMode": "page",
+     "activitiesGenerator": false,
+     "figureExtraction": "off"
+    }
+   }
+  ]
+ }
+}

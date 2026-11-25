@@ -788,6 +788,8 @@ export {
   SetupDecided,
   SetupFact,
   SetupPageRange,
+  SetupQuestionAnswer,
+  SetupReadings,
   SetupRecommendation,
   setupFactsKey,
 } from "./setup-recommendation.js"
