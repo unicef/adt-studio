@@ -3205,6 +3205,7 @@ async function runSpeechStep(
     beginSpeechRun(label, ttsResultsByLang, failedByLang)
     const authoredElementAudioIds = collectElementAudioTextIds(storage)
 
+    const authoredElementAudioIds = collectElementAudioTextIds(storage)
     for (const lang of outputLanguages) {
       const existingSpeechEntries = getExistingSpeechEntries(storage, lang)
 
