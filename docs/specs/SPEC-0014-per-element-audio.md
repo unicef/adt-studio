@@ -293,14 +293,16 @@ remap: audios[nodeId] = <file of `${nodeId}_audio`>,  speech_texts[nodeId] = scr
   PR 4 and must land before or with the PR 3 authoring UI, or the script would briefly appear as page
   text.
 - **Category mutes.** The synthetic id contains an image id, but it is not a caption.
-  `getTextCatalogCategory` classifies it as text and `isTtsExcluded` skips category mutes for
-  `_audio`; an explicit `excluded_text_ids` entry still wins. Muting captions or text — the natural
-  setting for a tap-to-hear book — must not silence the authored script (AC-21).
+  `getTextCatalogCategory` classifies the authored synthetic id as text and `isTtsExcluded`
+  skips category mutes for it; an explicit `excluded_text_ids` entry still wins. Muting captions
+  or text — the natural setting for a tap-to-hear book — must not silence the authored script
+  (AC-21).
 - **Derived visibility.** Only entries whose `nodeId` is rendered in an unpruned section become
   catalog entries. A book-wide index resolves the element's current page/section; the artifact row is
   kept for orphans and pruned sections (AC-22, AC-23).
 - **Batching has one id-level home.** `speechPageId` (`speech.ts:4-5`) is the single membership
-  rule. It returns `undefined` for `_easy_read` today; it must also return `undefined` for `_audio`.
+  rule. It returns `undefined` for `_easy_read` today; it must also return `undefined` for ids
+  authored in the `element-audio` artifact.
   That one change keeps authored entries out of `computePageSpeechInputSignature`
   (`output-catalog.ts:222-224`), out of stage-runner's `pageById` (`stage-runner.ts:3098`), and out
   of every page group (`:3162`, `:3177`), without relying on the location's `pageId`.
@@ -504,7 +506,7 @@ Chosen: **Option A**. Rough costs are per rollout PR; refer to the §9 review bu
 - [ ] **AC-18** The authored audio under the element's `data-id` **takes precedence** over the element's own catalog entry / its `_easy_read` variant, in normal **and** easy-read modes, asserted by a test.
 - [x] **AC-19** `${imageId}_audio` is reserved as a derived id in both directions; a draft that introduces `X` and `X_audio` together is rejected, and the synthetic entry carries `locations: { pageId: <the element's current page>, sectionId: <the current section>, role: "element-audio" }` so it does not rely on the regex fallback. The namespace is image-only (AC-24); classification uses the artifact, not the suffix.
 - [ ] **AC-20** The runtime reads the optional `element_audio.json`; only ids listed there get the badge/trigger and the image sweep inclusion, and an absent manifest leaves existing books untouched.
-- [x] **AC-21** Muting captions or text does not silence authored element audio: `getTextCatalogCategory` classifies `_audio` as text and `isTtsExcluded` skips category mutes for it; an explicit `excluded_text_ids` entry still mutes it.
+- [x] **AC-21** Muting captions or text does not silence authored element audio: `getTextCatalogCategory` classifies ids authored in the artifact as text and `isTtsExcluded` skips category mutes for them; an explicit `excluded_text_ids` entry still mutes it.
 - [x] **AC-22** An image that moves between pages keeps its script; the synthetic entry uses the element's current page and section, and authoring the same `nodeId` under the new page is a move/merge handled by PR 2 (a duplicate is a visible conflict, never silent).
 - [x] **AC-23** An orphan or pruned element keeps its artifact row but produces no synthetic catalog entry and no provider call; the entry returns when the element is rendered in an unpruned section.
 - [x] **AC-24** v1 synthetic detection is artifact-aware: only ids authored in `element-audio` are treated as synthetic; a legacy rendered image id ending `_audio` keeps normal caption/TTS behavior, a new rendered image id ending `_audio` is rejected, and existing legacy ids are preserved.
@@ -579,7 +581,7 @@ Each of these is a **proposed decision for the reviewer**, not an owner ratifica
 | R-3 | The badge is runtime-added **and is the play control in the preview**; a pointer click on it plays and stops the selection event | §4 | Body click keeps selecting |
 | R-4 | Attributes are runtime-added; AC-9 is a runtime test, axe is no-regression | §5 | |
 | R-5 | Authored audio flows through `catalogOutputs`, wins over the element's own entry, and is speech-only (never in `texts.json`) | §2 | |
-| R-6 | `speechPageId` returns `undefined` for `_audio`, so it never joins a page batch or another entry's page context; entries are emitted at the element's current page after its rendered entries | §2 | Protects AC-15 |
+| R-6 | `speechPageId` returns `undefined` for ids authored in the `element-audio` artifact, so they never join a page batch or another entry's page context; entries are emitted at the element's current page after its rendered entries | §2 | Protects AC-15 |
 | R-7 | Page deletion / re-extraction / #803 / #700 are non-goals | Non-goals | PM-listed |
 | R-8 | ADR-028, `Status: proposed`, lands in this PR | [`DECISIONS.md` #028](../DECISIONS.md#028-per-element-authored-fields-with-no-catalog-home-live-in-their-own-versioned-node) | |
 | R-9 | `${imageId}_audio` is reserved as a derived id in both directions, with explicit current-page/section `locations`; batching ignores the location | §1 | Same idiom as `_easy_read` |
