@@ -864,6 +864,11 @@ export function createAdtPreviewRoutes(
     const speechTexts = withStorage(c.req.param("label"), (storage) => {
       const map: Record<string, string> = {}
       const elementAudioTextIds = collectElementAudioTextIds(storage)
+      // Only an authored script whose audio is actually published may override
+      // the element's own caption text; a muted or failed script keeps it.
+      const published = elementAudioTextIds.size > 0
+        ? includedSpeechIds(storage, parseBookLabel(c.req.param("label")), lang)
+        : new Set<string>()
       const authored = new Map<string, string>()
       for (const entry of previewSpeech(storage, parseBookLabel(c.req.param("label")), lang)) {
         if ((entry.status === "ready" || entry.fallbackReason) && entry.speechText !== null) {
@@ -873,7 +878,7 @@ export function createAdtPreviewRoutes(
           const elementId = elementAudioTextIds.has(entry.id)
             ? parseElementAudioTextId(entry.id)
             : null
-          if (elementId) authored.set(elementId, entry.speechText)
+          if (elementId && published.has(entry.id)) authored.set(elementId, entry.speechText)
           else map[entry.id] = entry.speechText
         }
       }
@@ -894,6 +899,10 @@ export function createAdtPreviewRoutes(
   app.get("/books/:label/adt-preview/content/i18n/:lang/element_audio.json", (c) => {
     const lang = safePreviewLanguage(c.req.param("lang"))
     const elementIds = withStorage(c.req.param("label"), (storage, safeLabel) => {
+      const elementAudioTextIds = collectElementAudioTextIds(storage)
+      // Every book requests this file; skip the catalog derivation when there
+      // is no authored audio at all.
+      if (elementAudioTextIds.size === 0) return []
       const legacyLang = lang.replace("-", "_")
       const ttsData = (
         storage.getLatestNodeData("tts", lang) ??
@@ -901,7 +910,6 @@ export function createAdtPreviewRoutes(
       )?.data as TTSOutput | undefined
       const speechConfig = loadBookConfig(safeLabel, booksDir, configPath).speech
       const ready = includedSpeechIds(storage, safeLabel, lang)
-      const elementAudioTextIds = collectElementAudioTextIds(storage)
       const ids = new Set<string>()
       for (const entry of ttsData?.entries ?? []) {
         if (!ready.has(entry.textId)) continue

@@ -43,7 +43,7 @@ import type {
   AdtExportLineage,
   PackagingWarning, AppConfig, OutputStatus,
 } from "@adt/types"
-import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, EMPTY_AUTHORED_ELEMENT_AUDIO_IDS, isAuthoredElementAudioId, type AuthoredElementAudioIds, parseElementAudioTextId, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE, resolveQuizId, withResolvedQuizIds } from "@adt/types"
+import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, EMPTY_AUTHORED_ELEMENT_AUDIO_IDS, isAuthoredElementAudioId, elementAudioTextId, type AuthoredElementAudioIds, parseElementAudioTextId, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE, resolveQuizId, withResolvedQuizIds } from "@adt/types"
 import { resolveNarratorLabel } from "../speech.js"
 import {
   ADT_EDITING_CONTRACT_VERSION,
@@ -1002,6 +1002,14 @@ async function buildWebPackage(
     }
     audioVoices.primary.label = resolveNarratorLabel(copiedBySlot.primary, "Primary")
     audioVoices.secondary.label = resolveNarratorLabel(copiedBySlot.secondary, "Secondary")
+    // Authored speech text may only override the element when its audio really
+    // made it into the bundle: a muted or failed script must not leave the
+    // caption audio paired with a different speech text.
+    const publishedElementAudioTextIds = new Set(
+      [...copiedBySlot.primary, ...copiedBySlot.secondary]
+        .map((entry) => entry.textId)
+        .filter((textId) => elementAudioTextIds.has(textId)),
+    )
     const elementAudioIds = [
       ...new Set(
         [...copiedBySlot.primary, ...copiedBySlot.secondary]
@@ -1014,7 +1022,11 @@ async function buildWebPackage(
     // Precedence is a post-pass, not loop order (SPEC-0014 §2): the authored
     // script wins over the element's own caption entry even if the caption was
     // written to the map later.
-    for (const [elementId, text] of authoredSpeechTexts) speechTextsMap[elementId] = text
+    for (const [elementId, text] of authoredSpeechTexts) {
+      if (publishedElementAudioTextIds.has(elementAudioTextId(elementId))) {
+        speechTextsMap[elementId] = text
+      }
+    }
     for (const entry of [...copiedBySlot.primary, ...copiedBySlot.secondary]) {
       if (!elementAudioTextIds.has(entry.textId)) continue
       const elementId = parseElementAudioTextId(entry.textId)

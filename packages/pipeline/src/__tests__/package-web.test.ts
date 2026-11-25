@@ -1985,6 +1985,128 @@ describe("packageAdtWeb", () => {
     )
   })
 
+  it("AC-21: a muted authored script keeps the caption speech text", async () => {
+    const bookDir = path.join(tmpDir, "muted-book")
+    const webAssetsDir = path.join(tmpDir, "muted-assets-web")
+    const audioDir = path.join(bookDir, "audio", "en")
+    fs.mkdirSync(bookDir, { recursive: true })
+    fs.mkdirSync(audioDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+    fs.writeFileSync(path.join(audioDir, "pg001_im001_audio.mp3"), "audio")
+    fs.writeFileSync(path.join(audioDir, "pg001_im001.mp3"), "caption-audio")
+
+    const coreEntry = (id: string, speechText: string) => ({
+      id,
+      displayText: speechText,
+      speechText,
+      changed: false,
+      transformations: [],
+      status: "ready",
+      generation: {
+        mode: "unchanged",
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        enabledTransformations: [],
+        sourceTextHash: "source",
+        contextHash: "context",
+      },
+    })
+
+    const storage = createMockStorage(
+      [{ pageId: "pg001", pageNumber: 1, text: "Page one" }],
+      {
+        "web-rendering": {
+          pg001: {
+            sections: [
+              {
+                sectionIndex: 0,
+                sectionType: "content",
+                reasoning: "ok",
+                html: '<p data-id="pg001_im001">Caption</p>',
+              },
+            ],
+          },
+        },
+        "page-sectioning": {
+          pg001: {
+            reasoning: "ok",
+            sections: [
+              {
+                sectionId: "pg001_sec001",
+                sectionType: "content",
+                nodes: [],
+                backgroundColor: "#fff",
+                textColor: "#000",
+                pageNumber: 1,
+                isPruned: false,
+              },
+            ],
+          },
+        },
+        "element-audio": {
+          pg001: {
+            entries: [{ nodeId: "pg001_im001", text: "Mago" }],
+            generatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        },
+        "core-tts-catalog": {
+          en: {
+            language: "en",
+            generatedAt: "2026-01-01T00:00:00.000Z",
+            entries: [
+              coreEntry("pg001_im001_audio", "Mago"),
+              coreEntry("pg001_im001", "Caption speech"),
+            ],
+          },
+        },
+        tts: {
+          en: {
+            entries: [
+              {
+                textId: "pg001_im001_audio",
+                language: "en",
+                fileName: "pg001_im001_audio.mp3",
+                voice: "alloy",
+                model: "gpt-4o-mini-tts",
+                cached: false,
+              },
+              {
+                textId: "pg001_im001",
+                language: "en",
+                fileName: "pg001_im001.mp3",
+                voice: "alloy",
+                model: "gpt-4o-mini-tts",
+                cached: false,
+              },
+            ],
+            generatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        },
+      },
+    )
+
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+      speechConfig: { word_highlighting: true, excluded_text_ids: ["pg001_im001_audio"] },
+    })
+
+    const localeDir = path.join(bookDir, "adt", "content", "i18n", "en")
+    const audios = JSON.parse(
+      fs.readFileSync(path.join(localeDir, "audios.json"), "utf-8"),
+    ) as Record<string, string>
+    expect(audios).toEqual({ pg001_im001: "pg001_im001.mp3" })
+
+    const speechTexts = JSON.parse(
+      fs.readFileSync(path.join(localeDir, "speech_texts.json"), "utf-8"),
+    ) as Record<string, string>
+    expect(speechTexts).toEqual({ pg001_im001: "Caption speech" })
+    expect(fs.existsSync(path.join(localeDir, "element_audio.json"))).toBe(false)
+  })
+
   it("AC-14/AC-24: a legacy image id ending _audio is not remapped", async () => {
     const bookDir = path.join(tmpDir, "book")
     const webAssetsDir = path.join(tmpDir, "assets-web")

@@ -502,9 +502,12 @@ describe("ADT preview routes", () => {
     const app = createAdtPreviewRoutes(tmpDir, webAssetsDir, path.resolve(process.cwd(), "config.yaml"))
     const speechRes = await app.request(`/books/${label}/adt-preview/content/i18n/en/speech_texts.json`)
     const audioRes = await app.request(`/books/${label}/adt-preview/content/i18n/en/audios.json`)
+    const manifestRes = await app.request(`/books/${label}/adt-preview/content/i18n/en/element_audio.json`)
 
     expect(await speechRes.json()).toMatchObject({ pg001_tx001: "x squared", pg001_tx002: "pg001_tx002" })
     expect(await audioRes.json()).toEqual({ pg001_tx001: "pg001_tx001.mp3", pg001_tx002: "pg001_tx002.mp3" })
+    // A book without authored audio still serves the optional manifest.
+    expect(await manifestRes.json()).toEqual([])
   })
 
   it("publishes authored element audio under the element id and lists it in element_audio.json", async () => {
@@ -579,7 +582,15 @@ describe("ADT preview routes", () => {
     // Authored scripts use block highlight: no word timecodes, like the bundle.
     expect(await timecodes.json()).toEqual({})
 
-    // An explicit mute leaves no playable key and no trigger (AC-21).
+    // The authored ids are speech-only in the preview too (PR 3 parity).
+    const texts = await app.request(`/books/${label}/adt-preview/content/i18n/en/texts.json`)
+    const textsBody = await texts.json() as Record<string, string>
+    expect(textsBody.pg001_im001_audio).toBeUndefined()
+    // The element's own easy-read caption is not the authored script.
+    expect(textsBody.pg001_im001_easy_read).toBe("pg001_im001_easy_read")
+
+    // An explicit mute leaves no authored playable key and no trigger
+    // (AC-21); the element falls back to its caption audio and text.
     fs.writeFileSync(
       path.join(tmpDir, label, "config.yaml"),
       "speech:\n  word_highlighting: true\n  excluded_text_ids:\n    - pg001_im001_audio\n",
@@ -589,7 +600,16 @@ describe("ADT preview routes", () => {
     ).toEqual([])
     expect(
       await (await app.request(`/books/${label}/adt-preview/content/i18n/en/audios.json`)).json(),
-    ).not.toHaveProperty("pg001_im001_audio")
+    ).toEqual({
+      pg001_im001: "pg001_im001.mp3",
+      pg001_im001_easy_read: "pg001_im001_easy_read.mp3",
+    })
+    expect(
+      await (await app.request(`/books/${label}/adt-preview/content/i18n/en/speech_texts.json`)).json(),
+    ).toMatchObject({
+      pg001_im001: "pg001_im001",
+      pg001_im001_easy_read: "pg001_im001_easy_read",
+    })
   })
 
   // The preview manifest must resolve narrator names exactly the way the
