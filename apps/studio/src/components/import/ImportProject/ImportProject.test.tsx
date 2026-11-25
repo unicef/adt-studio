@@ -468,6 +468,118 @@ describe("ImportProject", () => {
     )
   })
 
+  // #1155: pages whose type is accepted and that fail only accessibility
+  // checks are confirmed, not given a type.
+  const activityPreview = (items: Array<Record<string, unknown>>) => ({
+    isAdtBundle: true,
+    legacyRecovery: false,
+    label: "workbook",
+    title: "Workbook",
+    coverBase64: null,
+    sourceLanguage: "es",
+    outputLanguages: [],
+    runtimeFeatures: { activities: true },
+    pageCount: items.length,
+    glossaryEntryCount: 0,
+    tocEntryCount: 0,
+    translationLanguageCount: 0,
+    contentChanged: false,
+    exportComparisonStatus: "unchanged",
+    activityReview: {
+      inventoryVersion: null,
+      items: items.map((item) => ({
+        declaredType: null, kind: "custom", status: "needs-review", supportsStudioEditing: false,
+        signals: [], validationErrors: [], textPreview: "", previewHtml: "<html><body><section></section></body></html>",
+        ...item,
+      })),
+      needsReviewCount: items.length,
+      quizCount: 0,
+      activityCount: items.length,
+      typeOptions: ["activity_matching", "activity_custom"],
+    },
+    compatibility: { supported: true, issues: [] },
+    match: { confidence: "none", recommendedProjectLabel: null, candidates: [] },
+  })
+  const checksOnly = (sectionId: string, heading: string, failed: number, controls: Array<{ kind: string; count: number }>) => ({
+    sectionId,
+    href: `${sectionId}.html`,
+    heading,
+    declaredType: "activity_custom",
+    detectedType: "activity_custom",
+    suggestedType: "activity_custom",
+    reasons: ["invalid-structure"],
+    validationErrors: Array.from({ length: failed }, (_, index) => `Check ${index + 1} failed.`),
+    controls,
+  })
+
+  it("asks to confirm pages that only fail accessibility checks, not to choose a type", async () => {
+    previewImport.mockResolvedValue(activityPreview([
+      checksOnly("pg001_sec001", "Me gustaría conocerte", 2, [{ kind: "text-field", count: 3 }]),
+      checksOnly("pg009_sec002", "Leemos juntos", 1, []),
+    ]))
+
+    const view = render(<ImportProject />)
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement
+    const file = new File(["zip"], "workbook.zip", { type: "application/zip" })
+    fireEvent.change(input, { target: { files: [file] } })
+
+    expect(await screen.findByText("Confirm 2 activity pages")).toBeTruthy()
+    expect(screen.queryByText(/Choose a type/)).toBeNull()
+    expect(screen.queryByText(/needs? a type/)).toBeNull()
+    // Each page names what failed, never "interactive controls" it doesn't have.
+    expect(screen.getByText("Me gustaría conocerte", { selector: "span" }).closest("li")?.textContent)
+      .toBe("Me gustaría conocerte: 2 accessibility checks failed")
+    expect(screen.getByText("Leemos juntos", { selector: "span" }).closest("li")?.textContent)
+      .toBe("Leemos juntos: 1 accessibility check failed")
+    expect(screen.queryByText(/interactive controls/)).toBeNull()
+    expect(screen.getByText("Activities").closest("li")?.textContent).toContain("2 to confirm")
+
+    fireEvent.click(screen.getByRole("button", { name: "Confirm pages" }))
+    const dialog = screen.getByRole("dialog")
+    expect(within(dialog).getByText("Confirm activity pages")).toBeTruthy()
+    expect(within(dialog).getByText(/Its type, Custom activity, is accepted/).textContent).toContain("2 accessibility checks failed")
+    // Keeping the type is offered first, and a person still chooses it.
+    const keep = within(dialog).getByRole("radio", { name: /Keep Custom activity/ })
+    expect(keep).toHaveProperty("checked", false)
+    fireEvent.click(keep)
+    fireEvent.click(within(dialog).getByRole("button", { name: "Next" }))
+    fireEvent.click(within(dialog).getByRole("radio", { name: /Keep Custom activity/ }))
+    fireEvent.click(within(dialog).getByRole("button", { name: "Finish review" }))
+    fireEvent.click(screen.getByRole("button", { name: "Import as new project" }))
+
+    expect(importAdt).toHaveBeenCalledWith(
+      {
+        zip: file,
+        activityDecisions: [
+          { sectionId: "pg001_sec001", type: "activity_custom" },
+          { sectionId: "pg009_sec002", type: "activity_custom" },
+        ],
+      },
+      expect.any(Object),
+    )
+  })
+
+  it("asks to review pages when some need a type and others only fail checks", async () => {
+    previewImport.mockResolvedValue(activityPreview([
+      checksOnly("pg001_sec001", "Me gustaría conocerte", 2, [{ kind: "text-field", count: 3 }]),
+      {
+        sectionId: "pg002_sec001", href: "pg002_sec001.html", heading: "Portada", detectedType: null,
+        suggestedType: "activity_custom_external", kind: "candidate", reasons: ["missing-marker"], controls: [],
+      },
+    ]))
+
+    const view = render(<ImportProject />)
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement
+    fireEvent.change(input, { target: { files: [new File(["zip"], "workbook.zip", { type: "application/zip" })] } })
+
+    expect(await screen.findByText("Review 2 activity pages")).toBeTruthy()
+    expect(screen.getByText("Activities").closest("li")?.textContent).toContain("2 to review")
+    // A page with no controls says why it was flagged instead.
+    expect(screen.getByText("Portada", { selector: "span" }).closest("li")?.textContent)
+      .toBe("Portada: The exported activity marker is missing.")
+    expect(screen.queryByText(/interactive controls/)).toBeNull()
+  })
+
   it("explains and blocks an exported ADT outside the supported HTML contract", async () => {
     previewImport.mockResolvedValue({
       isAdtBundle: true,

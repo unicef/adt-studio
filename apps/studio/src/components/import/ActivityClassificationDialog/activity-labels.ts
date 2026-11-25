@@ -77,6 +77,20 @@ export function pageName(item: ActivityReviewItem): string {
   return item.heading?.trim().replace(/[\s,;:]+$/, "") || item.href
 }
 
+/** The page's type is accepted and only its accessibility checks failed, so it
+ * needs confirming, not a type (#1155). */
+export function failsOnlyChecks(item: ActivityReviewItem): boolean {
+  return item.reasons.length > 0 && item.reasons.every((reason) => reason === "invalid-structure")
+}
+
+/** Whether the pages to review all need a type, all only fail checks, or both. */
+export function activityReviewKind(items: ActivityReviewItem[]): "type" | "checks" | "mixed" {
+  const pending = items.filter((item) => item.status === "needs-review")
+  const checks = pending.filter(failsOnlyChecks).length
+  if (checks === 0) return "type"
+  return checks === pending.length ? "checks" : "mixed"
+}
+
 type ActivityControl = NonNullable<ActivityReviewItem["controls"]>[number]
 
 /** "a text field", "2 checkboxes", "a text field and a button": what was

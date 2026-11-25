@@ -101,6 +101,10 @@ msgstr "{0, plural, one {# livre dans votre bibliothèque} other {# livres dans 
 msgid "{0, plural, one {# book} other {# books}}"
 msgstr "{0, plural, one {# livre} other {# livres}}"
 
+#. placeholder {0}: item.validationErrors.length
+msgid "{0, plural, one {# check failed} other {# checks failed}}"
+msgstr "{0, plural, one {# vérification échouée} other {# vérifications échouées}}"
+
 #. placeholder {0}: threads.length
 msgid "{0, plural, one {# comment waiting on you} other {# comments waiting on you}}"
 msgstr "{0, plural, one {# commentaire vous attend} other {# commentaires vous attendent}}"
@@ -832,14 +836,32 @@ msgstr "{totalPages} pages · {totalSections} sections"
 msgid "{unresolvedActivityCount, plural, one {Review # activity} other {Review # activities}}"
 msgstr "{unresolvedActivityCount, plural, one {Vérifier # activité} other {Vérifier # activités}}"
 
+msgid "{unresolvedActivityCount} {unresolvedActivityCount, plural, one {activity page fails} other {activity pages fail}} accessibility checks"
+msgstr "{unresolvedActivityCount} {unresolvedActivityCount, plural, one {page d’activité échoue} other {pages d’activité échouent}} aux vérifications d’accessibilité"
+
 msgid "{unresolvedActivityCount} {unresolvedActivityCount, plural, one {activity page needs} other {activity pages need}} a type"
 msgstr "{unresolvedActivityCount} {unresolvedActivityCount, plural, one {page d’activité a besoin} other {pages d’activité ont besoin}} d’un type"
 
 msgid "{unresolvedActivityCount} {unresolvedActivityCount, plural, one {needs} other {need}} a type"
 msgstr "{unresolvedActivityCount} {unresolvedActivityCount, plural, one {a besoin} other {ont besoin}} d’un type"
 
+msgid "{unresolvedActivityCount} activity {unresolvedActivityCount, plural, one {page needs} other {pages need}} review"
+msgstr "{unresolvedActivityCount} {unresolvedActivityCount, plural, one {page d’activité à vérifier} other {pages d’activité à vérifier}}"
+
+msgid "{unresolvedActivityCount} to confirm"
+msgstr "{unresolvedActivityCount} à confirmer"
+
+msgid "{unresolvedActivityCount} to review"
+msgstr "{unresolvedActivityCount} à vérifier"
+
 msgid "{unresolvedCount, plural, one {Choose a type for # activity page} other {Choose a type for # activity pages}}"
 msgstr "{unresolvedCount, plural, one {Choisissez un type pour # page d’activité} other {Choisissez un type pour # pages d’activité}}"
+
+msgid "{unresolvedCount, plural, one {Confirm # activity page} other {Confirm # activity pages}}"
+msgstr "{unresolvedCount, plural, one {Confirmez # page d’activité} other {Confirmez # pages d’activité}}"
+
+msgid "{unresolvedCount, plural, one {Review # activity page} other {Review # activity pages}}"
+msgstr "{unresolvedCount, plural, one {Vérifiez # page d’activité} other {Vérifiez # pages d’activité}}"
 
 msgid "{waiting, plural, one {# comment waiting} other {# comments waiting}}"
 msgstr "{waiting, plural, one {# commentaire en attente} other {# commentaires en attente}}"
@@ -862,6 +884,12 @@ msgstr "×4"
 
 msgid "<0>{name}</0> has {controls}"
 msgstr "<0>{name}</0> contient {controls}"
+
+msgid "<0>{name}</0>: {failed, plural, one {# accessibility check failed} other {# accessibility checks failed}}"
+msgstr "<0>{name}</0> : {failed, plural, one {# vérification d’accessibilité échouée} other {# vérifications d’accessibilité échouées}}"
+
+msgid "<0>{name}</0>: {reason}"
+msgstr "<0>{name}</0> : {reason}"
 
 msgid "<0>Another ADT Studio took over sharing on this Cloudflare account.</0> Readers still reach the link; reconnect here to manage it and see new feedback."
 msgstr "<0>Un autre ADT Studio a pris la main sur le partage de ce compte Cloudflare.</0> Les lecteurs accèdent toujours au lien ; reconnectez-vous ici pour le gérer et voir les nouveaux commentaires."
@@ -1299,6 +1327,12 @@ msgstr "Détection d'activité"
 msgid "Activity generation failed"
 msgstr "Échec de la génération de l'activité"
 
+msgid "Activity pages to confirm"
+msgstr "Pages d’activité à confirmer"
+
+msgid "Activity pages to review"
+msgstr "Pages d’activité à vérifier"
+
 msgid "Activity Rendering"
 msgstr "Rendu d'activité"
 
@@ -1330,8 +1364,8 @@ msgstr "Types d’activité"
 msgid "Activity Types"
 msgstr "Types d'activité"
 
-msgid "Activity types to choose"
-msgstr "Types d’activité à choisir"
+#~ msgid "Activity types to choose"
+#~ msgstr "Types d’activité à choisir"
 
 msgid "Activity: Fill in a Table"
 msgstr "Activité : Remplir un tableau"
@@ -3251,8 +3285,14 @@ msgstr "Configurer les voix et les accents"
 #~ msgid "Configured on server"
 #~ msgstr "Configuré sur le serveur"
 
+msgid "Confirm activity pages"
+msgstr "Confirmer les pages d’activité"
+
 msgid "Confirm merge"
 msgstr "Confirmer la fusion"
+
+msgid "Confirm pages"
+msgstr "Confirmer les pages"
 
 msgid "Conflicting changes detected"
 msgstr "Modifications en conflit détectées"
@@ -3793,6 +3833,9 @@ msgstr "Valeurs effectives actuelles"
 
 msgid "Current Preview Page"
 msgstr "Page d'aperçu actuelle"
+
+msgid "Current type"
+msgstr "Type actuel"
 
 msgid "Current version (v{currentVersion})"
 msgstr "Version actuelle (v{currentVersion})"
@@ -6023,6 +6066,9 @@ msgstr "L’import ne peut pas commencer avant que chaque page ait un type. Choi
 msgid "Import existing project"
 msgstr "Importer un projet existant"
 
+msgid "Import it with this type. The failed checks stay as they are."
+msgstr "L’importer avec ce type. Les vérifications échouées restent en l’état."
+
 msgid "Import progress"
 msgstr "Progression de l'import"
 
@@ -6297,6 +6343,11 @@ msgstr "sa langue originale"
 msgid "Its page on one side, the conversation and a reply box on the other."
 msgstr "Sa page d’un côté, la conversation et une zone de réponse de l’autre."
 
+#. placeholder {0}: activityTypeLabel(keepType(activeItem))
+#. placeholder {1}: activeItem.validationErrors.length
+msgid "Its type, {0}, is accepted, but {1, plural, one {# accessibility check failed} other {# accessibility checks failed}} for it. Keeping the type imports the page as it is."
+msgstr "Son type, {0}, est accepté, mais {1, plural, one {# vérification d’accessibilité a échoué} other {# vérifications d’accessibilité ont échoué}} pour ce type. Garder le type importe la page telle quelle."
+
 msgid "Jane Reviewer"
 msgstr "Jane Reviewer"
 
@@ -6333,6 +6384,10 @@ msgstr "KB"
 
 msgid "Keep"
 msgstr "Garder"
+
+#. placeholder {0}: typeLabel(keepType)
+msgid "Keep {0}"
+msgstr "Garder {0}"
 
 msgid "Keep {activities} {activities, plural, one {activity} other {activities}}"
 msgstr "Conserver {activities} {activities, plural, one {activité} other {activités}}"
@@ -10293,6 +10348,9 @@ msgstr "Vérifiez {formatted} après cette exécution."
 msgid "Review {label} outputs"
 msgstr "Vérifier les résultats de {label}"
 
+msgid "Review activity pages"
+msgstr "Vérifier les pages d’activité"
+
 msgid "Review and refine each simplified block side-by-side with the original before packaging."
 msgstr "Examinez et peaufinez chaque bloc simplifié côte à côte avec l'original avant l'emballage."
 
@@ -10327,6 +10385,9 @@ msgstr "Vérifier les éléments"
 
 msgid "Review one session at a time to inspect page coverage and flagged findings."
 msgstr "Révisez une session à la fois pour inspecter la couverture des pages et les résultats signalés."
+
+msgid "Review pages"
+msgstr "Vérifier les pages"
 
 msgid "Review progress"
 msgstr "Progression de la révision"
@@ -11531,6 +11592,9 @@ msgstr "Une partie de l’historique ne peut pas être récupérée à partir de
 msgid "Some items could not be updated. The list has been refreshed; completed changes are kept."
 msgstr "Certains éléments n’ont pas pu être mis à jour. La liste a été actualisée ; les modifications terminées sont conservées."
 
+msgid "Some need an activity type, and others fail accessibility checks for theirs. Review them before import."
+msgstr "Certaines ont besoin d’un type d’activité, et d’autres échouent aux vérifications d’accessibilité du leur. Vérifiez-les avant l’importation."
+
 msgid "Some pages"
 msgstr "Certaines pages"
 
@@ -11545,6 +11609,12 @@ msgstr "Certaines pages ont des données d’entrée manquantes ou illisibles : 
 
 msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 msgstr "Certaines pages n'ont pas de couche de texte intégrée — le texte a été récupéré à partir de l'image de la page. Préférez un PDF basé sur du texte."
+
+msgid "Some pages need an activity type, and others fail accessibility checks for theirs. Import can’t start until each page is reviewed."
+msgstr "Certaines pages ont besoin d’un type d’activité, et d’autres échouent aux vérifications d’accessibilité du leur. L’importation ne peut pas commencer tant que chaque page n’a pas été vérifiée."
+
+msgid "Some pages need an activity type, and others fail accessibility checks for theirs. Tell ADT Studio what each one is."
+msgstr "Certaines pages ont besoin d’un type d’activité, et d’autres échouent aux vérifications d’accessibilité du leur. Indiquez à ADT Studio ce qu’est chacune."
 
 msgid "Some pages or sections are missing Storyboard output. Existing pages remain available."
 msgstr "Certaines pages ou sections n’ont pas de contenu Scénarimage. Les pages existantes restent disponibles."
@@ -12738,6 +12808,15 @@ msgstr "Le livre entier est envoyé en un seul fichier, et Cloudflare accepte au
 
 msgid "The world before us"
 msgstr "Le monde devant nous"
+
+msgid "Their activity type is accepted, but they fail accessibility checks for it. Import can’t start until you confirm each page: keep its type, or choose another."
+msgstr "Leur type d’activité est accepté, mais elles échouent aux vérifications d’accessibilité de ce type. L’importation ne peut pas commencer tant que vous n’avez pas confirmé chaque page : gardez son type ou choisissez-en un autre."
+
+msgid "Their activity type is accepted, but they fail accessibility checks for it. Keep each type, or choose another."
+msgstr "Leur type d’activité est accepté, mais elles échouent aux vérifications d’accessibilité de ce type. Gardez chaque type ou choisissez-en un autre."
+
+msgid "Their activity type is accepted. Confirm each page to import it as it is, or choose another type."
+msgstr "Leur type d’activité est accepté. Confirmez chaque page pour l’importer telle quelle, ou choisissez un autre type."
 
 msgid "Their activity type is missing or unclear, or they fail the accessibility checks for their type. ADT Studio asks about them once these problems are fixed. The repair request includes them, so your AI assistant can fix both at once."
 msgstr "Leur type d’activité manque ou n’est pas clair, ou elles échouent aux vérifications d’accessibilité de leur type. ADT Studio vous les demandera une fois ces problèmes corrigés. La demande de réparation les inclut, donc votre assistant IA peut tout corriger en une seule fois."

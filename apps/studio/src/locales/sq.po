@@ -101,6 +101,10 @@ msgstr "{0, plural, one {# libër në bibliotekën tuaj} other {# libra në bibl
 msgid "{0, plural, one {# book} other {# books}}"
 msgstr "{0, plural, one {# libër} other {# libra}}"
 
+#. placeholder {0}: item.validationErrors.length
+msgid "{0, plural, one {# check failed} other {# checks failed}}"
+msgstr "{0, plural, one {# kontroll dështoi} other {# kontrolle dështuan}}"
+
 #. placeholder {0}: threads.length
 msgid "{0, plural, one {# comment waiting on you} other {# comments waiting on you}}"
 msgstr "{0, plural, one {# koment ju pret} other {# komente ju presin}}"
@@ -832,14 +836,32 @@ msgstr "{totalPages} faqe · {totalSections} seksione"
 msgid "{unresolvedActivityCount, plural, one {Review # activity} other {Review # activities}}"
 msgstr "{unresolvedActivityCount, plural, one {Shqyrto # aktivitet} other {Shqyrto # aktivitete}}"
 
+msgid "{unresolvedActivityCount} {unresolvedActivityCount, plural, one {activity page fails} other {activity pages fail}} accessibility checks"
+msgstr "{unresolvedActivityCount} {unresolvedActivityCount, plural, one {faqe aktiviteti nuk kalon} other {faqe aktiviteti nuk kalojnë}} kontrollet e aksesueshmërisë"
+
 msgid "{unresolvedActivityCount} {unresolvedActivityCount, plural, one {activity page needs} other {activity pages need}} a type"
 msgstr "{unresolvedActivityCount} {unresolvedActivityCount, plural, one {faqe aktiviteti ka nevojë} other {faqe aktiviteti kanë nevojë}} për një lloj"
 
 msgid "{unresolvedActivityCount} {unresolvedActivityCount, plural, one {needs} other {need}} a type"
 msgstr "{unresolvedActivityCount} {unresolvedActivityCount, plural, one {ka nevojë} other {kanë nevojë}} për një lloj"
 
+msgid "{unresolvedActivityCount} activity {unresolvedActivityCount, plural, one {page needs} other {pages need}} review"
+msgstr "{unresolvedActivityCount} {unresolvedActivityCount, plural, one {faqe aktiviteti ka} other {faqe aktiviteti kanë}} nevojë për rishikim"
+
+msgid "{unresolvedActivityCount} to confirm"
+msgstr "{unresolvedActivityCount} për t’u konfirmuar"
+
+msgid "{unresolvedActivityCount} to review"
+msgstr "{unresolvedActivityCount} për t’u rishikuar"
+
 msgid "{unresolvedCount, plural, one {Choose a type for # activity page} other {Choose a type for # activity pages}}"
 msgstr "{unresolvedCount, plural, one {Zgjidhni një lloj për # faqe aktiviteti} other {Zgjidhni një lloj për # faqe aktiviteti}}"
+
+msgid "{unresolvedCount, plural, one {Confirm # activity page} other {Confirm # activity pages}}"
+msgstr "{unresolvedCount, plural, one {Konfirmoni # faqe aktiviteti} other {Konfirmoni # faqe aktiviteti}}"
+
+msgid "{unresolvedCount, plural, one {Review # activity page} other {Review # activity pages}}"
+msgstr "{unresolvedCount, plural, one {Rishikoni # faqe aktiviteti} other {Rishikoni # faqe aktiviteti}}"
 
 msgid "{waiting, plural, one {# comment waiting} other {# comments waiting}}"
 msgstr "{waiting, plural, one {# koment në pritje} other {# komente në pritje}}"
@@ -862,6 +884,12 @@ msgstr "×4"
 
 msgid "<0>{name}</0> has {controls}"
 msgstr "<0>{name}</0> ka {controls}"
+
+msgid "<0>{name}</0>: {failed, plural, one {# accessibility check failed} other {# accessibility checks failed}}"
+msgstr "<0>{name}</0>: {failed, plural, one {# kontroll aksesueshmërie dështoi} other {# kontrolle aksesueshmërie dështuan}}"
+
+msgid "<0>{name}</0>: {reason}"
+msgstr "<0>{name}</0>: {reason}"
 
 msgid "<0>Another ADT Studio took over sharing on this Cloudflare account.</0> Readers still reach the link; reconnect here to manage it and see new feedback."
 msgstr "<0>Një ADT Studio tjetër e mori përsipër ndarjen në këtë llogari Cloudflare.</0> Lexuesit ende e hapin lidhjen; rilidhuni këtu për ta menaxhuar dhe për të parë komentet e reja."
@@ -1299,6 +1327,12 @@ msgstr "Zbulimi i Aktivitetit"
 msgid "Activity generation failed"
 msgstr "Gjenerimi i aktivitetit dështoi"
 
+msgid "Activity pages to confirm"
+msgstr "Faqe aktiviteti për t’u konfirmuar"
+
+msgid "Activity pages to review"
+msgstr "Faqe aktiviteti për t’u rishikuar"
+
 msgid "Activity Rendering"
 msgstr "Renderimi i Aktivitetit"
 
@@ -1330,8 +1364,8 @@ msgstr "Llojet e aktiviteteve"
 msgid "Activity Types"
 msgstr "Llojet e Aktivitetit"
 
-msgid "Activity types to choose"
-msgstr "Lloje aktivitetesh për t’u zgjedhur"
+#~ msgid "Activity types to choose"
+#~ msgstr "Lloje aktivitetesh për t’u zgjedhur"
 
 msgid "Activity: Fill in a Table"
 msgstr "Aktivitet: Plotëso Tabelën"
@@ -3251,8 +3285,14 @@ msgstr "Konfiguroni zërat dhe thekset"
 #~ msgid "Configured on server"
 #~ msgstr "Konfiguruar në server"
 
+msgid "Confirm activity pages"
+msgstr "Konfirmoni faqet e aktiviteteve"
+
 msgid "Confirm merge"
 msgstr "Konfirmoni bashkimin"
+
+msgid "Confirm pages"
+msgstr "Konfirmoni faqet"
 
 msgid "Conflicting changes detected"
 msgstr "U zbuluan ndryshime që bien ndesh"
@@ -3793,6 +3833,9 @@ msgstr "Vlerat aktuale efektive"
 
 msgid "Current Preview Page"
 msgstr "Faqja aktuale e pamjes paraprake"
+
+msgid "Current type"
+msgstr "Lloji aktual"
 
 msgid "Current version (v{currentVersion})"
 msgstr "Versioni aktual (v{currentVersion})"
@@ -6023,6 +6066,9 @@ msgstr "Importimi nuk mund të fillojë derisa çdo faqe të ketë një lloj. Zg
 msgid "Import existing project"
 msgstr "Importo projekt ekzistues"
 
+msgid "Import it with this type. The failed checks stay as they are."
+msgstr "Importojeni me këtë lloj. Kontrollet që dështuan mbeten siç janë."
+
 msgid "Import progress"
 msgstr "Progresi i importimit"
 
@@ -6297,6 +6343,11 @@ msgstr "gjuhën e saj origjinale"
 msgid "Its page on one side, the conversation and a reply box on the other."
 msgstr "Faqja e tij në njërën anë, biseda dhe kutia e përgjigjes në tjetrën."
 
+#. placeholder {0}: activityTypeLabel(keepType(activeItem))
+#. placeholder {1}: activeItem.validationErrors.length
+msgid "Its type, {0}, is accepted, but {1, plural, one {# accessibility check failed} other {# accessibility checks failed}} for it. Keeping the type imports the page as it is."
+msgstr "Lloji i saj, {0}, pranohet, por {1, plural, one {# kontroll aksesueshmërie dështoi} other {# kontrolle aksesueshmërie dështuan}} për të. Nëse e mbani llojin, faqja importohet ashtu siç është."
+
 msgid "Jane Reviewer"
 msgstr "Jane Rishikuese"
 
@@ -6333,6 +6384,10 @@ msgstr "KB"
 
 msgid "Keep"
 msgstr "Mbaj"
+
+#. placeholder {0}: typeLabel(keepType)
+msgid "Keep {0}"
+msgstr "Mbani {0}"
 
 msgid "Keep {activities} {activities, plural, one {activity} other {activities}}"
 msgstr "Ruaj {activities} {activities, plural, one {aktivitet} other {aktivitete}}"
@@ -10293,6 +10348,9 @@ msgstr "Rishikoni {formatted} pas këtij ekzekutimi."
 msgid "Review {label} outputs"
 msgstr "Shqyrto rezultatet e {label}"
 
+msgid "Review activity pages"
+msgstr "Rishikoni faqet e aktiviteteve"
+
 msgid "Review and refine each simplified block side-by-side with the original before packaging."
 msgstr "Rishikoni dhe rafinoni çdo bllok të thjeshtëzuar krahas origjinalit përpara paketimit."
 
@@ -10327,6 +10385,9 @@ msgstr "Shqyrto elementet"
 
 msgid "Review one session at a time to inspect page coverage and flagged findings."
 msgstr "Rishikoni një sesion në të njëjtën kohë për të inspektuar mbulimin e faqeve dhe gjetjet e shënuara."
+
+msgid "Review pages"
+msgstr "Rishikoni faqet"
 
 msgid "Review progress"
 msgstr "Progresi i rishikimit"
@@ -11531,6 +11592,9 @@ msgstr "Një pjesë e historikut nuk mund të rikuperohet nga provat e disponues
 msgid "Some items could not be updated. The list has been refreshed; completed changes are kept."
 msgstr "Disa elemente nuk mund të përditësoheshin. Lista u rifreskua; ndryshimet e përfunduara ruhen."
 
+msgid "Some need an activity type, and others fail accessibility checks for theirs. Review them before import."
+msgstr "Disa kanë nevojë për një lloj aktiviteti, dhe të tjerat nuk kalojnë kontrollet e aksesueshmërisë për llojin e tyre. Rishikojini para importit."
+
 msgid "Some pages"
 msgstr "Disa faqe"
 
@@ -11545,6 +11609,12 @@ msgstr "Disa faqe kanë të dhëna hyrëse që mungojnë ose janë të palexuesh
 
 msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 msgstr "Disa faqe nuk kanë shtresë teksti të integruar — teksti u rikuperua nga imazhi i faqes. Preferoni një PDF të bazuar në tekst."
+
+msgid "Some pages need an activity type, and others fail accessibility checks for theirs. Import can’t start until each page is reviewed."
+msgstr "Disa faqe kanë nevojë për një lloj aktiviteti, dhe të tjerat nuk kalojnë kontrollet e aksesueshmërisë për llojin e tyre. Importi nuk mund të fillojë derisa të rishikohet çdo faqe."
+
+msgid "Some pages need an activity type, and others fail accessibility checks for theirs. Tell ADT Studio what each one is."
+msgstr "Disa faqe kanë nevojë për një lloj aktiviteti, dhe të tjerat nuk kalojnë kontrollet e aksesueshmërisë për llojin e tyre. Tregojini ADT Studio-s çfarë është secila."
 
 msgid "Some pages or sections are missing Storyboard output. Existing pages remain available."
 msgstr "Disa faqe ose seksione nuk kanë përmbajtje Storyboard. Faqet ekzistuese mbeten të disponueshme."
@@ -12738,6 +12808,15 @@ msgstr "I gjithë libri dërgohet si një skedar i vetëm, dhe Cloudflare pranon
 
 msgid "The world before us"
 msgstr "Bota para nesh"
+
+msgid "Their activity type is accepted, but they fail accessibility checks for it. Import can’t start until you confirm each page: keep its type, or choose another."
+msgstr "Lloji i tyre i aktivitetit pranohet, por ato nuk kalojnë kontrollet e aksesueshmërisë për këtë lloj. Importi nuk mund të fillojë derisa të konfirmoni çdo faqe: mbani llojin e saj ose zgjidhni një tjetër."
+
+msgid "Their activity type is accepted, but they fail accessibility checks for it. Keep each type, or choose another."
+msgstr "Lloji i tyre i aktivitetit pranohet, por ato nuk kalojnë kontrollet e aksesueshmërisë për këtë lloj. Mbani çdo lloj ose zgjidhni një tjetër."
+
+msgid "Their activity type is accepted. Confirm each page to import it as it is, or choose another type."
+msgstr "Lloji i tyre i aktivitetit pranohet. Konfirmoni çdo faqe për ta importuar ashtu siç është, ose zgjidhni një lloj tjetër."
 
 msgid "Their activity type is missing or unclear, or they fail the accessibility checks for their type. ADT Studio asks about them once these problems are fixed. The repair request includes them, so your AI assistant can fix both at once."
 msgstr "Lloji i aktivitetit mungon ose nuk është i qartë, ose ato nuk kalojnë kontrollet e aksesueshmërisë për llojin e tyre. ADT Studio do t’ju pyesë për to sapo të rregullohen këto probleme. Kërkesa për riparim i përfshin ato, kështu që asistenti juaj i AI-së mund t’i rregullojë të dyja njëherësh."
