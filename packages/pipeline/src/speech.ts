@@ -616,26 +616,50 @@ export function parseElevenLabsErrorStatus(message: string): number | null {
 
 // Transport-level failures never reach an HTTP status, so they're matched by
 // name. Kept deliberately narrow: these are node/undici network errors, not
-// free-text from an upstream response body.
-const ELEVENLABS_NETWORK_ERROR_RE =
-  /fetch failed|ECONNRESET|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN|ENOTFOUND|socket hang up|network|aborted due to timeout/i
+// free-text from an upstream response body. `terminated` is undici's error for
+// a connection dropped mid-response; `timed out` is the OpenAI synthesizer's
+// own no-response timeout.
+const TTS_NETWORK_ERROR_RE =
+  /fetch failed|terminated|ECONNRESET|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN|ENOTFOUND|socket hang up|network|aborted due to timeout|timed out/i
 
-export type ElevenLabsTtsErrorKind = "rate-limit" | "transient" | "permanent"
+export type TtsErrorKind = "rate-limit" | "transient" | "permanent"
+export type ElevenLabsTtsErrorKind = TtsErrorKind
 
 /**
- * Whether an ElevenLabs TTS failure is worth retrying.
+ * Whether a TTS failure is worth retrying. Both the ElevenLabs and the OpenAI
+ * synthesizers format HTTP failures as `... failed (<status>): <body>`.
  *
  * Keyed on the HTTP status rather than the response body. Matching free text
  * (e.g. `/try again/i`) misclassifies permanent 4xx responses whose body
  * happens to contain those words, burning five backoff waits — up to ~60s —
  * per entry on a request that will never succeed.
  */
-export function classifyElevenLabsTtsError(message: string): ElevenLabsTtsErrorKind {
+export function classifyTtsError(message: string): TtsErrorKind {
   const status = parseElevenLabsErrorStatus(message)
   if (status === 429) return "rate-limit"
   if (status !== null) return status >= 500 && status <= 599 ? "transient" : "permanent"
   // No status → never reached the API. Retry genuine transport errors only.
-  return ELEVENLABS_NETWORK_ERROR_RE.test(message) ? "transient" : "permanent"
+  return TTS_NETWORK_ERROR_RE.test(message) ? "transient" : "permanent"
+}
+
+export const classifyElevenLabsTtsError = classifyTtsError
+
+// OpenAI TTS quotas are far above our concurrency, so there's no limiter, but
+// transport failures arrive in bursts: a dropped network path fails every
+// in-flight request at once (#1067). Retry those and 429/5xx with jittered
+// backoff, so a burst of 30 dropped requests doesn't retry in lockstep.
+export const OPENAI_TTS_MAX_RETRIES = 4
+export const OPENAI_TTS_BASE_RETRY_DELAY_MS = 1_000
+export const OPENAI_TTS_MAX_RETRY_DELAY_MS = 15_000
+
+/** Backoff for retry attempt `attemptCount` (1-based): exponential, capped,
+ *  then scaled into [50%, 100%] by `random` to spread a burst of retries. */
+export function openAiTtsRetryDelayMs(attemptCount: number, random: () => number = Math.random): number {
+  const ceiling = Math.min(
+    OPENAI_TTS_BASE_RETRY_DELAY_MS * 2 ** (attemptCount - 1),
+    OPENAI_TTS_MAX_RETRY_DELAY_MS,
+  )
+  return Math.round(ceiling * (0.5 + random() / 2))
 }
 
 /** Exponential backoff for retry attempt `attemptCount` (1-based). */

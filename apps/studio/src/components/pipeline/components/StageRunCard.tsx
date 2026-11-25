@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { PIPELINE } from "@adt/types"
 import type { StageName } from "@adt/types"
 import { STAGES } from "../stage-config"
+import { HistoryRecoveryLink } from "./HistoryRecoveryLink"
 import {
   getStageLabelI18n,
   getStageRunningLabelI18n,
@@ -70,7 +71,7 @@ export function StageRunCard({
 }: StageRunCardProps) {
   const { t } = useLingui()
   const stage = STAGES.find((s) => s.slug === stageSlug) ?? STAGES[0]
-  const { stageState, stepState, stepProgress, stepError, error, isCancelling, cancelRun } = useBookRun()
+  const { bookLabel: runBookLabel, stageState, stepState, stepProgress, stepError, error, isCancelling, cancelRun } = useBookRun()
   const stageStatus = stageState(stageSlug)
   const subSteps = STAGE_SUB_STEPS[stageSlug as StageName] ?? []
   const Icon = stage.icon
@@ -340,6 +341,8 @@ export function StageRunCard({
           <Alert variant="destructive" className="rounded-md px-3 py-2">
             <AlertDescription className="text-xs whitespace-pre-wrap break-words">
               {error}
+              {" "}
+              <HistoryRecoveryLink bookLabel={bookLabel ?? runBookLabel} error={error} />
             </AlertDescription>
           </Alert>
         </CardFooter>

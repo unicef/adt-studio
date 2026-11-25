@@ -22,6 +22,7 @@
  * not used: it never registers as a glossary, so no tab would appear.
  */
 import { JSDOM } from "jsdom"
+import { stripXmlInvalid } from "./html-escape.js"
 
 export interface GlossaryEntry {
   /** Stable EPUB id used in href fragments + `<dt>` ids (`gl_001` …). */
@@ -407,7 +408,7 @@ ${rows}
 }
 
 function escapeXml(str: string): string {
-  return str
+  return stripXmlInvalid(str)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")

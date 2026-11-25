@@ -104,13 +104,13 @@ it("reports an older schema without migrating it, and a newer one without openin
   expect(readBookSchemaVersion(path.join(root, "newer", "newer.db"))).toBe(SCHEMA_VERSION + 1)
 })
 
-it("reports a stale lock directory and a writer lease without opening the database", () => {
+it("reports an unverified database mutex and a writer lease without opening the database", () => {
   seedClean("locked")
   fs.mkdirSync(path.join(root, "locked", "locked.db.lock"))
   fs.writeFileSync(path.join(root, "locked", ".book-writer.json"), JSON.stringify({ pid: 4242, host: "laptop" }))
   const diagnosis = diagnoseBook(root, "locked")
   expect(diagnosis).toMatchObject({ staleLockDir: true, writerLease: "pid 4242 on laptop", schemaStatus: "unreadable" })
-  expect(diagnosis.error).toContain("stale lock directory locked.db.lock")
+  expect(diagnosis.error).toContain("database mutex locked.db.lock has unverified ownership")
   expect(hasFindings(diagnosis)).toBe(true)
 })
 

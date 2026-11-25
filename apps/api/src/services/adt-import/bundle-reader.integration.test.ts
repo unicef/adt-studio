@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate"
 import { createBookStorage, openBookDb } from "@adt/storage"
 import { packageAdtWeb } from "@adt/pipeline"
+import { exportAdt } from "../export-service.js"
 import { AdtBundleImportPreview } from "@adt/types"
 import { extractAdtBundleArchiveFiles, readAdtBundle } from "./bundle-reader.js"
 import { assessAdtImportCompatibility } from "./compatibility.js"
@@ -28,24 +29,11 @@ function createWebAssets(dir: string): void {
   fs.writeFileSync(path.join(dir, "base.bundle.min.js.map"), '{"version":3,"sources":[],"mappings":""}')
   fs.writeFileSync(path.join(dir, "fonts.css"), "body { font-family: serif; }")
   fs.mkdirSync(path.join(dir, "libs", "fontawesome", "css"), { recursive: true })
-  fs.writeFileSync(path.join(dir, "libs", "fontawesome", "css", "all.min.css"), "")
+  fs.writeFileSync(path.join(dir, "libs", "fontawesome", "css", "all.min.css"), "/* test icons */")
   fs.writeFileSync(
     path.join(dir, "tailwind_css.css"),
     "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n",
   )
-}
-
-function zipDirectory(dir: string): Uint8Array {
-  const files: Record<string, Uint8Array> = {}
-  const walk = (current: string): void => {
-    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
-      const absolute = path.join(current, entry.name)
-      if (entry.isDirectory()) walk(absolute)
-      else files[path.relative(dir, absolute).split(path.sep).join("/")] = fs.readFileSync(absolute)
-    }
-  }
-  walk(dir)
-  return zipSync(files)
 }
 
 describe("readAdtBundle with a real packageAdtWeb archive", () => {
@@ -137,7 +125,7 @@ describe("readAdtBundle with a real packageAdtWeb archive", () => {
       storage.close()
     }
 
-    const archive = Buffer.from(zipDirectory(path.join(bookDir, "adt")))
+    const archive = Buffer.from(await new Response((await exportAdt(label, tmpDir)).stream).arrayBuffer())
     const bundle = readAdtBundle(archive)
     expect(bundle.manifest.book.label).toBe(label)
     expect(bundle.manifest.languages).toEqual({ source: "en", output: ["es"] })

@@ -299,9 +299,11 @@ describe("generateImageWithCache", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
-  it.each([16 / 9, 9 / 16, 4 / 3, 8, 1 / 8])("selects a valid GPT Image 2 size for ratio %s", async (aspectRatio) => {
+  it.each(["gpt-image-2", "gpt-image-2.6-flare"].flatMap((model) =>
+    [16 / 9, 9 / 16, 4 / 3, 8, 1 / 8].map((ratio) => [model, ratio] as const),
+  ))("selects a valid %s size for ratio %s", async (model, aspectRatio) => {
     fetchMock.mockResolvedValue(Response.json({ data: [{ b64_json: png }] }))
-    await generateImageWithCache({ apiKey: "fake", modelId: "openai:gpt-image-2", prompt: "wide", aspectRatio })
+    await generateImageWithCache({ apiKey: "fake", modelId: `openai:${model}`, prompt: "wide", aspectRatio })
     const [width, height] = JSON.parse(fetchMock.mock.calls[0][1].body).size.split("x").map(Number)
     expect(width % 16).toBe(0)
     expect(height % 16).toBe(0)
