@@ -10861,8 +10861,8 @@ msgstr "Section 3.2"
 msgid "Section actions"
 msgstr "Actions de la section"
 
-msgid "Section duplicated. Authored element audio is not copied to the new section."
-msgstr "Section dupliquée. L’audio d’élément créé par l’auteur n’est pas copié dans la nouvelle section."
+msgid "Section duplicated. Its images keep their authored element audio."
+msgstr "Section dupliquée. Ses images conservent l’audio d’élément créé par l’auteur."
 
 msgid "Section heading"
 msgstr "Titre de section"

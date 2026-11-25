@@ -139,9 +139,9 @@ Binding.
   reattach to different text. Image ids (`pg001_im001`) come from extraction
   (`page-sectioning.ts:704-706`) and are stable. The artifact **schema stays generic** (`entries: [{
   nodeId, text }]`) so enabling text later needs no migration.
-- **Cloning a section does not inherit element audio.** `cloneNodesWithFreshContainerIds`
-  (`apps/api/src/routes/pages.ts:822`) keeps leaf ids, so a clone would share the original's script.
-  Out of scope in v1; recorded, not silently implemented.
+- **Cloning a section shares the images' authored audio.** `cloneNodesWithFreshContainerIds`
+  (`apps/api/src/routes/pages.ts:866`) keeps image leaf ids, so the clone resolves the same
+  `element-audio` entries. v1 accepts this and the UI says so.
 - **Deleting a page and a full re-extraction destroy the artifact.** `deletePage`
   (`packages/storage/src/book-storage.ts:119`, called from the spreads reconcile) hard-deletes
   everything for the page; `clearExtractedData` (`:77`, via `clearExtractedRows` at `:655`) clears
@@ -517,7 +517,7 @@ Chosen: **Option A**. Rough costs are per rollout PR; refer to the §9 review bu
 - [ ] **AC-5** An uncaptioned image (spoken text differs from any visible text) still gets audio; its word timestamps are not published under the element id, so the player uses block highlighting.
 - [x] **AC-6** The authored text **survives** re-running `easy-read` / `text-catalog` / `catalog-translation` / `core-tts-catalog` and changing the book's image set. On merged develop `clearNodesByType` only writes `NULL` invalidation versions for non-catalog rows, so nothing deletes it; `deletePage` and `clearExtractedData` still hard-delete and are documented non-goals. Moving an image between pages keeps the script with the element (AC-22).
 - [x] **AC-7** No code path adds `element-audio` to a clear/delete list; the checker fails CI if one is added. The checker scans **every** `clearNodesByType` literal in `apps/api/src` and `packages/*/src` (8 non-test API sites on merged develop) and asserts every `getStageRerunClearNodes` stage pair, `getStageClearNodes`, `IMAGE_SET_CHANGE_CLEAR_NODE_TYPES` and `CATALOG_OUTPUT_NODES`. The generic `deletePage` / `clearExtractedData` are documented non-goals; the checker does not assert them.
-- [x] **AC-8** Deleting an element **keeps** its authored text; duplicating a leaf produces a clone **without** audio and the UI says so; cloning a **section** does not inherit audio (documented non-goal).
+- [x] **AC-8** Deleting an element **keeps** its authored text; duplicating a leaf produces a clone **without** audio and the UI says so; cloning a **section** keeps the images' identities, so their authored audio still applies, and the UI says so.
 - [ ] **AC-9** The clickable element carries, in runtime, `tabindex="0"` plus an accessible name (`alt` on `<img>`; role + name on non-`img`), never a positive `tabindex`, never nested in another interactive control; a target with no accessible name is left untouched. A **jsdom runtime test with scripts** asserts this **and** that Enter/Space fire the play path; the axe assessment reports **no new violations** on the static HTML.
 - [ ] **AC-10** The visual indicator is decorative to assistive tech (`aria-hidden`), is not a second tab stop, and does not create a nested interactive control; a pointer click on it plays the element's audio and does not trigger the Storyboard selection.
 - [ ] **AC-11** In the **Storyboard preview** the **badge** plays the element's audio while a body click keeps selecting the element (same bundle/manifests as the reader).

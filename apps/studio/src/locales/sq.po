@@ -10861,8 +10861,8 @@ msgstr "Seksioni 3.2"
 msgid "Section actions"
 msgstr "Veprimet e seksionit"
 
-msgid "Section duplicated. Authored element audio is not copied to the new section."
-msgstr "Seksioni u kopjua. Audioja e autorit e elementit nuk kopjohet në seksionin e ri."
+msgid "Section duplicated. Its images keep their authored element audio."
+msgstr "Seksioni u kopjua. Imazhet e tij mbajnë audiojan e autorit të elementit."
 
 msgid "Section heading"
 msgstr "Titull seksioni"

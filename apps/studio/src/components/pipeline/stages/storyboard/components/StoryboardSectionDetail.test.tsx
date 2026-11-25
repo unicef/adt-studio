@@ -249,7 +249,7 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 
-it("AC-8: tells the author that a cloned section does not inherit authored audio", async () => {
+it("AC-8: tells the author that a cloned section keeps its images' authored audio", async () => {
   state.clone.mockResolvedValue({ clonedSectionIndex: 1 })
   render(<FloatingSaveProvider><StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={fixture()} /><LeaveProbe /></FloatingSaveProvider>)
   await waitFor(() => expect(state.panel).toBeTruthy())
@@ -257,7 +257,7 @@ it("AC-8: tells the author that a cloned section does not inherit authored audio
   expect(state.clone).toHaveBeenCalledWith("fixture", "pg001", 0, 1)
   await waitFor(() =>
     expect(toast.info).toHaveBeenCalledWith(
-      "Section duplicated. Authored element audio is not copied to the new section.",
+      "Section duplicated. Its images keep their authored element audio.",
     ),
   )
 })
