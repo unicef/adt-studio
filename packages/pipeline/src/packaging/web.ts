@@ -874,11 +874,8 @@ async function buildWebPackage(
   const publishElementAudioId = (textId: string): string =>
     elementAudioTextIds.has(textId) ? parseElementAudioTextId(textId) ?? textId : textId
   /** Authored element audio (base and easy-read) is speech-only: it must not
-   *  become display text. The artifact set keeps a legacy image whose own id
-   *  ends in `_audio` out of the filter. */
-  const isElementAudioCatalogId = (id: string): boolean =>
-    elementAudioTextIds.has(id) ||
-    (EASY_READ_ID_SUFFIX.test(id) && elementAudioTextIds.has(id.replace(EASY_READ_ID_SUFFIX, "")))
+   *  become display text. `isElementAudioCatalogId` uses the artifact set so a
+   *  legacy image whose own id ends in `_audio` stays in `texts.json`. */
 
   const packagedLanguages = [...new Set([language, ...outputLanguages])]
   let hasVoiceVariants = false
