@@ -55,6 +55,9 @@ export const ChatThread = ChatThreadSummary.extend({
 })
 export type ChatThread = z.infer<typeof ChatThread>
 
+export const ChatScope = z.enum(["book", "reader"])
+export type ChatScope = z.infer<typeof ChatScope>
+
 export const ChatMode = z.enum(["manual", "acceptEdits", "auto", "plan"])
 export type ChatMode = z.infer<typeof ChatMode>
 
@@ -63,6 +66,7 @@ export const ChatSendRequest = z
     text: z.string().trim().max(CHAT_MESSAGE_MAX_LENGTH),
     images: z.array(ChatImage).max(CHAT_MAX_IMAGES).default([]),
     mode: ChatMode.default("manual"),
+    scope: ChatScope.default("book"),
   })
   .refine((request) => request.text.length > 0 || request.images.length > 0, { message: "Write a message or attach an image" })
 export type ChatSendRequest = z.infer<typeof ChatSendRequest>
@@ -70,6 +74,7 @@ export type ChatSendRequest = z.infer<typeof ChatSendRequest>
 export const ChatApprovalRequest = z.object({
   decisions: z.record(z.string(), z.boolean()),
   mode: ChatMode.default("manual"),
+  scope: ChatScope.default("book"),
 })
 export type ChatApprovalRequest = z.infer<typeof ChatApprovalRequest>
 

@@ -296,21 +296,22 @@ History and restore are routes of their own.
 step. The request carries `scope: "reader"`, and `ChatSendRequest` gains an optional
 `scope`.
 
-- **Read:** `list_reader_files`, `read_reader_file` (effective content + layer),
-  `search_reader_files`, `get_inspected_component` (the last inspect-mode selection
-  sent with the message).
-- **Mutating** (listed in `requiresApproval`): `write_reader_file`,
-  `revert_reader_file`. An approved call is exactly one `reader-source` version,
+- **Read:** `listReaderFiles`, `readReaderFile` (effective content + layer),
+  `searchReaderFiles`, `getInspectedComponent` (the last inspect-mode selection
+  sent with the message, added with inspect mode in phase 6).
+- **Mutating** (listed in `requiresApproval`): `writeReaderFile`,
+  `revertReaderFile`. An approved call is exactly one `reader-source` version,
   saved under `withBookWriter`.
-- **Check:** `compile_reader` returns the D7 and esbuild errors so the model can fix
+- **Trust boundary:** the agent loop doesn't validate tool arguments against their schemas, so the reader source service validates every path itself (routes and tools share it).
+- **Check:** `compileReader` returns the D7 and esbuild errors so the model can fix
   them before asking for approval.
-- **Approval card:** for `write_reader_file`, the existing `ChatApprovalCard` shows a
+- **Approval card:** for `writeReaderFile`, the existing `ChatApprovalCard` shows a
   line diff against the effective file instead of raw JSON.
 - **Toolkit instructions** (`ChatToolkit.instructions`):
   - The libraries D7 allows, generated from `package.json`.
   - Prefer Tailwind with the `globals.css` tokens and the `shared/ui` primitives.
   - No new hardcoded user-visible strings: reuse existing runtime translation keys.
-  - Run `compile_reader` before proposing a write.
+  - Run `compileReader` before proposing a write.
 
 ### Preview
 
@@ -340,7 +341,7 @@ step. The request carries `scope: "reader"`, and `ChatSendRequest` gains an opti
   3. Post `{ chain: [{ name, path, line }] }` to the parent.
 - **Studio:** opens the innermost file at its line and shows the chain as a
   breadcrumb. **Ask the chat about this component** attaches the selection to the
-  next message, where `get_inspected_component` reads it.
+  next message, where `getInspectedComponent` reads it.
 
 ### Studio UI (Reader step)
 
@@ -424,10 +425,10 @@ step. The request carries `scope: "reader"`, and `ChatSendRequest` gains an opti
 - [x] AC-21: Resetting a global file writes a tombstone and keeps its history.
 
 **Chat reader tools**
-- [ ] AC-22: In `reader` scope, `write_reader_file` and `revert_reader_file` need approval, and an approved call creates exactly one `reader-source` version.
-- [ ] AC-23: `compile_reader` returns the same errors as the compile route; reader file tools enforce AC-18.
-- [ ] AC-24: The approval card for `write_reader_file` shows a line diff against the effective file.
-- [ ] AC-25: Reader tools are absent when the chat is opened outside the Reader step.
+- [x] AC-22: In `reader` scope, `writeReaderFile` and `revertReaderFile` need approval, and an approved call creates exactly one `reader-source` version.
+- [x] AC-23: `compileReader` returns the same errors as the compile route; reader file tools enforce AC-18.
+- [x] AC-24: The approval card for `writeReaderFile` shows a line diff against the effective file.
+- [x] AC-25: Reader tools are absent when the chat is opened outside the Reader step.
 
 **Preview and inspect**
 - [ ] AC-26: `compile` with unsaved drafts makes `adt-preview` serve the draft bundle and matching CSS; without drafts it serves the saved build.
@@ -466,9 +467,9 @@ step. The request carries `scope: "reader"`, and `ChatSendRequest` gains an opti
 | AC-19 | API | `reader-source.test.ts` | `AC-19: reader-source is never in a clear list or a clear call` |
 | AC-20 | unit + API | `reader-runtime.test.ts`; `reader-source.test.ts` | `AC-20: customizing detaches the book, and following the global layer again keeps its rows`; `AC-20: a global save reaches a following book until it is customized` |
 | AC-21 | unit + API | same | `AC-21: a global reset is a tombstone that keeps the history`; `AC-21: a global reset keeps its history` |
-| AC-22 | unit | `apps/api/src/services/chat/reader-tools.test.ts` | `AC-22: reader writes need approval and save one version` |
-| AC-23 | unit | same | `AC-23: compile_reader matches the compile route; paths are scoped` |
-| AC-24 | unit | `apps/studio/src/components/chat/BookChatPanel/__tests__/ChatApprovalCard.test.tsx` | `AC-24: file writes show a line diff` |
+| AC-22 | unit | `apps/api/src/services/chat/reader-tools.test.ts` | `AC-22: a reader write waits for approval and an approved one saves exactly one version` |
+| AC-23 | unit | same | `AC-23: compileReader returns the compile route's errors, and paths outside src are refused` |
+| AC-24 | unit | `apps/studio/src/components/chat/BookChatPanel/ChatApprovalCard.test.tsx` | `AC-24: file writes show a line diff against the effective file` |
 | AC-25 | unit | `reader-tools.test.ts` | `AC-25: reader tools only exist in reader scope` |
 | AC-26 | API | `apps/api/src/routes/adt-preview.test.ts` | `AC-26: preview serves the draft build` |
 | AC-27 | unit | `apps/adt-runtime/src/features/reader-ui/runtime/stylesheet.test.ts` | `AC-27: css-only update swaps the stylesheet` |
@@ -490,7 +491,7 @@ the owner decides.
 | 1 | experiment | Spike: compile the runtime with an overlay from shipped source in Electron and Docker; record sizes and times; pick distribution option A or B and amend this spec | — |
 | 2 | spec PR | This spec, reviewed and approved | — |
 | 3 | `feature/reader-source-customization` | **Done locally:** compiler + plugin + shared build module + `reader-source` entity + global layer storage + API routes + packaging. Shipping the runtime with the installers waits for phase 1 | AC-6…AC-21 |
-| 4 | same | Chat reader tools + diff in the approval card (the chat comes first in the UI work) | AC-22…AC-25 |
+| 4 | same | **Done locally:** chat reader tools + diff in the approval card (the chat comes first in the UI work) | AC-22…AC-25 |
 | 5 | same | Reader step: explorer, Monaco, draft preview, history, compare, revert, error boundary, global editor | AC-26…AC-28, AC-32, AC-33 |
 | 6 | same | Inspect mode | AC-29…AC-31 |
 | 7 | same | Docs: ARCHITECTURE, INVARIANTS, AGENTS, SECURITY_MODEL | — |

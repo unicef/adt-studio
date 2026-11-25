@@ -1,7 +1,7 @@
 import { Hono, type Context } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { streamSSE } from "hono/streaming"
-import { ChatApprovalRequest, ChatSendRequest, parseBookLabel, type ChatMode, type ChatStreamEvent } from "@adt/types"
+import { ChatApprovalRequest, ChatSendRequest, parseBookLabel, type ChatMode, type ChatScope, type ChatStreamEvent } from "@adt/types"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
 import { requireExistingBook } from "../utils/book-exists.js"
 import { ChatStateError, runChatTurn, type ChatTurnInput } from "../services/chat/chat-service.js"
@@ -21,7 +21,7 @@ function toHttpError(error: unknown): never {
   throw error
 }
 
-export function createChatRoutes(booksDir: string, promptsDir: string, configPath?: string): Hono {
+export function createChatRoutes(booksDir: string, promptsDir: string, configPath?: string, webAssetsDir?: string): Hono {
   const app = new Hono()
 
   function storeFor(c: Context) {
@@ -53,7 +53,7 @@ export function createChatRoutes(booksDir: string, promptsDir: string, configPat
     return c.json({ ok: true })
   })
 
-  function streamTurn(c: Context, input: ChatTurnInput, mode: ChatMode) {
+  function streamTurn(c: Context, input: ChatTurnInput, settings: { mode: ChatMode; scope: ChatScope }) {
     const { label, store } = storeFor(c)
     const threadId = c.req.param("id") ?? ""
     try {
@@ -79,7 +79,8 @@ export function createChatRoutes(booksDir: string, promptsDir: string, configPat
           configPath,
           threadId,
           input,
-          mode,
+          ...settings,
+          webAssetsDir,
           credentials,
           signal: controller.signal,
           onMessage: (message) => void emit({ type: "message", message }),
@@ -94,13 +95,13 @@ export function createChatRoutes(booksDir: string, promptsDir: string, configPat
   app.post("/books/:label/chat/threads/:id/messages", async (c) => {
     const body = ChatSendRequest.safeParse(await readJson(c))
     if (!body.success) throw new HTTPException(400, { message: body.error.message })
-    return streamTurn(c, { text: body.data.text, images: body.data.images }, body.data.mode)
+    return streamTurn(c, { text: body.data.text, images: body.data.images }, { mode: body.data.mode, scope: body.data.scope })
   })
 
   app.post("/books/:label/chat/threads/:id/approval", async (c) => {
     const body = ChatApprovalRequest.safeParse(await readJson(c))
     if (!body.success) throw new HTTPException(400, { message: body.error.message })
-    return streamTurn(c, { decisions: body.data.decisions }, body.data.mode)
+    return streamTurn(c, { decisions: body.data.decisions }, { mode: body.data.mode, scope: body.data.scope })
   })
 
   return app

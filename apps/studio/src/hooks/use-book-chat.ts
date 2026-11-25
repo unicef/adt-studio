@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import type { ChatMessage, ChatMode, ChatThread } from "@adt/types"
+import type { ChatMessage, ChatMode, ChatScope, ChatThread } from "@adt/types"
 import { api } from "@/api/client"
 
 type ChatInput = { text: string; images: string[] } | { decisions: Record<string, boolean> }
@@ -8,7 +8,7 @@ type ChatInput = { text: string; images: string[] } | { decisions: Record<string
 const threadsKey = (label: string) => ["books", label, "chat", "threads"]
 const threadKey = (label: string, id: string | null) => ["books", label, "chat", "thread", id]
 
-export function useBookChat(label: string) {
+export function useBookChat(label: string, scope: ChatScope) {
   const queryClient = useQueryClient()
   const [threadId, setThreadId] = useState<string | null>(null)
   const [live, setLive] = useState<ChatMessage[]>([])
@@ -46,6 +46,7 @@ export function useBookChat(label: string) {
           label,
           id,
           { ...input, mode },
+          scope,
           (event) => {
             if (event.type === "message") setLive((previous) => [...previous, event.message])
             else if (event.type === "done") {
@@ -63,7 +64,7 @@ export function useBookChat(label: string) {
         void queryClient.invalidateQueries({ queryKey: ["books", label] })
       }
     },
-    [label, mode, queryClient, threadId],
+    [label, mode, queryClient, scope, threadId],
   )
 
   const selectThread = useCallback((id: string | null) => {

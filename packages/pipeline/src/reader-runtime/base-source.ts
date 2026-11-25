@@ -48,3 +48,8 @@ export function runtimeSourceFingerprint(runtimeDir: string): string {
   })
   return createHash("sha256").update(JSON.stringify(entries)).digest("hex")
 }
+
+export function readerAllowedPackages(runtimeDir: string): string[] {
+  const manifest = JSON.parse(fs.readFileSync(path.join(runtimeDir, "package.json"), "utf8")) as { dependencies?: Record<string, string> }
+  return [...Object.keys(manifest.dependencies ?? {}), "@adt/types"]
+}

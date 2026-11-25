@@ -43,6 +43,10 @@ msgstr ", e "
 msgid "? This will remove all extracted data and cannot be undone."
 msgstr "? Isso removerá todos os dados extraídos e não poderá ser desfeito."
 
+#. placeholder {0}: row.hidden
+msgid "… {0} unchanged lines"
+msgstr "… {0} linhas sem alteração"
+
 msgid ".zip → added as-is"
 msgstr ".zip → adicionado como está"
 
@@ -6899,6 +6903,9 @@ msgstr "Carregando tamanhos de texto…"
 
 msgid "Loading the comments…"
 msgstr "Carregando os comentários…"
+
+msgid "Loading the current file…"
+msgstr "Carregando o arquivo atual…"
 
 msgid "Loading the shared link"
 msgstr "Carregando o link compartilhado"

@@ -19,9 +19,11 @@ import type {
   AdtImportUnreadableDetails,
   BookDetail,
   ChatMode,
+  ChatScope,
   ChatStreamEvent,
   ChatThread,
   ChatThreadSummary,
+  ReaderSourceFile,
   BookFont,
   BookFontRole,
   BookMetadata,
@@ -1759,14 +1761,18 @@ export const api = {
     label: string,
     threadId: string,
     input: ({ text: string; images?: string[] } | { decisions: Record<string, boolean> }) & { mode: ChatMode },
+    scope: ChatScope,
     onEvent: (event: ChatStreamEvent) => void,
     signal?: AbortSignal,
   ) =>
     postEventStream<ChatStreamEvent>(
       `/books/${label}/chat/threads/${threadId}/${"text" in input ? "messages" : "approval"}`,
-      input,
+      { ...input, scope },
       { headers: await buildApiHeaders(""), onEvent, signal },
     ),
+
+  getReaderSourceFile: (label: string, path: string) =>
+    request<ReaderSourceFile>(`/books/${label}/reader-source/file?path=${encodeURIComponent(path)}`),
 
   agentGenerateActivity: async (
     label: string,

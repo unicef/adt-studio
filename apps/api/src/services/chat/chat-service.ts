@@ -2,10 +2,11 @@ import path from "node:path"
 import { createBookStorage, withBookWriter } from "@adt/storage"
 import { createBookTools, type AgentCredentials } from "@adt/agents"
 import { executeToolCall, runAgentLoop, type AgentToolSet, type ProviderRegistry } from "@adt/llm"
-import type { ChatMessage, ChatMode, ChatThread, ChatToolResult } from "@adt/types"
+import type { ChatMessage, ChatMode, ChatScope, ChatThread, ChatToolResult } from "@adt/types"
 import { requireExistingBook } from "../../utils/book-exists.js"
 import { resolveAgentModelId, resolveStyleguide } from "../agents-service.js"
 import { createChatThreadStore } from "./thread-store.js"
+import { createReaderToolkit } from "./reader-tools.js"
 
 export const BOOK_WRITE_TOOLS: ReadonlySet<string> = new Set([
   "updateSection",
@@ -47,6 +48,8 @@ export interface RunChatTurnOptions {
   threadId: string
   input: ChatTurnInput
   mode?: ChatMode
+  scope?: ChatScope
+  webAssetsDir?: string
   credentials: AgentCredentials
   onMessage: (message: ChatMessage) => void
   signal?: AbortSignal
@@ -54,6 +57,15 @@ export interface RunChatTurnOptions {
 }
 
 const runningThreads = new Set<string>()
+
+function mergeToolkits(toolkits: ChatToolkit[]): ChatToolkit {
+  return {
+    tools: Object.assign({}, ...toolkits.map((toolkit) => toolkit.tools)),
+    requiresApproval: new Set(toolkits.flatMap((toolkit) => [...toolkit.requiresApproval])),
+    editTools: new Set(toolkits.flatMap((toolkit) => [...(toolkit.editTools ?? [])])),
+    instructions: toolkits.map((toolkit) => toolkit.instructions ?? "").filter(Boolean).join("\n\n"),
+  }
+}
 
 function applyMode(toolkit: ChatToolkit, mode: ChatMode, bookDir: string) {
   const isWrite = (name: string) => toolkit.requiresApproval.has(name)
@@ -107,7 +119,12 @@ async function runLocked(options: RunChatTurnOptions): Promise<ChatThread> {
       styleguide: resolveStyleguide(label, booksDir, options.configPath),
       credentials: options.credentials,
     })
-    const toolkit: ChatToolkit = { tools: book.tools, requiresApproval: BOOK_WRITE_TOOLS, editTools: BOOK_EDIT_TOOLS }
+    const toolkits: ChatToolkit[] = [{ tools: book.tools, requiresApproval: BOOK_WRITE_TOOLS, editTools: BOOK_EDIT_TOOLS }]
+    if (options.scope === "reader") {
+      if (!options.webAssetsDir) throw new ChatStateError("Reader customization is not available here")
+      toolkits.push(createReaderToolkit(label, booksDir, options.webAssetsDir))
+    }
+    const toolkit = mergeToolkits(toolkits)
     const needsApproval = (toolName: string) => toolkit.requiresApproval.has(toolName)
     const mode = options.mode ?? "manual"
     const active = applyMode(toolkit, mode, bookDir)

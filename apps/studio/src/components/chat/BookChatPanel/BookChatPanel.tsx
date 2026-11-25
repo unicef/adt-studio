@@ -11,6 +11,7 @@ import {
   MessageScrollerViewport,
 } from "@/components/ui/message-scroller"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import type { ChatScope } from "@adt/types"
 import { useBookChat } from "@/hooks/use-book-chat"
 import { ChatApprovalCard } from "./ChatApprovalCard"
 import { ChatComposer } from "./ChatComposer"
@@ -19,6 +20,7 @@ import { toolResultsById } from "./tool-calls"
 
 interface BookChatPanelProps {
   label: string
+  scope: ChatScope
   onClose: () => void
 }
 
@@ -47,9 +49,9 @@ function ChatSuggestions({ onPick }: { onPick: (text: string) => void }) {
   )
 }
 
-export function BookChatPanel({ label, onClose }: BookChatPanelProps) {
+export function BookChatPanel({ label, scope, onClose }: BookChatPanelProps) {
   const { t } = useLingui()
-  const chat = useBookChat(label)
+  const chat = useBookChat(label, scope)
   const results = useMemo(() => toolResultsById(chat.messages), [chat.messages])
   const awaitingIds = useMemo(() => new Set(chat.pendingToolCalls.map((call) => call.id)), [chat.pendingToolCalls])
   const empty = chat.messages.length === 0 && !chat.busy
@@ -112,7 +114,7 @@ export function BookChatPanel({ label, onClose }: BookChatPanelProps) {
                 )}
                 {chat.pendingToolCalls.length > 0 && (
                   <MessageScrollerItem messageId="approval">
-                    <ChatApprovalCard calls={chat.pendingToolCalls} onDecide={chat.decide} />
+                    <ChatApprovalCard label={label} calls={chat.pendingToolCalls} onDecide={chat.decide} />
                   </MessageScrollerItem>
                 )}
                 {chat.error && (

@@ -12,6 +12,12 @@ const TOOL_LABELS: Record<string, MessageDescriptor> = {
   updateSection: msg`Update a section`,
   createTemplatedActivity: msg`Create an activity`,
   createCustomSection: msg`Create a custom section`,
+  listReaderFiles: msg`Listed the reader files`,
+  readReaderFile: msg`Read a reader file`,
+  searchReaderFiles: msg`Searched the reader source`,
+  compileReader: msg`Compiled the reader`,
+  writeReaderFile: msg`Change a reader file`,
+  revertReaderFile: msg`Revert a reader file`,
 }
 
 export function toolLabel(toolName: string): MessageDescriptor | null {

@@ -200,7 +200,7 @@ function BookLayoutInner({ label, isRunning }: { label: string; isRunning: boole
                 </ExportWatcherProvider>
               </div>
 
-              {chatOpen && <BookChatPanel label={label} onClose={() => setChatOpen(false)} />}
+              {chatOpen && <BookChatPanel label={label} scope={activeStep === "reader" ? "reader" : "book"} onClose={() => setChatOpen(false)} />}
             </div>
 
             {debugOpen && !isDebugRoute && (

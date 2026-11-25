@@ -6,6 +6,7 @@ export {
   readBaseSource,
   baseSourceHash,
   runtimeSourceFingerprint,
+  readerAllowedPackages,
 } from "./base-source.js"
 export { ReaderSourceConflictError, ReaderSourceStateError, type ReaderSourceVersion, type LatestReaderSource } from "./versions.js"
 export { readGlobalHistory, readGlobalLatest, listGlobalLatest, writeGlobalVersion } from "./global-store.js"
