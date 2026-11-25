@@ -31,9 +31,10 @@ export function IdeaReading({ idea, file, pageCount, run, rec, onManual }: { ide
       </Chip>
     </div>
   )
-  const beside = (visual: ReactNode) => (
-    <div className="flex items-center gap-5">
-      {visual}
+  // The board's stage: the visual on its own, the words under it like its caption.
+  const figure = (visual: ReactNode) => (
+    <div className="flex flex-col items-start gap-4">
+      <div className="py-1">{visual}</div>
       <div className="flex min-w-0 flex-col gap-2.5">
         <p>{sentence}</p>
         {chip}
@@ -41,7 +42,7 @@ export function IdeaReading({ idea, file, pageCount, run, rec, onManual }: { ide
     </div>
   )
   const under = (visual: ReactNode) => (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3.5">
       <p>{sentence}</p>
       {visual}
       {chip}
@@ -50,11 +51,13 @@ export function IdeaReading({ idea, file, pageCount, run, rec, onManual }: { ide
 
   switch (idea) {
     case "c12":
-      return beside(<ScanPages file={file} pageCount={pageCount} />)
+      return figure(<ScanPages file={file} pageCount={pageCount} />)
     case "c13":
       return (
         <div className="flex flex-col gap-2.5">
-          <ShimmerLine seconds={seconds}>{slow ? sentence : <Plural value={pageCount} one="Reading your one page" other="Reading your # pages" />}</ShimmerLine>
+          <ShimmerLine seconds={seconds} under={<Plural value={pageCount} one="# page" other="# pages" />}>
+            {slow ? sentence : <Trans>Reading your book</Trans>}
+          </ShimmerLine>
           {chip}
         </div>
       )
@@ -63,9 +66,9 @@ export function IdeaReading({ idea, file, pageCount, run, rec, onManual }: { ide
     case "c15":
       return under(<SkeletonAnswer file={file} pageCount={pageCount} rec={rec} />)
     case "c16":
-      return beside(<Flipbook file={file} pageCount={pageCount} />)
+      return figure(<Flipbook file={file} pageCount={pageCount} />)
     case "c17":
-      return beside(<MorphMark />)
+      return figure(<MorphMark />)
     default:
       return null
   }

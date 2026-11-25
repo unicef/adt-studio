@@ -109,9 +109,18 @@ function StepList({ run }: { run: CreateRun }) {
   )
 }
 
+/** f29's rows: a bare brand check once a step is done, a thin spinner while it runs, nothing before. */
+function FoldMark({ state }: { state: StepState }) {
+  if (state === "doing") return <Loader2 aria-hidden className="size-4 shrink-0 animate-spin text-brand-600 motion-reduce:animate-none" />
+  if (state === "warning") return <AlertTriangle aria-hidden className="size-4 shrink-0 text-amber-500" />
+  if (state === "todo") return <span aria-hidden className="size-4 shrink-0" />
+  return <Check aria-hidden className="size-4 shrink-0 text-brand-600" strokeWidth={2.5} />
+}
+
 /**
- * f29 · Steps fold into "Done in N steps": the checklist folds away the moment it finishes and the
- * one "Open the book" takes its place; the steps are a tap away.
+ * f29 · Steps fold into "Done in N steps": a quiet checklist (small muted rows, a check as each
+ * ends); the moment it finishes the list folds up into one summary row with a chevron at its end,
+ * and the one "Open the book" takes the space under it. The steps are a tap away.
  */
 function StepsFold({ run }: { run: CreateRun }) {
   const steps = useSteps(run)
@@ -125,26 +134,34 @@ function StepsFold({ run }: { run: CreateRun }) {
     const active = document.activeElement
     if (!active || active === document.body || !active.isConnected) end.current?.querySelector("button")?.focus({ preventScroll: true })
   }, [done])
+  const list = (
+    <ul className="flex flex-col gap-2 text-[14.5px] text-muted-foreground">
+      {steps.map((s) => (
+        <li key={s.key} className={cn("flex items-center gap-2.5", s.state === "doing" && "text-foreground")}>
+          <FoldMark state={s.state} />
+          {s.label}
+        </li>
+      ))}
+    </ul>
+  )
   return (
-    <div className="flex flex-col items-start">
+    <div className="flex w-[320px] max-w-full flex-col">
       {done && (
-        <button type="button" aria-expanded={listOpen} onClick={() => setListOpen((o) => !o)} className="fx-fade-in -ml-1 inline-flex items-center gap-2 rounded-full py-1 pl-1 pr-2.5 font-semibold transition-colors hover:bg-muted">
-          <StepDot state={run.warning ? "warning" : "done"} />
+        <button type="button" aria-expanded={listOpen} onClick={() => setListOpen((o) => !o)} className="fx-fade-in -mx-2 flex items-center gap-2.5 rounded-[10px] px-2 py-1 text-left font-medium transition-colors hover:bg-muted">
+          <FoldMark state={run.warning ? "warning" : "done"} />
           <Plural value={steps.length} one="Done in # step" other="Done in # steps" />
-          <ChevronDown className={cn("size-4 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none", listOpen && "rotate-180")} />
+          <ChevronDown className={cn("ml-auto size-4 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none", listOpen && "rotate-180")} />
         </button>
       )}
       <div className="fx-fold w-full" data-open={!done || listOpen} inert={done && !listOpen}>
         <div>
-          <div className={done ? "pl-1 pt-2" : ""}>
-            <StepList run={run} />
-          </div>
+          <div className={done ? "pt-2" : ""}>{list}</div>
         </div>
       </div>
       {done && (
         <div ref={end} className="fx-fade-in mt-3 flex flex-col items-start gap-2" style={{ animationDelay: "0.25s" }}>
           {run.warning && <ErrorDetails detail={run.warning} className="items-start [&>button]:-ml-2" />}
-          <PrimaryButton onClick={() => run.label && finish?.onOpen(run.label)} icon={<BookOpen className="size-4" />} className="h-12 px-7 text-[15px]">
+          <PrimaryButton onClick={() => run.label && finish?.onOpen(run.label)} icon={<BookOpen className="size-4" />} className={cn("h-11 px-6 text-[15px]", LC_PRIMARY)}>
             <Trans>Open the book</Trans>
           </PrimaryButton>
         </div>
@@ -162,22 +179,25 @@ export function Ready({ run, onOpen }: { run: CreateRun; onOpen: () => void }) {
   return <ReadyText run={run} onOpen={onOpen} />
 }
 
-/** f27 / f28: the ready card with its small celebration at the side (`late`: the words wait for it). */
+/**
+ * f27 / f28: the board's finale, centred on the one message surface: the art, then the words as its
+ * caption and the one Open button under them (`late`: the words wait for the art to land).
+ */
 function ReadyWith({ run, onOpen, art, late }: { run: CreateRun; onOpen: () => void; art: ReactNode; late?: boolean }) {
   return (
-    <div className="flex w-full items-center gap-5 rounded-[22px] bg-gradient-to-br from-emerald-50 via-card to-card p-4 pl-5 ring-1 ring-emerald-200 shadow-[0_18px_44px_-26px_rgba(16,185,129,0.6)] dark:from-emerald-500/15 dark:ring-emerald-500/30">
+    <div className="lc-surface flex w-full flex-col items-center gap-4 px-6 pb-6 pt-7 text-center">
       {art}
-      <div className={cn("min-w-0 flex-1", late && "fx-after-book")}>
-        <ReadyText run={run} onOpen={onOpen} bare />
+      <div className={cn("flex min-w-0 max-w-[460px] flex-col items-center", late && "fx-after-book")}>
+        <ReadyText run={run} onOpen={onOpen} bare centered />
       </div>
     </div>
   )
 }
 
-function ReadyText({ run, onOpen, bare }: { run: CreateRun; onOpen: () => void; bare?: boolean }) {
+function ReadyText({ run, onOpen, bare, centered }: { run: CreateRun; onOpen: () => void; bare?: boolean; centered?: boolean }) {
   const living = useLiving()
   return (
-    <div className={cn("flex w-full flex-col items-start gap-3", !bare && (living ? "lc-surface p-5" : "rounded-[22px] bg-gradient-to-br from-emerald-50 via-card to-card p-4 ring-1 ring-emerald-200 shadow-[0_18px_44px_-26px_rgba(16,185,129,0.6)] dark:from-emerald-500/15 dark:ring-emerald-500/30"))}>
+    <div className={cn("flex w-full flex-col gap-3", centered ? "items-center" : "items-start", !bare && (living ? "lc-surface p-5" : "rounded-[22px] bg-gradient-to-br from-emerald-50 via-card to-card p-4 ring-1 ring-emerald-200 shadow-[0_18px_44px_-26px_rgba(16,185,129,0.6)] dark:from-emerald-500/15 dark:ring-emerald-500/30"))}>
       {living ? (
         <p className="text-[20px] font-semibold leading-tight tracking-[-0.02em]">
           <Trans>
@@ -200,8 +220,8 @@ function ReadyText({ run, onOpen, bare }: { run: CreateRun; onOpen: () => void; 
           <Trans>Your book and its settings are saved. Start processing from the book page whenever you&apos;re ready.</Trans>
         )}
       </p>
-      {run.warning && <ErrorDetails detail={run.warning} className="items-start [&>button]:-ml-2" />}
-      <PrimaryButton onClick={onOpen} icon={<BookOpen className="size-4" />} className={cn("h-12 px-7 text-[15px]", living && LC_PRIMARY)}>
+      {run.warning && <ErrorDetails detail={run.warning} className={centered ? "items-center" : "items-start [&>button]:-ml-2"} />}
+      <PrimaryButton onClick={onOpen} icon={<BookOpen className="size-4" />} className={cn("h-12 px-7 text-[15px]", living && LC_PRIMARY, centered && "mt-1")}>
         <Trans>Open the book</Trans>
       </PrimaryButton>
     </div>

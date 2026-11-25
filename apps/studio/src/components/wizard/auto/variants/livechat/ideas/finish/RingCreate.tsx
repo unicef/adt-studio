@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react"
 import { Trans } from "@lingui/react/macro"
-import { BookOpen } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 import { useReducedEffects } from "@/lib/effects"
 import { ErrorDetails } from "../../../../errors/ErrorState"
 import type { CreateRun } from "../../../chat/useCreateRun"
 import { useFinish } from "./context"
 import "./finish.css"
 
-const R = 21
+const R = 22
 const C = 2 * Math.PI * R
 
 /**
@@ -30,8 +30,9 @@ function useProgress(status: CreateRun["status"]) {
 }
 
 /**
- * f26 · Progress ring becomes the button: one object fills while the book is created, then
- * stretches into "Open the book" right where the eye already is.
+ * f26 · Progress ring becomes the button: one round object fills while the book is created, then
+ * stretches into the brand-blue "Open the book" pill right where the eye already is; the small
+ * caption under it says what it is doing, then that the book is ready.
  */
 export function RingCreate({ run }: { run: CreateRun }) {
   const reduced = useReducedEffects()
@@ -53,12 +54,7 @@ export function RingCreate({ run }: { run: CreateRun }) {
 
   return (
     <div className="flex flex-col items-start gap-3">
-      {morphed && (
-        <p className="fx-fade-in font-semibold">
-          <Trans>{run.name} is ready</Trans>
-        </p>
-      )}
-      <div className="flex items-center gap-3.5">
+      <div className="flex w-[230px] flex-col items-center gap-3 py-2">
         <button
           ref={button}
           type="button"
@@ -67,24 +63,22 @@ export function RingCreate({ run }: { run: CreateRun }) {
           data-done={morphed}
           aria-hidden={!morphed}
           tabIndex={morphed ? undefined : -1}
-          className="fx-ring relative inline-flex shrink-0 items-center justify-center overflow-hidden bg-muted/70 text-[15px] font-semibold text-primary-foreground [interpolate-size:allow-keywords] data-[done=true]:bg-brand-600 data-[done=true]:shadow-[0_10px_26px_-8px_rgba(43,127,255,0.75)] data-[done=true]:hover:bg-brand-600/90 data-[done=true]:active:scale-[0.97]"
+          className="fx-ring relative inline-flex shrink-0 items-center justify-center overflow-hidden text-[15px] font-semibold"
         >
-          <svg viewBox="0 0 48 48" className="absolute left-0 top-0 size-12" aria-hidden>
-            <circle cx="24" cy="24" r={R} fill="none" strokeWidth="3.5" className="stroke-border" />
-            <circle cx="24" cy="24" r={R} fill="none" strokeWidth="3.5" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - p)} className="p stroke-brand-600" />
+          <svg viewBox="0 0 52 52" className="absolute left-0 top-0 size-[52px]" aria-hidden>
+            <circle cx="26" cy="26" r={R} fill="none" strokeWidth="3.5" className="stroke-border" />
+            <circle cx="26" cy="26" r={R} fill="none" strokeWidth="3.5" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - p)} className="p stroke-brand-600" />
           </svg>
           {morphed && (
             <span className="fx-label-in inline-flex items-center gap-2 whitespace-nowrap">
-              <BookOpen className="size-4" />
               <Trans>Open the book</Trans>
+              <ArrowRight className="size-4" />
             </span>
           )}
         </button>
-        {!morphed && (
-          <span className="text-[15px] text-muted-foreground">
-            {done ? <Trans>Done</Trans> : run.status === "extracting" ? <Trans>Starting on the first pages…</Trans> : <Trans>Saving your book…</Trans>}
-          </span>
-        )}
+        <span key={morphed ? "ready" : run.status} className="fx-fade-in text-center font-mono text-[13px] text-muted-foreground">
+          {morphed ? <Trans>{run.name} is ready</Trans> : run.status === "extracting" ? <Trans>Starting on the first pages…</Trans> : done ? <Trans>Done</Trans> : <Trans>Saving your book…</Trans>}
+        </span>
       </div>
       {morphed && run.warning && <ErrorDetails detail={run.warning} className="items-start [&>button]:-ml-2" />}
     </div>

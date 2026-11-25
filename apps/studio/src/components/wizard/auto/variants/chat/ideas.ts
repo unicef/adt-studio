@@ -22,12 +22,12 @@ export const IDEA_GROUPS = [
     ["b11", "Receipt", "An answered step shrinks into a one-line receipt (check, what was settled, Change at the end). Answer something."],
   ] },
   { key: "loader", label: "Loader", options: [
-    ["c12", "Scan line", "A glowing line sweeps down your page thumbnails while reading."],
-    ["c13", "Shimmer + count", "The status line shimmers and the page count ticks up."],
-    ["c14", "Steps tick off", "A short checklist; each step gets a check as it finishes."],
-    ["c15", "Skeleton → answer", "Grey shapes of the answer appear first, then turn into it."],
-    ["c16", "Flipbook", "A small stack of your pages flips one by one."],
-    ["c17", "Shape morph", "The avatar morphs between shapes while it works."],
+    ["c12", "Scan line", "Three of your pages; a glowing line sweeps down each in turn and leaves a soft tint."],
+    ["c13", "Shimmer + count", "The status line shimmers; the seconds so far tick up inside it, the page count under it."],
+    ["c14", "Steps tick off", "Steps appear as they start: each spins, then pops a check and dims."],
+    ["c15", "Skeleton → answer", "Grey lines and pages in the answer's shape, then the real setup and pages replace them in place."],
+    ["c16", "Flipbook", "Your first five pages riffle over one by one in 3D, onto a dimmed left page."],
+    ["c17", "Shape morph", "A brand-blue shape turns and morphs between blob, circle and squircle while it reads."],
   ] },
   { key: "question", label: "Question", options: [
     ["d18", "Live previews", "Light picture cards: each is a screen of the book you'd get, from your pages, with a plain line. The picked one lifts."],
@@ -42,10 +42,10 @@ export const IDEA_GROUPS = [
     ["e25", "Tool-call card", "What was checked shows as one tool row: spinner, then check, the details folded under it. Click it."],
   ] },
   { key: "finish", label: "Finish", options: [
-    ["f26", "Ring → button", "A progress ring fills, then stretches into the Open button."],
-    ["f27", "Pages → book", "Page thumbnails gather into a stack and a cover closes over them."],
-    ["f28", "Sparkle burst", "A check draws itself and a few sparkles burst once."],
-    ["f29", "Done in N steps", "The progress steps fold into one line: Done in N steps."],
+    ["f26", "Ring → button", "A progress ring fills, then stretches into the Open pill; the caption under it says it's ready."],
+    ["f27", "Pages → book", "Your first pages slide into a stack and a cover with the name swings shut; the words follow."],
+    ["f28", "Sparkle burst", "A blue check springs in and draws itself while eight dots burst once."],
+    ["f29", "Done in N steps", "The checklist folds into one row, Done in N steps, with Open under it. Click the row."],
   ] },
   { key: "ambient", label: "Ambient", options: [
     ["g30", "Edge glow", "A blue glow turns around the window edge while it reads or creates."],

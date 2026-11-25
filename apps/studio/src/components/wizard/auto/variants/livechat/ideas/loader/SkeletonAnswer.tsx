@@ -1,44 +1,58 @@
+import { Fragment } from "react"
 import { useLingui } from "@lingui/react/macro"
 import type { SetupRecommendation, SetupSettingId } from "@adt/types"
-import { SettingPill } from "../../../chat/bubbles"
-import { SETTING_LABEL, valueTitle } from "../../../chat/words"
 import { usePageThumb } from "../../../../../core/pdf/usePageThumb"
+import { plainTitle } from "../../../chat/words"
 import { spreadPages } from "./shared"
 
 // eslint-disable-next-line lingui/no-unlocalized-strings -- setting ids
 const LEAD: SetupSettingId[] = ["preset", "renderStrategy", "pageGrouping"]
-const PILL_WIDTHS = ["w-[150px]", "w-[190px]", "w-[170px]"]
 const PAGES = 4
 
 /**
- * c15: grey bars in the shape of the answer while it reads (three settings, four pages); when the
- * answer is in, the real settings and the pages that show them take their places.
+ * c15: the answer's shape first (two grey text lines and four grey pages, a light sweeping over
+ * them); when the answer is in, the real words and the pages that show them replace the bars in
+ * the same place, coming in from a blur. Nothing moves when it lands.
  */
 export function SkeletonAnswer({ file, pageCount, rec }: { file: File; pageCount: number; rec: SetupRecommendation | null }) {
   const { i18n } = useLingui()
   const evidence = rec ? [...new Set(LEAD.flatMap((id) => rec.settingEvidence[id] ?? []))] : []
   const pages = (evidence.length >= PAGES ? evidence : [...new Set([...evidence, ...spreadPages(pageCount, PAGES)])]).slice(0, PAGES)
+  const values = rec
+    ? LEAD.map((id) => {
+        const value = rec.settings[id]?.value
+        const title = plainTitle(id, value)
+        return title ? i18n._(title) : String(value ?? "")
+      }).filter(Boolean)
+    : []
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap gap-1.5">
-        {LEAD.map((id, i) => {
-          const bar = <span aria-hidden className={`lcl-sk h-[27px] rounded-full [grid-area:1/1] ${PILL_WIDTHS[i]} ${rec ? "lcl-gone" : ""}`} />
-          if (!rec) return <span key={id} className="inline-grid">{bar}</span>
-          const value = rec.settings[id]?.value
-          const title = valueTitle(id, value)
-          return (
-            <span key={id} className="inline-grid">
-              {bar}
-              <span className="lcl-real [grid-area:1/1]" style={{ animationDelay: `${i * 70}ms` }}>
-                <SettingPill label={i18n._(SETTING_LABEL[id])} value={title ? i18n._(title) : String(value)} />
-              </span>
-            </span>
-          )
-        })}
+    <div className="grid w-[360px] max-w-full">
+      <div aria-hidden className={`flex flex-col [grid-area:1/1] ${rec ? "lcl-gone" : ""}`}>
+        <span className="lcl-sk mt-[7px] h-[12px] w-[85%] rounded-[6px]" />
+        <span className="lcl-sk mt-[14px] h-[12px] w-[60%] rounded-[6px]" />
+        <div className="mt-[20px] flex gap-2">
+          {Array.from({ length: PAGES }, (_, i) => (
+            <span key={i} className="lcl-sk h-[72px] w-[54px] rounded-[5px]" />
+          ))}
+        </div>
       </div>
-      <div aria-hidden className="flex gap-2">
-        {pages.map((page, i) => (rec ? <PageSlot key={`p-${page}`} file={file} page={page} delay={210 + i * 60} /> : <span key={`s-${i}`} className="lcl-sk h-[72px] w-[54px] rounded-[5px]" />))}
-      </div>
+      {rec && (
+        <div className="flex flex-col [grid-area:1/1]">
+          <p className="lcl-real min-h-[52px] text-[15.5px] leading-[26px]">
+            {values.map((v, i) => (
+              <Fragment key={v}>
+                {i > 0 && <span className="text-muted-foreground"> · </span>}
+                <b className="font-semibold">{v}</b>
+              </Fragment>
+            ))}
+          </p>
+          <div aria-hidden className="mt-[13px] flex gap-2">
+            {pages.map((page, i) => (
+              <PageSlot key={page} file={file} page={page} delay={90 + i * 60} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -49,7 +63,7 @@ function PageSlot({ file, page, delay }: { file: File; page: number; delay: numb
   return (
     <span className="grid">
       <span className={`lcl-sk h-[72px] w-[54px] rounded-[5px] [grid-area:1/1] ${src ? "lcl-gone" : ""}`} />
-      {src && <img src={src} alt="" className="lcl-real h-[72px] w-[54px] rounded-[5px] object-cover ring-1 ring-border [grid-area:1/1]" style={{ animationDelay: `${delay}ms` }} />}
+      {src && <img src={src} alt="" className="lcl-real lcl-page h-[72px] w-[54px] rounded-[5px] object-cover [grid-area:1/1]" style={{ animationDelay: `${delay}ms` }} />}
     </span>
   )
 }
