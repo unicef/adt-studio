@@ -88,6 +88,32 @@ describe("prepareCoreTtsCatalog", () => {
     expect(result.entries[0]).toEqual(previous.entries[0])
   })
 
+  it("AC-25: the artifact set isolates authored preparation from real neighbours", () => {
+    const authored = new Set(["pg001_im001_audio"])
+    const profile = { key: "default", guidance: "Normalize." }
+    const entries = [
+      { id: "pg001_t001", text: "Hello" },
+      { id: "pg001_im001_audio", text: "Mago" },
+      { id: "pg001_t002", text: "Bye" },
+    ]
+    const signatureOf = (result: ReturnType<typeof resolveCoreTtsSpeechCatalog>, id: string) =>
+      result.entries.find((entry) => entry.id === id)?.input?.signature
+
+    const base = resolveCoreTtsSpeechCatalog({ entries, language: "en", config, profile, authoredElementAudioIds: authored })
+    const neighbourChanged = resolveCoreTtsSpeechCatalog({
+      entries: [{ ...entries[0], text: "Hello changed" }, entries[1], entries[2]],
+      language: "en", config, profile, authoredElementAudioIds: authored,
+    })
+    expect(signatureOf(neighbourChanged, "pg001_im001_audio")).toBe(signatureOf(base, "pg001_im001_audio"))
+
+    const authoredChanged = resolveCoreTtsSpeechCatalog({
+      entries: [entries[0], { ...entries[1], text: "Mago changed" }, entries[2]],
+      language: "en", config, profile, authoredElementAudioIds: authored,
+    })
+    expect(signatureOf(authoredChanged, "pg001_t001")).toBe(signatureOf(base, "pg001_t001"))
+    expect(signatureOf(authoredChanged, "pg001_t002")).toBe(signatureOf(base, "pg001_t002"))
+  })
+
   it("uses one structured call for LaTeX and normalization", async () => {
     const llm = modelWith([{ id: "t1", speech_text: "one half", transformation_kinds: ["latex-to-speech", "language-normalization"], failure_reason: null }])
     const result = await prepareCoreTtsCatalog({

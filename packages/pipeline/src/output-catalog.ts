@@ -183,7 +183,7 @@ function projectOutputCatalog(options: Parameters<typeof readOutputCatalog>[0]):
   preparation.promptSignature = prompt(preparation.promptName, preparation.modelId)
   const profiles = loadCoreTtsProfiles(configDir)
   const sourceCore = retainedCoreTts(storage, sourceLanguage, sources.map((entry) => entry.id))
-  const effectiveSourceCore = resolveCoreTtsSpeechCatalog({ entries: sources, language: sourceLanguage, config: preparation, profile: resolveCoreTtsProfile(sourceLanguage, profiles), previous: sourceCore })
+  const effectiveSourceCore = resolveCoreTtsSpeechCatalog({ entries: sources, language: sourceLanguage, config: preparation, profile: resolveCoreTtsProfile(sourceLanguage, profiles), previous: sourceCore, authoredElementAudioIds })
   const sourceContext = buildCoreTtsSourceContext(sources, effectiveSourceCore)
   const voices = loadVoicesConfig(configDir)
   const instructions = loadSpeechInstructions(configDir)
@@ -199,7 +199,7 @@ function projectOutputCatalog(options: Parameters<typeof readOutputCatalog>[0]):
     const coreById = new Map((core?.entries ?? []).map((entry) => [entry.id, entry]))
     const audio = ((storage.getLatestNodeData("tts", language) ?? storage.getLatestNodeData("tts", language.replace("-", "_")))?.data as TTSOutput | undefined)?.entries ?? []
     const timings = ((storage.getLatestNodeData("tts-timestamps", language) ?? storage.getLatestNodeData("tts-timestamps", language.replace("-", "_")))?.data as WordTimestampOutput | undefined)?.entries
-    const effectiveCore = resolveCoreTtsSpeechCatalog({ entries, language, config: preparation, profile, previous: core, sourceContext: language === sourceLanguage ? undefined : sourceContext })
+    const effectiveCore = resolveCoreTtsSpeechCatalog({ entries, language, config: preparation, profile, previous: core, sourceContext: language === sourceLanguage ? undefined : sourceContext, authoredElementAudioIds })
     const effectiveById = new Map(effectiveCore.entries.map((entry) => [entry.id, entry]))
     const pageOf = (entry: TextCatalogEntry) => speechPageId(entry.id, entry.locations?.flatMap((location) => location.pageId ? [location.pageId] : []), authoredElementAudioIds)
     const speechEntries = entries.map((entry) => ({ ...entry, text: effectiveById.get(entry.id)?.speechText ?? entry.text }))

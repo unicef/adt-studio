@@ -1014,6 +1014,7 @@ async function runAdmittedFullPipeline(
       const outputLanguages = getOutputLanguages(config, language)
       const sourceDisplayEntries = buildOutputSources(storage, config).entries
       if (sourceDisplayEntries.length === 0) return
+      const authoredElementAudioIds = collectElementAudioTextIds(storage)
 
       const preparationConfig = buildCoreTtsPreparationConfig(config)
       preparationConfig.promptSignature = promptEngine.fingerprint(preparationConfig.promptName, { modelId: preparationConfig.modelId })
@@ -1029,6 +1030,7 @@ async function runAdmittedFullPipeline(
         profile: resolveCoreTtsProfile(language, profiles),
         llmModel: model,
         previous: getCoreTtsCatalog(storage, language),
+        authoredElementAudioIds,
       })
       if (inputSignature(getCoreTtsCatalog(storage, language)?.entries) !== inputSignature(sourceCatalog.entries)) storage.putNodeData("core-tts-catalog", language, sourceCatalog)
       const sourceContext = buildCoreTtsSourceContext(
@@ -1056,6 +1058,7 @@ async function runAdmittedFullPipeline(
           llmModel: model,
           previous: getCoreTtsCatalog(storage, lang),
           sourceContext,
+          authoredElementAudioIds,
         })
         if (inputSignature(getCoreTtsCatalog(storage, lang)?.entries) !== inputSignature(targetCatalog.entries)) storage.putNodeData("core-tts-catalog", lang, targetCatalog)
         completed++

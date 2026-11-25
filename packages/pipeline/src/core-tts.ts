@@ -296,6 +296,7 @@ export function resolveCoreTtsSpeechCatalog(options: {
   previous?: CoreTtsCatalogOutput | null
   sourceContext?: Map<string, CoreTtsSourceContextEntry>
   now?: string
+  authoredElementAudioIds?: AuthoredElementAudioIds
 }): CoreTtsCatalogOutput {
   const now = options.now ?? new Date().toISOString()
   const prior = new Map((options.previous?.entries ?? []).map((entry) => [entry.id, entry]))
@@ -338,6 +339,7 @@ export async function prepareCoreTtsCatalog(options: {
   retryIds?: readonly string[]
   references?: OutputReference[]
   signal?: AbortSignal
+  authoredElementAudioIds?: AuthoredElementAudioIds
 }): Promise<CoreTtsCatalogOutput> {
   const language = normalizeLocale(options.language)
   const now = options.now ?? new Date().toISOString()
