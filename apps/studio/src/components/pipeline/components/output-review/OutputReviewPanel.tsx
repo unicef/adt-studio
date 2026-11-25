@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from "react"
+import { useId, useMemo, useState, type ReactNode } from "react"
 import { useLingui } from "@lingui/react/macro"
 import { AlertCircle, ChevronDown, ChevronRight } from "lucide-react"
 import type { CatalogConflict, OutputStatus } from "@adt/types"
@@ -35,9 +35,20 @@ export function OutputReviewPanel({ bookLabel, outputs, catalog, conflicts = [],
   const [page, setPage] = useState("")
   const [section, setSection] = useState("")
   const id = useId()
+  // The catalog statuses carry the source locations, including the
+  // `element-audio` role; that is the artifact-aware signal for grouping.
+  const authoredElementAudioIds = useMemo(
+    () =>
+      new Set(
+        catalog
+          .filter((item) => item.locations?.some((location) => location.role === "element-audio"))
+          .map((item) => item.identity.id),
+      ),
+    [catalog],
+  )
   const affected = outputs.filter(needsAttention)
-  const group = (output: OutputStatus) => output.group ?? getEntryCategory(output.identity.id)
-  const categories = [...new Set([...affected.map(group), ...conflicts.map((item) => getEntryCategory(item.id))])].sort()
+  const group = (output: OutputStatus) => output.group ?? getEntryCategory(output.identity.id, authoredElementAudioIds)
+  const categories = [...new Set([...affected.map(group), ...conflicts.map((item) => getEntryCategory(item.id, authoredElementAudioIds))])].sort()
   const languages = [...new Set(affected.flatMap((output) => output.identity.language ? [output.identity.language] : []))].sort()
   const pages = [...new Set([...affected, ...conflicts].flatMap((output) => output.pageIds))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
   const sections = [...new Set([...affected, ...conflicts].flatMap((output) => sectionsOnPage(output, page)))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
@@ -47,7 +58,7 @@ export function OutputReviewPanel({ bookLabel, outputs, catalog, conflicts = [],
   }
   const scoped = affected.filter((output) => (!category || group(output) === category) && (!language || output.identity.language === language) &&
     matchesLocation(output, page, section))
-  const scopedConflicts = conflicts.filter((item) => (!category || getEntryCategory(item.id) === category) &&
+  const scopedConflicts = conflicts.filter((item) => (!category || getEntryCategory(item.id, authoredElementAudioIds) === category) &&
     matchesLocation(item, page, section))
   const issues = [
     { value: "update", label: t`Out of sync`, description: t`Generated content needs updating.` },
