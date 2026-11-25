@@ -8,7 +8,7 @@ import { isPublicOutputId } from "../public-output-identity.js"
 import { BookConfigError } from "../config.js"
 import { buildImageInventory } from "../catalog-reconciliation.js"
 import { reflowableBodyFontStyle } from "../adt-round-trip/font.js"
-import { collectElementAudioTextIds } from "../text-catalog.js"
+import { collectElementAudioTextIds } from "../element-audio-ids.js"
 import { answerTextId, resolveQuizOptionId } from "@adt/types"
 import { scopeLegacyActivityIds } from "../catalog-reconciliation.js"
 import { reconcileSpeechInputs } from "../speech-inputs.js"
@@ -870,7 +870,6 @@ async function buildWebPackage(
         : fs.existsSync(path.join(bookDir, "audio", lang, entry.fileName)) || fs.existsSync(path.join(bookDir, "audio", legacyLang, entry.fileName)))) === true
   })
   const highlightEnabled = hasTTS && speechConfig?.word_highlighting === true
-  const elementAudioTextIds = collectElementAudioTextIds(storage)
   /** Publish an authored script under the element's own `data-id`, so the
    *  runtime resolves it with the existing `[data-id]` lookup (SPEC-0014 §2). */
   const publishElementAudioId = (textId: string): string =>

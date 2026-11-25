@@ -908,7 +908,7 @@ export function createAdtPreviewRoutes(
         if (!elementAudioTextIds.has(entry.textId)) continue
         // Match audios.json: an explicit mute leaves no playable key, so the
         // manifest must not advertise a trigger (AC-10/AC-21).
-        if (isTtsExcluded(entry.textId, speechConfig)) continue
+        if (isTtsExcluded(entry.textId, speechConfig, elementAudioTextIds)) continue
         const elementId = parseElementAudioTextId(entry.textId)
         if (elementId) ids.add(elementId)
       }
