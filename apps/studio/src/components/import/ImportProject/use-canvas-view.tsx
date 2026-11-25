@@ -6,7 +6,7 @@ import { formatBytes } from "@/lib/utils"
 import type { CanvasView } from "./ArchiveCanvas"
 import { RepairRequest } from "../ImportReview/RepairRequest"
 import { ErrorDetails } from "./ErrorDetails"
-import { buildUnreadableRepairPrompt, canRepairByEditing } from "./repair-prompt"
+import { buildUnreadableRepairPrompt, canRepairByEditing, repairRequestFileName } from "./repair-prompt"
 
 type DropOverlay = "idle" | "dragging" | "error" | null | undefined
 
@@ -106,6 +106,7 @@ export function useCanvasView({
             {rawError && canRepairByEditing(rawError) ? (
               <RepairRequest
                 text={buildUnreadableRepairPrompt(file.name, rawError)}
+                fileName={repairRequestFileName(file.name)}
                 className="w-full max-w-[720px] rounded-xl border border-border bg-card p-4"
                 textClassName="max-h-[240px]"
                 actions={(

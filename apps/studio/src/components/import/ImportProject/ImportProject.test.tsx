@@ -4,11 +4,22 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 
 Element.prototype.scrollIntoView = vi.fn()
+// Radix positions the Download tooltip with a ResizeObserver, which jsdom lacks.
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+} as unknown as typeof ResizeObserver
 const writeClipboard = vi.fn()
 Object.defineProperty(navigator, "clipboard", {
   configurable: true,
   value: { writeText: writeClipboard },
 })
+
+const saveTextFile = vi.fn()
+vi.mock("@/lib/save-text-file", () => ({
+  saveTextFile: (...args: unknown[]) => saveTextFile(...args),
+}))
 
 const navigate = vi.fn()
 const previewImport = vi.fn()
@@ -526,6 +537,33 @@ describe("ImportProject", () => {
     await waitFor(() => expect(writeClipboard).toHaveBeenCalledWith(
       "Repair this exported ADT using the current guide.",
     ))
+    // #1246: too long to paste, the request is saved as a file next to the
+    // archive, and one short line points the assistant at it.
+    // The request is English for the assistant: screen readers must read it as English.
+    expect(screen.getByRole("region", { name: "Repair request" }).getAttribute("lang")).toBe("en")
+    // Before a download, only the button's tooltip explains the file, and the
+    // status region that will announce the save is already there, empty.
+    const download = screen.getAllByRole("button", { name: "Download repair request" })[0]!
+    expect(screen.queryByText("Read unsupported-repair-request.md and follow it.")).toBeNull()
+    const saveStatus = screen.getByRole("status", { name: "Download status" })
+    expect(saveStatus.textContent).toBe("")
+    fireEvent.focus(download)
+    expect((await screen.findAllByText(/Saves the full request as unsupported-repair-request.md/)).length).toBeGreaterThan(0)
+    // Cancelling the save dialog shows nothing.
+    saveTextFile.mockResolvedValueOnce(false)
+    fireEvent.click(download)
+    expect(saveTextFile).toHaveBeenCalledWith("unsupported-repair-request.md", "Repair this exported ADT using the current guide.")
+    await act(async () => {})
+    expect(screen.queryByText("Saved unsupported-repair-request.md")).toBeNull()
+    // Once saved, the line to give the assistant stays beside the request.
+    saveTextFile.mockResolvedValueOnce(true)
+    fireEvent.click(download)
+    expect(await screen.findByText("Saved unsupported-repair-request.md")).toBeTruthy()
+    expect(screen.getByRole("status", { name: "Download status" })).toBe(saveStatus)
+    expect(saveStatus.textContent).toContain("Saved unsupported-repair-request.md")
+    expect(screen.getByText("Read unsupported-repair-request.md and follow it.").getAttribute("lang")).toBe("en")
+    fireEvent.click(screen.getByRole("button", { name: "Copy line" }))
+    await waitFor(() => expect(writeClipboard).toHaveBeenCalledWith("Read unsupported-repair-request.md and follow it."))
     const correctedZipButton = screen.getByRole("button", { name: "Choose repaired ZIP" })
     expect(correctedZipButton.hasAttribute("disabled")).toBe(false)
     fireEvent.click(correctedZipButton)
@@ -877,6 +915,8 @@ describe("ImportProject", () => {
     expect(prompt).toContain(message)
     expect(prompt).toContain("AGENTS.md")
     expect(prompt).toContain("may appear in only one of the two lists")
+    fireEvent.click(screen.getByRole("button", { name: "Download repair request" }))
+    expect(saveTextFile).toHaveBeenCalledWith("repaired-adt-repair-request.md", prompt)
     expect(screen.getByRole("button", { name: "Choose repaired ZIP" })).toBeTruthy()
   })
 
@@ -907,6 +947,8 @@ describe("ImportProject", () => {
     fireEvent.click(screen.getByRole("button", { name: "Copy repair request" }))
     await waitFor(() => expect(writeClipboard).toHaveBeenCalled())
     expect(writeClipboard.mock.calls.at(-1)![0]).toContain(message)
+    fireEvent.click(screen.getByRole("button", { name: "Download repair request" }))
+    expect(saveTextFile).toHaveBeenLastCalledWith("repaired-adt-repair-request.md", writeClipboard.mock.calls.at(-1)![0])
     const choose = screen.getByRole("button", { name: "Choose repaired ZIP" })
     expect(choose.hasAttribute("disabled")).toBe(false)
   })

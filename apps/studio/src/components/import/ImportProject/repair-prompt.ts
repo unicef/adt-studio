@@ -25,6 +25,18 @@ export function repairedArchiveName(fileName: string): string {
   return `${round[1]}-fixed-${round[2] ? Number(round[2]) + 1 : 2}.zip`
 }
 
+/** The repair request saved as a file, named after the archive it repairs:
+ * `book.zip` → `book-repair-request.md` (#1246). */
+export function repairRequestFileName(fileName: string): string {
+  const base = fileName.split(/[\\/]/).pop()?.replace(/\.zip$/i, "").trim() || "adt-export"
+  return `${base}-repair-request.md`
+}
+
+/** The one line a person pastes instead of a request too long to paste. */
+export function repairRequestPointer(requestFileName: string): string {
+  return `Read ${requestFileName} and follow it.`
+}
+
 /** A fixed repair request for an ADT export ADT Studio could not read at all.
  * The server has no review to send in this case, only the error, so this leans
  * on the AGENTS.md every export ships with for the rules. Written for the AI

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { buildUnreadableRepairPrompt, canRepairByEditing, repairedArchiveName } from "./repair-prompt"
+import { buildUnreadableRepairPrompt, canRepairByEditing, repairRequestFileName, repairRequestPointer, repairedArchiveName } from "./repair-prompt"
 
 describe("canRepairByEditing", () => {
   it("accepts errors in the archive's files", () => {
@@ -61,5 +61,21 @@ describe("repairedArchiveName", () => {
     expect(repairedArchiveName("repaired-adt.zip")).toBe("repaired-adt-fixed.zip")
     expect(repairedArchiveName("repaired-adt-fixed.zip")).toBe("repaired-adt-fixed-2.zip")
     expect(repairedArchiveName("repaired-adt-fixed-2.zip")).toBe("repaired-adt-fixed-3.zip")
+  })
+})
+
+// #1246: the request saved as a file sits next to the archive it repairs.
+describe("repairRequestFileName", () => {
+  it("names the request after the archive", () => {
+    expect(repairRequestFileName("workbook.zip")).toBe("workbook-repair-request.md")
+    expect(repairRequestFileName("C:\\Users\\me\\Book 5B.ZIP")).toBe("Book 5B-repair-request.md")
+    expect(repairRequestFileName("workbook-fixed-2.zip")).toBe("workbook-fixed-2-repair-request.md")
+    expect(repairRequestFileName(".zip")).toBe("adt-export-repair-request.md")
+  })
+})
+
+describe("repairRequestPointer", () => {
+  it("is one line that points the assistant at the file", () => {
+    expect(repairRequestPointer("workbook-repair-request.md")).toBe("Read workbook-repair-request.md and follow it.")
   })
 })

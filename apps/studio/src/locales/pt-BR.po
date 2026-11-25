@@ -3506,6 +3506,9 @@ msgstr "Falha ao copiar"
 msgid "Copy full guide"
 msgstr "Copiar o guia completo"
 
+msgid "Copy line"
+msgstr "Copiar linha"
+
 msgid "Copy link"
 msgstr "Copiar link"
 
@@ -4239,6 +4242,12 @@ msgstr "Baixe uma parte leve (o PDF completo mais um intervalo de páginas e uma
 
 msgid "Download part"
 msgstr "Baixar parte"
+
+msgid "Download repair request"
+msgstr "Baixar solicitação de reparo"
+
+msgid "Download status"
+msgstr "Status do download"
 
 msgid "Download update"
 msgstr "Baixar atualização"
@@ -8154,6 +8163,9 @@ msgstr "Agora clique na página final."
 msgid "now correct"
 msgstr "agora correta"
 
+msgid "Now give your assistant this line instead of the whole request:"
+msgstr "Agora dê esta linha ao seu assistente em vez da solicitação inteira:"
+
 #. placeholder {0}: publication.current_version
 #. placeholder {1}: publication.version_count
 msgid "Now serving version {0} of {1}"
@@ -10652,6 +10664,9 @@ msgstr "Salve o novo tipo e escolha Regenerar para atualizar a atividade."
 msgid "Save your work first if you want to keep these changes."
 msgstr "Salve seu trabalho primeiro se quiser manter estas alterações."
 
+msgid "Saved {saved}"
+msgstr "Salvo: {saved}"
+
 msgid "Saved book history is unreadable. Existing content has been retained. Verified history recovery is required before generating new content."
 msgstr "O histórico salvo do livro está ilegível. O conteúdo existente foi preservado. É necessário recuperar o histórico com base em dados verificados antes de gerar novo conteúdo."
 
@@ -10678,6 +10693,9 @@ msgstr "As seções salvas mudaram. O editor com suas alterações não salvas m
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Salvo. Reempacote a Prévia para aplicar."
+
+msgid "Saves the full request as {fileName}. Use it when the request is too long to paste into your AI assistant."
+msgstr "Salva a solicitação completa como {fileName}. Use quando a solicitação for longa demais para colar no seu assistente de IA."
 
 msgid "Saving..."
 msgstr "Salvando..."
@@ -12381,8 +12399,11 @@ msgstr "A comunidade de organismos vivos em um lugar e a forma como interagem en
 msgid "The connection to Cloudflare dropped or timed out. Check your internet, then try again — anything already set up is kept."
 msgstr "A conexão com o Cloudflare caiu ou demorou demais. Verifique sua internet e tente novamente — o que já foi configurado é mantido."
 
-msgid "The copy also includes the current guide, because this archive’s guide is missing or outdated."
-msgstr "A cópia também inclui o guia atual, porque o guia deste arquivo está ausente ou desatualizado."
+#~ msgid "The copy also includes the current guide, because this archive’s guide is missing or outdated."
+#~ msgstr "A cópia também inclui o guia atual, porque o guia deste arquivo está ausente ou desatualizado."
+
+msgid "The copy and the download also include the current guide, because this archive’s guide is missing or outdated."
+msgstr "A cópia e o download também incluem o guia atual, porque o guia deste arquivo está ausente ou desatualizado."
 
 msgid "The copy could not be validated. The original book is unchanged. Check that other apps have closed it and that there is enough disk space, then retry."
 msgstr "Não foi possível validar a cópia. O livro original permanece inalterado. Verifique se os outros aplicativos fecharam o livro e se há espaço suficiente em disco. Depois, tente novamente."
@@ -13274,6 +13295,9 @@ msgstr "Tokens de saída"
 
 msgid "Too large"
 msgstr "Muito grande"
+
+#~ msgid "Too long to paste? Download it, then give your assistant this line:"
+#~ msgstr "Longa demais para colar? Baixe-a e depois dê esta linha ao seu assistente:"
 
 msgid "Too small"
 msgstr "Muito pequeno"
