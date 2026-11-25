@@ -703,8 +703,11 @@ msgstr "{providerKey, select, other {Your {name} key was rejected, so books can'
 msgid "{providerKey, select, other {Your {name} key was rejected}}"
 msgstr "{providerKey, select, other {Your {name} key was rejected}}"
 
-msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
-msgstr "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
+msgid "{regionCount} {regionCount, plural, one {region} other {regions}}"
+msgstr "{regionCount} {regionCount, plural, one {region} other {regions}}"
+
+#~ msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
+#~ msgstr "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 
 #. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
 msgid "{rejectedProviderKey, select, other {API Key Settings — the {rejectedName} key was rejected}}"
@@ -1487,6 +1490,9 @@ msgstr "Add quiz"
 
 msgid "Add quiz here"
 msgstr "Add quiz here"
+
+msgid "Add region"
+msgstr "Add region"
 
 msgid "Add reviewer guidance."
 msgstr "Add reviewer guidance."
@@ -9889,6 +9895,9 @@ msgstr "Regenerate this activity with AI (requires a saved state and an API key)
 msgid "Region"
 msgstr "Region"
 
+msgid "Region {n}"
+msgstr "Region {n}"
+
 msgid "Reject renderings that diverge stylistically from the original. More rejections and rerenders, closer match to the source."
 msgstr "Reject renderings that diverge stylistically from the original. More rejections and rerenders, closer match to the source."
 
@@ -9964,6 +9973,9 @@ msgstr "Remove picture"
 
 msgid "Remove placement"
 msgstr "Remove placement"
+
+msgid "Remove region"
+msgstr "Remove region"
 
 msgid "Remove second voice"
 msgstr "Remove second voice"
