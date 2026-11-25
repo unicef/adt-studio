@@ -35,6 +35,20 @@ import type {
 } from "@adt/types"
 import { requireExistingBook } from "../utils/book-exists.js"
 
+const READER_GLOBALS_CSS = "styles/globals.css"
+
+export interface ReaderPreviewBuild {
+  hash: string
+  dir: string
+  globalsCss?: string
+}
+
+const previewBuilds = new Map<string, ReaderPreviewBuild>()
+
+function previewKey(booksDir: string, label: string): string {
+  return `${path.resolve(booksDir)}\0${label}`
+}
+
 function checked(sourcePath: string): string {
   const parsed = ReaderSourcePath.safeParse(sourcePath)
   if (!parsed.success) throw new HTTPException(400, { message: `Invalid reader source path: ${sourcePath}` })
@@ -76,14 +90,14 @@ export function createReaderSourceService(booksDir: string, webAssetsDir: string
     })
   }
 
-  function effectiveFile(layer: ReaderSourceLayer, sourcePath: string, latest: ReaderSourceVersion | null): ReaderSourceFile {
+  function effectiveFile(layer: ReaderSourceLayer, sourcePath: string, latest: ReaderSourceVersion | null, headVersion: number | null): ReaderSourceFile {
     if (latest && !latest.data.deleted) {
       const outdated = latest.data.baseHash !== null && latest.data.baseHash !== baseSourceHash(runtimeDir(), sourcePath)
-      return { path: sourcePath, layer, version: latest.version, outdated, content: latest.data.content, baseHash: latest.data.baseHash }
+      return { path: sourcePath, layer, version: latest.version, headVersion, outdated, content: latest.data.content, baseHash: latest.data.baseHash }
     }
     const content = readBaseSource(runtimeDir(), sourcePath)
     if (content === null) throw new HTTPException(404, { message: `${sourcePath} does not exist in the reader source` })
-    return { path: sourcePath, layer: "base", version: null, outdated: false, content, baseHash: baseSourceHash(runtimeDir(), sourcePath) }
+    return { path: sourcePath, layer: "base", version: null, headVersion, outdated: false, content, baseHash: baseSourceHash(runtimeDir(), sourcePath) }
   }
 
   return {
@@ -101,8 +115,8 @@ export function createReaderSourceService(booksDir: string, webAssetsDir: string
       checked(sourcePath)
       return withBook(label, (storage) =>
         readReaderSourceMode(storage).followsGlobal
-          ? effectiveFile("global", sourcePath, readGlobalLatest(globalDir, sourcePath))
-          : effectiveFile("book", sourcePath, readBookLatest(storage, sourcePath)),
+          ? effectiveFile("global", sourcePath, readGlobalLatest(globalDir, sourcePath), null)
+          : effectiveFile("book", sourcePath, readBookLatest(storage, sourcePath), readBookLatest(storage, sourcePath)?.version ?? null),
       )
     },
 
@@ -164,6 +178,8 @@ export function createReaderSourceService(booksDir: string, webAssetsDir: string
 
     async compile(label: string, drafts: Record<string, string> = {}): Promise<ReaderSourceCompileResult> {
       Object.keys(drafts).forEach(checked)
+      const key = previewKey(booksDir, label)
+      if (Object.keys(drafts).length === 0) previewBuilds.delete(key)
       const { files, cacheDir } = withBook(label, (storage, bookDir) => ({
         files: resolveReaderOverlay(storage, globalDir).files,
         cacheDir: path.join(bookDir, ".cache"),
@@ -175,7 +191,25 @@ export function createReaderSourceService(booksDir: string, webAssetsDir: string
         files: [...merged].map(([sourcePath, content]) => ({ path: sourcePath, content })),
         cacheDir,
       })
+      if (result.ok && Object.keys(drafts).length > 0) {
+        previewBuilds.set(key, { hash: result.hash, dir: result.dir, globalsCss: merged.get(READER_GLOBALS_CSS) })
+      }
       return { ok: result.ok, hash: result.hash, errors: result.errors }
+    },
+
+    async previewBuild(label: string): Promise<ReaderPreviewBuild | null> {
+      const draft = previewBuilds.get(previewKey(booksDir, label))
+      if (draft) return draft
+      const runtime = readerRuntimeDir(webAssetsDir)
+      if (!runtime) return null
+      const { files, cacheDir } = withBook(label, (storage, bookDir) => ({
+        files: resolveReaderOverlay(storage, globalDir).files,
+        cacheDir: path.join(bookDir, ".cache"),
+      }))
+      if (files.length === 0) return null
+      const result = await compileReaderRuntime({ runtimeDir: runtime, files, cacheDir })
+      if (!result.ok) return null
+      return { hash: result.hash, dir: result.dir, globalsCss: files.find((file) => file.path === READER_GLOBALS_CSS)?.content }
     },
 
     globalTree(): ReaderSourceTree {
@@ -184,7 +218,8 @@ export function createReaderSourceService(booksDir: string, webAssetsDir: string
 
     globalFile(sourcePath: string): ReaderSourceFile {
       checked(sourcePath)
-      return effectiveFile("global", sourcePath, readGlobalLatest(globalDir, sourcePath))
+      const latest = readGlobalLatest(globalDir, sourcePath)
+      return effectiveFile("global", sourcePath, latest, latest?.version ?? null)
     },
 
     globalHistory(sourcePath: string): ReaderSourceHistoryEntry[] {

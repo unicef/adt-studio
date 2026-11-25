@@ -23,7 +23,10 @@ import type {
   ChatStreamEvent,
   ChatThread,
   ChatThreadSummary,
+  ReaderSourceCompileResult,
   ReaderSourceFile,
+  ReaderSourceHistoryEntry,
+  ReaderSourceTree,
   BookFont,
   BookFontRole,
   BookMetadata,
@@ -1773,6 +1776,32 @@ export const api = {
 
   getReaderSourceFile: (label: string, path: string) =>
     request<ReaderSourceFile>(`/books/${label}/reader-source/file?path=${encodeURIComponent(path)}`),
+
+  readerSourceTree: (prefix: string) => request<ReaderSourceTree>(`${prefix}/tree`),
+
+  readerSourceFile: (prefix: string, path: string) =>
+    request<ReaderSourceFile>(`${prefix}/file?path=${encodeURIComponent(path)}`),
+
+  readerSourceHistory: (prefix: string, path: string) =>
+    request<{ versions: ReaderSourceHistoryEntry[] }>(`${prefix}/history?path=${encodeURIComponent(path)}`),
+
+  saveReaderSource: (prefix: string, body: { path: string; content: string; baseVersion: number | null }) =>
+    request<{ version: number }>(`${prefix}/file`, { method: "PUT", body: JSON.stringify(body) }),
+
+  revertReaderSource: (prefix: string, body: { path: string; baseVersion: number | null }) =>
+    request<{ version: number }>(`${prefix}/revert`, { method: "POST", body: JSON.stringify(body) }),
+
+  restoreReaderSource: (prefix: string, body: { path: string; version: number; baseVersion: number | null }) =>
+    request<{ version: number }>(`${prefix}/restore`, { method: "POST", body: JSON.stringify(body) }),
+
+  readerSourceBase: (prefix: string, path: string) =>
+    request<{ base: string | null; global: string | null }>(`${prefix}/base?path=${encodeURIComponent(path)}`),
+
+  followGlobalReader: (label: string) =>
+    request<{ version: number }>(`/books/${label}/reader-source/follow-global`, { method: "POST" }),
+
+  compileReaderSource: (label: string, drafts: Record<string, string>) =>
+    request<ReaderSourceCompileResult>(`/books/${label}/reader-source/compile`, { method: "POST", body: JSON.stringify({ drafts }) }),
 
   agentGenerateActivity: async (
     label: string,

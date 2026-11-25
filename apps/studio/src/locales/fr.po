@@ -75,6 +75,9 @@ msgstr "(actif)"
 msgid "(base)"
 msgstr "(base)"
 
+msgid "(current)"
+msgstr "(actuelle)"
+
 msgid "(default)"
 msgstr "(par défaut)"
 
@@ -90,6 +93,9 @@ msgstr "(non cible)"
 #. placeholder {0}: sections[0].pageNumber
 msgid "(p.{0})"
 msgstr "(p.{0})"
+
+msgid "(reverted)"
+msgstr "(annulée)"
 
 msgid "(template)"
 msgstr "(modèle)"
@@ -2813,6 +2819,9 @@ msgstr "Modifié depuis l’export"
 msgid "Changes detected"
 msgstr "Modifications détectées"
 
+msgid "Changes here reach every book that has not customized its own reader. Every save is a new version you can restore."
+msgstr "Les modifications faites ici s’appliquent à tous les livres qui n’ont pas personnalisé leur propre lecteur. Chaque enregistrement crée une nouvelle version que vous pouvez restaurer."
+
 msgid "Changes not saved"
 msgstr "Modifications non enregistrées"
 
@@ -2923,6 +2932,12 @@ msgstr "choix"
 
 msgid "Choose a beta release to install."
 msgstr "Choisissez une version bêta à installer."
+
+msgid "Choose a file on the left to edit the global reader."
+msgstr "Choisissez un fichier à gauche pour modifier le lecteur global."
+
+msgid "Choose a file on the left, click an element in the preview, or ask the assistant for a change."
+msgstr "Choisissez un fichier à gauche, cliquez sur un élément de l’aperçu ou demandez une modification à l’assistant."
 
 msgid "Choose a PDF"
 msgstr "Choisir un PDF"
@@ -3222,8 +3237,17 @@ msgstr "Comparez la version actuelle avec une version choisie à la même taille
 msgid "Compare versions"
 msgstr "Comparer les versions"
 
+msgid "Compare with the default version"
+msgstr "Comparer avec la version par défaut"
+
 msgid "Compared with fallback prompt."
 msgstr "Comparé au prompt de repli."
+
+msgid "Compiling Reader..."
+msgstr "Compilation du lecteur..."
+
+msgid "Compiling..."
+msgstr "Compilation..."
 
 msgid "Complete missing cells in a table."
 msgstr "Compléter les cellules manquantes d’un tableau."
@@ -3879,6 +3903,9 @@ msgstr "Section personnalisée {index}"
 msgid "Custom stylesheet"
 msgstr "Feuille de style personnalisée"
 
+msgid "Customized in this book"
+msgstr "Personnalisé dans ce livre"
+
 msgid "Cut a region out of any page"
 msgstr "Découpez une région de n'importe quelle page"
 
@@ -3944,6 +3971,9 @@ msgstr "Par défaut (hériter)"
 
 msgid "Default (no text detected yet)"
 msgstr "Par défaut (aucun texte détecté pour l'instant)"
+
+msgid "Default changed since customized"
+msgstr "La version par défaut a changé depuis la personnalisation"
 
 msgid "Default guidance"
 msgstr "Consignes par défaut"
@@ -4537,6 +4567,9 @@ msgstr "Modifier les fusions"
 msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save."
 msgstr "Modifiez le modèle Liquid/HTML ci-dessous. Les modifications sont enregistrées lorsque vous cliquez sur Enregistrer."
 
+msgid "Edit the reader interface source, preview it and ask the assistant to change it."
+msgstr "Modifiez le code de l’interface du lecteur, prévisualisez-la et demandez des modifications à l’assistant."
+
 msgid "Edit this image"
 msgstr "Modifier cette image"
 
@@ -5127,6 +5160,9 @@ msgstr "Filtrer by image ID..."
 msgid "Filter by item ID..."
 msgstr "Filtrer by élément ID..."
 
+msgid "Filter files..."
+msgstr "Filtrer les fichiers..."
+
 msgid "Filter pages…"
 msgstr "Filtrer les pages…"
 
@@ -5237,6 +5273,9 @@ msgstr "Paquet HTML5 prêt pour le FNDE (.zip)"
 
 msgid "Folder actions"
 msgstr "Actions du dossier"
+
+msgid "Follow the global reader again"
+msgstr "Suivre à nouveau le lecteur global"
 
 msgid "Font"
 msgstr "Police"
@@ -5570,6 +5609,9 @@ msgstr "GitHub"
 msgid "Give it to your AI assistant together with the unzipped archive."
 msgstr "Donnez-la à votre assistant IA avec l’archive décompressée."
 
+msgid "Global customization"
+msgstr "Personnalisation globale"
+
 msgid "Global prompt reset to default."
 msgstr "Prompt global réinitialisé par défaut."
 
@@ -5581,6 +5623,9 @@ msgstr "Prompts globaux"
 
 msgid "Global Prompts"
 msgstr "Prompts globaux"
+
+msgid "Global reader"
+msgstr "Lecteur global"
 
 msgid "Glossary"
 msgstr "Glossaire"
@@ -5605,6 +5650,9 @@ msgstr "Glossary Invite"
 
 msgid "Glossary words and their definitions."
 msgstr "Mots du glossaire et leurs définitions."
+
+msgid "Go back to the default version of this file"
+msgstr "Revenir à la version par défaut de ce fichier"
 
 msgid "Go to {stageLabel}"
 msgstr "Aller à {stageLabel}"
@@ -5807,6 +5855,9 @@ msgstr "Indice en cas d'erreur (ne révélez pas la réponse)"
 
 msgid "História e Sociedade - Vol. 1"
 msgstr "História e Sociedade - Vol. 1"
+
+msgid "History"
+msgstr "Historique"
 
 msgid "History recovery"
 msgstr "Récupération de l’historique"
@@ -6819,8 +6870,17 @@ msgstr "Chargement de l'exportation..."
 msgid "Loading feedback"
 msgstr "Chargement des retours"
 
+msgid "Loading file..."
+msgstr "Chargement du fichier..."
+
+msgid "Loading files..."
+msgstr "Chargement des fichiers..."
+
 msgid "Loading glossary..."
 msgstr "Chargement du glossaire..."
+
+msgid "Loading history..."
+msgstr "Chargement de l’historique..."
 
 msgid "Loading image..."
 msgstr "Chargement de l'image..."
@@ -6863,6 +6923,9 @@ msgstr "Chargement du quiz..."
 
 msgid "Loading quizzes..."
 msgstr "Chargement des quiz..."
+
+msgid "Loading reader..."
+msgstr "Chargement du lecteur..."
 
 msgid "Loading reviewer checklist…"
 msgstr "Chargement de la liste de contrôle du réviseur…"
@@ -7929,6 +7992,9 @@ msgstr "Aucune session de validation du réviseur n'a encore été démarrée. O
 
 msgid "No saved prompt versions yet."
 msgstr "Aucune version de prompt enregistrée pour l'instant."
+
+msgid "No saved versions yet."
+msgstr "Aucune version enregistrée pour l’instant."
 
 msgid "No sectioning data available."
 msgstr "Aucune donnée de sectionnement disponible."
@@ -9739,6 +9805,15 @@ msgstr "Lecteur"
 msgid "Reader Highlighting"
 msgstr "Surlignage du lecteur"
 
+msgid "reader interface source code customization"
+msgstr "lecteur interface code source personnalisation"
+
+msgid "Reader preview"
+msgstr "Aperçu du lecteur"
+
+msgid "Reader source files"
+msgstr "Fichiers source du lecteur"
+
 msgid "Reader View"
 msgstr "Vue du lecteur"
 
@@ -10017,6 +10092,9 @@ msgstr "Relâchez pour lire l’archive"
 
 msgid "Reload app"
 msgstr "Recharger l'application"
+
+msgid "Reload the preview"
+msgstr "Recharger l’aperçu"
 
 msgid "Remove"
 msgstr "Retirer"
@@ -10386,6 +10464,9 @@ msgstr "Annuler les modifications manuelles de la page {pageNumber} ?"
 
 msgid "Revert to {originalLanguageName}"
 msgstr "Revenir à {originalLanguageName}"
+
+msgid "Revert to default"
+msgstr "Revenir à la version par défaut"
 
 msgid "Review"
 msgstr "Réviser"
@@ -11725,6 +11806,9 @@ msgstr "Langue source"
 msgid "Source needs review: {sources}"
 msgstr "Source à vérifier : {sources}"
 
+msgid "Source of {selected}"
+msgstr "Source de {selected}"
+
 msgid "Source PDF"
 msgstr "PDF source"
 
@@ -12522,6 +12606,9 @@ msgstr "La page d'activité déclarée est manquante."
 msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure and ElevenLabs ignore it."
 msgstr "L'instruction TTS par défaut appliquée à chaque langue sauf si elle est remplacée ci-dessous. OpenAI l'utilise comme instruction vocale et Gemini comme guidage d'accent dans le prompt ; Azure et ElevenLabs l'ignorent."
 
+msgid "The default version changed since this was customized"
+msgstr "La version par défaut a changé depuis cette personnalisation"
+
 msgid "The edit request is invalid. Refresh the saved content and try again."
 msgstr "La demande de modification est invalide. Actualisez le contenu enregistré et réessayez."
 
@@ -12761,8 +12848,15 @@ msgstr "Portez ce vieux whisky au juge blond qui fume 0123456789"
 msgid "The quick brown fox jumps over the lazy dog."
 msgstr "Le vif renard brun saute par-dessus le chien paresseux."
 
+msgid "The reader does not compile. The preview shows the last version that did."
+msgstr "Le lecteur ne compile pas. L’aperçu affiche la dernière version qui compilait."
+
 msgid "The reader experience"
 msgstr "L'expérience du lecteur"
+
+#. placeholder {0}: crash.message
+msgid "The reader interface stopped working: {0}"
+msgstr "L’interface du lecteur a cessé de fonctionner : {0}"
 
 msgid "The recovery request is invalid. Inspect the book again and explicitly confirm the affected versions."
 msgstr "La demande de récupération n’est pas valide. Inspectez à nouveau le livre et confirmez explicitement les versions concernées."
@@ -12959,11 +13053,20 @@ msgstr "Ce livre a déjà des pages extraites ; l'extraction ne peut donc pas ê
 msgid "This book already has extracted pages. Re-extracting an existing book is not available in this version; to extract again, create a new book from the PDF. This book's content is preserved."
 msgstr "Ce livre a déjà des pages extraites. La réextraction d'un livre existant n'est pas disponible dans cette version ; pour extraire à nouveau, créez un nouveau livre à partir du PDF. Le contenu de ce livre est conservé."
 
+msgid "This book follows the global reader. Saving a change gives it its own copy."
+msgstr "Ce livre suit le lecteur global. Enregistrer une modification lui donne sa propre copie."
+
 msgid "This book has {pageCount} pages."
 msgstr "Ce livre comporte {pageCount} pages."
 
+msgid "This book has its own reader. Global changes no longer reach it."
+msgstr "Ce livre a son propre lecteur. Les modifications globales ne s’y appliquent plus."
+
 msgid "This book has no images to caption"
 msgstr "Ce livre ne contient aucune image à légender"
+
+msgid "This book has no pages to preview yet."
+msgstr "Ce livre n’a pas encore de pages à prévisualiser."
 
 msgid "This book has no pages. Make sure the extraction and storyboard stages produced content before generating {stageName}."
 msgstr "Ce livre n'a pas de pages. Assurez-vous que les étapes d'extraction et de storyboard ont produit du contenu avant de générer {stageName}."

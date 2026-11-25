@@ -1,6 +1,6 @@
 import { catalogOutputs } from "../services/catalog-output-service.js"
 import { bookStateKey } from "../services/book-state-memo.js"
-import { partScopedPages, requiredPartRange, buildTextCatalogSnapshot, reconcileSpeechInputs, loadCoreTtsProfiles, scopeLegacyActivityIds, activeEasyRead, buildEasyReadSourceBlocks } from "@adt/pipeline"
+import { COMPILED_READER_FILES, partScopedPages, requiredPartRange, buildTextCatalogSnapshot, reconcileSpeechInputs, loadCoreTtsProfiles, scopeLegacyActivityIds, activeEasyRead, buildEasyReadSourceBlocks } from "@adt/pipeline"
 import fs from "node:fs"
 import path from "node:path"
 import { createHash } from "node:crypto"
@@ -77,6 +77,7 @@ import {
   readerSettingsFromConfig,
 } from "@adt/pipeline"
 import { getImportedAdtPresentationAssets } from "../services/adt-import/presentation.js"
+import { createReaderSourceService } from "../services/reader-source-service.js"
 
 // ---------------------------------------------------------------------------
 // MIME type helper
@@ -513,6 +514,7 @@ export function createAdtPreviewRoutes(
   promptsDir = path.resolve("prompts"),
 ): Hono {
   const app = new Hono()
+  const readerSource = createReaderSourceService(booksDir, webAssetsDir)
   app.use("/books/:label/adt-preview/*", async (c, next) => {
     const label = parseBookLabel(c.req.param("label"))
     if (!fs.existsSync(path.join(path.resolve(booksDir), label))) throw new HTTPException(404, { message: "Book not found" })
@@ -633,9 +635,18 @@ export function createAdtPreviewRoutes(
 
   // /assets/* — Static files from webAssetsDir
   app.get("/books/:label/adt-preview/assets/*", async (c) => {
-    resolveBook(c.req.param("label")) // validate label
+    const { safeLabel } = resolveBook(c.req.param("label"))
     const assetPath = c.req.path.split("/adt-preview/assets/")[1]
     if (!assetPath) throw new HTTPException(400, { message: "Missing asset path" })
+
+    if ((COMPILED_READER_FILES as readonly string[]).includes(assetPath)) {
+      const build = await readerSource.previewBuild(safeLabel)
+      if (build) {
+        setNoStoreHeaders(c)
+        c.header("Content-Type", getMimeType(assetPath))
+        return c.body(fs.readFileSync(path.join(build.dir, assetPath)))
+      }
+    }
 
     // Prevent path traversal
     const resolved = resolvePathWithin(webAssetsDir, assetPath)
@@ -739,6 +750,7 @@ export function createAdtPreviewRoutes(
 
   /** Collect all rendered HTML from the DB + optional extra HTML for Tailwind scanning. */
   async function generateTailwindCss(safeLabel: string, extraHtml?: string): Promise<string> {
+    const readerBuild = await readerSource.previewBuild(safeLabel)
     return withStorage(safeLabel, async (storage, _label, bookDir) => {
       const pages = partScopedPages(storage)
       const typographyCss = resolveTypographyCss(storage)
@@ -759,7 +771,7 @@ export function createAdtPreviewRoutes(
         safeLabel, bundleVersion, bookStateKey(storage, bookDir),
         storage.bookDir ? requiredPartRange(storage.bookDir) : null,
         storage.getPages().map(({ pageId, pageNumber }) => [pageId, pageNumber]),
-        typographyCss, pageDirection, extraHtml ?? "",
+        typographyCss, pageDirection, extraHtml ?? "", readerBuild?.hash ?? null,
       ])
       const knownInputs = tailwindInputKeys.get(stateKey)
       const reused = knownInputs === undefined ? undefined : tailwindCssCache.get(knownInputs)
@@ -794,7 +806,7 @@ export function createAdtPreviewRoutes(
       // Hash exactly the derived book inputs passed to the compiler, rather
       // than guessing which node versions, page rows or part metadata matter.
       // A save that leaves these inputs equal reuses the compiled stylesheet.
-      const cacheKey = hashValue([safeLabel, bundleVersion, allHtml, typographyCss])
+      const cacheKey = hashValue([safeLabel, bundleVersion, allHtml, typographyCss, readerBuild?.hash ?? null])
       rememberTailwindInputs(stateKey, cacheKey)
       const cached = tailwindCssCache.get(cacheKey)
       if (cached != null) return cached
@@ -803,7 +815,9 @@ export function createAdtPreviewRoutes(
       if (pending) return await pending
 
       const build = (async () => {
-        const css = await buildPreviewTailwindCss(allHtml, webAssetsDir, typographyCss)
+        const css = await buildPreviewTailwindCss(allHtml, webAssetsDir, typographyCss, readerBuild
+          ? { inputCss: readerBuild.globalsCss, bundlePath: path.join(readerBuild.dir, "base.bundle.min.js") }
+          : undefined)
         rememberTailwindCss(cacheKey, css)
         return css
       })()

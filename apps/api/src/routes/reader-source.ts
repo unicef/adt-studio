@@ -72,6 +72,7 @@ export function createReaderSourceRoutes(booksDir: string, webAssetsDir: string)
 
   app.get("/reader-source/global/tree", (c) => c.json(service.globalTree()))
   app.get("/reader-source/global/file", (c) => c.json(service.globalFile(queryPath(c))))
+  app.get("/reader-source/global/base", (c) => c.json(service.base(queryPath(c))))
   app.get("/reader-source/global/history", (c) => c.json({ versions: service.globalHistory(queryPath(c)) }))
 
   app.put("/reader-source/global/file", async (c) => {

@@ -73,14 +73,15 @@ export async function buildPreviewTailwindCss(
   contentHtml: string,
   webAssetsDir: string,
   typographyCss?: string,
+  reader?: { inputCss?: string; bundlePath: string },
 ): Promise<string> {
   const postcss = (await import("postcss")).default
   const tailwindcss = (await import("@tailwindcss/postcss")).default
 
   const inputCssPath = path.join(webAssetsDir, "tailwind_css.css")
-  const inputCss = fs.existsSync(inputCssPath)
+  const inputCss = reader?.inputCss ?? (fs.existsSync(inputCssPath)
     ? fs.readFileSync(inputCssPath, "utf-8")
-    : '@import "tailwindcss";'
+    : '@import "tailwindcss";')
 
   // Tailwind v4 scans files on disk only — there's no equivalent to v3's
   // `content: [{ raw, extension }]`. For dynamic content (HTML built from
@@ -94,7 +95,7 @@ export async function buildPreviewTailwindCss(
   const sourceDirectives = [
     `@source "${toPosix(tempHtml)}";`,
     `@source "${toPosix(path.resolve(webAssetsDir, "../../apps/adt-runtime/src"))}";`,
-    `@source "${toPosix(path.join(webAssetsDir, "base.bundle.min.js"))}";`,
+    `@source "${toPosix(reader?.bundlePath ?? path.join(webAssetsDir, "base.bundle.min.js"))}";`,
   ].join("\n")
 
   try {

@@ -431,16 +431,16 @@ step. The request carries `scope: "reader"`, and `ChatSendRequest` gains an opti
 - [x] AC-25: Reader tools are absent when the chat is opened outside the Reader step.
 
 **Preview and inspect**
-- [ ] AC-26: `compile` with unsaved drafts makes `adt-preview` serve the draft bundle and matching CSS; without drafts it serves the saved build.
-- [ ] AC-27: A change limited to CSS files applies in the preview without reloading the iframe.
-- [ ] AC-28: A component that throws during render in the reader chrome leaves the page content visible and reports `{ path, message }` to Studio.
+- [x] AC-26: `compile` with unsaved drafts makes `adt-preview` serve the draft bundle and matching CSS; without drafts it serves the saved build.
+- [x] AC-27: A change limited to CSS files applies in the preview without reloading the iframe.
+- [x] AC-28: A component that throws during render in the reader chrome leaves the page content visible and reports `{ path, message }` to Studio.
 - [ ] AC-29: Inspect resolves the component chain with `path` and `line` for a plain function component, a `memo` component and a `forwardRef` component.
 - [ ] AC-30: The inspector ignores messages not sent by `window.parent` and is inert outside an iframe.
 - [ ] AC-31: In Studio, clicking an element in inspect mode opens its file at the reported line.
 
 **Studio**
-- [ ] AC-32: The Reader step offers explorer, editor, preview, history, compare and revert; the global editor offers the same for the global layer.
-- [ ] AC-33: All new Studio strings exist in `en`, `pt-BR`, `es`, `fr` and `sq` with no empty `msgstr`.
+- [x] AC-32: The Reader step offers explorer, editor, preview, history, compare and revert; the global editor offers the same for the global layer.
+- [x] AC-33: All new Studio strings exist in `en`, `pt-BR`, `es`, `fr` and `sq` with no empty `msgstr`.
 
 ## Test plan
 
@@ -471,13 +471,13 @@ step. The request carries `scope: "reader"`, and `ChatSendRequest` gains an opti
 | AC-23 | unit | same | `AC-23: compileReader returns the compile route's errors, and paths outside src are refused` |
 | AC-24 | unit | `apps/studio/src/components/chat/BookChatPanel/ChatApprovalCard.test.tsx` | `AC-24: file writes show a line diff against the effective file` |
 | AC-25 | unit | `reader-tools.test.ts` | `AC-25: reader tools only exist in reader scope` |
-| AC-26 | API | `apps/api/src/routes/adt-preview.test.ts` | `AC-26: preview serves the draft build` |
-| AC-27 | unit | `apps/adt-runtime/src/features/reader-ui/runtime/stylesheet.test.ts` | `AC-27: css-only update swaps the stylesheet` |
-| AC-28 | unit | `apps/adt-runtime/src/app/ChromeErrorBoundary.test.tsx` | `AC-28: throwing chrome keeps content and reports the path` |
+| AC-26 | API | `apps/api/src/routes/adt-preview-reader-source.test.ts` | `AC-26: the preview serves the draft build and its CSS, and falls back without drafts` |
+| AC-27 | unit | `apps/adt-runtime/src/features/reader-source/preview.test.ts`; `apps/studio/src/components/pipeline/stages/reader/ReaderWorkspace/ReaderPreviewPane.test.ts` | `AC-27: a css-only update swaps the stylesheet without reloading the page`; `onlyStylesChanged` |
+| AC-28 | unit | `apps/adt-runtime/src/app/ChromeErrorBoundary.test.tsx` | `AC-28: a throwing chrome keeps the page content and reports the path to Studio` |
 | AC-29 | unit | `apps/adt-runtime/src/features/reader-ui/runtime/inspector.test.tsx` | `AC-29: resolves plain, memo and forwardRef components` |
 | AC-30 | unit | same | `AC-30: ignores foreign messages and is inert outside a frame` |
 | AC-31 | unit | `apps/studio/src/components/pipeline/stages/reader/__tests__/inspect.test.tsx` | `AC-31: inspect selection opens the file at the line` |
-| AC-32 | e2e (manual evidence until an e2e harness exists) | PR verification notes | `AC-32` |
+| AC-32 | manual (until an e2e harness exists) | Verification notes below | `AC-32` |
 | AC-33 | CI | `i18n` job in `.github/workflows/ci.yml` | — |
 
 ## Rollout
@@ -492,7 +492,7 @@ the owner decides.
 | 2 | spec PR | This spec, reviewed and approved | — |
 | 3 | `feature/reader-source-customization` | **Done locally:** compiler + plugin + shared build module + `reader-source` entity + global layer storage + API routes + packaging. Shipping the runtime with the installers waits for phase 1 | AC-6…AC-21 |
 | 4 | same | **Done locally:** chat reader tools + diff in the approval card (the chat comes first in the UI work) | AC-22…AC-25 |
-| 5 | same | Reader step: explorer, Monaco, draft preview, history, compare, revert, error boundary, global editor | AC-26…AC-28, AC-32, AC-33 |
+| 5 | same | **Done locally:** Reader step: explorer, Monaco, draft preview, history, compare, revert, error boundary, global editor | AC-26…AC-28, AC-32, AC-33 |
 | 6 | same | Inspect mode | AC-29…AC-31 |
 | 7 | same | Docs: ARCHITECTURE, INVARIANTS, AGENTS, SECURITY_MODEL | — |
 
@@ -502,6 +502,39 @@ the owner decides.
   unused. Reverting phase 0 removes the chat. Nothing else depends on it until
   phase 4.
 - **No feature flag:** the feature is inert until a file is overridden.
+
+## Phase 5 verification notes — 2026-11-25 (local dev build)
+
+Checked in the Studio dev build (`pnpm dev` API + Vite) on a local book with
+rendered pages, using drafts only (nothing was saved into the book):
+
+- The Reader step lists the runtime `src/` tree with a filter. It shows that the
+  book follows the global reader, and opens files in Monaco.
+- A draft edit to `styles/globals.css` (a rule turning the navigation buttons red)
+  compiled. The preview swapped only its stylesheet, with `tailwind_output.css?v=…`
+  and no page reload, and showed the change.
+- A draft syntax error in `boot.tsx` listed `boot.tsx:132:16 Unexpected end of
+  file` above the preview, marked the line in the editor, and kept the last
+  version that compiled in the preview. **Discard** cleared it.
+  - This check found a crash: stale markers pointed past the end of the
+    shortened file. Markers are now limited to existing lines.
+- Settings → Reader opens the same explorer and editor for the global layer.
+- **Not checked in the UI:** Save, History/Restore and Revert, which the API tests
+  cover (AC-14…AC-21); Compare; the crash banner (AC-28 is unit-tested); and the
+  chat in reader scope with a real model (no provider key in the test browser).
+
+## Implementation notes — phase 5
+
+- **Preview builds.** Draft builds live in memory per book (`previewBuilds` in the
+  reader source service). `compile` without drafts clears them.
+- **What the preview serves.** `adt-preview` serves the draft build, else the saved
+  overlay build, else the prebuilt bundle, always `no-store`. Its Tailwind input
+  and scan follow the build being served.
+- **`headVersion`.** File responses carry it: the latest stored version in the
+  editing layer, tombstones included. The editor sends it as `baseVersion`.
+- **Component index.** Component tags also fill `globalThis.__adtSources`, so the
+  chrome error boundary can map React's component stack to a file and line.
+- **Chat scope.** The chat panel switches to `reader` scope on the Reader step.
 
 ## Resolved decisions — 2026-11-25 (owner)
 

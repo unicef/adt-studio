@@ -75,6 +75,9 @@ msgstr "(aktiv)"
 msgid "(base)"
 msgstr "(bazë)"
 
+msgid "(current)"
+msgstr "(aktuale)"
+
 msgid "(default)"
 msgstr "(parazgjedhje)"
 
@@ -90,6 +93,9 @@ msgstr "(pa objektiv)"
 #. placeholder {0}: sections[0].pageNumber
 msgid "(p.{0})"
 msgstr "(f.{0})"
+
+msgid "(reverted)"
+msgstr "(e rikthyer)"
 
 msgid "(template)"
 msgstr "(shabllon)"
@@ -2813,6 +2819,9 @@ msgstr "Ka ndryshuar që nga eksportimi"
 msgid "Changes detected"
 msgstr "U zbuluan ndryshime"
 
+msgid "Changes here reach every book that has not customized its own reader. Every save is a new version you can restore."
+msgstr "Ndryshimet këtu arrijnë në çdo libër që nuk e ka përshtatur lexuesin e vet. Çdo ruajtje është një version i ri që mund ta rikthesh."
+
 msgid "Changes not saved"
 msgstr "Ndryshimet nuk janë ruajtur"
 
@@ -2923,6 +2932,12 @@ msgstr "zgjedhje"
 
 msgid "Choose a beta release to install."
 msgstr "Zgjidhni një version beta për ta instaluar."
+
+msgid "Choose a file on the left to edit the global reader."
+msgstr "Zgjidh një skedar majtas për të ndryshuar lexuesin global."
+
+msgid "Choose a file on the left, click an element in the preview, or ask the assistant for a change."
+msgstr "Zgjidh një skedar majtas, kliko një element në parapamje ose kërkoji asistentit një ndryshim."
 
 msgid "Choose a PDF"
 msgstr "Zgjidh një PDF"
@@ -3222,8 +3237,17 @@ msgstr "Krahasoni versionin aktual me një version të zgjedhur në të njëjtë
 msgid "Compare versions"
 msgstr "Krahaso versionet"
 
+msgid "Compare with the default version"
+msgstr "Krahaso me versionin e paracaktuar"
+
 msgid "Compared with fallback prompt."
 msgstr "Krahasuar me prompt-in fallback."
+
+msgid "Compiling Reader..."
+msgstr "Po përpilohet lexuesi..."
+
+msgid "Compiling..."
+msgstr "Po përpilohet..."
 
 msgid "Complete missing cells in a table."
 msgstr "Plotëso qelizat që mungojnë në një tabelë."
@@ -3879,6 +3903,9 @@ msgstr "Seksion i personalizuar {index}"
 msgid "Custom stylesheet"
 msgstr "Fletë stili e personalizuar"
 
+msgid "Customized in this book"
+msgstr "I përshtatur në këtë libër"
+
 msgid "Cut a region out of any page"
 msgstr "Prit një zonë nga çdo faqe"
 
@@ -3944,6 +3971,9 @@ msgstr "Parazgjedhje (trashëgo)"
 
 msgid "Default (no text detected yet)"
 msgstr "Parazgjedhje (ende nuk u zbulua tekst)"
+
+msgid "Default changed since customized"
+msgstr "I paracaktuari ndryshoi pas përshtatjes"
 
 msgid "Default guidance"
 msgstr "Udhëzimi i parazgjedhur"
@@ -4537,6 +4567,9 @@ msgstr "Redakto faqet e përbashkëta"
 msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save."
 msgstr "Modifiko shabllonin Liquid/HTML më poshtë. Ndryshimet ruhen kur klikon Ruaj."
 
+msgid "Edit the reader interface source, preview it and ask the assistant to change it."
+msgstr "Ndrysho kodin e ndërfaqes së lexuesit, shihe në parapamje dhe kërkoji ndryshime asistentit."
+
 msgid "Edit this image"
 msgstr "Redakto këtë imazh"
 
@@ -5127,6 +5160,9 @@ msgstr "Filtro sipas ID-së së imazhit..."
 msgid "Filter by item ID..."
 msgstr "Filtro sipas ID-së së artikullit..."
 
+msgid "Filter files..."
+msgstr "Filtro skedarët..."
+
 msgid "Filter pages…"
 msgstr "Filtro faqet…"
 
@@ -5237,6 +5273,9 @@ msgstr "Paketë HTML5 e gatshme për FNDE (.zip)"
 
 msgid "Folder actions"
 msgstr "Veprimet e dosjes"
+
+msgid "Follow the global reader again"
+msgstr "Ndiq sërish lexuesin global"
 
 msgid "Font"
 msgstr "Font"
@@ -5570,6 +5609,9 @@ msgstr "GitHub"
 msgid "Give it to your AI assistant together with the unzipped archive."
 msgstr "Jepjani asistentit tuaj IA së bashku me arkivin e shpaketuar."
 
+msgid "Global customization"
+msgstr "Përshtatje globale"
+
 msgid "Global prompt reset to default."
 msgstr "Prompti global u resetua në parazgjedhje."
 
@@ -5581,6 +5623,9 @@ msgstr "Promptet globale"
 
 msgid "Global Prompts"
 msgstr "Promptet globale"
+
+msgid "Global reader"
+msgstr "Lexuesi global"
 
 msgid "Glossary"
 msgstr "Glosarit"
@@ -5605,6 +5650,9 @@ msgstr "Prompt i Glosariumit"
 
 msgid "Glossary words and their definitions."
 msgstr "Fjalët e glosarit dhe përkufizimet e tyre."
+
+msgid "Go back to the default version of this file"
+msgstr "Kthehu te versioni i paracaktuar i këtij skedari"
 
 msgid "Go to {stageLabel}"
 msgstr "Shko te {stageLabel}"
@@ -5807,6 +5855,9 @@ msgstr "Këshillë kur gabon (mos e zbulo përgjigjen)"
 
 msgid "História e Sociedade - Vol. 1"
 msgstr "História e Sociedade - Vol. 1"
+
+msgid "History"
+msgstr "Historiku"
 
 msgid "History recovery"
 msgstr "Rikuperimi i historikut"
@@ -6819,8 +6870,17 @@ msgstr "Duke ngarkuar eksportimin..."
 msgid "Loading feedback"
 msgstr "Po ngarkohen komentet"
 
+msgid "Loading file..."
+msgstr "Po ngarkohet skedari..."
+
+msgid "Loading files..."
+msgstr "Po ngarkohen skedarët..."
+
 msgid "Loading glossary..."
 msgstr "Duke ngarkuar glosarin..."
+
+msgid "Loading history..."
+msgstr "Po ngarkohet historiku..."
 
 msgid "Loading image..."
 msgstr "Duke ngarkuar imazhin..."
@@ -6863,6 +6923,9 @@ msgstr "Duke ngarkuar kuizin..."
 
 msgid "Loading quizzes..."
 msgstr "Duke ngarkuar kuizet..."
+
+msgid "Loading reader..."
+msgstr "Po ngarkohet lexuesi..."
 
 msgid "Loading reviewer checklist…"
 msgstr "Duke ngarkuar listën e kontrollit të rishikuesit…"
@@ -7929,6 +7992,9 @@ msgstr "Nuk ka ende sesione vërtetimi rishikuesi të filluara. Hapni Pamjen Par
 
 msgid "No saved prompt versions yet."
 msgstr "Nuk ka ende versione prompti të ruajtura."
+
+msgid "No saved versions yet."
+msgstr "Ende nuk ka versione të ruajtura."
 
 msgid "No sectioning data available."
 msgstr "Nuk ka të dhëna seksionimi të disponueshme."
@@ -9739,6 +9805,15 @@ msgstr "Lexuesi"
 msgid "Reader Highlighting"
 msgstr "Theksimi i Lexuesit"
 
+msgid "reader interface source code customization"
+msgstr "lexues ndërfaqe kod burimor përshtatje"
+
+msgid "Reader preview"
+msgstr "Parapamja e lexuesit"
+
+msgid "Reader source files"
+msgstr "Skedarët burimorë të lexuesit"
+
 msgid "Reader View"
 msgstr "Pamja e Lexuesit"
 
@@ -10017,6 +10092,9 @@ msgstr "Lëshojeni për të lexuar arkivin"
 
 msgid "Reload app"
 msgstr "Rinis aplikacionin"
+
+msgid "Reload the preview"
+msgstr "Ringarko parapamjen"
 
 msgid "Remove"
 msgstr "Hiq"
@@ -10386,6 +10464,9 @@ msgstr "Të zhbëhen ndryshimet manuale të faqes {pageNumber}?"
 
 msgid "Revert to {originalLanguageName}"
 msgstr "Kthehu te {originalLanguageName}"
+
+msgid "Revert to default"
+msgstr "Kthehu te i paracaktuari"
 
 msgid "Review"
 msgstr "Rishiko"
@@ -11725,6 +11806,9 @@ msgstr "Gjuha burimore"
 msgid "Source needs review: {sources}"
 msgstr "Burimi kërkon shqyrtim: {sources}"
 
+msgid "Source of {selected}"
+msgstr "Burimi i {selected}"
+
 msgid "Source PDF"
 msgstr "PDF Burim"
 
@@ -12522,6 +12606,9 @@ msgstr "Faqja e deklaruar e aktivitetit mungon."
 msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure and ElevenLabs ignore it."
 msgstr "Udhëzimi i parazgjedhur i TTS-së i aplikuar për çdo gjuhë, përveç rasteve kur anulohet më poshtë. OpenAI e përdor si udhëzim zëri dhe Gemini si drejtim theksi brenda kërkesës; Azure dhe ElevenLabs e injorojnë."
 
+msgid "The default version changed since this was customized"
+msgstr "Versioni i paracaktuar ndryshoi që kur u përshtat ky"
+
 msgid "The edit request is invalid. Refresh the saved content and try again."
 msgstr "Kërkesa për redaktim është e pavlefshme. Rifreskoni përmbajtjen e ruajtur dhe provoni përsëri."
 
@@ -12761,8 +12848,15 @@ msgstr "Dhelpra e shpejtë kafe kërcen mbi qenin përtac 0123456789"
 msgid "The quick brown fox jumps over the lazy dog."
 msgstr "Dhelpra e shpejtë kafe kërcen mbi qenin dembel."
 
+msgid "The reader does not compile. The preview shows the last version that did."
+msgstr "Lexuesi nuk përpilohet. Parapamja tregon versionin e fundit që u përpilua."
+
 msgid "The reader experience"
 msgstr "Përvoja e lexuesit"
+
+#. placeholder {0}: crash.message
+msgid "The reader interface stopped working: {0}"
+msgstr "Ndërfaqja e lexuesit ndaloi së punuari: {0}"
 
 msgid "The recovery request is invalid. Inspect the book again and explicitly confirm the affected versions."
 msgstr "Kërkesa për rikuperim është e pavlefshme. Inspektoni përsëri librin dhe konfirmoni shprehimisht versionet e prekura."
@@ -12959,11 +13053,20 @@ msgstr "Ky libër ka tashmë faqe të ekstraktuara, kështu që ekstraktimi nuk 
 msgid "This book already has extracted pages. Re-extracting an existing book is not available in this version; to extract again, create a new book from the PDF. This book's content is preserved."
 msgstr "Ky libër ka tashmë faqe të ekstraktuara. Riekstraktimi i një libri ekzistues nuk është i disponueshëm në këtë version; për të ekstraktuar përsëri, krijoni një libër të ri nga PDF-ja. Përmbajtja e këtij libri ruhet."
 
+msgid "This book follows the global reader. Saving a change gives it its own copy."
+msgstr "Ky libër ndjek lexuesin global. Ruajtja e një ndryshimi i jep kopjen e vet."
+
 msgid "This book has {pageCount} pages."
 msgstr "Ky libër ka {pageCount} faqe."
 
+msgid "This book has its own reader. Global changes no longer reach it."
+msgstr "Ky libër ka lexuesin e vet. Ndryshimet globale nuk e arrijnë më."
+
 msgid "This book has no images to caption"
 msgstr "Ky libër nuk ka imazhe për t'i titulluar"
+
+msgid "This book has no pages to preview yet."
+msgstr "Ky libër ende nuk ka faqe për parapamje."
 
 msgid "This book has no pages. Make sure the extraction and storyboard stages produced content before generating {stageName}."
 msgstr "Ky libër nuk ka faqe. Sigurohu që fazat e nxjerrjes dhe storyboard kanë prodhuar përmbajtje para gjenerimit të {stageName}."

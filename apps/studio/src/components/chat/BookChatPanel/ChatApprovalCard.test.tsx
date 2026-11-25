@@ -30,6 +30,7 @@ it("AC-24: file writes show a line diff against the effective file", async () =>
     path: "features/dock/Dock.tsx",
     layer: "base",
     version: null,
+    headVersion: null,
     outdated: false,
     content: "keep\nold line\nkeep too",
     baseHash: "h",

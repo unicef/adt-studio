@@ -21,7 +21,7 @@ export function componentSourceTags(relativePath, contents) {
   contents.split("\n").forEach((line, index) => {
     const match = COMPONENT_DECLARATION.exec(line)
     const name = match?.[1] ?? match?.[2]
-    if (name) tags.push(`try{${name}.__adtSource={path:${JSON.stringify(relativePath)},line:${index + 1}}}catch{}`)
+    if (name) tags.push(`try{${name}.__adtSource=(globalThis.__adtSources??={})[${JSON.stringify(name)}]={path:${JSON.stringify(relativePath)},line:${index + 1}}}catch{}`)
   })
   return tags.length ? `\n;${tags.join(";")}\n` : ""
 }

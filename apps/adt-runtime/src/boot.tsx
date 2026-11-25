@@ -7,6 +7,8 @@ import { createRoot, type Root } from "react-dom/client"
 import { Provider as JotaiProvider, getDefaultStore } from "jotai"
 import { ChromeRoot } from "@/app/ChromeRoot"
 import { NavRoot } from "@/app/NavRoot"
+import { ChromeErrorBoundary } from "@/app/ChromeErrorBoundary"
+import { subscribeReaderSourcePreview } from "@/features/reader-source/preview"
 import {
   bootRuntime,
   subscribeLanguageChanges,
@@ -50,12 +52,15 @@ function mount(): void {
   // Opt in before React mounts: the prefetcher must know this reader owns
   // navigation even while boot is still fetching its manifests.
   const unsubSoftNav = subscribeSoftNavHistory()
+  const unsubReaderPreview = subscribeReaderSourcePreview()
 
   const chromeRoot = createRoot(interfaceContainer)
   chromeRoot.render(
     <React.StrictMode>
       <JotaiProvider store={sharedStore}>
-        <ChromeRoot />
+        <ChromeErrorBoundary>
+          <ChromeRoot />
+        </ChromeErrorBoundary>
       </JotaiProvider>
     </React.StrictMode>,
   )
@@ -64,12 +69,22 @@ function mount(): void {
   navRoot.render(
     <React.StrictMode>
       <JotaiProvider store={sharedStore}>
-        <NavRoot />
+        <ChromeErrorBoundary>
+          <NavRoot />
+        </ChromeErrorBoundary>
       </JotaiProvider>
     </React.StrictMode>,
   )
 
-  const runtime = { booted: true, chromeRoot, navRoot, unsubscribe: unsubSoftNav }
+  const runtime = {
+    booted: true,
+    chromeRoot,
+    navRoot,
+    unsubscribe: () => {
+      unsubSoftNav()
+      unsubReaderPreview()
+    },
+  }
   window.__adtRuntime = runtime
 
   // Async boot — load config + translations + manifests, then signal
@@ -83,6 +98,7 @@ function mount(): void {
         unsubLanguage()
         unsubPreview()
         unsubSoftNav()
+        unsubReaderPreview()
       }
     })
     .catch((err) => {

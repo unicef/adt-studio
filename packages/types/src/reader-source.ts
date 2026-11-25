@@ -41,6 +41,7 @@ export const ReaderSourceTree = z.object({
 export type ReaderSourceTree = z.infer<typeof ReaderSourceTree>
 
 export const ReaderSourceFile = ReaderSourceTreeEntry.extend({
+  headVersion: z.number().int().nullable(),
   content: z.string(),
   baseHash: z.string().nullable(),
 })

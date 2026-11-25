@@ -73,6 +73,9 @@ msgstr "(ativo)"
 msgid "(base)"
 msgstr "(base)"
 
+msgid "(current)"
+msgstr "(atual)"
+
 msgid "(default)"
 msgstr "(padrão)"
 
@@ -88,6 +91,9 @@ msgstr "(sem destino)"
 #. placeholder {0}: sections[0].pageNumber
 msgid "(p.{0})"
 msgstr "(p.{0})"
+
+msgid "(reverted)"
+msgstr "(revertida)"
 
 msgid "(template)"
 msgstr "(template)"
@@ -2811,6 +2817,9 @@ msgstr "Mudou desde a exportação"
 msgid "Changes detected"
 msgstr "Alterações detectadas"
 
+msgid "Changes here reach every book that has not customized its own reader. Every save is a new version you can restore."
+msgstr "As alterações aqui chegam a todos os livros que não personalizaram o próprio leitor. Cada salvamento é uma nova versão que você pode restaurar."
+
 msgid "Changes not saved"
 msgstr "Alterações não salvas"
 
@@ -2921,6 +2930,12 @@ msgstr "alternativa"
 
 msgid "Choose a beta release to install."
 msgstr "Escolha uma versão beta para instalar."
+
+msgid "Choose a file on the left to edit the global reader."
+msgstr "Escolha um arquivo à esquerda para editar o leitor global."
+
+msgid "Choose a file on the left, click an element in the preview, or ask the assistant for a change."
+msgstr "Escolha um arquivo à esquerda, clique em um elemento da prévia ou peça uma alteração ao assistente."
 
 msgid "Choose a PDF"
 msgstr "Escolha um PDF"
@@ -3220,8 +3235,17 @@ msgstr "Compare a versão atual com uma versão escolhida no mesmo tamanho de te
 msgid "Compare versions"
 msgstr "Comparar versões"
 
+msgid "Compare with the default version"
+msgstr "Comparar com a versão padrão"
+
 msgid "Compared with fallback prompt."
 msgstr "Comparado com o prompt padrão."
+
+msgid "Compiling Reader..."
+msgstr "Compilando o leitor..."
+
+msgid "Compiling..."
+msgstr "Compilando..."
 
 msgid "Complete missing cells in a table."
 msgstr "Completar as células que faltam em uma tabela."
@@ -3877,6 +3901,9 @@ msgstr "Seção personalizada {index}"
 msgid "Custom stylesheet"
 msgstr "Folha de estilos personalizada"
 
+msgid "Customized in this book"
+msgstr "Personalizado neste livro"
+
 msgid "Cut a region out of any page"
 msgstr "Recorte uma região de qualquer página"
 
@@ -3942,6 +3969,9 @@ msgstr "Padrão (herdar)"
 
 msgid "Default (no text detected yet)"
 msgstr "Padrão (nenhum texto detectado ainda)"
+
+msgid "Default changed since customized"
+msgstr "O padrão mudou desde a personalização"
 
 msgid "Default guidance"
 msgstr "Orientação padrão"
@@ -4535,6 +4565,9 @@ msgstr "Editar páginas duplas"
 msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save."
 msgstr "Edite o template Liquid/HTML abaixo. As alterações são salvas ao clicar em Salvar."
 
+msgid "Edit the reader interface source, preview it and ask the assistant to change it."
+msgstr "Edite o código da interface do leitor, veja a prévia e peça alterações ao assistente."
+
 msgid "Edit this image"
 msgstr "Editar esta imagem"
 
@@ -5125,6 +5158,9 @@ msgstr "Filtrar por ID da imagem..."
 msgid "Filter by item ID..."
 msgstr "Filtrar por ID do item..."
 
+msgid "Filter files..."
+msgstr "Filtrar arquivos..."
+
 msgid "Filter pages…"
 msgstr "Filtrar páginas…"
 
@@ -5235,6 +5271,9 @@ msgstr "Pacote HTML5 pronto para o FNDE (.zip)"
 
 msgid "Folder actions"
 msgstr "Ações da pasta"
+
+msgid "Follow the global reader again"
+msgstr "Voltar a seguir o leitor global"
 
 msgid "Font"
 msgstr "Fonte"
@@ -5568,6 +5607,9 @@ msgstr "GitHub"
 msgid "Give it to your AI assistant together with the unzipped archive."
 msgstr "Entregue-a ao seu assistente de IA junto com o arquivo descompactado."
 
+msgid "Global customization"
+msgstr "Personalização global"
+
 msgid "Global prompt reset to default."
 msgstr "Prompt global redefinido para o padrão."
 
@@ -5579,6 +5621,9 @@ msgstr "Prompts globais"
 
 msgid "Global Prompts"
 msgstr "Prompts globais"
+
+msgid "Global reader"
+msgstr "Leitor global"
 
 msgid "Glossary"
 msgstr "Glossário"
@@ -5603,6 +5648,9 @@ msgstr "Prompt de glossário"
 
 msgid "Glossary words and their definitions."
 msgstr "Palavras do glossário e suas definições."
+
+msgid "Go back to the default version of this file"
+msgstr "Voltar à versão padrão deste arquivo"
 
 msgid "Go to {stageLabel}"
 msgstr "Ir para {stageLabel}"
@@ -5805,6 +5853,9 @@ msgstr "Dica quando errar (não revele a resposta)"
 
 msgid "História e Sociedade - Vol. 1"
 msgstr "História e Sociedade - Vol. 1"
+
+msgid "History"
+msgstr "Histórico"
 
 msgid "History recovery"
 msgstr "Recuperação do histórico"
@@ -6817,8 +6868,17 @@ msgstr "Carregando exportação..."
 msgid "Loading feedback"
 msgstr "Carregando feedback"
 
+msgid "Loading file..."
+msgstr "Carregando arquivo..."
+
+msgid "Loading files..."
+msgstr "Carregando arquivos..."
+
 msgid "Loading glossary..."
 msgstr "Carregando glossário..."
+
+msgid "Loading history..."
+msgstr "Carregando histórico..."
 
 msgid "Loading image..."
 msgstr "Carregando imagem..."
@@ -6861,6 +6921,9 @@ msgstr "Carregando questionário..."
 
 msgid "Loading quizzes..."
 msgstr "Carregando questionários..."
+
+msgid "Loading reader..."
+msgstr "Carregando leitor..."
 
 msgid "Loading reviewer checklist…"
 msgstr "Carregando lista de verificação do revisor…"
@@ -7927,6 +7990,9 @@ msgstr "Nenhuma sessão de validação de revisor foi iniciada ainda. Abra a Pr�
 
 msgid "No saved prompt versions yet."
 msgstr "Nenhuma versão de prompt salva ainda."
+
+msgid "No saved versions yet."
+msgstr "Ainda não há versões salvas."
 
 msgid "No sectioning data available."
 msgstr "Nenhum dado de seccionamento disponível."
@@ -9737,6 +9803,15 @@ msgstr "Leitor"
 msgid "Reader Highlighting"
 msgstr "Destaque no leitor"
 
+msgid "reader interface source code customization"
+msgstr "leitor interface código fonte personalização"
+
+msgid "Reader preview"
+msgstr "Prévia do leitor"
+
+msgid "Reader source files"
+msgstr "Arquivos de código do leitor"
+
 msgid "Reader View"
 msgstr "Visualização no leitor"
 
@@ -10015,6 +10090,9 @@ msgstr "Solte para ler o arquivo"
 
 msgid "Reload app"
 msgstr "Recarregar aplicativo"
+
+msgid "Reload the preview"
+msgstr "Recarregar a prévia"
 
 msgid "Remove"
 msgstr "Remover"
@@ -10384,6 +10462,9 @@ msgstr "Reverter as edições manuais da página {pageNumber}?"
 
 msgid "Revert to {originalLanguageName}"
 msgstr "Reverter para {originalLanguageName}"
+
+msgid "Revert to default"
+msgstr "Voltar ao padrão"
 
 msgid "Review"
 msgstr "Revisar"
@@ -11723,6 +11804,9 @@ msgstr "Idioma de origem"
 msgid "Source needs review: {sources}"
 msgstr "A fonte precisa de revisão: {sources}"
 
+msgid "Source of {selected}"
+msgstr "Código de {selected}"
+
 msgid "Source PDF"
 msgstr "PDF de origem"
 
@@ -12520,6 +12604,9 @@ msgstr "A página de atividade declarada está ausente."
 msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure and ElevenLabs ignore it."
 msgstr "A instrução de TTS padrão aplicada a todos os idiomas, a menos que seja substituída abaixo. A OpenAI a usa como instrução de voz e o Gemini como direcionamento de sotaque no prompt; Azure e ElevenLabs a ignoram."
 
+msgid "The default version changed since this was customized"
+msgstr "A versão padrão mudou desde que isto foi personalizado"
+
 msgid "The edit request is invalid. Refresh the saved content and try again."
 msgstr "A solicitação de edição é inválida. Atualize o conteúdo salvo e tente novamente."
 
@@ -12759,8 +12846,15 @@ msgstr "Um pequeno jabuti xereta viu dez cegonhas felizes 0123456789"
 msgid "The quick brown fox jumps over the lazy dog."
 msgstr "A rápida raposa marrom salta sobre o cão preguiçoso."
 
+msgid "The reader does not compile. The preview shows the last version that did."
+msgstr "O leitor não compila. A prévia mostra a última versão que compilou."
+
 msgid "The reader experience"
 msgstr "A experiência do leitor"
+
+#. placeholder {0}: crash.message
+msgid "The reader interface stopped working: {0}"
+msgstr "A interface do leitor parou de funcionar: {0}"
 
 msgid "The recovery request is invalid. Inspect the book again and explicitly confirm the affected versions."
 msgstr "A solicitação de recuperação é inválida. Inspecione o livro novamente e confirme explicitamente as versões afetadas."
@@ -12957,11 +13051,20 @@ msgstr "Este livro já tem páginas extraídas, então a extração não pode se
 msgid "This book already has extracted pages. Re-extracting an existing book is not available in this version; to extract again, create a new book from the PDF. This book's content is preserved."
 msgstr "Este livro já tem páginas extraídas. Reextrair um livro existente não está disponível nesta versão; para extrair novamente, crie um novo livro a partir do PDF. O conteúdo deste livro está preservado."
 
+msgid "This book follows the global reader. Saving a change gives it its own copy."
+msgstr "Este livro segue o leitor global. Salvar uma alteração dá a ele sua própria cópia."
+
 msgid "This book has {pageCount} pages."
 msgstr "Este livro tem {pageCount} páginas."
 
+msgid "This book has its own reader. Global changes no longer reach it."
+msgstr "Este livro tem o próprio leitor. As alterações globais não chegam mais a ele."
+
 msgid "This book has no images to caption"
 msgstr "Este livro não tem imagens que precisem de texto alternativo"
+
+msgid "This book has no pages to preview yet."
+msgstr "Este livro ainda não tem páginas para pré-visualizar."
 
 msgid "This book has no pages. Make sure the extraction and storyboard stages produced content before generating {stageName}."
 msgstr "Este livro não tem páginas. Verifique se as etapas Extração e Storyboard produziram conteúdo antes de gerar {stageName}."
