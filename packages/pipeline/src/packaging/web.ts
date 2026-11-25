@@ -56,11 +56,13 @@ import { reflowableFontChain, bookBodyFont, bookFontFamilyChain } from "@adt/typ
 import { bundleGoogleFontsIntoCss } from "../google-fonts-bundle.js"
 import { currentBookImageSrc } from "../book-image-url.js"
 
-/** Authored element audio is speech-only: its synthetic catalog id (and the
+/** Authored element audio is speech-only, so its synthetic id (and the
  *  easy-read variant) must never become display text in `texts.json`. */
-const EASY_READ_ID_SUFFIX = /_easy_read$/
-function isElementAudioCatalogId(id: string): boolean {
-  return isElementAudioTextId(id.replace(EASY_READ_ID_SUFFIX, ""))
+function isElementAudioCatalogId(
+  id: string,
+  authoredElementAudioIds: AuthoredElementAudioIds,
+): boolean {
+  return isAuthoredElementAudioId(id, authoredElementAudioIds)
 }
 import {
   bundleBookFontsIntoCss,
@@ -879,9 +881,9 @@ async function buildWebPackage(
     if (baseLang === sourceLanguage) {
       // Source language - use original catalog
       if (catalog?.entries) {
-        for (const e of catalog.entries) if (!isElementAudioCatalogId(e.id)) textsMap[e.id] = e.text
+        for (const e of catalog.entries) if (!isElementAudioCatalogId(e.id, elementAudioTextIds)) textsMap[e.id] = e.text
       }
-      for (const e of easyReadEntries) if (!isElementAudioCatalogId(e.id)) textsMap[e.id] = e.text
+      for (const e of easyReadEntries) if (!isElementAudioCatalogId(e.id, elementAudioTextIds)) textsMap[e.id] = e.text
     } else {
       // Translated language
       const legacyLang = lang.replace("-", "_")
@@ -890,7 +892,7 @@ async function buildWebPackage(
         storage.getLatestNodeData("text-catalog-translation", legacyLang)
       if (transRow) {
         const translated = transRow.data as TextCatalogOutput
-        const activeIds = new Set([...catalog.entries, ...easyReadEntries].map((entry) => entry.id).filter((id) => !isElementAudioCatalogId(id)))
+        const activeIds = new Set([...catalog.entries, ...easyReadEntries].map((entry) => entry.id).filter((id) => !isElementAudioCatalogId(id, elementAudioTextIds)))
         for (const e of translated.entries) if (activeIds.has(e.id) && !Object.hasOwn(textsMap, e.id)) textsMap[e.id] = e.text
       }
     }

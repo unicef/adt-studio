@@ -67,7 +67,7 @@ function createMockStorage(
     appendLlmLog: () => {},
     getSignLanguageVideos: () => [],
     getSignLanguageVideoPath: () => null,
-    getNodeItemIds: () => [],
+    getNodeItemIds: (node) => Object.keys(nodeData[node] ?? {}),
     getNodeVersionFingerprint: (excludeNodes: string[] = []) =>
       Object.entries(nodeData)
         .filter(([node]) => !excludeNodes.includes(node))
@@ -1099,6 +1099,12 @@ describe("packageAdtWeb", () => {
                 isPruned: false,
               },
             ],
+          },
+        },
+        "element-audio": {
+          pg001: {
+            entries: [{ nodeId: "pg001_im001", text: "Mago" }],
+            generatedAt: "2026-01-01T00:00:00.000Z",
           },
         },
         "text-catalog": {
