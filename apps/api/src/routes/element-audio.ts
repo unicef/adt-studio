@@ -7,6 +7,7 @@ import {
   ELEMENT_AUDIO_NODE,
   ElementAudioEntry,
   ElementAudioOutput,
+  elementAudioTextId,
   isElementAudioNodeId,
   parseBookLabel,
 } from "@adt/types"
@@ -329,6 +330,15 @@ export function createElementAudioRoutes(booksDir: string): Hono {
             if (locations.get(entry.nodeId)?.pageId !== pageId) {
               throw new HTTPException(400, {
                 message: `Element ${entry.nodeId} is not rendered on page ${pageId}.`,
+              })
+            }
+            // The synthetic catalog id is how the matched audio reaches the
+            // element, so a rendered element already using it would lose its
+            // display text in the export. Legacy books can have one.
+            const syntheticId = elementAudioTextId(entry.nodeId)
+            if (locations.has(syntheticId)) {
+              throw new HTTPException(409, {
+                message: `Element ${entry.nodeId} cannot use ${syntheticId}: the id is already rendered on page ${locations.get(syntheticId)?.pageId}.`,
               })
             }
             const group = groups.get(pageId) ?? []

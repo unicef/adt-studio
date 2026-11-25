@@ -618,6 +618,32 @@ describe("element-audio route (SPEC-0014)", () => {
     expect(absent.status).toBe(400)
   })
 
+  it("AC-24: refuses to create a script when its synthetic id is already rendered", async () => {
+    const db = storage()
+    try {
+      setRendering(db, "pg001", ["pg001_im001", "pg001_im002"], false, [
+        "pg001_im001_audio",
+      ])
+    } finally {
+      db.close()
+    }
+
+    // A legacy element already owns the synthetic id; authoring the image
+    // would hide that element's text from texts.json.
+    const collision = await put("pg001", {
+      versions: {},
+      entries: [entry("pg001_im001", "Mago")],
+    })
+    expect(collision.status).toBe(409)
+    expect(collision.body.error).toContain("pg001_im001_audio")
+
+    const other = await put("pg001", {
+      versions: {},
+      entries: [entry("pg001_im002", "Mago")],
+    })
+    expect(other.status).toBe(200)
+  })
+
   it("AC-1: an existing legacy text entry remains editable", async () => {
     const db = storage()
     try {
