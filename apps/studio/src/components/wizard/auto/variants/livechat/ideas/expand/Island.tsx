@@ -20,7 +20,7 @@ export type IslandInput = {
 type State = { key: string; size: "pill" | "card"; content: ReactNode }
 
 function Pulse({ tone = "brand" }: { tone?: "brand" | "red" }) {
-  return <span className={cn("ix-pulse size-2 shrink-0 rounded-full", tone === "red" ? "bg-red-400" : "bg-[#8b84ff]")} />
+  return <span className={cn("ix-pulse size-2 shrink-0 rounded-full", tone === "red" ? "bg-red-400" : "bg-brand-400")} />
 }
 
 function GoButton({ onClick, children, light }: { onClick: () => void; children: ReactNode; light?: boolean }) {

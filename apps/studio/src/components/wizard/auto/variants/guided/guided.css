@@ -46,6 +46,10 @@
 @keyframes gd-tick-in { from { opacity: 0; transform: translateY(-4px); } }
 .gd-tick { animation: gd-tick-in 0.35s var(--lc-out) both; }
 
+/* Check's footer (Create) sticks to the bottom of the view over a fade into the page; above the lab toolbar when there is one. */
+.gd-foot { background: linear-gradient(to bottom, transparent, var(--lc-bg, var(--background)) 22px); }
+body:has([data-lab-toolbar]) .gd-foot { bottom: 84px; }
+
 /* The drop zone breathes in the step colour while a file is dragged over the page. */
 .gd-drop:focus-visible { outline: 2px solid var(--gd-step); outline-offset: 3px; }
 

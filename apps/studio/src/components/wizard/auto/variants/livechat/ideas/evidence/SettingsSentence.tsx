@@ -5,17 +5,20 @@ import type { SetupRecommendation, SetupSettingId } from "@adt/types"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { strategiesFor, type Derived, type SettingValue } from "../../../chat/useAnswers"
-import { SETTING_LABEL, SETTING_OPTIONS, valueTitle } from "../../../chat/words"
+import { plainTitle, SETTING_OPTIONS } from "../../../chat/words"
+import { SETTING_NAME } from "../../../../engine/words"
 import "./evidence.css"
 
 /** One underlined word in the sentence: a setting's value, opening a small menu of the others. */
-function Token({ id, derived, locked, onChange }: { id: SetupSettingId; derived: Derived; locked: boolean; onChange: (id: SetupSettingId, value: SettingValue) => void }) {
+function Token({ id, derived, locked, onChange, lower }: { id: SetupSettingId; derived: Derived; locked: boolean; onChange: (id: SetupSettingId, value: SettingValue) => void; lower?: boolean }) {
   const { t, i18n } = useLingui()
   const [open, setOpen] = useState(false)
   const current = derived.effective[id]?.value
-  const title = valueTitle(id, current)
-  const value = title ? i18n._(title) : String(current)
-  const name = i18n._(SETTING_LABEL[id])
+  // Plain words, as the board's sentence reads ("one PDF page per screen"); mid-sentence, so lower-case.
+  const title = plainTitle(id, current)
+  const word = title ? i18n._(title) : String(current)
+  const value = lower ? word.charAt(0).toLocaleLowerCase(i18n.locale) + word.slice(1) : word
+  const name = i18n._(SETTING_NAME[id])
   const only = id === "renderStrategy" ? strategiesFor(derived.effective.preset?.value) : null
   const options = SETTING_OPTIONS[id].filter((o) => !only || only.includes(String(o.value)))
   const changed = derived.source(id) !== "ai"
@@ -28,8 +31,8 @@ function Token({ id, derived, locked, onChange }: { id: SetupSettingId; derived:
           </span>
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" sideOffset={6} className="w-[220px] rounded-[14px] p-1.5 shadow-[0_18px_40px_-18px_rgba(15,23,42,0.55)]">
-        <p className="px-2 pb-1 pt-1 text-[11.5px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{name}</p>
+      <PopoverContent align="start" sideOffset={6} className="ev-menu w-[260px] rounded-[12px] p-1">
+        <p className="px-2 pb-1 pt-1.5 text-[12px] text-muted-foreground">{name}</p>
         <div role="group" aria-label={name} className="flex flex-col">
           {options.map((o) => {
             const on = o.value === current
@@ -42,9 +45,9 @@ function Token({ id, derived, locked, onChange }: { id: SetupSettingId; derived:
                   onChange(id, o.value)
                   setOpen(false)
                 }}
-                className={cn("flex items-center justify-between gap-2 rounded-[9px] px-2 py-1.5 text-left text-[13.5px] transition-colors hover:bg-brand-50", on && "font-semibold text-brand-700")}
+                className={cn("flex items-center justify-between gap-2 rounded-[8px] px-2 py-1.5 text-left text-[13.5px] transition-colors hover:bg-brand-50", on && "bg-brand-50 font-medium text-brand-700")}
               >
-                {i18n._(o.title)}
+                {i18n._(plainTitle(id, o.value) ?? o.title)}
                 {on && <Check className="size-3.5 stroke-[3]" />}
               </button>
             )
@@ -62,15 +65,15 @@ function Token({ id, derived, locked, onChange }: { id: SetupSettingId; derived:
 }
 
 /**
- * The setup as one sentence ("Make a Storybook, laid out Reflowable, one Single Page at a time"),
- * Mad Libs style: each underlined value opens a small menu with the others. The rest follow in a
- * shorter line, in the wizard's names.
+ * The setup as one sentence in plain words ("Set up as Story: rebuilt to fit the screen, one PDF
+ * page per screen."), Mad Libs style: each underlined value opens a small menu with the others, and
+ * a new value rolls in. The rest follow in a quieter second line.
  */
 export function SettingsSentence({ rec, derived, onChange, frozen, onAllSettings }: { rec: SetupRecommendation; derived: Derived; onChange: (id: SetupSettingId, value: SettingValue) => void; frozen: boolean; onAllSettings: () => void }) {
   const locked = new Set(rec.lockedSettings)
-  const tok = (id: SetupSettingId) => <Token id={id} derived={derived} locked={locked.has(id)} onChange={onChange} />
+  const tok = (id: SetupSettingId, lower = true) => <Token id={id} derived={derived} locked={locked.has(id)} onChange={onChange} lower={lower} />
   /* eslint-disable lingui/no-unlocalized-strings -- setting ids */
-  const preset = tok("preset")
+  const preset = tok("preset", false)
   const strategy = tok("renderStrategy")
   const grouping = tok("pageGrouping")
   const sections = tok("sectioningMode")
@@ -78,15 +81,15 @@ export function SettingsSentence({ rec, derived, onChange, frozen, onAllSettings
   const figures = tok("figureExtraction")
   /* eslint-enable lingui/no-unlocalized-strings */
   return (
-    <div inert={frozen} className="flex flex-col gap-2">
-      <p className="text-[18px] font-medium leading-[2] tracking-[-0.01em]">
+    <div inert={frozen} className="flex flex-col gap-1.5">
+      <p className="text-[18px] leading-[2] tracking-[-0.01em]">
         <Trans>
-          Make a {preset} book, laid out {strategy}, one {grouping} at a time.
+          Set up as {preset}: {strategy}, {grouping}.
         </Trans>
       </p>
-      <p className="text-[13.5px] leading-[2] text-muted-foreground">
+      <p className="text-[14px] leading-[2] text-muted-foreground">
         <Trans>
-          Section Mode {sections}, Activities {activities}, Figure Extraction {figures}.
+          Then {sections}, activities {activities}, maps {figures}.
         </Trans>
       </p>
       <div className="flex justify-end">

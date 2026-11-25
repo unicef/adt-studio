@@ -1,30 +1,50 @@
-/* Living chat, Question ideas (d18, d19, d21). Every animation stops under reduced motion and Reduce effects. */
+/*
+ * Living chat, Question ideas (d18, d19, d21), after the reference board's cards, in ADT colours
+ * (the --lc-* tokens of livechat.css). Every animation stops under reduced motion and Reduce effects.
+ */
 
-/* d18: the picked preview lifts; the others' pages sit back a little. */
-.qd18-o { transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease; }
-.qd18-o:hover { transform: translateY(-2px); }
-.qd18-o.is-sel { transform: translateY(-5px); box-shadow: 0 14px 30px -14px color-mix(in oklab, var(--color-brand-500) 70%, transparent); }
-.qd18-dev { display: block; transition: transform 0.5s cubic-bezier(0.34, 1.45, 0.64, 1); transform: scale(0.9); }
-.qd18-o:hover .qd18-dev { transform: scale(0.95); }
-.qd18-o.is-sel .qd18-dev { transform: scale(1.02) rotate(-1deg); }
-
-/* d19: once an answer is tapped, the others fade back and the tapped one leaves for the reply. */
-.qd19-fade { transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
-.qd19-fade[data-flown="other"] { opacity: 0.3; transform: scale(0.97); }
-.qd19-fade[data-flown="went"] { opacity: 0; }
-
-/* d21: the guess breathes a soft ring. */
-@keyframes qd21-ring {
-  0%, 30% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-brand-500) 45%, transparent); }
-  60%, 100% { box-shadow: 0 0 0 12px transparent; }
+/* d18 · light picture cards: a quiet picture area, a plain label and a short line. The picked one
+   lifts with an accent edge and a tinted shadow; the others' pictures sit back a little. */
+.qd18-o {
+  border-radius: 18px;
+  background: var(--lc-bubble, var(--card));
+  box-shadow: 0 0 0 1.5px var(--lc-line, var(--border));
+  transition: transform 0.35s var(--lc-pop, cubic-bezier(0.34, 1.56, 0.64, 1)), box-shadow 0.2s ease;
 }
-.qd21-rec::after { content: ""; position: absolute; inset: -2px; border-radius: 18px; pointer-events: none; animation: qd21-ring 2.6s ease-out infinite; }
+.qd18-o:hover { box-shadow: 0 0 0 1.5px var(--brand-300); }
+.qd18-o.is-sel {
+  transform: translateY(-4px);
+  box-shadow: 0 0 0 1.5px var(--lc-accent, var(--brand-600)), 0 10px 22px -6px color-mix(in oklab, var(--brand-600) 26%, transparent);
+}
+.qd18-pv { background: var(--lc-stage, var(--muted)); }
+.qd18-pg { box-shadow: 0 1px 2px rgb(0 0 0 / 0.18), 0 6px 14px -8px rgb(15 23 42 / 0.35); }
+.qd18-dev { display: block; transform: scale(0.88); transition: transform 0.5s var(--lc-spring, cubic-bezier(0.34, 1.45, 0.64, 1)); }
+.qd18-o:hover .qd18-dev { transform: scale(0.93); }
+.qd18-o.is-sel .qd18-dev { transform: scale(1) rotate(-1.5deg); }
+
+/* d19 · answers as chips; once one is tapped the others fade back and it leaves for the reply. */
+.qd19-chip {
+  background: var(--lc-bubble, var(--card));
+  box-shadow: 0 0 0 1px var(--lc-line, var(--border));
+  transition: opacity 0.3s ease, transform 0.3s var(--lc-out, cubic-bezier(0.22, 1, 0.36, 1)), box-shadow 0.15s ease, background-color 0.15s ease;
+}
+.qd19-chip:hover { box-shadow: 0 0 0 1px var(--lc-accent, var(--brand-600)); }
+.qd19-chip[aria-pressed="true"] { background: var(--lc-accent-soft, var(--brand-50)); box-shadow: 0 0 0 1.5px var(--lc-accent, var(--brand-600)); }
+.qd19-chip[data-flown="other"] { opacity: 0.25; transform: scale(0.96); }
+.qd19-chip[data-flown="went"] { visibility: hidden; }
+
+/* d21 · the guess breathes a soft accent ring. */
+@keyframes qd21-ring {
+  0%, 30% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--brand-600) 45%, transparent); }
+  60%, 100% { box-shadow: 0 0 0 10px transparent; }
+}
+.qd21-rec::after { content: ""; position: absolute; inset: -2px; border-radius: 16px; pointer-events: none; animation: qd21-ring 3s ease-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {
-  .qd18-o, .qd18-dev, .qd19-fade { transition: none; }
-  .qd18-o:hover, .qd18-o.is-sel { transform: none; }
+  .qd18-o, .qd18-dev, .qd19-chip { transition: none; }
+  .qd18-o.is-sel { transform: none; }
   .qd21-rec::after { animation: none; }
 }
-.reduce-effects :is(.qd18-o, .qd18-dev, .qd19-fade) { transition: none; }
-.reduce-effects :is(.qd18-o:hover, .qd18-o.is-sel) { transform: none; }
+.reduce-effects :is(.qd18-o, .qd18-dev, .qd19-chip) { transition: none; }
+.reduce-effects .qd18-o.is-sel { transform: none; }
 .reduce-effects .qd21-rec::after { animation: none; }

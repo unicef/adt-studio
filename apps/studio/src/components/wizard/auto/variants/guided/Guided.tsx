@@ -156,14 +156,14 @@ export function Guided({ onManual }: { onManual: () => void }) {
         )}
 
         <div className="relative flex-1 overflow-y-auto overflow-x-hidden">
-          <div className="mx-auto flex w-full max-w-[720px] flex-col px-4 pb-28 pt-8 sm:px-6 sm:pt-12">
+          <div className="mx-auto flex w-full max-w-[720px] flex-col px-4 pb-24 pt-6 sm:px-6 sm:pt-8">
             <Stepper at={at} shown={shown} failed={!!failure && at === "reading"} locked={create.locked} complete={lastRun?.status === "done"} onGo={(s) => setView(s === at ? null : s)} />
-            <div className="mt-10">
+            <div className="mt-7">
               <Bubble swap={swap} busy={busy}>
                 {says}
               </Bubble>
             </div>
-            <Morph swap={`${shown}-${!!panel}`} className="-mx-2 mt-5" inner="px-2 pb-3 pt-1">
+            <Morph swap={`${shown}-${!!panel}`} className="-mx-2 mt-4" inner="px-2 pb-3 pt-1">
               {panel}
             </Morph>
           </div>

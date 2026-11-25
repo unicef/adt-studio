@@ -13,7 +13,7 @@ function Flip({ file, page, dir, onOpen }: { file: File; page: number; dir: numb
   const { t } = useLingui()
   const src = usePageThumb(file, page, 220)
   return (
-    <button type="button" onClick={onOpen} aria-label={t`Show page ${page} larger`} className="group grid h-[214px] w-full place-items-center overflow-hidden rounded-[10px] bg-muted/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500">
+    <button type="button" onClick={onOpen} aria-label={t`Show page ${page} larger`} className="group grid h-[214px] w-full place-items-center overflow-hidden rounded-[10px] bg-[var(--lc-stage,var(--muted))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500">
       <span key={page} className={cn("ev-flip grid place-items-center", dir < 0 && "ev-flip-back")}>
         {src ? <img src={src} alt="" className="max-h-[200px] max-w-[160px] rounded-[3px] shadow-[0_6px_16px_-8px_rgba(15,23,42,0.5)] ring-1 ring-border transition-transform duration-200 group-hover:scale-[1.03] motion-reduce:transition-none" /> : <FileText className="size-6 text-muted-foreground/50" />}
       </span>
@@ -99,7 +99,7 @@ export function Citation({ file, pages, className }: { file: File | null | undef
           ref={content}
           side="top"
           sideOffset={8}
-          className="ev-card w-[196px] rounded-[16px] p-2 shadow-[0_18px_40px_-18px_rgba(15,23,42,0.55)]"
+          className="ev-card w-[196px] rounded-[16px] border-0 bg-[var(--lc-bubble,var(--popover))] p-2 shadow-[0_0_0_1px_var(--lc-line,var(--border)),0_18px_40px_-18px_rgba(15,23,42,0.55)]"
           onKeyDown={keys}
           onBlur={(e) => {
             if (!inside(e.relatedTarget as Element | null)) setOpen(false)

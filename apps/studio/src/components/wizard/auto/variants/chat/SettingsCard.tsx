@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react"
 import { Plural, Trans, useLingui } from "@lingui/react/macro"
-import { ChevronDown, Lock, Settings2, Sparkles } from "lucide-react"
+import { ChevronDown, ChevronRight, Lock, Settings2, Sparkles } from "lucide-react"
 import type { SetupRecommendation, SetupSettingId } from "@adt/types"
 import { Collapsible } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
@@ -11,7 +11,7 @@ import { RULE_WHY, SETTING_VALUE } from "../../engine/words"
 import { SourceTag } from "../../review/parts"
 import { AutoHeight } from "../livechat/ideas/expand/AutoHeight"
 import { useReadyView } from "../livechat/ideas/expand/HeightMorph"
-import { useMorph } from "../livechat/ideas/expand/morph"
+import { morphName, useMorph } from "../livechat/ideas/expand/morph"
 import { SideCanvas } from "../livechat/ideas/expand/SideCanvas"
 import { PageStrip } from "./Evidence"
 import { useIdea } from "./ideas"
@@ -192,26 +192,66 @@ export function SettingsCard({ rec, derived, onChange, frozen, numPages, file, o
     ) : (
       <Collapsible shown={expanded}>{all}</Collapsible>
     )
+  const meta = (
+    <>
+      <span>{scope}</span>
+      {changed === 0 ? (
+        <span className={cn("inline-flex items-center gap-1 text-brand-700", living ? "font-medium" : "font-semibold")}>
+          <Sparkles className="size-3" />
+          <Trans>Picked by AI</Trans>
+        </span>
+      ) : (
+        <span className="font-semibold text-foreground">
+          <Plural value={changed} one="# changed by you" other="# changed by you" />
+        </span>
+      )}
+    </>
+  )
+  // b6: the folded setup is one soft pill ("Story · … ›"); Change stretches that same surface into the panel.
+  if (idea === "b6")
+    return (
+      <div inert={frozen}>
+        {expanded ? (
+          <div style={morphName("ix-settings")} className="ix-b6-surface rounded-[20px] px-4 pb-4 pt-3.5">
+            <p className="text-[15.5px] font-semibold">
+              <Trans>Settings</Trans>
+            </p>
+            {all}
+            <button type="button" aria-expanded aria-controls="chat-settings-all" onClick={toggleAll} className="lc-btn mt-3 h-9 px-4 text-[13.5px]">
+              <Trans>Done</Trans>
+            </button>
+          </div>
+        ) : (
+          <button type="button" aria-expanded={false} aria-controls="chat-settings-all" onClick={toggleAll} style={morphName("ix-settings")} className="ix-b6-surface group flex w-full items-center gap-3 rounded-[999px] py-2.5 pl-5 pr-4 text-left">
+            <span className="min-w-0 flex-1">
+              <span key={summary} className={cn("block truncate text-[15px] font-medium leading-snug", SWAP)}>
+                {summary}
+              </span>
+              <span className="mt-0.5 flex flex-wrap items-center gap-x-3 text-[13px] text-muted-foreground">{meta}</span>
+            </span>
+            <span className="inline-flex shrink-0 items-center gap-0.5 text-[13.5px] font-medium text-[var(--lc-accent-text)]">
+              <Trans>Change</Trans>
+              <ChevronRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none" />
+            </span>
+          </button>
+        )}
+      </div>
+    )
   return (
     <div inert={frozen}>
+      {idea === "b10" && ready && (
+        // b10: the card's pages as the board's small step bars.
+        <div aria-hidden className="mb-2.5 flex gap-1">
+          <i className="h-1 w-5 rounded-full bg-[var(--lc-accent)]" />
+          <i className={cn("h-1 w-5 rounded-full transition-colors duration-300", expanded ? "bg-[var(--lc-accent)]" : "bg-[var(--lc-line)]")} />
+        </div>
+      )}
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <p key={summary} className={cn(living ? "text-[15.5px] font-medium leading-snug" : "text-[16px] font-bold leading-snug tracking-[-0.01em]", SWAP)}>
             {summary}
           </p>
-          <p className={cn("mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground", living ? "text-[13.5px]" : "text-[12.5px]")}>
-            <span>{scope}</span>
-            {changed === 0 ? (
-              <span className={cn("inline-flex items-center gap-1 text-brand-700", living ? "font-medium" : "font-semibold")}>
-                <Sparkles className="size-3" />
-                <Trans>Picked by AI</Trans>
-              </span>
-            ) : (
-              <span className="font-semibold text-foreground">
-                <Plural value={changed} one="# changed by you" other="# changed by you" />
-              </span>
-            )}
-          </p>
+          <p className={cn("mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground", living ? "text-[13.5px]" : "text-[12.5px]")}>{meta}</p>
         </div>
         <button type="button" aria-expanded={expanded} aria-controls="chat-settings-all" onClick={toggleAll} className={cn("inline-flex h-9 shrink-0 items-center gap-1 rounded-full px-3 text-[13.5px] text-brand-700 transition-colors hover:bg-brand-50", living ? "font-medium" : "font-semibold ring-1 ring-brand-200", idea === "b9" && expanded && "bg-brand-50 ring-brand-300")}>
           {expanded ? <Trans>Done</Trans> : <Trans>Change</Trans>}

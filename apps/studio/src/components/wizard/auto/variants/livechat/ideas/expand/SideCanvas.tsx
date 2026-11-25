@@ -35,10 +35,10 @@ export function SideCanvas({ open, onClose, title, children }: { open: boolean; 
   useEffect(() => () => slot?.setOpen(false), [])
   if (!slot?.el || !shown) return null
   return createPortal(
-    <aside data-closing={closing} className="ix-canvas pointer-events-auto flex h-full flex-col overflow-hidden rounded-[26px] bg-card ring-1 ring-border shadow-[0_30px_70px_-30px_rgba(15,23,42,0.55)]">
-      <header className="flex items-center justify-between gap-3 border-b border-border/70 px-5 py-3.5">
-        <h2 className="text-[17px] font-bold tracking-[-0.01em]">{title}</h2>
-        <button type="button" onClick={onClose} className="inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[13.5px] font-semibold text-brand-700 ring-1 ring-brand-200 transition-colors hover:bg-brand-50">
+    <aside data-closing={closing} className="ix-canvas lc-surface pointer-events-auto flex h-full w-full flex-col overflow-hidden">
+      <header className="flex items-center justify-between gap-3 px-5 pb-2 pt-4">
+        <h2 className="text-[16px] font-semibold tracking-[-0.01em]">{title}</h2>
+        <button type="button" onClick={onClose} className="lc-link inline-flex h-9 items-center gap-1.5 px-3 text-[13.5px] font-medium">
           <X className="size-3.5" />
           <Trans>Done</Trans>
         </button>

@@ -334,7 +334,7 @@ export function ChatThread({ onManual }: { onManual: () => void }) {
           <Composer flow={flow} replies={replies} />
         </div>
       )}
-      {expandIdea === "b9" && <div ref={setCanvasEl} className="pointer-events-none absolute bottom-4 right-4 top-[76px] z-20 flex" style={{ width: CANVAS_WIDTH }} />}
+      {expandIdea === "b9" && <div ref={setCanvasEl} className="ix-canvas-slot pointer-events-none absolute right-4 top-[76px] z-20 flex" style={{ width: CANVAS_WIDTH }} />}
       {expandIdea === "b7" && validFile && (
         <Island
           engine={run.status}

@@ -59,11 +59,13 @@ export function Found({ rec, derived, file }: { rec: SetupRecommendation; derive
   if (idea === "e22") {
     if (!genreAsked && kindPages[0]) boxes.push({ label: i18n._(FACT_SHORT.genre[derived.proposed.genre]!), page: kindPages[0] })
     // Then the main setting, or else the first settled one with pages, on a page not shown yet.
-    for (const id of [...(leadId ? [leadId] : []), ...settled.filter((s) => s !== leadId)]) {
-      const title = valueTitle(id, derived.effective[id]?.value)
+    // The preset says the same as the kind of book, so it isn't boxed twice.
+    for (const id of [...(leadId ? [leadId] : []), ...settled.filter((s) => s !== leadId && !(s === "preset" && boxes.length > 0))]) {
+      // The label in plain words ("Picture beside the words"), like the pills.
+      const title = plainTitle(id, derived.effective[id]?.value)
       const page = (rec.settingEvidence[id] ?? []).find((p) => !boxes.some((b) => b.page === p))
       if (title && page) {
-        boxes.push({ label: `${i18n._(SETTING_LABEL[id])}: ${i18n._(title)}`, page })
+        boxes.push({ label: i18n._(title), page })
         break
       }
     }

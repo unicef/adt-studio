@@ -69,6 +69,7 @@ export function QuestionCard({ rec, fact, answers, chosen, onAnswer, frozen, fil
   }
   const smart = idea === "d21" && !chosen && !others
   const living = useLiving()
+  const bare = living && (idea === "d18" || idea === "d19")
   // What an answer sets: plain words in Living chat ("One column, like an article"), the wizard's names otherwise.
   const sets = (id: SetupSettingId, value: SettingValue | undefined) => {
     if (living) {
@@ -79,10 +80,12 @@ export function QuestionCard({ rec, fact, answers, chosen, onAnswer, frozen, fil
     return `${i18n._(SETTING_LABEL[id])}: ${title ? i18n._(title) : String(value)}`
   }
   return (
-    <div inert={frozen} className={living ? "lc-surface flex w-full flex-col gap-0.5 p-1.5" : "flex w-full flex-col gap-1 rounded-[22px] bg-card/95 p-2 ring-1 ring-border shadow-[0_14px_36px_-24px_rgba(15,23,42,0.45)] backdrop-blur"}>
+    // d18 and d19 sit on the page like the board's cards and chips: no surface around them.
+    <div inert={frozen} className={bare ? "flex w-full flex-col gap-1" : living ? "lc-surface flex w-full flex-col gap-0.5 p-1.5" : "flex w-full flex-col gap-1 rounded-[22px] bg-card/95 p-2 ring-1 ring-border shadow-[0_14px_36px_-24px_rgba(15,23,42,0.45)] backdrop-blur"}>
       {smart ? (
         <SmartDefault
           fact={fact}
+          file={file}
           onAnswer={onAnswer}
           onOthers={() => {
             setOthers(true)
@@ -91,6 +94,27 @@ export function QuestionCard({ rec, fact, answers, chosen, onAnswer, frozen, fil
         />
       ) : idea === "d18" ? (
         <PreviewChoices rec={rec} fact={fact} order={order} answers={answers} chosen={chosen} onAnswer={onAnswer} file={file} labelId={labelId} />
+      ) : idea === "d19" ? (
+        <div ref={list} role="group" aria-labelledby={labelId} className="flex flex-wrap gap-2 pt-0.5">
+          {order.map((value) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={chosen === value}
+              title={i18n._(FACT_HINT[fact.id]![value]!)}
+              onClick={(e) => pick(value, e.currentTarget)}
+              data-flown={flown ? (flown === value ? "went" : "other") : undefined}
+              className="qd19-chip inline-flex h-10 items-center gap-2 rounded-full px-4 text-[14.5px] font-medium active:scale-[0.97]"
+            >
+              {i18n._(FACT_SHORT[fact.id][value]!)}
+              {value === fact.value && (
+                <span className="text-[12px] font-normal text-brand-700">
+                  <Trans>My guess</Trans>
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       ) : (
       <div ref={list} role="group" aria-labelledby={labelId} className="flex flex-col gap-1">
         {order.map((value) => {
@@ -105,7 +129,6 @@ export function QuestionCard({ rec, fact, answers, chosen, onAnswer, frozen, fil
               className={cn(
                 "relative flex w-full flex-col text-left transition-[background-color,box-shadow,transform] duration-150 active:scale-[0.99]",
                 living ? "min-h-11 gap-0.5 rounded-[14px] px-3.5 py-2.5 pr-10" : "rounded-[16px] px-3.5 py-2.5 pr-10",
-                idea === "d19" && "qd19-fade",
                 selected ? (living ? "bg-brand-50 ring-1 ring-brand-600" : "bg-brand-50 ring-2 ring-brand-500") : living ? "ring-1 ring-transparent hover:bg-[var(--lc-stage)]" : "ring-1 ring-transparent hover:bg-muted/70 hover:ring-border",
               )}
             >
@@ -126,7 +149,7 @@ export function QuestionCard({ rec, fact, answers, chosen, onAnswer, frozen, fil
         })}
       </div>
       )}
-      <div className={living ? "mx-2 border-t border-border/70 pb-0.5 pt-1" : "border-t border-border/70 px-2 pb-1 pt-1.5"}>
+      <div className={bare ? "px-1 pt-1" : living ? "mx-2 border-t border-border/70 pb-0.5 pt-1" : "border-t border-border/70 px-2 pb-1 pt-1.5"}>
         <Why aside={fact.evidencePages.length > 0 && !inlinePages ? <PageStrip file={file} pages={fact.evidencePages.slice(0, 1)} className="shrink-0" small /> : undefined}>
           {fact.askReason && <p>{i18n._(ASK_WHY[fact.askReason]!)}</p>}
           {other && fact.reason && (
