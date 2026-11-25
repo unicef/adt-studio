@@ -29,18 +29,26 @@ const FLOW: StepItem[] = [
   { id: "error", label: "Error" },
 ]
 
-/** The idea groups that change each step (read off the idea code under variants/livechat/ideas). */
-export const STEP_GROUPS: Record<FlowStep, IdeaGroup[]> = {
-  start: ["entrance", "ambient"],
-  reading: ["loader", "ambient", "expand"],
-  found: ["evidence", "entrance", "expand"],
-  q1: ["question", "evidence", "entrance"],
-  q2: ["question", "evidence", "entrance"],
-  ready: ["expand", "evidence", "ambient"],
-  creating: ["finish", "ambient"],
-  done: ["finish", "entrance", "ambient"],
-  error: ["ambient", "entrance"],
+/**
+ * Living chat: the ideas that change each step. Checked by opening every step with each idea on and
+ * comparing it with "Now" (screenshot, DOM and the animations that run), then kept to the ones that
+ * matter for what the step is about (an idea that only restyles a folded earlier step isn't listed).
+ */
+const STEP_IDEAS: Record<FlowStep, string[]> = {
+  start: ["a1", "a4", "g30", "g31", "g32", "g33", "g34"],
+  reading: ["c12", "c13", "c14", "c15", "c16", "c17", "a1", "a2", "a4", "b7", "g30", "g31", "g32", "g34"],
+  found: ["cite", "e22", "e23", "e25", "c14", "c15", "a1", "a2", "a3", "a4", "b6", "b7", "b8", "b11", "g31", "g32", "g34"],
+  q1: ["d18", "d19", "d21", "cite", "e23", "a1", "a2", "a3", "a4", "b6", "b7", "b8", "b11", "g31", "g32", "g33", "g34"],
+  q2: ["d18", "d19", "d21", "cite", "e23", "a1", "a2", "a3", "a4", "b6", "b7", "b8", "b11", "g31", "g32", "g33", "g34"],
+  ready: ["b6", "b7", "b8", "b9", "b10", "b11", "e24", "a1", "a2", "a3", "a4", "g31", "g32", "g33", "g34"],
+  creating: ["f26", "f29", "a1", "a4", "b7", "g30", "g31", "g34"],
+  done: ["f26", "f27", "f28", "f29", "a1", "a4", "b7", "g31", "g33", "g34"],
+  error: ["a1", "a2", "a4", "b7", "g30", "g31", "g32", "g33", "g34"],
 }
+const groupOf = (idea: string) => IDEA_GROUPS.find((g) => g.options.some(([v]) => v === idea))!.key
+export const STEP_GROUPS = Object.fromEntries(
+  Object.entries(STEP_IDEAS).map(([step, ideas]) => [step, [...new Set(ideas.map(groupOf))]]),
+) as Record<FlowStep, IdeaGroup[]>
 
 const SETTINGS: LabControl[] = [
   { key: "variant", label: "Design", default: "livechat", options: VARIANTS.map((v) => ({ value: v.id, label: v.short })) },
@@ -103,8 +111,8 @@ const PARAM_CONTROLS: LabControl[] = IDEA_CONTROLS.map((c) => {
 const ALL_CONTROLS = [...SETTINGS, STEP_CONTROL, ...PARAM_CONTROLS]
 
 /** The idea controls and the groups each step shows, per design (none for the designs without ideas). */
-const DESIGN_IDEAS: Record<string, { controls: LabControl[]; groups: Record<FlowStep, IdeaGroup[]> }> = {
-  livechat: { controls: IDEA_CONTROLS, groups: STEP_GROUPS },
+const DESIGN_IDEAS: Record<string, { controls: LabControl[]; groups: Record<FlowStep, IdeaGroup[]>; only?: Record<FlowStep, string[]> }> = {
+  livechat: { controls: IDEA_CONTROLS, groups: STEP_GROUPS, only: STEP_IDEAS },
   guided: { controls: GUIDED_CONTROLS, groups: GUIDED_STEP_GROUPS },
 }
 
@@ -239,6 +247,7 @@ export default function AddBookLab() {
         settings={SETTINGS}
         ideas={design?.controls ?? []}
         shownGroups={design?.groups[actual] ?? []}
+        shownIdeas={design?.only?.[actual]}
         values={values}
         onChange={onChange}
         onReplay={() => goTo("play")}
