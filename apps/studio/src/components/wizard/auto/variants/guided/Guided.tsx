@@ -17,7 +17,7 @@ import { ReadingMessage } from "../chat/Reading"
 import { useAnswers, type SettingValue } from "../chat/useAnswers"
 import { useCreateRun } from "../chat/useCreateRun"
 import { Bubble } from "./Bubble"
-import { CheckPanel } from "./CheckPanel"
+import { CheckAside, CheckMain } from "./CheckPanel"
 import { CreatePanel, CreateSays } from "./CreatePanel"
 import { useGuidedIdea } from "./ideas"
 import { Morph } from "./Morph"
@@ -116,6 +116,7 @@ export function Guided({ onManual }: { onManual: () => void }) {
   let says: ReactNode
   let swap: string = shown
   let panel: ReactNode = null
+  let aside: ReactNode = null
   if (shown === "upload") {
     says = <UploadSays flow={flow} rejected={!!rejectedAt && !validFile} />
     swap = `upload-${rejectedAt}-${flow.error ?? ""}-${validFile}`
@@ -131,7 +132,8 @@ export function Guided({ onManual }: { onManual: () => void }) {
   } else if (shown === "check" && rec && chat.derived) {
     const left = chat.derived.asked.filter((f) => !(f.id in chat.answers)).length
     says = <Summary rec={rec} derived={chat.derived} file={flow.file} left={left} />
-    panel = revealed && <CheckPanel rec={rec} chat={chat} file={flow.file} pageCount={flow.pageCount} locked={create.locked} onAnswer={onAnswer} onSetting={onSetting} onCreate={onCreate} onManual={manual} />
+    panel = revealed && <CheckMain rec={rec} chat={chat} file={flow.file} locked={create.locked} onAnswer={onAnswer} />
+    aside = revealed && <CheckAside rec={rec} chat={chat} file={flow.file} pageCount={flow.pageCount} locked={create.locked} onSetting={onSetting} onCreate={onCreate} onManual={manual} />
   } else if (shown === "create" && lastRun) {
     swap = `create-${lastRun.n}-${lastRun.status === "failed" ? "failed" : lastRun.status === "done" ? "done" : "busy"}`
     says = <CreateSays run={lastRun} onRetry={onCreate} onRename={onRename} />
@@ -156,16 +158,22 @@ export function Guided({ onManual }: { onManual: () => void }) {
         )}
 
         <div className="relative flex-1 overflow-y-auto overflow-x-hidden">
-          <div className="mx-auto flex w-full max-w-[720px] flex-col px-4 pb-24 pt-6 sm:px-6 sm:pt-8">
-            <Stepper at={at} shown={shown} failed={!!failure && at === "reading"} locked={create.locked} complete={lastRun?.status === "done"} onGo={(s) => setView(s === at ? null : s)} />
-            <div className="mt-7">
-              <Bubble swap={swap} busy={busy}>
-                {says}
-              </Bubble>
+          {/* Check uses the width: what was found and the questions on the left, the setup and Create beside it. The other steps stay one calm column. */}
+          <div className="mx-auto flex w-full max-w-[1120px] flex-col px-4 pb-24 pt-6 sm:px-6 sm:pt-8">
+            <div className="mx-auto w-full max-w-[760px]">
+              <Stepper at={at} shown={shown} failed={!!failure && at === "reading"} locked={create.locked} complete={lastRun?.status === "done"} onGo={(s) => setView(s === at ? null : s)} />
             </div>
-            <Morph swap={`${shown}-${!!panel}`} className="-mx-2 mt-4" inner="px-2 pb-3 pt-1">
-              {panel}
-            </Morph>
+            <div className={shown === "check" ? "mt-7 grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-x-8" : "mx-auto mt-7 w-full max-w-[760px]"}>
+              <div className="min-w-0">
+                <Bubble swap={swap} busy={busy}>
+                  {says}
+                </Bubble>
+                <Morph swap={`${shown}-${!!panel}`} className="-mx-2 mt-4" inner="px-2 pb-3 pt-1">
+                  {panel}
+                </Morph>
+              </div>
+              {aside}
+            </div>
           </div>
         </div>
         <span role="status" className="sr-only">

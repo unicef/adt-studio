@@ -12,7 +12,7 @@ import { lookOf } from "../../../preview/useSetup"
 import "./question.css"
 
 /** One screen of the book as it would come out, drawn like a page on the board: no device frame. */
-function Screen({ shown, srcs, width }: { shown: Shown; srcs: (string | undefined)[]; width: number }) {
+export function Screen({ shown, srcs, width }: { shown: Shown; srcs: (string | undefined)[]; width: number }) {
   const s = SCREEN.desktop
   const scale = width / s.w
   return (

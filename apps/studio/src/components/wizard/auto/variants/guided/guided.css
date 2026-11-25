@@ -59,3 +59,11 @@ body:has([data-lab-toolbar]) .gd-foot { bottom: 84px; }
 }
 .reduce-effects :is(.gd-tint > span, .gd-tick) { animation: none; }
 .reduce-effects :is(.gd-tint > span, .gd-line, .gd-dot) { transition: none; }
+
+/* A fact the engine is sure of: highlighted as the pick (accent edge, soft tint), its other options under a link. */
+.gd-sure {
+  background: color-mix(in oklab, var(--lc-accent-soft, var(--brand-50)) 70%, var(--lc-bubble, var(--card)));
+  box-shadow: 0 0 0 1.5px var(--lc-accent, var(--brand-600)), 0 10px 22px -10px color-mix(in oklab, var(--brand-600) 28%, transparent);
+}
+.gd-sure .qd18-pg { transform: rotate(-1.5deg); }
+@media (min-width: 1024px) { .gd-aside .gd-foot { background: none; } }
