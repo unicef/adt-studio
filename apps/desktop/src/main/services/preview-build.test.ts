@@ -33,11 +33,12 @@ function release(tagName: string, releaseDate: string, prs?: number[]): GitHubRe
   };
 }
 
-function status(pullRequest: PullRequest, releases: GitHubRelease[]) {
+function status(pullRequest: PullRequest, releases: GitHubRelease[], ownReleaseGone = true) {
   return resolvePreviewBuildStatus(
     PREVIEW,
     pullRequest,
     createBetaReleaseCatalog(releases, PREVIEW, "win32"),
+    ownReleaseGone,
   );
 }
 
@@ -86,6 +87,8 @@ describe("resolvePreviewBuildStatus", () => {
     ).toBe(true);
     // Cleanup after a merge or close is expected, and reported as that instead.
     expect(status(MERGED, [beta])?.removed).toBe(false);
+    // Not on the first page of releases, but GitHub still has it (or couldn't say).
+    expect(status({ state: "open" }, [beta], false)?.removed).toBe(false);
   });
 
   it("names the first beta whose PR list includes the merge", () => {

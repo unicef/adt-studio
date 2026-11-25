@@ -703,6 +703,9 @@ msgstr "{providerKey, select, google {Sua chave do {name} foi recusada, então a
 msgid "{providerKey, select, other {Your {name} key was rejected}}"
 msgstr "{providerKey, select, google {Sua chave do {name} foi recusada} gemini {Sua chave do {name} foi recusada} azure {Sua chave do {name} foi recusada} custom {Sua chave do {name} foi recusada} ollama {Sua chave do {name} foi recusada} codex {Sua chave do {name} foi recusada} claude_agent {Sua chave do {name} foi recusada} other {Sua chave da {name} foi recusada}}"
 
+msgid "{readyVersion} is downloaded and installs when you quit ADT Studio."
+msgstr "{readyVersion} foi baixada e será instalada quando você fechar o ADT Studio."
+
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {região detectada} other {regiões detectadas}}"
 
@@ -6163,6 +6166,9 @@ msgstr "Instalar uma versão beta anterior?"
 
 msgid "Install it in Settings → Sharing to get the latest reader and code screen on your links."
 msgstr "Instale em Configurações → Compartilhar para ter o leitor e a tela de código mais recentes nos seus links."
+
+msgid "Install now"
+msgstr "Instalar agora"
 
 msgid "Install older version"
 msgstr "Instalar versão anterior"

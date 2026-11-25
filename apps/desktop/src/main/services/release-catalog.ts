@@ -125,6 +125,55 @@ export function compareReleaseVersions(left: string, right: string): number {
   return compareParsedReleaseVersions(a, b);
 }
 
+function sameCore(left: string, right: string): boolean {
+  const a = parseReleaseTag(left);
+  const b = parseReleaseTag(right);
+  return (
+    a !== null &&
+    b !== null &&
+    a.major === b.major &&
+    a.minor === b.minor &&
+    a.patch === b.patch
+  );
+}
+
+/**
+ * Version order puts a preview below every numbered beta of its X.Y.Z, but a
+ * preview is built from develop *after* the latest beta, so for a preview build
+ * that order would call older betas "upgrades". Instead, a numbered beta of the
+ * preview's X.Y.Z is newer only when it was published after the preview. With
+ * no dates to go on, only the newest such beta counts as newer.
+ */
+function directionFromPreview(
+  release: GitHubRelease,
+  version: string,
+  currentVersion: string,
+  releases: readonly GitHubRelease[],
+): ReleaseDirection | undefined {
+  if (!stagingLineOf(currentVersion)) return undefined;
+  if (!isNumberedBeta(version) || !sameCore(version, currentVersion)) {
+    return undefined;
+  }
+  const current = releases.find(
+    (candidate) =>
+      candidate.tagName.replace(/^v/, "") === currentVersion.replace(/^v/, ""),
+  );
+  const published = Date.parse(release.releaseDate ?? "");
+  const currentPublished = Date.parse(current?.releaseDate ?? "");
+  if (Number.isFinite(published) && Number.isFinite(currentPublished)) {
+    return published > currentPublished ? "upgrade" : "downgrade";
+  }
+  const newest = releases
+    .map((candidate) => candidate.tagName.replace(/^v/, ""))
+    .filter(
+      (candidate) =>
+        isNumberedBeta(candidate) && sameCore(candidate, currentVersion),
+    )
+    .sort(compareReleaseVersions)
+    .at(-1);
+  return version === newest ? "upgrade" : "downgrade";
+}
+
 export function createBetaReleaseCatalog(
   releases: readonly GitHubRelease[],
   currentVersion: string,
@@ -156,11 +205,12 @@ export function createBetaReleaseCatalog(
           source: release.source,
           totalBytes: installerSize(release.assets, platform),
           direction:
-            comparison > 0
+            directionFromPreview(release, version, currentVersion, releases) ??
+            (comparison > 0
               ? ("upgrade" as const)
               : comparison < 0
                 ? ("downgrade" as const)
-                : ("current" as const),
+                : ("current" as const)),
         },
       ];
     })

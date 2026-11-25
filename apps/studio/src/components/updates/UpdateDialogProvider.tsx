@@ -16,7 +16,7 @@ import { PreviewBuildNotice } from "./PreviewBuildNotice"
 import { isBetaBuild } from "./release-banner-utils"
 import { useAppVersion } from "@/hooks/use-app-version"
 import { UPDATE_VERSIONS_QUERY_KEY } from "@/hooks/use-beta-update-versions"
-import { usePreviewBuild } from "@/hooks/use-preview-build"
+import { previewBuildNoticeKey, usePreviewBuild } from "@/hooks/use-preview-build"
 import { useUpdateStatus } from "@/hooks/use-update-status"
 import { isElectron } from "@/lib/utils"
 import { SETTINGS_PATHS } from "@/components/app/screens/settings/nav"
@@ -54,7 +54,9 @@ export function UpdateDialogProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const preview = usePreviewBuild()
-  const [previewNoticeClosed, setPreviewNoticeClosed] = useState(false)
+  /** Which notice was closed, so a later one (merged → shipped) still shows. */
+  const [closedPreviewNotice, setClosedPreviewNotice] = useState<string | null>(null)
+  const previewNoticeKey = previewBuildNoticeKey(preview.status)
   const [open, setOpen] = useState(false)
   const [dismissedVersion, setDismissedVersion] = useState<string | null>(null)
 
@@ -107,7 +109,7 @@ export function UpdateDialogProvider({ children }: { children: ReactNode }) {
     dismissedVersion !== pendingVersion
   const showPreviewNotice =
     preview.needsAttention &&
-    !previewNoticeClosed &&
+    previewNoticeKey !== closedPreviewNotice &&
     !showToast &&
     !anyDialogOpen &&
     !hideAmbientCard
@@ -210,7 +212,7 @@ export function UpdateDialogProvider({ children }: { children: ReactNode }) {
       {showPreviewNotice && preview.status && (
         <PreviewBuildNotice
           status={preview.status}
-          onDismiss={() => setPreviewNoticeClosed(true)}
+          onDismiss={() => setClosedPreviewNotice(previewNoticeKey)}
           onOpenVersions={() => void navigate({ to: SETTINGS_PATHS.versions })}
         />
       )}

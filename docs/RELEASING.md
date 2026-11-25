@@ -63,11 +63,14 @@ package: apps/desktop/package.json
 
 The staging branch is deterministic per PR and force-pushed on every run, so
 re-running staging for a PR that already has a staging branch simply rebuilds it
-against the current `develop`. Each rebuild gets a new version: the first build
-is `0.7.5-beta-pr-123`, rebuilds on the same core are `0.7.5-beta-pr-123.2`,
-`.3`, and so on. The in-app updater never installs a version equal to the
-running one, so reusing the tag would strand everyone on the previous build;
-with a fresh version, installs of the PR are offered the rebuild as an update. The build job then produces signed Windows,
+against the current `develop`. Each build gets a new version that sorts after
+every earlier build of the PR: the workflow appends its run number, e.g.
+`0.7.5-beta-pr-123.41`, and never goes below the highest build tag that still
+exists. The run number keeps counting after cleanup deletes the old tags, so a
+closed-and-reopened PR (or a preview deleted by hand) still gets a newer
+version. The in-app updater never installs a version equal to the running one,
+so reusing the tag would strand everyone on the previous build; with a fresh
+version, installs of the PR are offered the rebuild as an update. The build job then produces signed Windows,
 macOS, and Linux installers plus their updater metadata (`beta*.yml`,
 `*.blockmap`), retained as workflow artifacts for 14 days.
 
@@ -96,9 +99,11 @@ belong to an open same-repository PR into `develop`; they use the
 `release-ai-preview` environment and are updated live. Closing the target PR
 removes the staging release through the normal cleanup workflow.
 
-The `publish` job keeps one release per PR: before creating the release it
-deletes any existing release (and its tag) ending in `-beta-pr-<n>` or
-`-beta-pr-<n>.<build>`, then publishes the current build under its new version. Staging does not create a `v*` tag or a Docker image.
+The `publish` job keeps one release per PR: it publishes the current build
+under its new version first, then deletes every older release (and its tag)
+ending in `-beta-pr-<n>` or `-beta-pr-<n>.<build>`. Publishing first means an
+installed preview never sees a moment with no build of its PR and is not told
+it was removed. Staging does not create a `v*` tag or a Docker image.
 
 > Because the pre-release is a real GitHub Release, every beta-channel install
 > sees it in the version browser. Stale staging releases are torn down

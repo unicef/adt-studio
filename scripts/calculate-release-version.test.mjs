@@ -96,6 +96,17 @@ describe("calculateReleaseVersion", () => {
     ).toBe("0.7.5-beta-pr-123");
   });
 
+  it("never numbers a rebuild below the workflow's build number, even after cleanup removed the tags", () => {
+    // Cleanup deleted 0.7.5-beta-pr-123.3; the next run must still sort above it.
+    expect(calculateReleaseVersion(tags, "staging", "pr-123", 41)).toBe("0.7.5-beta-pr-123.41");
+    // Tags still ahead of the build number win.
+    expect(
+      calculateReleaseVersion([...tags, "0.7.5-beta-pr-123.50"], "staging", "pr-123", 41),
+    ).toBe("0.7.5-beta-pr-123.51");
+    // No usable build number keeps the tag-based count.
+    expect(calculateReleaseVersion(tags, "staging", "pr-123", Number.NaN)).toBe("0.7.5-beta-pr-123");
+  });
+
   it("rejects invalid types and staging slugs", () => {
     expect(() => calculateReleaseVersion(tags, "rc")).toThrow(
       "Unsupported release type",

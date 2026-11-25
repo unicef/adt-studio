@@ -703,6 +703,9 @@ msgstr "{providerKey, select, other {Your {name} key was rejected, so books can'
 msgid "{providerKey, select, other {Your {name} key was rejected}}"
 msgstr "{providerKey, select, other {Your {name} key was rejected}}"
 
+msgid "{readyVersion} is downloaded and installs when you quit ADT Studio."
+msgstr "{readyVersion} is downloaded and installs when you quit ADT Studio."
+
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 
@@ -6163,6 +6166,9 @@ msgstr "Install an older beta?"
 
 msgid "Install it in Settings → Sharing to get the latest reader and code screen on your links."
 msgstr "Install it in Settings → Sharing to get the latest reader and code screen on your links."
+
+msgid "Install now"
+msgstr "Install now"
 
 msgid "Install older version"
 msgstr "Install older version"

@@ -703,6 +703,9 @@ msgstr "{providerKey, select, other {Tu clave de {name} fue rechazada, así que 
 msgid "{providerKey, select, other {Your {name} key was rejected}}"
 msgstr "{providerKey, select, other {Tu clave de {name} fue rechazada}}"
 
+msgid "{readyVersion} is downloaded and installs when you quit ADT Studio."
+msgstr "{readyVersion} está descargada y se instala cuando cierres ADT Studio."
+
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {región detectada} other {regiones detectadas}}"
 
@@ -6163,6 +6166,9 @@ msgstr "¿Instalar una beta anterior?"
 
 msgid "Install it in Settings → Sharing to get the latest reader and code screen on your links."
 msgstr "Instálala en Ajustes → Compartir para tener el lector y la pantalla de código más recientes en tus enlaces."
+
+msgid "Install now"
+msgstr "Instalar ahora"
 
 msgid "Install older version"
 msgstr "Instalar versión anterior"

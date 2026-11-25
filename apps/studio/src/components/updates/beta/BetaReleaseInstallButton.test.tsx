@@ -64,6 +64,14 @@ describe("BetaReleaseInstallButton", () => {
     expect(screen.getByText(/Back up your books/)).toBeTruthy()
   })
 
+  it("warns before going from a preview to an older beta of the same version", () => {
+    // The desktop catalog marks betas published before the preview as older.
+    const onInstall = renderButton({ version: "0.8.1-beta.1", direction: "downgrade" }, "0.8.1-beta-pr-867")
+    fireEvent.click(screen.getByRole("button", { name: /Install older version/ }))
+    expect(onInstall).not.toHaveBeenCalled()
+    expect(screen.getByText(/Back up your books/)).toBeTruthy()
+  })
+
   it("installs a newer build of the same PR without asking", () => {
     const onInstall = renderButton(
       { version: "0.8.1-beta-pr-900.3", direction: "upgrade" },

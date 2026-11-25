@@ -3,6 +3,7 @@ import { parseReleaseTag } from "@root/scripts/release-version.mjs";
 import {
   compareReleaseVersions,
   fetchBetaReleaseCatalog,
+  fetchGitHubReleaseByVersion,
   GITHUB_HEADERS,
   isNumberedBeta,
   stagingLineOf,
@@ -77,10 +78,26 @@ function shipsPullRequest(
   );
 }
 
+/**
+ * Whether a release of this build's staging line is in the listed catalog. The
+ * catalog is only the first page of GitHub releases, so "not listed" is not
+ * proof the build is gone — see `ownReleaseGone`.
+ */
+function stagingLineListed(version: string, catalog: readonly BetaRelease[]): boolean {
+  return catalog.some(
+    (release) => stagingLineOf(release.version) === stagingLineOf(version),
+  );
+}
+
+/**
+ * @param ownReleaseGone `true` only when GitHub confirmed this build's own
+ *   release no longer exists. Unknown (a failed lookup) never reports removal.
+ */
 export function resolvePreviewBuildStatus(
   version: string,
   pullRequest: PullRequest,
   catalog: readonly BetaRelease[],
+  ownReleaseGone = false,
 ): PreviewBuildStatus | null {
   const number = previewPullRequestNumber(version);
   if (number == null) return null;
@@ -107,9 +124,8 @@ export function resolvePreviewBuildStatus(
     latestBeta: numbered.at(-1)?.version,
     removed:
       pullRequest.state === "open" &&
-      !catalog.some(
-        (release) => stagingLineOf(release.version) === stagingLineOf(version),
-      ),
+      ownReleaseGone &&
+      !stagingLineListed(version, catalog),
   };
 }
 
@@ -133,5 +149,21 @@ export async function getPreviewBuildStatus(
     fetchBetaReleaseCatalog(version),
     fetchPullRequest(number),
   ]);
-  return resolvePreviewBuildStatus(version, pullRequest, catalog);
+  const ownReleaseGone =
+    pullRequest.state === "open" && !stagingLineListed(version, catalog)
+      ? await fetchGitHubReleaseByVersion(
+          version,
+          fetch,
+          AbortSignal.timeout(5_000),
+        ).then(
+          (release) => release === undefined,
+          () => false,
+        )
+      : false;
+  return resolvePreviewBuildStatus(
+    version,
+    pullRequest,
+    catalog,
+    ownReleaseGone,
+  );
 }

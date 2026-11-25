@@ -705,6 +705,9 @@ msgstr "{providerKey, select, other {Çelësi juaj i {name} u refuzua, prandaj l
 msgid "{providerKey, select, other {Your {name} key was rejected}}"
 msgstr "{providerKey, select, other {Çelësi juaj i {name} u refuzua}}"
 
+msgid "{readyVersion} is downloaded and installs when you quit ADT Studio."
+msgstr "{readyVersion} është shkarkuar dhe instalohet kur të mbyllni ADT Studio."
+
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {rajon} other {rajone}} të zbuluar"
 
@@ -6165,6 +6168,9 @@ msgstr "Të instalohet një beta më e vjetër?"
 
 msgid "Install it in Settings → Sharing to get the latest reader and code screen on your links."
 msgstr "Instalojeni te Cilësimet → Ndarja për të pasur lexuesin dhe ekranin e kodit më të ri në lidhjet tuaja."
+
+msgid "Install now"
+msgstr "Instalo tani"
 
 msgid "Install older version"
 msgstr "Instalo versionin më të vjetër"

@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react"
 import { Trans } from "@lingui/react/macro"
 import { useNavigate } from "@tanstack/react-router"
+import { Clock } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { BetaVersionsView } from "@/components/updates/beta/BetaVersionsView"
+import { formatVersion } from "@/components/updates/release-banner-utils"
 import { UpdateStateSurface } from "@/components/updates/UpdateStateSurface"
 import { useAppVersion } from "@/hooks/use-app-version"
 import { usePreviewBuild } from "@/hooks/use-preview-build"
@@ -16,9 +19,15 @@ export function VersionsSection() {
   const { status, cancel, install, installOnQuit } = useUpdateStatus()
   const preview = usePreviewBuild()
   const [switchTo, setSwitchTo] = useState<{ version: string; key: number }>()
+  /** The downloaded version the author chose to install on quit: the page goes
+   *  back to the list and says so, instead of holding the install panel. */
+  const [deferredVersion, setDeferredVersion] = useState<string>()
+  const deferred =
+    status.phase === "downloaded" && status.version === deferredVersion ? status : undefined
+  const readyVersion = deferred ? formatVersion(deferred.version) : ""
   const installing =
     status.phase === "downloading" ||
-    status.phase === "downloaded" ||
+    (status.phase === "downloaded" && !deferred) ||
     status.phase === "installing"
 
   useEffect(() => {
@@ -53,6 +62,20 @@ export function VersionsSection() {
         </p>
       )}
 
+      {deferred && (
+        <div className="mb-3 flex flex-wrap items-center gap-4 rounded-2xl border bg-card px-5 py-4 shadow-sm motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
+          <Clock className="size-5 shrink-0 text-muted-foreground" />
+          <p className="min-w-0 flex-1 text-sm">
+            <Trans>
+              {readyVersion} is downloaded and installs when you quit ADT Studio.
+            </Trans>
+          </p>
+          <Button size="sm" onClick={() => void install()}>
+            <Trans>Install now</Trans>
+          </Button>
+        </div>
+      )}
+
       {installing ? (
         <div className="mx-auto w-full max-w-125 overflow-hidden rounded-2xl border bg-card shadow-sm motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
           <UpdateStateSurface
@@ -60,7 +83,10 @@ export function VersionsSection() {
             currentVersion={currentVersion}
             onCancel={cancel}
             onInstallNow={install}
-            onInstallLater={() => void installOnQuit()}
+            onInstallLater={() => {
+              const version = status.phase === "downloaded" ? status.version : undefined
+              void installOnQuit().then(() => setDeferredVersion(version))
+            }}
             onClose={() => void navigate({ to: SETTINGS_PATHS.about })}
           />
         </div>
