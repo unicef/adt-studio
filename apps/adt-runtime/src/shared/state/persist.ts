@@ -52,22 +52,54 @@ function eraseCookie(name: string) {
   document.cookie = `${name}=; Max-Age=-99999999; path=${path}`
 }
 
+/**
+ * The book label when the reader runs framed inside a Studio preview (the
+ * Preview stage's /books/<label>/adt/… or the /books/<label>/adt-preview/…
+ * iframe), otherwise null.
+ */
+export function studioPreviewBookLabel(
+  win: Pick<Window, "parent" | "location"> | undefined = typeof window === "undefined" ? undefined : window,
+): string | null {
+  if (!win || win.parent === win) return null
+  return win.location.pathname.match(/\/books\/([^/]+)\//)?.[1] ?? null
+}
+
+/** The settings a book can default and lock, which Studio's preview reports
+ * back for the export (see subscribePreviewSettings). */
+const READER_SETTING_KEYS = new Set(["dockWidth", "dockPosition", "dockAlign", "theme", "iconSize", "reduceMotion"])
+
+/**
+ * Studio previews every book on one origin, so one localStorage. In a preview
+ * the reader settings are stored per book: one book's defaults or the author's
+ * picks must not reach another book's preview, and through it that book's
+ * export (#1198). Known at module load, because persisted atoms read storage
+ * when they are created.
+ */
+const previewBookLabel = studioPreviewBookLabel()
+
+function storageKey(key: string): string {
+  return previewBookLabel && READER_SETTING_KEYS.has(key) ? `adtPreview.${previewBookLabel}.${key}` : key
+}
+
 const adapter = {
-  getItem(key: string): string | null {
+  getItem(name: string): string | null {
+    const key = storageKey(name)
     if (storageMode === "localStorage" && typeof localStorage !== "undefined") {
       const fromLs = localStorage.getItem(key)
       if (fromLs !== null) return fromLs
     }
     return readCookie(key)
   },
-  setItem(key: string, value: string) {
+  setItem(name: string, value: string) {
+    const key = storageKey(name)
     if (storageMode === "localStorage" && typeof localStorage !== "undefined") {
       localStorage.setItem(key, value)
       return
     }
     writeCookie(key, value)
   },
-  removeItem(key: string) {
+  removeItem(name: string) {
+    const key = storageKey(name)
     if (typeof localStorage !== "undefined") localStorage.removeItem(key)
     eraseCookie(key)
   },

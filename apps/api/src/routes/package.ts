@@ -1,6 +1,6 @@
 import { storyboardPackageComplete, currentStoryboardCoverage } from "../services/storyboard-package-coverage.js"
 import { readRetainedPackageOwnership } from "../services/retained-package-reader.js"
-import { publishedAdtDirectory, activeSectioningPages, SectioningSafetyError } from "@adt/pipeline"
+import { publishedAdtDirectory, activeSectioningPages, SectioningSafetyError, readerSettingsFromConfig } from "@adt/pipeline"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
@@ -390,6 +390,11 @@ async function runPackaging(
       fixedLayout: isFixedLayoutBook(config),
       reflowableFont: config.reflowable_font,
       quizMatchBookStyle: config.quiz_generation?.match_book_style ?? true,
+      // The preview reports its settings back and the export lets them
+      // override the book's, so start from the book's defaults (#1198). Locks
+      // stay out so every setting can be changed here; the export writes them.
+      // The config is already in the cache hash.
+      defaultSettings: readerSettingsFromConfig(config).defaultSettings,
     })
     // Record the new bundle's status proofs while the build is still running,
     // so the first status poll after it does not repeat them. Warming only.
