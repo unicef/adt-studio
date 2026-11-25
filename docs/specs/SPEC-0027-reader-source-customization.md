@@ -1,5 +1,5 @@
 ---
-id: SPEC-0026
+id: SPEC-0027
 title: Reader customization as versioned source overrides — chat, editor, preview, inspector
 status: draft # draft | in-review | approved | in-progress | implemented | verified | superseded
 owner: "@zignaggo"
@@ -11,11 +11,7 @@ created: 2026-11-25
 updated: 2026-11-25
 ---
 
-> Number check: the `gh` PR-title lookup from SPEC_DRIVEN_DEVELOPMENT.md §5 failed
-> (the org rejects classic tokens). SPEC-0026 is the next number after every
-> `SPEC-NNNN` found in INDEX.md, in local and remote branches' `docs/specs/`, and in
-> their tip commit subjects (highest: SPEC-0025). Re-run the PR-title lookup before
-> opening the PR.
+> Number: SPEC-0027, confirmed by the owner on 2026-11-25.
 
 ## Branches this spec builds on
 
@@ -142,9 +138,13 @@ Binding for every implementation PR of this spec.
 
 Decisions D1, D2, D5, D10 and D11 were set by the owner on 2026-11-25.
 
-- **D1 — Layered overlay, resolved per file.** The effective file is the book
-  version if the book has one, else the global version if there is one, else the
-  base source. The base is the shipped runtime source and is read-only.
+- **D1 — Layered overlay, chosen per book.**
+  - A book that **follows the global layer** (every book until its first
+    customization) uses the global version of a file if there is one, else the
+    base source.
+  - A **customized book** uses its own version of a file if it has one, else the
+    base source. It ignores the global layer entirely.
+  - The base is the shipped runtime source and is read-only.
 - **D2 — Everything under `src/` is editable.** Authors and the chat may read and
   write any file under the runtime's `src/`, so they can also fix bugs. Nothing
   outside `src/` is reachable: no `package.json`, build config or `node_modules`.
@@ -158,14 +158,25 @@ Decisions D1, D2, D5, D10 and D11 were set by the owner on 2026-11-25.
   `READER_SOURCE_DIR` (default `<BOOKS_DIR>/.reader-source`) with the prompts layout
   (`.versions/<path>/<timestamp>-NNN.txt` + `.current`). Reset writes a tombstone
   version instead of `rmSync`ing the history.
-- **D5 — A global change reaches every book without its own version of that file.**
-  - It applies at each book's next build or preview.
-  - A book that has a version of the file, including a tombstone revert, keeps it.
-    "Revert to global" removes the book's claim on the file by writing a tombstone,
-    so the book follows the global layer again.
-  - Packaging records the layer and version of every compiled override in the
-    bundle's `config.json` (`readerSource`), so a shipped bundle states exactly what
-    it contains.
+- **D5 — Any customization detaches a book from the global layer.**
+  - A global change reaches every book that follows the global layer, at its next
+    build or preview.
+  - **Detach.** The first save in a book that follows the global layer copies every
+    current global override into the book as `reader-source` versions, then applies
+    the edit. The book keeps exactly what it showed before and becomes
+    self-contained (principle 1). Later global changes no longer reach it.
+  - **Mode entity.** Whether a book follows the global layer is a versioned
+    `reader-source-mode` entity (`item_id` `book`, `{ followsGlobal }`). No row
+    means it follows the global layer.
+  - **Follow global again.** This writes `{ followsGlobal: true }`. The book's
+    `reader-source` rows are kept and ignored. A later save detaches the book
+    again: book files missing from the global layer get tombstones, and global
+    files are copied over.
+  - **Revert in a customized book.** This writes a tombstone, so that file falls
+    back to the base.
+  - **Bundle record.** Packaging records the layer and version of every compiled
+    override in the bundle's `config.json` (`readerSource`), so a shipped bundle
+    states exactly what it contains.
 - **D6 — Drift detection.** `baseHash` is the hash of the file the override was made
   from (global or base). A mismatch marks the file *outdated*. Studio offers a 3-way
   compare in Monaco's `DiffEditor`. Updating is the author's action, optionally done
@@ -253,8 +264,9 @@ Paths are validated with `resolvePathWithin` against the runtime `src/` (D2).
 | `GET /books/:label/reader-source/tree` | Effective tree with per-file layer (`base`, `global`, `book`) and `outdated` |
 | `GET /books/:label/reader-source/file?path=` | Effective content + layer + version + `baseHash` |
 | `PUT /books/:label/reader-source/file` | `{ path, content, baseVersion }` → new version; 409 when the version is stale |
-| `POST /books/:label/reader-source/revert` | `{ path, baseVersion }` → tombstone version (book follows global/base again) |
-| `GET /books/:label/reader-source/base?path=` | Content of the layer below the book (for compare) |
+| `POST /books/:label/reader-source/revert` | `{ path, baseVersion }` → tombstone version (the file falls back to the base) |
+| `GET /books/:label/reader-source/base?path=` | Base content and, when present, the global version (for compare) |
+| `POST /books/:label/reader-source/follow-global` | `{ baseVersion }` → `reader-source-mode` version with `followsGlobal: true` |
 | `POST /books/:label/reader-source/compile` | `{ drafts?: Record<path, content> }` → `{ hash, errors }`; keeps the latest draft build for the preview |
 | `GET/PUT/POST /reader-source/global/...` | Same surface for the global layer (D4) |
 
@@ -390,10 +402,10 @@ step. The request carries `scope: "reader"`, and `ChatSendRequest` gains an opti
 - [ ] AC-14: Saving a file writes a new `reader-source` version (MAX+1) and never updates a row in place.
 - [ ] AC-15: A save or revert with a stale `baseVersion` is rejected with 409 and writes nothing.
 - [ ] AC-16: Revert writes a tombstone; all earlier versions remain listable and restorable through the restore route.
-- [ ] AC-17: A file whose `baseHash` differs from the current hash of the layer below is reported `outdated`.
+- [ ] AC-17: A file whose `baseHash` differs from the current hash of its base file is reported `outdated`.
 - [ ] AC-18: Any path under `src/` can be read and written; paths outside `src/` or escaping it are rejected (400/403).
 - [ ] AC-19: No stage rerun or clear list deletes `reader-source` rows (source-scan invariant test).
-- [ ] AC-20: A global change is used by a book without its own version of that file and ignored by a book that has one; a book revert makes it follow the global version again.
+- [ ] AC-20: A global change reaches a book that follows the global layer and never reaches a customized book; the first save in a book copies the current global overrides into it; "follow global again" makes the global layer apply again without deleting book rows.
 - [ ] AC-21: Resetting a global file writes a tombstone and keeps its history.
 
 **Chat reader tools**
@@ -437,7 +449,7 @@ step. The request carries `scope: "reader"`, and `ChatSendRequest` gains an opti
 | AC-17 | API | same | `AC-17: hash mismatch marks the file outdated` |
 | AC-18 | API | same | `AC-18: any src path is writable; paths outside src are rejected` |
 | AC-19 | unit | `packages/storage/src/__tests__/invariants-authored.test.ts` | `AC-19: reader-source is never in a clear list` |
-| AC-20 | API | `reader-source.test.ts` | `AC-20: global changes reach only books without their own version` |
+| AC-20 | API | `reader-source.test.ts` | `AC-20: a customized book detaches from the global layer` |
 | AC-21 | API | same | `AC-21: global reset keeps history` |
 | AC-22 | unit | `apps/api/src/services/chat/reader-tools.test.ts` | `AC-22: reader writes need approval and save one version` |
 | AC-23 | unit | same | `AC-23: compile_reader matches the compile route; paths are scoped` |
@@ -477,8 +489,10 @@ the owner decides.
 
 ## Resolved decisions — 2026-11-25 (owner)
 
-1. **Global layer:** a global change affects every book that has no customized
-   version of the file (D5, per file).
+The owner asked to start implementation on 2026-11-25, before the spec PR review.
+
+1. **Global layer:** a book with any customization stops following the global layer
+   entirely (D1, D5).
 2. **Form branch:** `feature/custom-reader-ui` is set aside. This work starts from
    develop (D10).
 3. **Editable scope:** all of `src/` is editable, including logic, so authors can
@@ -494,7 +508,4 @@ Each has a default that applies if it isn't answered by its date.
    Default: A, unless the installer grows more than ~60 MB.
 2. **Process lane for `feature/book-chat`.** Owner @zignaggo, by 2026-11-30. The chat
    is a user-facing feature merged ahead of this spec. Default: it is reviewed as
-   phase 0 of SPEC-0026 (AC-1…AC-5), not as a separate spec.
-3. **Per-file vs per-book reading of decision 1.** Owner @zignaggo, by 2026-11-30.
-   Default: per file. A book that customized `Dock.tsx` still picks up a global
-   change to `PageNav.tsx`.
+   phase 0 of SPEC-0027 (AC-1…AC-5), not as a separate spec.
