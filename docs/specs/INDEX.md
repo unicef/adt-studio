@@ -22,6 +22,7 @@ already holds its number — check both before taking one
 | [SPEC-0015](SPEC-0015-nano-banana-image-models.md) | Nano Banana image models | in-review | @elasticsounds | #579 / #904 |
 | [SPEC-0021](SPEC-0021-source-pdf-assessment.md) | Source PDF assessment | approved | @gbergengruen | #1016 |
 | [SPEC-0024](SPEC-0024-rtl-direction-neutral-pages.md) | Right-to-left books — direction-neutral page generation | in-progress | @elasticsounds | — |
+| [SPEC-0026](SPEC-0026-kept-root-pages.md) | Keep an imported book's root pages outside the reading order | in-review | @gbergengruen | #1154 |
 
 SPEC-0002 was approved by @elasticsounds on 2026-11-01 within its agreed scope and
 explicit deferrals; see its [approval and follow-up record](SPEC-0002-manual-edit-preservation.md#approval-and-follow-up--2026-11-01).
