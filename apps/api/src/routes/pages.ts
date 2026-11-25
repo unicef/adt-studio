@@ -2189,6 +2189,10 @@ export function createPageRoutes(
             credentials,
           })
 
+          if (result.status === "unsupported") {
+            return { ...result, sectionIndex: idx }
+          }
+
           // Save the edited HTML as a new rendering version
           const storage = createBookStorage(safeLabel, booksDir)
           try {
@@ -2209,12 +2213,11 @@ export function createPageRoutes(
               const renderingChanged = inputSignature(snapshot.rendering.sections.map(({ html, activityAnswers }) => ({ html, activityAnswers }))) !== inputSignature(updated.sections.map(({ html, activityAnswers }) => ({ html, activityAnswers })))
               if (sectioning) saveStoryboardNode(storage, "page-sectioning", pageId, sectioning.data, { renderingInSync: true, renderingChanged })
               saveStoryboardNode(storage, "web-rendering", pageId, updated)
-              return result
+              return { ...result, sectionIndex: idx }
             })
           } finally {
             storage.close()
           }
-
         },
         { pageId, url: `/books/${safeLabel}/storyboard/${pageId}` }
       )
@@ -2270,6 +2273,7 @@ export function createPageRoutes(
           instruction: string
           attempts: Array<{ reasoning: string; timestamp: string; cached: boolean }>
           verify?: { applied: boolean; reason: string }
+          unsupported?: { reason: string }
         }
         const turns = new Map<string, Turn>()
 
@@ -2282,7 +2286,8 @@ export function createPageRoutes(
           }
           if (!data.correlationId) continue
 
-          const assistantText = data.messages
+          const assistantText = [...data.messages]
+            .reverse()
             .find((m) => m.role === "assistant")
             ?.content.find((p) => p.type === "text")?.text
           if (!assistantText) continue
@@ -2319,6 +2324,9 @@ export function createPageRoutes(
               timestamp: row.timestamp,
               cached: Boolean(data.cacheHit),
             })
+            if (parsed.feasible === false) {
+              turn.unsupported = { reason: String(parsed.unsupported_reason ?? "") }
+            }
           } else if (data.promptName === "html_edit_verify") {
             const turn = turns.get(data.correlationId)
             if (turn) {

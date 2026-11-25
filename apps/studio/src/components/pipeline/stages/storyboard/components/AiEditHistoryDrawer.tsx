@@ -1,4 +1,4 @@
-import { Check, X as XIcon, MessageSquare } from "lucide-react"
+import { Check, X as XIcon, MessageSquare, TriangleAlert } from "lucide-react"
 import { useLingui } from "@lingui/react/macro"
 import { Trans } from "@lingui/react/macro"
 import { useAiEditHistory } from "@/hooks/use-pages"
@@ -99,7 +99,19 @@ export function AiEditHistoryDrawer({
                 </div>
               ))}
 
-              {turn.verify && (
+              {turn.unsupported && (
+                <div className="flex items-start gap-1.5 pl-2 text-[11px]">
+                  <TriangleAlert className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" />
+                  <span className="text-amber-800">
+                    <span className="font-medium">
+                      <Trans>Not possible with AI editing</Trans>
+                    </span>
+                    {turn.unsupported.reason && <>: {turn.unsupported.reason}</>}
+                  </span>
+                </div>
+              )}
+
+              {turn.verify && !turn.unsupported && (
                 <div className="flex items-center gap-1.5 pl-2 text-[11px]">
                   {turn.verify.applied ? (
                     <>

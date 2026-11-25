@@ -302,6 +302,7 @@ export {
   StoryboardSave,
   StoryboardSaveResult,
   webRenderingLLMSchema,
+  htmlEditLLMSchema,
   activityAnswersLLMSchema,
   visualReviewLLMSchema,
   editVerifyLLMSchema,

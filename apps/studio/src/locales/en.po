@@ -1716,11 +1716,17 @@ msgstr "AI analysis reasoning"
 msgid "AI Edit"
 msgstr "AI Edit"
 
+msgid "AI edit complete"
+msgstr "AI edit complete"
+
 msgid "AI edit failed"
 msgstr "AI edit failed"
 
 msgid "AI edit history"
 msgstr "AI edit history"
+
+msgid "AI editing can't do this"
+msgstr "AI editing can't do this"
 
 msgid "AI editing..."
 msgstr "AI editing..."
@@ -5877,8 +5883,8 @@ msgstr "Image Cropping"
 msgid "Image Cropping Prompt"
 msgstr "Image Cropping Prompt"
 
-msgid "Image edit complete"
-msgstr "Image edit complete"
+#~ msgid "Image edit complete"
+#~ msgstr "Image edit complete"
 
 msgid "Image Edit Prompt"
 msgstr "Image Edit Prompt"
@@ -8038,6 +8044,9 @@ msgstr "Not needed"
 
 msgid "Not needed for this source"
 msgstr "Not needed for this source"
+
+msgid "Not possible with AI editing"
+msgstr "Not possible with AI editing"
 
 msgid "Not rendered yet"
 msgstr "Not rendered yet"
@@ -12820,6 +12829,9 @@ msgstr "This activity was rebuilt or replaced. Your draft is intact. Choose whic
 
 msgid "This ADT export can’t be read"
 msgstr "This ADT export can’t be read"
+
+msgid "This AI edit may not have been fully applied"
+msgstr "This AI edit may not have been fully applied"
 
 msgid "This archive can't be opened safely"
 msgstr "This archive can't be opened safely"
