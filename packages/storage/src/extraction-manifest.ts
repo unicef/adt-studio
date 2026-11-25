@@ -128,8 +128,9 @@ function assertInitialDestination(bookDir: string, sourceHash: string): void {
       }
       continue
     }
-    // Cache and local prompt overrides are inputs, not an extraction history.
-    if (entry.isDirectory() && [".cache", "prompts"].includes(entry.name)) continue
+    // Cache and local prompt and template overrides are inputs, not an
+    // extraction history.
+    if (entry.isDirectory() && [".cache", "prompts", "templates"].includes(entry.name)) continue
     if (entry.isDirectory() && emptyDirectories.has(entry.name) && fs.readdirSync(path.join(bookDir, entry.name)).length === 0) continue
     if (!entry.isFile() || !allowedFiles.has(entry.name)) throw new ExtractionAdmissionError("EXTRACTION_LEGACY")
   }
