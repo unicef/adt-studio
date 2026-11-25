@@ -17,6 +17,9 @@ services:
       - PROMPTS_DIR=/app/prompts
       - TEMPLATES_DIR=/app/templates
       - CONFIG_PATH=/app/config.yaml
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434/v1}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - internal
     healthcheck:

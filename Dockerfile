@@ -130,7 +130,7 @@ RUN npx --prefix apps/api/dist playwright install-deps chromium
 # add a corresponding COPY --from=build line here and in the app stage below.
 COPY --from=build /app/prompts/ ./prompts/
 COPY --from=build /app/templates/ ./templates/
-COPY --from=build /app/config.yaml ./config.yaml
+COPY --from=build --chown=appuser:nodejs /app/config.yaml ./config.yaml
 COPY --from=build /app/config/ ./config/
 COPY --from=build /app/assets/ ./assets/
 
@@ -218,7 +218,7 @@ RUN chmod +x /entrypoint.sh
 # add a corresponding COPY --from=build line here and in the api stage above.
 COPY --from=build /app/prompts/ ./prompts/
 COPY --from=build /app/templates/ ./templates/
-COPY --from=build /app/config.yaml ./config.yaml
+COPY --from=build --chown=node:node /app/config.yaml ./config.yaml
 COPY --from=build /app/config/ ./config/
 COPY --from=build /app/assets/ ./assets/
 

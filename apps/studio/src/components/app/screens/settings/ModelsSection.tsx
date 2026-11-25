@@ -225,7 +225,7 @@ export function ModelsSection() {
 
       <section
         id={SETTINGS_ANCHORS.defaultLlm}
-        className="scroll-mt-24 overflow-hidden rounded-2xl border bg-card shadow-sm"
+        className="scroll-mt-24 rounded-2xl border bg-card shadow-sm"
         aria-label={t`Default model`}
       >
         <div className="flex items-center gap-3 px-[18px] pt-[18px]">
@@ -301,7 +301,7 @@ export function ModelsSection() {
           </div>
         )}
 
-        <div className="border-t bg-muted/30 px-[18px] py-4">
+        <div className="rounded-b-2xl border-t bg-muted/30 px-[18px] py-4">
           <div className="text-[11.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
             <Plural
               value={llmSteps.length}
