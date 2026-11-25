@@ -1,6 +1,6 @@
 import { catalogOutputs } from "../services/catalog-output-service.js"
 import { bookStateKey } from "../services/book-state-memo.js"
-import { partScopedPages, requiredPartRange, buildTextCatalogSnapshot, reconcileSpeechInputs, loadCoreTtsProfiles, scopeLegacyActivityIds, activeEasyRead, buildEasyReadSourceBlocks, collectElementAudioTextIds, buildRuntimeTimecodeMap } from "@adt/pipeline"
+import { partScopedPages, requiredPartRange, buildTextCatalogSnapshot, reconcileSpeechInputs, loadCoreTtsProfiles, scopeLegacyActivityIds, activeEasyRead, buildEasyReadSourceBlocks, collectElementAudioTextIds } from "@adt/pipeline"
 import fs from "node:fs"
 import path from "node:path"
 import { createHash } from "node:crypto"
@@ -1036,14 +1036,11 @@ export function createAdtPreviewRoutes(
       for (const entry of ttsData?.entries ?? []) {
         const slot = resolveEntryVoiceSlot(entry)
         if (!readySpeechIds[slot].has(entry.textId) || isTtsExcluded(entry.textId, speechConfig, elementAudioTextIds)) continue
-        const key = elementAudioTextIds.has(entry.textId)
-          ? parseElementAudioTextId(entry.textId) ?? entry.textId
-          : entry.textId
-        voices[slot].audios[key] = entry.fileName
-        if (elementAudioTextIds.has(entry.textId)) {
-          const elementId = parseElementAudioTextId(entry.textId)
-          if (elementId) authoredElementIds.add(elementId)
-        }
+        const elementId = elementAudioTextIds.has(entry.textId)
+          ? parseElementAudioTextId(entry.textId)
+          : null
+        if (elementId) authoredBySlot[slot].set(elementId, entry.fileName)
+        else voices[slot].audios[entry.textId] = entry.fileName
         bySlot[slot].push(entry)
       }
       // Precedence is a post-pass, not loop order (SPEC-0014 §2).

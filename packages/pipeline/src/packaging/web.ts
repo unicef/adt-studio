@@ -45,7 +45,6 @@ import type {
 } from "@adt/types"
 import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, EMPTY_AUTHORED_ELEMENT_AUDIO_IDS, isAuthoredElementAudioId, type AuthoredElementAudioIds, parseElementAudioTextId, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE, resolveQuizId, withResolvedQuizIds } from "@adt/types"
 import { resolveNarratorLabel } from "../speech.js"
-import { collectElementAudioTextIds } from "../element-audio-ids.js"
 import {
   ADT_EDITING_CONTRACT_VERSION,
   GOOGLE_FONTS,
