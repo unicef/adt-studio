@@ -182,7 +182,13 @@ export function SectionTreeEditor({
       }
       applyNodes(duplicateNode(section.nodes, nodeId, wrappedFactory))
       // A duplicate gets new node ids, so it cannot inherit an authored script.
-      toast.info(t`Element duplicated. Authored element audio is not copied to the new element.`)
+      // Only warn when the copied subtree actually contains an image.
+      const containsImage = (candidate: ContentNodeData | null | undefined): boolean =>
+        !!candidate &&
+        (candidate.role === "image" || (candidate.children ?? []).some(containsImage))
+      if (containsImage(node)) {
+        toast.info(t`Element duplicated. Authored element audio is not copied to the new element.`)
+      }
       if (node?.role && node.role !== "image" && firstNewId) {
         onLeafDuplicated?.(nodeId, firstNewId)
       } else {

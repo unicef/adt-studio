@@ -144,10 +144,13 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
   }
 
   const discard = () => {
+    // Reset to the latest saved script, not the draft's starting baseline: a
+    // background refetch may have advanced both the text and the row version.
     draftRef.current = { dataId, dirty: false, versions: latestVersionsRef.current }
     draftsRef.current.delete(dataId)
     versionsRef.current = latestVersionsRef.current
-    setValue(baseline)
+    setValue(savedText)
+    setBaseline(savedText)
     setSaved(false)
     setError(null)
     setConflict(false)

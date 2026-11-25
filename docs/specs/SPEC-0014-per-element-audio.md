@@ -583,7 +583,6 @@ earlier. (The four are tracked as #895–#898 under #894.)
    pages (page membership), and the per-page image-id validation. Value: the script can be saved and
    versioned through the API. PR 3 owns the client-side query invalidation.
 3. **PR 3 — authoring.** The Storyboard inspector section in the **classic** `StyleEditorPanel`
-3. **PR 3 — authoring.** The Storyboard inspector section in the **classic** `StyleEditorPanel`
    (unconditional pattern, so it also works on fixed-layout books), the immediate-save wiring, the
    `VersionPicker` registration, i18n, the filter that hides `${nodeId}_audio` from the
    Languages/Core TTS editors, and the **bundle `texts.json` exclusion** so the script never appears

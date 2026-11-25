@@ -298,6 +298,33 @@ describe("AudioSection (SPEC-0014)", () => {
     })
   })
 
+  it("discards to the latest saved script after a background refetch", async () => {
+    calls.getElementAudio.mockResolvedValue(
+      view([{ nodeId: "pg001_im001", text: "Mago", sourcePageId: "pg001" }]),
+    )
+
+    render(<AudioSection dataId="pg001_im001" pageId="pg001" />, { wrapper: Providers })
+
+    const textarea = await screen.findByLabelText("Element audio script")
+    fireEvent.change(textarea, { target: { value: "Maga" } })
+
+    // Another writer advances the row while the draft is open.
+    client.setQueryData(["books", "book", "element-audio", "pg001"], {
+      pageId: "pg001",
+      versions: { pg001: 2 },
+      entries: [{ nodeId: "pg001_im001", text: "Hechicero", sourcePageId: "pg001" }],
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: "Discard" }))
+
+    // Discarding adopts the newer saved script and row version, so a later
+    // save cannot overwrite it with the stale text.
+    await waitFor(() => {
+      expect((textarea as HTMLTextAreaElement).value).toBe("Hechicero")
+    })
+    expect(calls.updateElementAudio).not.toHaveBeenCalled()
+  })
+
   it("keeps an unsaved draft when the author inspects another element and returns", async () => {
     calls.getElementAudio.mockResolvedValue(
       view([
