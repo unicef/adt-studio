@@ -706,8 +706,11 @@ msgstr "{providerKey, select, google {Sua chave do {name} foi recusada} gemini {
 msgid "{readyVersion} is downloaded and installs when you quit ADT Studio."
 msgstr "{readyVersion} foi baixada e será instalada quando você fechar o ADT Studio."
 
-msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
-msgstr "{regionCount} {regionCount, plural, one {região detectada} other {regiões detectadas}}"
+msgid "{regionCount} {regionCount, plural, one {region} other {regions}}"
+msgstr "{regionCount} {regionCount, plural, one {região} other {regiões}}"
+
+#~ msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
+#~ msgstr "{regionCount} {regionCount, plural, one {região detectada} other {regiões detectadas}}"
 
 #. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
 msgid "{rejectedProviderKey, select, other {API Key Settings — the {rejectedName} key was rejected}}"
@@ -1490,6 +1493,9 @@ msgstr "Adicionar questionário"
 
 msgid "Add quiz here"
 msgstr "Adicionar questionário aqui"
+
+msgid "Add region"
+msgstr "Adicionar região"
 
 msgid "Add reviewer guidance."
 msgstr "Adicione orientações para o revisor."
@@ -9952,6 +9958,9 @@ msgstr "Regenerar esta atividade com IA (requer um estado salvo e uma chave de A
 msgid "Region"
 msgstr "Região"
 
+msgid "Region {n}"
+msgstr "Região {n}"
+
 msgid "Reject renderings that diverge stylistically from the original. More rejections and rerenders, closer match to the source."
 msgstr "Rejeite renderizações que divergem estilisticamente do original. Mais rejeições e rerrenderizações, maior fidelidade ao original."
 
@@ -10027,6 +10036,9 @@ msgstr "Remover imagem"
 
 msgid "Remove placement"
 msgstr "Remover posição"
+
+msgid "Remove region"
+msgstr "Remover região"
 
 msgid "Remove second voice"
 msgstr "Remover segunda voz"

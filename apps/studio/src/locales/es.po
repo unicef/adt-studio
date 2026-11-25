@@ -706,8 +706,11 @@ msgstr "{providerKey, select, other {Tu clave de {name} fue rechazada}}"
 msgid "{readyVersion} is downloaded and installs when you quit ADT Studio."
 msgstr "{readyVersion} está descargada y se instala cuando cierres ADT Studio."
 
-msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
-msgstr "{regionCount} {regionCount, plural, one {región detectada} other {regiones detectadas}}"
+msgid "{regionCount} {regionCount, plural, one {region} other {regions}}"
+msgstr "{regionCount} {regionCount, plural, one {región} other {regiones}}"
+
+#~ msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
+#~ msgstr "{regionCount} {regionCount, plural, one {región detectada} other {regiones detectadas}}"
 
 #. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
 msgid "{rejectedProviderKey, select, other {API Key Settings — the {rejectedName} key was rejected}}"
@@ -1490,6 +1493,9 @@ msgstr "Añadir cuestionario"
 
 msgid "Add quiz here"
 msgstr "Añadir cuestionario aquí"
+
+msgid "Add region"
+msgstr "Añadir región"
 
 msgid "Add reviewer guidance."
 msgstr "Agregue orientación para el revisor."
@@ -9952,6 +9958,9 @@ msgstr "Regenera esta actividad con IA (requiere un estado guardado y una clave 
 msgid "Region"
 msgstr "Región"
 
+msgid "Region {n}"
+msgstr "Región {n}"
+
 msgid "Reject renderings that diverge stylistically from the original. More rejections and rerenders, closer match to the source."
 msgstr "Rechazar representaciones que divergen estilísticamente del original. Más rechazos y re-renderizados, coincidencia más cercana con la fuente."
 
@@ -10027,6 +10036,9 @@ msgstr "Quitar imagen"
 
 msgid "Remove placement"
 msgstr "Quitar ubicación"
+
+msgid "Remove region"
+msgstr "Quitar región"
 
 msgid "Remove second voice"
 msgstr "Eliminar segunda voz"

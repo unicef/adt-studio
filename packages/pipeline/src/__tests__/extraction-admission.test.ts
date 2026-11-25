@@ -63,6 +63,21 @@ describe("SPEC-0010 extraction admission", { timeout: 30_000 }, () => {
     } finally { f.storage.close() }
   })
 
+  // A per-book template override is an input, like a per-book prompt: saving
+  // one before the first extraction must not lock the book out of it (#1228).
+  it("initial extraction admits a book whose template was overridden before Extract", async () => {
+    const f = fixture()
+    const template = path.join(f.bookDir, "templates", "two_column_render.liquid")
+    const content = "<section>{{ content }}</section>\n"
+    fs.mkdirSync(path.dirname(template), { recursive: true })
+    fs.writeFileSync(template, content)
+    try {
+      expect(await extractPDF(f.options, f.storage, quiet)).toBe("extracted")
+      expect(fs.readFileSync(template, "utf8")).toBe(content)
+      expect(readExtractionManifest(f.bookDir)?.status).toBe("complete")
+    } finally { f.storage.close() }
+  })
+
   it("fresh CLI DAG extraction retains book admission and stops before providers after cancellation", async () => {
     const f = fixture()
     f.storage.close()
