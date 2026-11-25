@@ -11,8 +11,7 @@ export const PLAIN = "off"
  */
 export const GUIDED_IDEAS = {
   loader: { default: "c12", options: ["c12", "c13", "c14", "c15", "c16", "c17"] },
-  question: { default: "d18", options: ["d18", "d21"] },
-  evidence: { default: "cite", options: ["cite", "e22", "e23", "e24"] },
+  evidence: { default: "cite", options: ["cite", "e23"] },
   finish: { default: "f26", options: ["f26", "f27", "f28", "f29"] },
   expand: { default: "b10", options: ["b10"] },
   ambient: { default: "g34", options: ["g34"] },
@@ -24,10 +23,11 @@ export type GuidedGroup = keyof typeof GUIDED_IDEAS
 export const GUIDED_STEP_GROUPS: Record<FlowStep, GuidedGroup[]> = {
   start: ["ambient", "expand"],
   reading: ["loader", "ambient", "expand"],
-  found: ["evidence", "expand", "ambient"],
-  q1: ["question", "evidence", "expand"],
-  q2: ["question", "evidence", "expand"],
-  ready: ["evidence", "expand", "ambient"],
+  kind: ["evidence", "expand", "ambient"],
+  look: ["evidence", "expand"],
+  pages: ["expand"],
+  activities: ["evidence", "expand"],
+  name: ["expand", "ambient"],
   creating: ["finish", "ambient", "expand"],
   done: ["finish", "ambient", "expand"],
   error: ["ambient", "expand"],

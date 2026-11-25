@@ -7,23 +7,25 @@ import { WizardFormProvider } from "@/components/wizard/core/WizardFormProvider"
 import { useWizardForm } from "@/components/wizard/core/wizardForm"
 import { BookCreationProvider } from "@/components/wizard/core/useBookCreation"
 import { EngineClientProvider, useEngineClient } from "../engine/client"
-import { askedFacts } from "../engine/answers"
+import { proposedAnswers } from "../engine/answers"
 import { labEngine, loadScenario, SCENARIOS, type LabError, type ScenarioId, type Speed } from "./mockEngine"
 import { labCreation } from "./labCreation"
 import { forgetSavedPdf, loadSavedPdf, savePdf } from "./savedPdf"
 import { IDEA_GROUPS, IdeasContext, type Ideas } from "../variants/guided/shared/ideaGroups"
-import { LabDriveContext, type FlowStep } from "../variants/guided/shared/labDrive"
+import { LabDriveContext, type FlowStep, type LabTarget } from "../variants/guided/shared/labDrive"
+import { activitiesApply } from "../variants/guided/check/screens"
 import { GuidedFlow } from "../variants/guided"
 import { GUIDED_IDEAS, GUIDED_STEP_GROUPS, PLAIN } from "../variants/guided/ideas"
 
-/** The flow in order; Error branches off Reading. Question steps show only as many as the book answer asks. */
+/** The flow in order; Error branches off Reading. Check is its screens; Activities shows only when the book answer has it. */
 const FLOW: StepItem[] = [
   { id: "start", label: "Start" },
   { id: "reading", label: "Reading" },
-  { id: "found", label: "Found" },
-  { id: "q1", label: "Q1" },
-  { id: "q2", label: "Q2" },
-  { id: "ready", label: "Ready" },
+  { id: "kind", label: "Kind" },
+  { id: "look", label: "Look" },
+  { id: "pages", label: "Pages" },
+  { id: "activities", label: "Activities" },
+  { id: "name", label: "Name" },
   { id: "creating", label: "Creating" },
   { id: "done", label: "Done" },
   { id: "error", label: "Error" },
@@ -44,7 +46,14 @@ const SETTINGS: LabControl[] = [
     ],
   },
 ]
-const STEP_CONTROL: LabControl = { key: "step", label: "Step", default: "start", options: FLOW.map((s) => ({ value: s.id, label: s.label })) }
+/** Older links still land: Found is the first screen, Q1 / Q2 the screen of the first / second question, Ready the last screen. */
+const OLD_STEPS = [
+  { value: "found", label: "Found" },
+  { value: "q1", label: "Q1" },
+  { value: "q2", label: "Q2" },
+  { value: "ready", label: "Ready" },
+]
+const STEP_CONTROL: LabControl = { key: "step", label: "Step", default: "start", options: [...FLOW.map((s) => ({ value: s.id, label: s.label })), ...OLD_STEPS] }
 
 /**
  * Guided: only the groups and ideas that apply to it. "Now" is Guided's own pick (its default);
@@ -79,7 +88,7 @@ const ALL_CONTROLS = [...SETTINGS, STEP_CONTROL, ...GUIDED_CONTROLS]
 const valueFor = (key: string, value: string | undefined) => (GUIDED_CONTROLS.find((c) => c.key === key)?.options.some((o) => o.value === value) ? value! : "now")
 
 /** A jump: the step to land on ("play" runs from the PDF at the chosen speed), and a counter that remounts the flow. */
-type Jump = { step: FlowStep | "play"; n: number }
+type Jump = { step: LabTarget | "play"; n: number }
 
 /** Puts the lab's PDF into a fresh form (unless the jump is to Start), and keeps any PDF dropped. */
 function KeepFile({ file, seed, onFile }: { file: File | null; seed: boolean; onFile: (f: File) => void }) {
@@ -112,9 +121,9 @@ export default function AddBookLab() {
   const [values, set] = useLabParams(ALL_CONTROLS)
   const [file, setFile] = useState<File | null>(null)
   const [loaded, setLoaded] = useState(false)
-  const [jump, setJump] = useState<Jump>(() => ({ step: values.step as FlowStep, n: 0 }))
-  const [actual, setActual] = useState<FlowStep>(values.step as FlowStep)
-  const [questions, setQuestions] = useState<number | null>(null)
+  const [jump, setJump] = useState<Jump>(() => ({ step: values.step as LabTarget, n: 0 }))
+  const [actual, setActual] = useState<FlowStep>(() => (FLOW.some((s) => s.id === values.step) ? (values.step as FlowStep) : "kind"))
+  const [activities, setActivities] = useState(true)
   const real = useEngineClient()
 
   useEffect(() => {
@@ -126,8 +135,7 @@ export default function AddBookLab() {
 
   useEffect(() => {
     let live = true
-    setQuestions(null)
-    void loadScenario(values.book as ScenarioId).then((rec) => live && setQuestions(askedFacts(rec).length))
+    void loadScenario(values.book as ScenarioId).then((rec) => live && setActivities(activitiesApply(rec, proposedAnswers(rec))))
     return () => {
       live = false
     }
@@ -150,7 +158,7 @@ export default function AddBookLab() {
   const scenario = SCENARIOS.find((s) => s.id === values.book)
   const ideas = useMemo(() => Object.fromEntries(IDEA_GROUPS.map((g) => [g.key, valueFor(g.key, values[g.key])])) as Ideas, [values])
 
-  const steps = FLOW.filter((s) => !(s.id === "q1" && questions === 0) && !(s.id === "q2" && questions !== null && questions < 2))
+  const steps = FLOW.filter((s) => s.id !== "activities" || activities)
 
   const goTo = (step: FlowStep | "play") => {
     if (step !== "start" && step !== "play" && !file) return

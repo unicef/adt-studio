@@ -1,0 +1,145 @@
+import { useEffect, useRef, type ReactNode } from "react"
+import { Trans, useLingui } from "@lingui/react/macro"
+import { ArrowLeft, Check as CheckIcon, Sparkles, Wrench } from "lucide-react"
+import type { SetupRecommendation } from "@adt/types"
+import { cn } from "@/lib/utils"
+import { useCreate } from "../../../review/parts"
+import { PrimaryButton } from "../../../../core/ui"
+import { LC_PRIMARY } from "../shared/Create"
+import type { Answers } from "../shared/useAnswers"
+import { Morph } from "../Morph"
+import { ActivitiesScreen } from "./screens/ActivitiesScreen"
+import { KindScreen } from "./screens/KindScreen"
+import { LookScreen } from "./screens/LookScreen"
+import { NameScreen } from "./screens/NameScreen"
+import { PagesScreen } from "./screens/PagesScreen"
+import { screenFacts, screenSure } from "./screens"
+import type { Check } from "./useCheck"
+import { SCREEN_TITLE } from "./words"
+
+const HEADING = "gd-check-title"
+
+/** Enter moves on unless focus is in a field or on something Enter already presses. */
+// eslint-disable-next-line lingui/no-unlocalized-strings -- a CSS selector
+const OWN_ENTER = "input, textarea, select, button, a[href], [role='slider'], [role='switch'], [contenteditable='true'], [data-lab-toolbar]"
+
+type Props = {
+  rec: SetupRecommendation
+  chat: Answers
+  check: Check
+  values: Record<string, string>
+  file: File | null | undefined
+  pageCount: number
+  locked: boolean
+  onCreate: () => void
+  onManual: () => void
+}
+
+/**
+ * Check, one small screen at a time: the screen's heading, its one decision (or two that belong
+ * together), then Back, the screen's button ("Looks right" when the engine is sure, "Continue"
+ * when it asked) and "Skip to the end with my picks". The last screen creates the book. Focus
+ * moves to the heading of each new screen; Enter presses the screen's button.
+ */
+export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, onCreate, onManual }: Props) {
+  const { i18n } = useLingui()
+  const derived = chat.derived!
+  const { at, screens } = check
+  const index = screens.indexOf(at)
+  const last = at === "name"
+  const sure = screenSure(rec, derived.current, at)
+  const create = useCreate(onCreate)
+  const heading = useRef<HTMLHeadingElement>(null)
+  const moved = useRef(false)
+
+  const primary = () => {
+    if (locked) return
+    if (last) return create()
+    // The answers on this screen are settled now (the guess, unless another was picked).
+    for (const f of screenFacts(rec, derived.current, at)) if (f.ask && !(f.id in chat.answers)) chat.answer(f.id, derived.current[f.id])
+    check.next()
+  }
+
+  // A new screen: focus its heading (not on the first one, which comes in with the step).
+  useEffect(() => {
+    if (!moved.current) {
+      moved.current = true
+      return
+    }
+    heading.current?.focus({ preventScroll: true })
+    heading.current?.scrollIntoView({ block: "nearest" })
+  }, [at])
+
+  const press = useRef(primary)
+  press.current = primary
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Enter" || e.defaultPrevented || e.isComposing || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return
+      const target = e.target as HTMLElement | null
+      if (target?.closest(OWN_ENTER)) return
+      e.preventDefault()
+      press.current()
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [])
+
+  let body: ReactNode = null
+  if (at === "kind") body = <KindScreen rec={rec} chat={chat} file={file} />
+  else if (at === "look") body = <LookScreen rec={rec} chat={chat} file={file} />
+  else if (at === "pages") body = <PagesScreen rec={rec} pageCount={pageCount} />
+  else if (at === "activities") body = <ActivitiesScreen rec={rec} chat={chat} file={file} />
+  else body = <NameScreen screens={screens} values={values} onEdit={(s) => check.go(s, true)} />
+
+  return (
+    <section aria-labelledby={HEADING} inert={locked} className="flex flex-col">
+      <Morph swap={at} className="-mx-2" inner="flex flex-col gap-3 px-2 pb-2 pt-1">
+        <div className="flex items-baseline justify-between gap-3 px-1">
+          <h2 id={HEADING} ref={heading} tabIndex={-1} className="rounded-md text-[19px] font-semibold tracking-[-0.015em] outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60">
+            {i18n._(SCREEN_TITLE[at])}
+          </h2>
+          <span className="shrink-0 text-[13px] tabular-nums text-muted-foreground">
+            <Trans>
+              {index + 1} of {screens.length}
+            </Trans>
+          </span>
+        </div>
+        {body}
+      </Morph>
+      <div className="gd-foot sticky bottom-0 z-10 -mx-2 flex flex-col gap-1 px-2 pb-4 pt-5">
+        <div className="flex items-center justify-between gap-3">
+          {index > 0 ? (
+            <button type="button" onClick={check.back} className="lc-link -ml-2 inline-flex min-h-11 items-center gap-1.5 px-3 text-[14.5px] font-medium">
+              <ArrowLeft className="size-4" />
+              <Trans>Back</Trans>
+            </button>
+          ) : (
+            <span />
+          )}
+          <PrimaryButton
+            onClick={primary}
+            disabled={locked}
+            icon={last ? <Sparkles className="size-4" /> : sure ? <CheckIcon className="size-4" /> : undefined}
+            className={cn(LC_PRIMARY, "min-w-[148px]")}
+          >
+            {last ? <Trans>Create book</Trans> : check.returning ? <Trans>Back to the summary</Trans> : sure ? <Trans>Looks right</Trans> : <Trans>Continue</Trans>}
+          </PrimaryButton>
+        </div>
+        <div className="flex justify-end">
+          {last ? (
+            <button type="button" onClick={onManual} className="lc-link -mr-2 inline-flex min-h-10 items-center gap-1.5 px-3 text-[13.5px] font-medium">
+              <Wrench className="size-4" />
+              <Trans>Set it up myself</Trans>
+            </button>
+          ) : (
+            !check.returning && (
+              <button type="button" onClick={check.end} className="-mr-2 inline-flex min-h-10 items-center rounded-full px-3 text-[13.5px] text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground">
+                <Trans>Skip to the end with my picks</Trans>
+              </button>
+            )
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}

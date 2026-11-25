@@ -18,15 +18,9 @@ export const IDEA_GROUPS = [
     ["c16", "Flipbook", "Your first five pages riffle over one by one in 3D, onto a dimmed left page."],
     ["c17", "Shape morph", "A brand-blue shape turns and morphs between blob, circle and squircle while it reads."],
   ] },
-  { key: "question", label: "Question", options: [
-    ["d18", "Live previews", "Light picture cards: each is a screen of the book you'd get, from your pages, with a plain line. The picked one lifts."],
-    ["d21", "Smart default", "Only my guess shows, with its page, a pulse and Use this; the rest hide behind Other options."],
-  ] },
   { key: "evidence", label: "Evidence", options: [
     ["cite", "Inline citations", "Small page badges right after each claim. Hover one."],
-    ["e22", "Boxes on page", "Under the finding, the pages that prove it; an outline draws itself on each and a plain label pops."],
     ["e23", "Peek on hover", "Tiny page tags after claims; hover one to peek at the page."],
-    ["e24", "Settings sentence", "The setup reads as one plain sentence; each underlined word opens a menu and the new word rolls in. Click a word."],
   ] },
   { key: "finish", label: "Finish", options: [
     ["f26", "Ring → button", "A progress ring fills, then stretches into the Open pill; the caption under it says it's ready."],

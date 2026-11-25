@@ -1,5 +1,5 @@
 /*
- * Question ideas (d18, d21), after the reference board's cards, in ADT colours
+ * Question idea d18 (the picture cards), after the reference board's cards, in ADT colours
  * (the --lc-* tokens of look.css). Every animation stops under reduced motion and Reduce effects.
  */
 
@@ -22,18 +22,9 @@
 .qd18-o:hover .qd18-dev { transform: scale(0.93); }
 .qd18-o.is-sel .qd18-dev { transform: scale(1) rotate(-1.5deg); }
 
-/* d21 · the guess breathes a soft accent ring. */
-@keyframes qd21-ring {
-  0%, 30% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--brand-600) 45%, transparent); }
-  60%, 100% { box-shadow: 0 0 0 10px transparent; }
-}
-.qd21-rec::after { content: ""; position: absolute; inset: -2px; border-radius: 16px; pointer-events: none; animation: qd21-ring 3s ease-out infinite; }
-
 @media (prefers-reduced-motion: reduce) {
   .qd18-o, .qd18-dev { transition: none; }
   .qd18-o.is-sel { transform: none; }
-  .qd21-rec::after { animation: none; }
 }
 .reduce-effects :is(.qd18-o, .qd18-dev) { transition: none; }
 .reduce-effects .qd18-o.is-sel { transform: none; }
-.reduce-effects .qd21-rec::after { animation: none; }

@@ -78,7 +78,7 @@ function Layer({ shown, children }: { shown: boolean; children: ReactNode }) {
   )
 }
 
-function PageThumb({ file, page }: { file: File | null; page: number }) {
+export function PageThumb({ file, page }: { file: File | null; page: number }) {
   const src = usePageThumb(file, page)
   return (
     <div className="flex w-[64px] shrink-0 flex-col items-center gap-1">

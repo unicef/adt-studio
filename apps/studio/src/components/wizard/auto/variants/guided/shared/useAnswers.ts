@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import type { SetupBookFactId, SetupFact, SetupRecommendation, SetupSettingId } from "@adt/types"
-import { askedFacts, fitPreset, genreFor, proposedAnswers, SETTING_IDS, settingsChangedBy, settingsFor, settingsTouchedBy, type FactAnswers } from "../../../engine/answers"
+import { askedFacts, fitPreset, genreFor, proposedAnswers, settingsChangedBy, settingsFor, type FactAnswers } from "../../../engine/answers"
 
 export type Source = "ai" | "asked" | "changed"
 export type SettingValue = string | boolean
@@ -81,16 +81,3 @@ export function useAnswers(rec: SetupRecommendation | null) {
 
 export type Answers = ReturnType<typeof useAnswers>
 export type Derived = NonNullable<Answers["derived"]>
-
-/** Settings that wait on a question: they'd change with another answer to a fact the engine asks about. */
-export function settingsWaitingOn(rec: SetupRecommendation, asked: SetupFact[], answers: FactAnswers): Set<SetupSettingId> {
-  const out = new Set<SetupSettingId>()
-  for (const f of asked) for (const id of settingsTouchedBy(rec, answers, f.id)) out.add(id)
-  return out
-}
-
-/** The settings the engine settled without asking (no question hangs on them). */
-export function settledSettings(rec: SetupRecommendation, derived: Derived): SetupSettingId[] {
-  const waiting = settingsWaitingOn(rec, derived.asked, derived.proposed)
-  return SETTING_IDS.filter((id) => !waiting.has(id))
-}

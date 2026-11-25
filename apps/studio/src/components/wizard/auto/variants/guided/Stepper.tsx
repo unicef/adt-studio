@@ -15,8 +15,9 @@ const LABEL: Record<StepId, ReactNode> = {
  * Upload · Reading · Check · Create. The steps already done are the history: each one opens again
  * (unless the book is being created). The step on screen carries the dot; `failed` marks the
  * current one when something went wrong there, and `complete` ticks them all once the book is made.
+ * On Check, `checkBars` takes the dot's place: one small bar per screen of Check.
  */
-export function Stepper({ at, shown, failed, locked, complete, onGo }: { at: StepId; shown: StepId; failed: boolean; locked: boolean; complete: boolean; onGo: (step: StepId) => void }) {
+export function Stepper({ at, shown, failed, locked, complete, onGo, checkBars }: { at: StepId; shown: StepId; failed: boolean; locked: boolean; complete: boolean; onGo: (step: StepId) => void; checkBars?: ReactNode }) {
   const { t } = useLingui()
   const atIndex = STEPS.indexOf(at)
   return (
@@ -37,7 +38,7 @@ export function Stepper({ at, shown, failed, locked, complete, onGo }: { at: Ste
                   onClick={() => onGo(step)}
                   disabled={!canGo}
                   aria-current={onScreen ? "step" : undefined}
-                  className={cn("group flex items-center gap-2 rounded-full py-1 pl-1 pr-3 text-[14px] transition-colors duration-200 disabled:cursor-default", canGo && "hover:bg-[var(--lc-bubble)]", onScreen ? "font-semibold text-foreground" : done ? "text-foreground/80" : "text-muted-foreground")}
+                  className={cn("group flex items-center gap-2 rounded-full py-1 pl-1 pr-3 text-[14px] transition-colors duration-200 disabled:cursor-default", !onScreen && "max-sm:pr-1", canGo && "hover:bg-[var(--lc-bubble)]", onScreen ? "font-semibold text-foreground" : done ? "text-foreground/80" : "text-muted-foreground")}
                 >
                   <span
                     className={cn(
@@ -47,14 +48,19 @@ export function Stepper({ at, shown, failed, locked, complete, onGo }: { at: Ste
                   >
                     {bad ? <X className="size-3.5 stroke-[3]" /> : done ? <Check className="size-3.5 stroke-[3]" /> : i + 1}
                   </span>
-                  {LABEL[step]}
+                  {/* On a phone only the step on screen keeps its name, so the four fit. */}
+                  <span className={cn(!onScreen && "max-sm:sr-only")}>{LABEL[step]}</span>
                   {done && !locked && !onScreen && (
                     <span className="sr-only">
                       <Trans>(done, open again)</Trans>
                     </span>
                   )}
                 </button>
-                <span aria-hidden className={cn("gd-dot absolute -bottom-2.5 left-1/2 size-1.5 -translate-x-1/2 rounded-full", onScreen ? (bad ? "bg-destructive" : "bg-[var(--gd-step)]") : "scale-0 opacity-0")} />
+                {step === "check" && onScreen && checkBars ? (
+                  <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2">{checkBars}</span>
+                ) : (
+                  <span aria-hidden className={cn("gd-dot absolute -bottom-2.5 left-1/2 size-1.5 -translate-x-1/2 rounded-full", onScreen ? (bad ? "bg-destructive" : "bg-[var(--gd-step)]") : "scale-0 opacity-0")} />
+                )}
               </li>
             </Fragment>
           )

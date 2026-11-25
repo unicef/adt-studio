@@ -70,8 +70,14 @@ export function usePdfField() {
         pdfCache.file = file
         pdfCache.totalPages = count
         setTotalPages(count)
-        form.setFieldValue("startPage", "1")
-        form.setFieldValue("endPage", String(count))
+        // Keep a range already chosen for this file (Add Book's auto mode sets the engine's range
+        // before the page picker first mounts); otherwise the range is the whole book.
+        const start = parseInt(form.state.values.startPage)
+        const end = parseInt(form.state.values.endPage)
+        if (!(start >= 1 && end >= start && end <= count)) {
+          form.setFieldValue("startPage", "1")
+          form.setFieldValue("endPage", String(count))
+        }
       } catch {
         if (cancelled) return
         pdfCache.file = null

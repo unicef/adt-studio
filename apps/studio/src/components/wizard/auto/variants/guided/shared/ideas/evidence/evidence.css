@@ -1,4 +1,4 @@
-/* Evidence ideas (cite, e22–e24). Every animation stops under reduced motion and Reduce effects. */
+/* Evidence ideas (cite, e23). Every animation stops under reduced motion and Reduce effects. */
 
 /* cite: the page in the citation card slides as you flip. */
 @keyframes ev-flip-in { from { opacity: 0; transform: translateX(18px) scale(0.96); } to { opacity: 1; transform: none; } }
@@ -6,20 +6,6 @@
 .ev-flip { animation: ev-flip-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .ev-flip.ev-flip-back { animation-name: ev-flip-back; }
 .ev-card { transform-origin: var(--radix-hover-card-content-transform-origin); }
-
-/* e22: the outline draws around the page, then its label pops. */
-@keyframes ev-draw { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
-@keyframes ev-tag-pop { 0% { opacity: 0; transform: scale(0.4); } 70% { opacity: 1; transform: scale(1.08); } 100% { opacity: 1; transform: none; } }
-.ev-box {
-  fill: none;
-  stroke: var(--lc-accent, var(--brand-600));
-  stroke-width: 2;
-  stroke-dasharray: 100;
-  stroke-dashoffset: 0;
-  vector-effect: non-scaling-stroke;
-  animation: ev-draw 1.1s var(--lc-out, cubic-bezier(0.23, 1, 0.32, 1)) calc(0.35s + var(--ev-delay, 0s)) both;
-}
-.ev-box-tag { transform-origin: 0 100%; animation: ev-tag-pop 0.4s var(--lc-pop, cubic-bezier(0.34, 1.56, 0.64, 1)) calc(1.05s + var(--ev-delay, 0s)) both; }
 
 /* e23: a tiny page tag; the peek grows out of it. */
 .ev-peek-tag {
@@ -61,32 +47,9 @@
 }
 .ev-peek-tag:hover .ev-peek, .ev-peek-tag:focus-visible .ev-peek { transform: translateX(-50%) scale(1); opacity: 1; }
 
-/* e24: the underlined values of the sentence; a new value rolls in. */
-@keyframes ev-roll { from { transform: translateY(100%); opacity: 0; } to { transform: none; opacity: 1; } }
-.ev-tok {
-  display: inline-block;
-  overflow: hidden;
-  height: 1.55em;
-  line-height: 1.55em;
-  /* A button takes its baseline from its text, so it sits on the sentence's line although it clips. */
-  vertical-align: baseline;
-  white-space: nowrap;
-  border-bottom: 2px dashed color-mix(in oklab, var(--lc-accent, var(--brand-600)) 60%, transparent);
-  font-weight: 600;
-  color: var(--lc-accent-text, var(--brand-700));
-  cursor: pointer;
-  transition: border-color 0.15s, background-color 0.15s;
-  border-radius: 4px 4px 0 0;
-}
-.ev-tok:hover, .ev-tok[data-state="open"] { border-bottom-style: solid; background: var(--lc-accent-soft, var(--brand-50)); }
-.ev-tok:focus-visible { outline: 2px solid var(--brand-500); outline-offset: 2px; }
-.ev-tok.is-changed { border-bottom-style: solid; border-bottom-color: var(--lc-accent, var(--brand-600)); }
-.ev-menu { background: var(--lc-bubble, var(--popover)); box-shadow: 0 0 0 1px var(--lc-line, var(--border)), var(--lc-shadow, 0 12px 30px -12px rgb(15 23 42 / 0.4)); border: 0; transform-origin: var(--radix-popover-content-transform-origin); }
-.ev-tok-roll { display: block; padding: 0 0.1em; animation: ev-roll 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
-
 @media (prefers-reduced-motion: reduce) {
-  .ev-flip, .ev-box, .ev-box-tag, .ev-tok-roll { animation: none; }
-  .ev-peek, .ev-tok { transition: none; }
+  .ev-flip { animation: none; }
+  .ev-peek { transition: none; }
 }
-.reduce-effects :is(.ev-flip, .ev-box, .ev-box-tag, .ev-tok-roll) { animation: none; }
-.reduce-effects :is(.ev-peek, .ev-tok) { transition: none; }
+.reduce-effects :is(.ev-flip) { animation: none; }
+.reduce-effects :is(.ev-peek) { transition: none; }
