@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import type { SetupBookFactId } from "@adt/types"
 import { cn } from "@/lib/utils"
+import { Illustration } from "../Illustration"
 
 /**
  * Small drawings that explain an idea (the kind of book, tasks that become activities, labelled
@@ -216,13 +217,37 @@ export function LanguageArt({ code, outputs }: { code: string | null; outputs: s
 
 const KIND: Record<string, () => ReactNode> = { story: Story, textbook: SchoolBook, reference: Information }
 
-/** The drawing for a fact's answer, or null when the book's own pages explain it better (where the words sit). */
+const IMAGE: Partial<Record<SetupBookFactId, Record<string, string>>> = {
+  genre: { story: "kind-story", textbook: "kind-school", reference: "kind-information" },
+  exercises: { none: "exercises-none", some: "exercises-some", many: "exercises-many" },
+  diagrams: { none: "diagrams-none", some: "diagrams-some", many: "diagrams-many" },
+}
+
+/**
+ * The picture for a fact's answer: its illustration (public/add-book), with the drawing above as
+ * the fallback; null when the book's own pages explain it better (where the words sit).
+ */
 export function factArt(fact: SetupBookFactId, value: string): ReactNode | null {
-  if (fact === "genre") {
-    const Kind = KIND[value]
-    return Kind ? <Kind /> : null
-  }
-  if (fact === "exercises") return <Exercises value={value} />
-  if (fact === "diagrams") return <Diagrams value={value} />
-  return null
+  const name = IMAGE[fact]?.[value]
+  if (!name) return null
+  const Kind = KIND[value]
+  const drawing = fact === "genre" ? Kind ? <Kind /> : null : fact === "exercises" ? <Exercises value={value} /> : <Diagrams value={value} />
+  return <Illustration name={name} fallback={drawing} />
+}
+
+/** The language picture: the illustration with the book's language on it (the drawing until it loads). */
+export function LanguagePicture({ code, outputs }: { code: string | null; outputs: string[] }) {
+  return (
+    <span className="relative grid h-full w-full place-items-center">
+      <Illustration name="language" fallback={<LanguageArt code={code} outputs={outputs} />} />
+      <span className="absolute bottom-[6%] left-[6%] flex flex-wrap gap-1">
+        <span className="rounded-full bg-white px-2.5 py-0.5 text-[13px] font-bold uppercase text-brand-700 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-800 dark:text-brand-300 dark:ring-zinc-700">{code ?? "?"}</span>
+        {outputs.slice(0, 3).map((o) => (
+          <span key={o} className="rounded-full bg-white/90 px-2 py-0.5 text-[12px] font-semibold uppercase text-muted-foreground shadow-sm ring-1 ring-slate-200 dark:bg-zinc-800/90 dark:ring-zinc-700">
+            + {o}
+          </span>
+        ))}
+      </span>
+    </span>
+  )
 }

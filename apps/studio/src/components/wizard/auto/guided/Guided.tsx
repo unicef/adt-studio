@@ -3,6 +3,7 @@ import { flushSync } from "react-dom"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { FileDropOverlay } from "@/components/ui/file-drop-overlay"
 import { FlowTopBar } from "@/components/FlowTopBar"
+import { cn } from "@/lib/utils"
 import { applySettings } from "../engine/answers"
 import { useEngineRun } from "../engine/useEngineRun"
 import { useWizardForm } from "../../core/wizardForm"
@@ -18,7 +19,6 @@ import { useCreateRun } from "./shared/useCreateRun"
 import { useFirstBook } from "./shared/useFirstBook"
 import { Bubble } from "./Bubble"
 import { CheckFlow } from "./check/CheckFlow"
-import { CheckIntro, IntroSays } from "./check/CheckIntro"
 import { CheckBars, CheckRail } from "./check/CheckRail"
 import { CheckSays } from "./check/CheckSays"
 import { useCheck } from "./check/useCheck"
@@ -89,7 +89,7 @@ export function Guided({ onManual }: { onManual: () => void }) {
     rec,
     chat,
     create,
-    screen: rec ? (check.intro ? "intro" : check.at) : null,
+    screen: rec ? check.at : null,
     jump: check.jump,
     flush: () => setRevealed(true),
   })
@@ -134,21 +134,11 @@ export function Guided({ onManual }: { onManual: () => void }) {
       says = <ReadingMessage file={flow.file!} pageCount={flow.pageCount} run={run} rec={rec} onManual={manual} />
     }
   } else if (shown === "check" && rec && chat.derived && values) {
-    swap = check.intro ? "check-intro" : `check-${check.at}-${check.trying}`
-    says = check.intro ? (
-      <IntroSays rec={rec} chat={chat} check={check} />
-    ) : (
-      <CheckSays rec={rec} derived={chat.derived} screen={check.at} file={flow.file} pageCount={flow.pageCount} firstBook={firstBook} trying={check.trying} onTrying={check.setTrying} />
-    )
-    panel =
-      revealed &&
-      (check.intro ? (
-        <CheckIntro rec={rec} chat={chat} check={check} values={values} file={flow.file} pageCount={flow.pageCount} locked={create.locked} />
-      ) : (
-        <CheckFlow rec={rec} chat={chat} check={check} values={values} file={flow.file} pageCount={flow.pageCount} locked={create.locked} onCreate={onCreate} onManual={manual} />
-      ))
-    aside = <CheckRail screens={check.screens} at={check.intro ? null : check.at} done={check.done} values={values} onGo={(s) => check.go(s)} />
-    bars = <CheckBars screens={check.screens} at={check.intro ? null : check.at} done={check.done} />
+    swap = `check-${check.at}-${check.trying}`
+    says = <CheckSays rec={rec} derived={chat.derived} screen={check.at} file={flow.file} pageCount={flow.pageCount} firstBook={firstBook} trying={check.trying} onTrying={check.setTrying} />
+    panel = revealed && <CheckFlow rec={rec} chat={chat} check={check} values={values} file={flow.file} pageCount={flow.pageCount} locked={create.locked} onCreate={onCreate} onManual={manual} />
+    aside = <CheckRail screens={check.screens} at={check.at} done={check.done} values={values} onGo={(s) => check.go(s)} />
+    bars = <CheckBars screens={check.screens} at={check.at} done={check.done} />
   } else if (shown === "create" && lastRun) {
     swap = `create-${lastRun.n}-${lastRun.status === "failed" ? "failed" : lastRun.status === "done" ? "done" : "busy"}`
     says = <CreateSays run={lastRun} onRetry={onCreate} onRename={onRename} />
@@ -173,16 +163,16 @@ export function Guided({ onManual }: { onManual: () => void }) {
         <div className="relative flex-1 overflow-y-auto overflow-x-hidden">
           {/* Check uses the width on wide screens: the list of its screens on the left, the screen on view beside it. The other steps stay one calm column. */}
           <div className="mx-auto flex w-full max-w-[1340px] flex-col px-4 pb-24 pt-6 sm:px-6 sm:pt-8">
-            <div className="mx-auto w-full max-w-[760px] lg:max-w-[980px]">
+            <div className="mx-auto w-full max-w-[760px] lg:max-w-[1180px]">
               <Stepper at={at} shown={shown} failed={!!failure && at === "reading"} locked={create.locked} complete={lastRun?.status === "done"} onGo={(s) => setView(s === at ? null : s)} checkBars={bars} />
             </div>
-            <div className={shown === "check" ? "mt-7 grid gap-4 lg:mt-9 lg:grid-cols-[250px_minmax(0,980px)] lg:justify-center lg:gap-x-12" : "mx-auto mt-7 w-full max-w-[760px] lg:mt-9 lg:max-w-[880px]"}>
+            <div className={shown === "check" ? "mt-7 grid gap-4 lg:mt-9 lg:grid-cols-[250px_minmax(0,980px)] lg:justify-center lg:gap-x-12" : cn("mx-auto mt-7 w-full max-w-[760px] lg:mt-9", shown === "upload" ? "lg:max-w-[1180px]" : "lg:max-w-[880px]")}>
               {aside}
               <div className="min-w-0">
                 <Bubble swap={swap} busy={busy}>
                   {says}
                 </Bubble>
-                <Morph swap={`${shown}-${!!panel}-${shown === "check" && check.intro}`} className="-mx-2 mt-4" inner="px-2 pb-3 pt-1">
+                <Morph swap={`${shown}-${!!panel}`} className="-mx-2 mt-4" inner="px-2 pb-3 pt-1">
                   {panel}
                 </Morph>
               </div>

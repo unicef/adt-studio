@@ -59,6 +59,9 @@ function Says({ rec, derived, screen, file, pageCount, firstBook, trying, onTryi
       <p>
         {asked ? (
           <>
+            <strong className="font-semibold">
+              <Trans>I&apos;ve read your book.</Trans>
+            </strong>{" "}
             {ask ? i18n._(ask) : <Trans>Tell me what kind of book it is.</Trans>}
           </>
         ) : (

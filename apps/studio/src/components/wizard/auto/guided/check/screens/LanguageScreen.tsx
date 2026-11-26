@@ -7,7 +7,7 @@ import { LanguagePicker } from "@/components/LanguagePicker"
 import { getBaseLanguage, getDisplayName, normalizeLocale } from "@/lib/languages"
 import { useWizardForm } from "../../../../core/wizardForm"
 import { bookLanguage } from "../screens"
-import { LanguageArt } from "../../shared/art/ConceptArt"
+import { LanguagePicture } from "../../shared/art/ConceptArt"
 import { PICTURE, SurePick } from "../SurePick"
 
 const PICKER_LABEL = msg`Edit the book in`
@@ -48,7 +48,7 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
     <SurePick
       picture={
         <span className={`qd18-pv grid shrink-0 place-items-center rounded-[12px] p-3 ${PICTURE}`}>
-          <LanguageArt code={shown ? getBaseLanguage(shown) : null} outputs={outputs.map(getBaseLanguage)} />
+          <LanguagePicture code={shown ? getBaseLanguage(shown) : null} outputs={outputs.map(getBaseLanguage)} />
         </span>
       }
       label={<Trans>Language of the book</Trans>}

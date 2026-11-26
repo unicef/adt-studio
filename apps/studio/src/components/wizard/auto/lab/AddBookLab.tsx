@@ -19,7 +19,6 @@ import { GuidedFlow } from "../guided"
 const FLOW: StepItem[] = [
   { id: "start", label: "Start" },
   { id: "reading", label: "Reading" },
-  { id: "intro", label: "Intro" },
   { id: "kind", label: "Kind" },
   { id: "language", label: "Language" },
   { id: "look", label: "Look" },
