@@ -1,27 +1,21 @@
 import { useState, type ReactNode } from "react"
 import type { MessageDescriptor } from "@lingui/core"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { ArrowLeft, ArrowRight, Check, Lock, Sparkles, Zap } from "lucide-react"
-import type { SetupRecommendation, SetupSettingId } from "@adt/types"
+import { ArrowLeft, ArrowRight, Check, Sparkles, Zap } from "lucide-react"
+import type { SetupRecommendation } from "@adt/types"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { PrimaryButton } from "../../../core/ui"
-import { RULE_WHY, SETTING_NAME, SETTING_VALUE } from "../../engine/words"
-import { SETTING_IDS } from "../../engine/answers"
 import { Assistant } from "./Assistant"
 import { useIsWizard, WizardPose } from "./WizardPose"
 import { Screen } from "./Screen"
 import { screenPages, useScreenImages } from "./screens/pages"
 import type { LookOption } from "./PreviewChoices"
 
-/** Settings fixed once the book is set up (the lock in the Check screens). */
-// eslint-disable-next-line lingui/no-unlocalized-strings -- a setting id, never shown
-const LOCKED: SetupSettingId[] = ["pageGrouping"]
 
 /**
  * The options, one at a time and in depth: the picture large, the assistant's short take, then
- * when it fits, when another option fits better (a tap away), books it suits, everything it sets
- * up in the book and why, how the book is made with it, why the assistant guessed it, and whether
+ * when it fits, when another option fits better (a tap away), books it suits, how the book is made with it, why the assistant guessed it, and whether
  * it can be changed. Tabs, arrows or the arrow keys move between the options; the one shown can
  * be picked from here.
  */
@@ -38,7 +32,6 @@ export function OptionsHelp({ open, onOpenChange, rec, options, page, chosen, fi
   const go = (d: number) => setAt((i) => (i + d + options.length) % options.length)
   const show = (value: string) => setAt(Math.max(0, options.findIndex((x) => x.value === value)))
   const picked = chosen === o.value
-  const current = options.find((x) => x.value === chosen)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -77,7 +70,7 @@ export function OptionsHelp({ open, onOpenChange, rec, options, page, chosen, fi
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <CardBody key={o.value} o={o} options={options} current={current} rec={rec} page={page} file={file} wizard={wizard} show={show} />
+          <CardBody key={o.value} o={o} options={options} rec={rec} page={page} file={file} wizard={wizard} show={show} />
         </div>
 
         <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border px-6 py-3">
@@ -130,42 +123,6 @@ function Said({ m }: { m: MessageDescriptor }) {
   return <>{i18n._(m)}</>
 }
 
-/** Everything the option sets up in the book: each setting, what it means, why, and whether it differs from the current pick. */
-function Sets({ option, current }: { option: LookOption; current?: LookOption }) {
-  const { i18n } = useLingui()
-  const ids = (option.only ?? SETTING_IDS).filter((id) => option.settings?.[id])
-  if (!ids.length) return null
-  return (
-    <Part title={<Trans>What it sets up in your book</Trans>}>
-      <ul className="flex flex-col divide-y divide-border rounded-[12px] border border-border">
-        {ids.map((id) => {
-          const pick = option.settings![id]!
-          const words = SETTING_VALUE[id]?.[String(pick.value)]
-          const why = RULE_WHY[pick.rule]
-          const differs = current && current.value !== option.value && String(current.settings?.[id]?.value) !== String(pick.value)
-          return (
-            <li key={id} className="grid gap-x-4 gap-y-0.5 px-3.5 py-2.5 sm:grid-cols-[150px_minmax(0,1fr)]">
-              <span className="text-[13px] text-muted-foreground">{i18n._(SETTING_NAME[id])}</span>
-              <span className="min-w-0 text-[13.5px]">
-                <span className="font-semibold">{words ? i18n._(words.name) : String(pick.value)}</span>
-                {differs && (
-                  <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 align-[1px] text-[11px] font-medium text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
-                    <Trans>Changes from your pick</Trans>
-                  </span>
-                )}
-                {LOCKED.includes(id) && <Lock className="ml-1.5 inline size-3 align-[-1px] text-muted-foreground" />}
-                <span className="block text-muted-foreground">
-                  {words && i18n._(words.means)} {why && <span className="text-muted-foreground/75">{i18n._(why)}</span>}
-                </span>
-              </span>
-            </li>
-          )
-        })}
-      </ul>
-    </Part>
-  )
-}
-
 function HelpPicture({ rec, option, page, file }: { rec: SetupRecommendation; option: LookOption; page: number; file: File | null | undefined }) {
   const pages = screenPages(rec, option.look.pageGrouping, page)
   const srcs = useScreenImages(file, pages)
@@ -176,10 +133,10 @@ function HelpPicture({ rec, option, page, file }: { rec: SetupRecommendation; op
   )
 }
 
-type BodyProps = { o: LookOption; options: LookOption[]; current?: LookOption; rec: SetupRecommendation; page: number; file: File | null | undefined; wizard: boolean; show: (value: string) => void }
+type BodyProps = { o: LookOption; options: LookOption[]; rec: SetupRecommendation; page: number; file: File | null | undefined; wizard: boolean; show: (value: string) => void }
 
 /** The details laid out as sections: the option at a glance, then the signs, then the settings. */
-function CardBody({ o, options, current, rec, page, file, wizard, show }: BodyProps) {
+function CardBody({ o, options, rec, page, file, wizard, show }: BodyProps) {
   return (
           <div role="tabpanel" className="gd-help-in flex flex-col gap-5 px-6 py-5 text-[14px] leading-relaxed">
             {/* The option at a glance: its picture, and the assistant saying what it is. */}
@@ -253,11 +210,9 @@ function CardBody({ o, options, current, rec, page, file, wizard, show }: BodyPr
               </div>
             )}
 
-            {o.settings && <Sets option={o} current={current} />}
 
             <p className="text-[12.5px] text-muted-foreground">
               <Trans>You can change this until you set up the book.</Trans>{" "}
-              {(o.only ?? SETTING_IDS).some((id) => LOCKED.includes(id)) && <Trans>Pictures across two pages can&apos;t be changed after that.</Trans>}
             </p>
           </div>
   )
