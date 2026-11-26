@@ -52,7 +52,7 @@ export function SurePick({ picture, label, title, hint, result, changed, badge =
   }, [open])
   return (
     <div data-pick className="flex scroll-mt-24 flex-col gap-5">
-      <div data-vt-pick={`pick-${labelId}`} className="w-full shrink-0 [&>*]:!h-[clamp(220px,34vh,360px)] [&>*]:!w-full" style={{ viewTransitionName: `pick-${labelId}` }}>
+      <div data-vt-pick={`pick-${labelId}`} className="w-full shrink-0 [&>*>*]:!h-[clamp(220px,34vh,360px)] [&>*>*]:!w-full" style={{ viewTransitionName: `pick-${labelId}` }}>
         <div key={typeof title === "string" ? title : undefined} className="gd-pick-in contents">
           {picture}
         </div>

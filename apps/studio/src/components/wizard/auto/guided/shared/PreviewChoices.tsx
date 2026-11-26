@@ -1,9 +1,11 @@
-import { useRef, useState, type ReactNode } from "react"
+import { useState, type ReactNode } from "react"
+import { CircleHelp } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import type { SetupDecided, SetupFact, SetupRecommendation, SetupSettingId } from "@adt/types"
 import { cn } from "@/lib/utils"
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Assistant } from "./Assistant"
-import { useTalk } from "./useTalk"
+import { useIsWizard, WizardPose } from "./WizardPose"
 import { settingsFor, settingsTouchedBy, type FactAnswers } from "../../engine/answers"
 import { FACT_LONG, FACT_SHORT } from "../../engine/words"
 import { FACT_HINT, plainTitle } from "./words"
@@ -39,7 +41,7 @@ const NARROW = 520
  */
 export type LookOption = { value: string; label: string; line: string; look: Look; guess: boolean; art?: ReactNode; more?: string; settings?: SetupDecided; only?: SetupSettingId[]; changed?: SetupSettingId[] }
 
-function LookCard({ rec, option, page, narrow, chosen, first, onPick, onPoint, file }: { rec: SetupRecommendation; option: LookOption; page: number; narrow: boolean; chosen: boolean; first: boolean; onPick: (card: HTMLElement) => void; onPoint: (on: boolean) => void; file: File | null | undefined }) {
+function LookCard({ rec, option, page, narrow, chosen, first, onPick, file }: { rec: SetupRecommendation; option: LookOption; page: number; narrow: boolean; chosen: boolean; first: boolean; onPick: (card: HTMLElement) => void; file: File | null | undefined }) {
   const describe = useDescribe()
   const names = useWizardNames()
   const { ref, box } = useBox<HTMLSpanElement>()
@@ -52,14 +54,10 @@ function LookCard({ rec, option, page, narrow, chosen, first, onPick, onPoint, f
       aria-pressed={chosen}
       data-q-first={first ? "" : undefined}
       onClick={(e) => onPick(e.currentTarget)}
-      onPointerEnter={() => onPoint(true)}
-      onPointerLeave={() => onPoint(false)}
-      onFocus={() => onPoint(true)}
-      onBlur={() => onPoint(false)}
       aria-label={`${option.label}. ${option.line}.${option.art ? "" : ` ${describe(option.look, "desktop", pages)}`}`}
       className={cn("qd18-o group relative flex min-w-0 p-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500", narrow ? "flex-row items-center gap-3" : "flex-col", chosen && "is-sel")}
     >
-      <span ref={ref} className={cn("qd18-pv relative grid shrink-0 place-items-center overflow-hidden rounded-[12px]", narrow ? "h-[96px] w-[132px]" : "h-[160px] lg:h-[clamp(200px,30vh,340px)]")}>
+      <span ref={ref} className={cn("qd18-pv relative grid shrink-0 place-items-center overflow-hidden rounded-[12px]", narrow ? "h-[96px] w-[132px]" : "h-[150px] lg:h-[170px]")}>
         {option.art ? (
           <span className="qd18-dev block h-full w-full p-2">{option.art}</span>
         ) : (
@@ -95,53 +93,85 @@ function LookCard({ rec, option, page, narrow, chosen, first, onPick, onPoint, f
  * would come out, drawn on one of the user's own pages, a plain label and one short line. The
  * picked card lifts with an accent edge; the others' pictures sit back a little.
  */
-export function LookChoices({ rec, options, page, chosen, onPick, file, labelId }: { rec: SetupRecommendation; options: LookOption[]; page: number; chosen?: string; onPick: (value: string, card: HTMLElement) => void; file: File | null | undefined; labelId: string }) {
+export function LookChoices({ rec, options, page, chosen, onPick, file, labelId }: { rec: SetupRecommendation; options: LookOption[]; page: number; chosen?: string; onPick: (value: string, card: HTMLElement | null) => void; file: File | null | undefined; labelId: string }) {
   const { ref, box } = useBox()
   const cols = options.length
   const narrow = box.w > 0 && box.w < NARROW
-  // The card under the pointer (or keyboard focus); the assistant explains it.
-  const [pointed, setPointed] = useState<number | null>(null)
-  const leave = useRef(0)
-  const point = (i: number, on: boolean) => {
-    window.clearTimeout(leave.current)
-    // Leaving a card waits a beat, so moving between cards doesn't flash back to the picked one.
-    if (on) setPointed(i)
-    else leave.current = window.setTimeout(() => setPointed((p) => (p === i ? null : p)), 160)
-  }
+  const [help, setHelp] = useState(false)
   const explains = options.some((o) => o.more)
-  const picked = Math.max(0, options.findIndex((o) => o.value === chosen))
   return (
-    <div className="flex flex-col gap-3 pt-1">
-      {explains && <OptionCoach options={options} at={pointed ?? picked} cols={narrow ? 1 : cols} />}
+    <div className="flex flex-col gap-2 pt-1">
       <div ref={ref} role="group" aria-labelledby={labelId} className="grid gap-3" style={{ gridTemplateColumns: narrow ? "minmax(0, 1fr)" : `repeat(${cols}, minmax(0, 1fr))` }}>
-        {box.w > 0 && options.map((o, i) => <LookCard key={o.value} rec={rec} option={o} page={page} narrow={narrow} chosen={chosen === o.value} first={i === 0} onPick={(card) => onPick(o.value, card)} onPoint={(on) => point(i, on)} file={file} />)}
+        {box.w > 0 && options.map((o, i) => <LookCard key={o.value} rec={rec} option={o} page={page} narrow={narrow} chosen={chosen === o.value} first={i === 0} onPick={(card) => onPick(o.value, card)} file={file} />)}
       </div>
+      {explains && (
+        <>
+          <button type="button" onClick={() => setHelp(true)} className="lc-link -ml-1.5 inline-flex min-h-9 w-fit items-center gap-1.5 px-1.5 text-[13.5px] font-medium">
+            <CircleHelp className="size-4" />
+            <Trans>What do these options mean?</Trans>
+          </button>
+          <OptionsHelp open={help} onOpenChange={setHelp} rec={rec} options={options} page={page} chosen={chosen} file={file} onPick={(v) => { setHelp(false); onPick(v, null) }} />
+        </>
+      )}
     </div>
   )
 }
 
 /**
- * Over the cards, the assistant explains the option the pointer is on (the picked one otherwise),
- * its speech bubble's tail sliding to point down at that card. Decoration for the explanation
- * only: each card's own label and line already say what it is.
+ * The assistant explains every option at more length than the cards can, each with its picture,
+ * and any of them can be picked from here.
  */
-function OptionCoach({ options, at, cols }: { options: LookOption[]; at: number; cols: number }) {
-  const o = options[at]!
-  const talking = useTalk({ current: null }, `${at}`)
-  const tail = cols > 1 ? `${((at + 0.5) / cols) * 100}%` : "72px"
+function OptionsHelp({ open, onOpenChange, rec, options, page, chosen, file, onPick }: { open: boolean; onOpenChange: (open: boolean) => void; rec: SetupRecommendation; options: LookOption[]; page: number; chosen?: string; file: File | null | undefined; onPick: (value: string) => void }) {
+  const wizard = useIsWizard()
   return (
-    <div className="gd-oc relative flex items-end gap-3">
-      <Assistant mood={talking ? "talking" : "idle"} size={44} className="mb-1" />
-      <div className="relative min-w-0 flex-1">
-        <div aria-live="polite" className="gd-oc-bubble min-h-[88px] rounded-[18px] bg-[var(--lc-bubble)] px-4 py-3 text-[14.5px] leading-snug shadow-[0_1px_2px_rgb(0_0_0/0.06),0_4px_16px_-6px_rgb(0_0_0/0.12)]">
-          <p key={at} className="gd-oc-words">
-            <strong className="font-semibold">{o.label}</strong>
-            <span className="block text-muted-foreground">{o.more ?? o.line}</span>
-          </p>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[88vh] max-w-[640px] gap-0 overflow-y-auto p-0">
+        <div className="flex items-end gap-4 border-b border-border px-6 pb-4 pt-6">
+          {wizard ? <WizardPose pose="hello" size={88} /> : <Assistant mood="talking" size={56} />}
+          <div className="min-w-0 pb-1">
+            <DialogTitle className="text-[19px] font-semibold">
+              <Trans>Here&apos;s what each option does</Trans>
+            </DialogTitle>
+            <DialogDescription className="mt-1 text-[14px]">
+              <Trans>Pick the one that sounds like your book. You can change it later, before the book is set up.</Trans>
+            </DialogDescription>
+          </div>
         </div>
-      </div>
-      <span aria-hidden className="gd-oc-tail" style={{ left: tail }} />
-    </div>
+        <ul className="flex flex-col divide-y divide-border">
+          {options.map((o) => (
+            <li key={o.value} className="flex gap-4 px-6 py-4">
+              <HelpPicture rec={rec} option={o} page={page} file={file} />
+              <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
+                <span className="flex flex-wrap items-center gap-2 text-[16px] font-semibold">
+                  {o.label}
+                  {chosen === o.value && (
+                    <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
+                      <Trans>Picked</Trans>
+                    </span>
+                  )}
+                </span>
+                <span className="text-[14px] leading-snug text-muted-foreground">{o.more ?? o.line}</span>
+                {chosen !== o.value && (
+                  <button type="button" onClick={() => onPick(o.value)} className="lc-link -ml-1.5 mt-1 inline-flex min-h-9 items-center px-1.5 text-[13.5px] font-medium">
+                    <Trans>Pick this one</Trans>
+                  </button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function HelpPicture({ rec, option, page, file }: { rec: SetupRecommendation; option: LookOption; page: number; file: File | null | undefined }) {
+  const pages = screenPages(rec, option.look.pageGrouping, page)
+  const srcs = useScreenImages(file, pages)
+  return (
+    <span aria-hidden className="qd18-pv grid h-[92px] w-[136px] shrink-0 place-items-center overflow-hidden rounded-[10px] bg-muted">
+      {option.art ? <span className="block h-full w-full p-1.5">{option.art}</span> : <Screen shown={option.look} srcs={srcs} width={120} />}
+    </span>
   )
 }
 
@@ -150,7 +180,7 @@ function OptionCoach({ options, at, cols }: { options: LookOption[]; at: number;
  * up, on the page that shows the fact, with what you'd get in plain words ("Picture beside the
  * words"), or the answer's own hint when that wouldn't tell the answers apart.
  */
-export function PreviewChoices({ rec, fact, order, answers, chosen, onAnswer, file, labelId }: { rec: SetupRecommendation; fact: SetupFact; order: string[]; answers: FactAnswers; chosen?: string; onAnswer: (value: string, card: HTMLElement) => void; file: File | null | undefined; labelId: string }) {
+export function PreviewChoices({ rec, fact, order, answers, chosen, onAnswer, file, labelId }: { rec: SetupRecommendation; fact: SetupFact; order: string[]; answers: FactAnswers; chosen?: string; onAnswer: (value: string, card: HTMLElement | null) => void; file: File | null | undefined; labelId: string }) {
   const { i18n } = useLingui()
   const touched = settingsTouchedBy(rec, answers, fact.id)
   // The setting the answers differ on most visibly comes first.
