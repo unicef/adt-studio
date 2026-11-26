@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { Trans } from "@lingui/react/macro"
-import { Languages, Layers, RefreshCw, Sparkles } from "lucide-react"
+import { Languages, RefreshCw, Sparkles } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Assistant } from "../../shared/Assistant"
 import { useIsWizard, WizardPose } from "../../shared/WizardPose"
@@ -18,7 +18,7 @@ export function LanguageHelp({ open, onOpenChange, found }: { open: boolean; onO
               <Trans>How languages work</Trans>
             </DialogTitle>
             <DialogDescription className="mt-0.5 text-[13.5px]">
-              <Trans>Two choices: the language you edit in, and any extra languages for the finished book.</Trans>
+              <Trans>The language you edit the book in, and what changing it does.</Trans>
             </DialogDescription>
           </div>
         </div>
@@ -31,14 +31,11 @@ export function LanguageHelp({ open, onOpenChange, found }: { open: boolean; onO
             )}{" "}
             <Trans>Pick another one only if you want the text translated into it when the book is set up.</Trans>
           </Part>
-          <Part icon={<Layers className="size-4" />} title={<Trans>Extra languages</Trans>}>
-            <Trans>Each one is another version of the finished book, translated from the language you edit in. The book you edit stays as it is.</Trans>
-          </Part>
           <Part icon={<Sparkles className="size-4" />} title={<Trans>Translation uses the AI</Trans>}>
-            <Trans>A new edit language and every extra language are translated by the AI, so setting up takes longer and uses AI credits.</Trans>
+            <Trans>If you pick another language, the AI translates the text into it, so setting up takes longer and uses AI credits.</Trans>
           </Part>
           <Part icon={<RefreshCw className="size-4" />} title={<Trans>Can I change it later?</Trans>}>
-            <Trans>You can change both until you set up the book, and add more languages later from the book&apos;s Translate step.</Trans>
+            <Trans>You can change it until you set up the book. To have the finished book in more languages, add them later from the book&apos;s Translate step.</Trans>
           </Part>
         </div>
       </DialogContent>

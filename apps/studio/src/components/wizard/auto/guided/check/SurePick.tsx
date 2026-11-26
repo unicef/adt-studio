@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { Trans } from "@lingui/react/macro"
 import { Check, ChevronDown } from "lucide-react"
 import type { SetupRecommendation } from "@adt/types"
@@ -45,9 +45,15 @@ export function PickBadge({ changed }: { changed: boolean }) {
 export function SurePick({ picture, label, title, hint, result, changed, badge = true, labelId, open, onToggle, others, othersLabel, hideLabel, children }: { picture: ReactNode; label?: ReactNode; title: ReactNode; hint?: ReactNode; result?: ReactNode; changed: boolean; badge?: boolean; labelId: string; open: boolean; onToggle: () => void; others: boolean; othersLabel?: ReactNode; hideLabel?: ReactNode; children?: ReactNode }) {
   const more = useRef<HTMLDivElement>(null)
   // Once the options have grown in, bring them into view (gently, above the bottom bar).
+  // Once open, the options may spill out (a language list drops below its field); while they
+  // grow or shrink they're clipped.
+  const [settled, setSettled] = useState(false)
   useEffect(() => {
-    if (!open) return
-    const id = window.setTimeout(() => more.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 320)
+    if (!open) return setSettled(false)
+    const id = window.setTimeout(() => {
+      setSettled(true)
+      more.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })
+    }, 320)
     return () => window.clearTimeout(id)
   }, [open])
   return (
@@ -78,7 +84,7 @@ export function SurePick({ picture, label, title, hint, result, changed, badge =
       </div>
       {/* The options grow in (height and fade), and shrink away when hidden; nothing else on the page moves. */}
       <div className={cn("gd-expand grid", open ? "grid-rows-[1fr] opacity-100" : "-mt-5 grid-rows-[0fr] opacity-0")} inert={!open}>
-        <div className="min-h-0 overflow-hidden">
+        <div className={cn("min-h-0", settled ? "overflow-visible" : "overflow-hidden")}>
           <div ref={more} className="scroll-mb-[150px] px-1 pb-2 pt-1">
             {children}
           </div>

@@ -1,11 +1,11 @@
 import { useState, type ReactNode } from "react"
-import { CircleHelp, Languages, Layers } from "lucide-react"
+import { CircleHelp, Languages } from "lucide-react"
 import { useStore } from "@tanstack/react-form"
 import { msg } from "@lingui/core/macro"
 import { Trans, useLingui } from "@lingui/react/macro"
 import type { SetupRecommendation } from "@adt/types"
 import { LanguagePicker } from "@/components/LanguagePicker"
-import { getBaseLanguage, getDisplayName, normalizeLocale } from "@/lib/languages"
+import { getBaseLanguage, getDisplayName } from "@/lib/languages"
 import { useWizardForm } from "../../../../core/wizardForm"
 import { bookLanguage } from "../screens"
 import { LanguagePicture } from "../../shared/art/ConceptArt"
@@ -13,7 +13,6 @@ import { PICTURE, SurePick } from "../SurePick"
 import { LanguageHelp } from "./LanguageHelp"
 
 const PICKER_LABEL = msg`Edit the book in`
-const OUTPUT_LABEL = msg`Also make it in`
 
 /** The language the book will be made in: the user's pick, or the book's own (null when nothing tells). */
 export function useBookLanguage(rec: SetupRecommendation): { found: string | null; picked: string | null; changed: boolean } {
@@ -25,10 +24,10 @@ export function useBookLanguage(rec: SetupRecommendation): { found: string | nul
 }
 
 /**
- * Screen 2 · Language: the language found in the book, as a sure pick, and the output languages.
+ * Screen 2 · Language: the language found in the book, as a sure pick, which the user can change.
  * The editing language is left empty unless the user picks another one, so a wrong guess can never
  * translate the book; picking one sets the Editing Language, which translates the text into it.
- * Output languages are extra versions of the finished book, and can also be added later.
+ * Extra output languages are added later, from the book's Translate step.
  */
 export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
   const { i18n } = useLingui()
@@ -37,14 +36,8 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
   const [help, setHelp] = useState(false)
   const { found, picked, changed } = useBookLanguage(rec)
   const outputs = useStore(form.store, (s) => s.values.outputLanguages)
-  const outputSet = new Set(outputs.map(normalizeLocale))
-  const toggleOutput = (code: string) => {
-    const n = normalizeLocale(code)
-    form.setFieldValue("outputLanguages", outputSet.has(n) ? outputs.filter((l) => normalizeLocale(l) !== n) : [...outputs, code])
-  }
   const shown = changed ? picked : found
   const source = rec.language?.source
-  const outputNames = outputs.map((o) => getDisplayName(o)).join(", ")
   return (
     <SurePick
       picture={
@@ -68,13 +61,7 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
       result={
         <span className="flex flex-col items-start gap-1">
           <span>
-            {outputs.length ? (
-              <Trans>
-                You edit it in this language. It also comes out in <strong className="font-semibold">{outputNames}</strong>.
-              </Trans>
-            ) : (
-              <Trans>You edit it in this language. The finished book can also come out in others.</Trans>
-            )}
+            <Trans>You edit the book in this language.</Trans>
           </span>
           <button type="button" onClick={() => setHelp(true)} className="lc-link -ml-1 inline-flex min-h-8 items-center gap-1.5 px-1 text-[13.5px] font-medium">
             <CircleHelp className="size-4" />
@@ -101,9 +88,6 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
             </button>
           )}
         </LangPart>
-        <LangPart icon={<Layers className="size-4" />} title={i18n._(OUTPUT_LABEL)} hint={<Trans>Extra versions of the finished book, translated from it. Optional.</Trans>}>
-          <LanguagePicker label={i18n._(OUTPUT_LABEL)} selected={outputSet} onSelect={toggleOutput} multiple size="default" />
-        </LangPart>
       </div>
     </SurePick>
   )
@@ -112,7 +96,19 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
 /** One of the two language choices: an icon, what it is, a line on what it does, and its picker. */
 function LangPart({ icon, title, hint, children }: { icon: ReactNode; title: string; hint: ReactNode; children: ReactNode }) {
   return (
-    <section className="flex gap-3 rounded-[14px] bg-[var(--lc-bubble)] p-4 [&_label]:sr-only">
+    // While its list is open, the card grows to hold it and scrolls clear of the bottom bar.
+    <section
+      className="flex gap-3 rounded-[14px] bg-[var(--lc-bubble)] p-4 transition-[padding] duration-200 focus-within:pb-[216px] [&_label]:sr-only"
+      onFocus={(e) => {
+        const card = e.currentTarget
+        window.setTimeout(() => {
+          // Scroll the page just enough that the card's bottom clears the fixed bottom bar.
+          const bar = document.querySelector(".gd-bar")?.getBoundingClientRect().top ?? window.innerHeight
+          const below = card.getBoundingClientRect().bottom + 16 - bar
+          if (below > 0) scrollerOf(card)?.scrollBy({ top: below, behavior: "smooth" })
+        }, 220)
+      }}
+    >
       <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300">{icon}</span>
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div>
@@ -123,4 +119,10 @@ function LangPart({ icon, title, hint, children }: { icon: ReactNode; title: str
       </div>
     </section>
   )
+}
+
+/** The nearest ancestor that scrolls (the flow's page). */
+function scrollerOf(el: HTMLElement): HTMLElement | null {
+  for (let e = el.parentElement; e; e = e.parentElement) if (/(auto|scroll)/.test(getComputedStyle(e).overflowY) && e.scrollHeight > e.clientHeight) return e
+  return null
 }
