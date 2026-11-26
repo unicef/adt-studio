@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react"
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react"
 import { createPortal } from "react-dom"
 import { Trans } from "@lingui/react/macro"
 import { ArrowRight } from "lucide-react"
@@ -55,7 +55,10 @@ function layout(stop: CoachStop, w: number, h: number): Layout {
  * changes with the item and the room there, its words in a speech bubble pointing back at it.
  * Rendered over the whole window (a portal), so it follows the items as the page scrolls.
  */
-export function TourCoach({ stops, at, onNext, onDone }: { stops: CoachStop[]; at: number; onNext: () => void; onDone: () => void }) {
+/** How long a stop stays before the tour moves on by itself: about the time to read it. */
+const readMs = (text: string) => Math.min(8000, Math.max(4000, 1200 + text.trim().split(/\s+/).length * 220))
+
+export function TourCoach({ stops, at, onNext, onBack, onDone }: { stops: CoachStop[]; at: number; onNext: () => void; onBack: () => void; onDone: () => void }) {
   const name = useAssistantName()
   const wizard = useIsWizard()
   const stop = stops[at]!
@@ -64,6 +67,52 @@ export function TourCoach({ stops, at, onNext, onDone }: { stops: CoachStop[]; a
   const words = useRef<HTMLDivElement>(null)
   const talking = useTalk(words, `tour-${at}`)
   const [pos, setPos] = useState<Layout | null>(null)
+  const fill = useRef<HTMLSpanElement>(null)
+  const [hover, setHover] = useState(false)
+  const advance = last ? onDone : onNext
+
+  // It moves on by itself once there's been time to read the stop (not on the last one), shown as
+  // the Next button filling up; pointing at the bubble pauses it, and so does a hidden tab.
+  const go = useRef(advance)
+  go.current = advance
+  const elapsed = useRef(0)
+  useEffect(() => {
+    elapsed.current = 0
+  }, [at])
+  useEffect(() => {
+    if (last || hover) return
+    const total = readMs(words.current?.textContent ?? "")
+    let raf = 0
+    let before = performance.now()
+    const tick = (now: number) => {
+      if (!document.hidden) elapsed.current += now - before
+      before = now
+      const p = Math.min(1, elapsed.current / total)
+      if (fill.current) fill.current.style.transform = `scaleX(${p})`
+      if (p >= 1) return go.current()
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [at, hover, last])
+
+  // Keys: Enter, Space or → for next, ← for back, Esc to end the tour.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      const t = e.target as HTMLElement | null
+      const onControl = !!t?.closest("button, a, input, textarea, select, [contenteditable='true']")
+      if (e.key === "ArrowRight" || ((e.key === "Enter" || e.key === " ") && !onControl)) {
+        e.preventDefault()
+        go.current()
+      } else if (e.key === "ArrowLeft" && at > 0) {
+        e.preventDefault()
+        onBack()
+      } else if (e.key === "Escape") onDone()
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [at, onBack, onDone])
 
   useLayoutEffect(() => {
     const place = () => {
@@ -89,6 +138,8 @@ export function TourCoach({ stops, at, onNext, onDone }: { stops: CoachStop[]; a
   const hole = pos?.hole
   return createPortal(
     <div className="lc-root gd-tour" style={{ background: "transparent" }}>
+      {/* A click anywhere on the page moves the tour on. */}
+      <div aria-hidden className="fixed inset-0 z-[39] cursor-pointer" onClick={() => go.current()} />
       {/* The dark veil, with the lit item cut out of it (a hole whose shadow is the veil). */}
       <div
         aria-hidden
@@ -103,6 +154,8 @@ export function TourCoach({ stops, at, onNext, onDone }: { stops: CoachStop[]; a
         data-side={side}
         className={cn("gd-tour-coach fixed z-[41] flex", !pos && "invisible", side === "right" && "flex-row items-center", side === "left" && "flex-row-reverse items-center", side === "below" && "flex-col items-start", side === "above" && "flex-col-reverse items-start", big && "flex-col items-center")}
         style={{ left: pos?.left ?? 0, top: pos?.top ?? 0, gap: big ? 14 : 10 }}
+        onPointerEnter={() => setHover(true)}
+        onPointerLeave={() => setHover(false)}
       >
         <span className="gd-tour-orb flex" style={{ viewTransitionName: "gd-orb" }}>
           {wizard ? <WizardPose pose={stop.pose ?? "hello"} size={big ? 170 : 104} talking={talking} /> : <Assistant mood={talking ? "talking" : "idle"} size={big ? 76 : ORB} />}
@@ -112,19 +165,18 @@ export function TourCoach({ stops, at, onNext, onDone }: { stops: CoachStop[]; a
           <div ref={words}>
             <p>{stop.says}</p>
             <div className={cn("mt-3.5 flex flex-wrap items-center gap-2", big && "justify-center")}>
-              <Chip primary onClick={last ? onDone : onNext} icon={last ? undefined : <ArrowRight className="size-4" />} className="h-10 flex-row-reverse px-4 text-[14px]">
-                {last ? <Trans>Got it</Trans> : at === 0 ? <Trans>Show me</Trans> : <Trans>Next</Trans>}
+              <Chip primary onClick={advance} icon={last ? undefined : <ArrowRight className="relative size-4" />} className="relative h-10 flex-row-reverse overflow-hidden px-4 text-[14px]">
+                {!last && <span ref={fill} aria-hidden className="gd-next-fill" />}
+                <span className="relative">{last ? <Trans>Got it</Trans> : at === 0 ? <Trans>Show me</Trans> : <Trans>Next</Trans>}</span>
               </Chip>
               {!last && (
                 <button type="button" onClick={onDone} className="inline-flex min-h-10 items-center rounded-full px-2 text-[13.5px] text-muted-foreground underline decoration-border underline-offset-4 hover:text-foreground">
                   <Trans>Skip the tour</Trans>
                 </button>
               )}
-              {!big && (
-                <span className="ml-auto text-[12.5px] tabular-nums text-muted-foreground">
-                  {at + 1} / {stops.length}
-                </span>
-              )}
+              <span className={cn("text-[12.5px] tabular-nums text-muted-foreground", !big && "ml-auto")}>
+                {hover && !last ? <Trans>Paused</Trans> : `${at + 1} / ${stops.length}`}
+              </span>
             </div>
           </div>
         </div>

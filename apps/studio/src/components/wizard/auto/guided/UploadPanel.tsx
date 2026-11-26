@@ -64,19 +64,19 @@ export function UploadSays({ flow, rejected }: { flow: UploadFlow; rejected: boo
   if (flow.file && flow.error === "password")
     return (
       <Trans>
-        <strong className="font-semibold">I can&apos;t open it with its password.</strong> Save a copy without the password from your PDF reader, and drop that copy here.
+        <strong className="font-semibold">This PDF is password-protected.</strong> Remove the password, or choose another file.
       </Trans>
     )
   if (flow.file && flow.error)
     return (
       <Trans>
-        <strong className="font-semibold">Something is wrong with this file.</strong> Try exporting the PDF again from the program that made it.
+        <strong className="font-semibold">I couldn&apos;t open this PDF.</strong> It may be damaged. Export it again, or choose another file.
       </Trans>
     )
   if (rejected)
     return (
       <Trans>
-        <strong className="font-semibold">I can only read PDFs.</strong> If it&apos;s a Word document or images, save or export it as a PDF first.
+        <strong className="font-semibold">That file isn&apos;t a PDF.</strong> Choose a PDF and I&apos;ll read it.
       </Trans>
     )
   if (flow.file && flow.pageCount > 0)
@@ -85,10 +85,10 @@ export function UploadSays({ flow, rejected }: { flow: UploadFlow; rejected: boo
         <strong className="font-semibold">Got it.</strong> The PDF opens fine, so let&apos;s set it up.
       </Trans>
     )
-  if (flow.file) return <Trans>One moment, I&apos;m making sure I can read it.</Trans>
+  if (flow.file) return <Trans>Let me check that this PDF opens…</Trans>
   return (
     <Trans>
-      <strong className="font-semibold">Drop a PDF and I&apos;ll read it.</strong> Here are the three steps ahead.
+      <strong className="font-semibold">Drop a PDF and I&apos;ll read it.</strong> Together we pick the best settings for this book; the conversion starts only after you create it.
     </Trans>
   )
 }
@@ -275,7 +275,7 @@ export function UploadPanel({ flow, rejected, onContinue, tour, onTour, onTourDo
           </button>
         </div>
       )}
-      {tour !== null && <TourCoach stops={stops} at={tour} onNext={() => onTour(tour + 1)} onDone={onTourDone} />}
+      {tour !== null && <TourCoach stops={stops} at={tour} onNext={() => onTour(tour + 1)} onBack={() => onTour(tour - 1)} onDone={onTourDone} />}
     </div>
   )
 }
