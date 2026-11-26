@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react"
-import { CircleHelp } from "lucide-react"
+import { ArrowLeft, ArrowRight, Check, CircleHelp } from "lucide-react"
+import { PrimaryButton } from "../../../core/ui"
 import { Trans, useLingui } from "@lingui/react/macro"
 import type { SetupDecided, SetupFact, SetupRecommendation, SetupSettingId } from "@adt/types"
 import { cn } from "@/lib/utils"
@@ -118,48 +119,94 @@ export function LookChoices({ rec, options, page, chosen, onPick, file, labelId 
 }
 
 /**
- * The assistant explains every option at more length than the cards can, each with its picture,
- * and any of them can be picked from here.
+ * One option at a time, at more length than the cards can say: its picture large, and the
+ * assistant explaining it in a speech bubble. Arrows (or the arrow keys) move between the
+ * options, and the one shown can be picked from here.
  */
 function OptionsHelp({ open, onOpenChange, rec, options, page, chosen, file, onPick }: { open: boolean; onOpenChange: (open: boolean) => void; rec: SetupRecommendation; options: LookOption[]; page: number; chosen?: string; file: File | null | undefined; onPick: (value: string) => void }) {
   const wizard = useIsWizard()
+  const [at, setAt] = useState(0)
+  const [was, setWas] = useState(false)
+  // Each time it opens, it starts on the picked option.
+  if (open !== was) {
+    setWas(open)
+    if (open) setAt(Math.max(0, options.findIndex((o) => o.value === chosen)))
+  }
+  const o = options[at]!
+  const go = (d: number) => setAt((i) => (i + d + options.length) % options.length)
+  const picked = chosen === o.value
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[88vh] max-w-[640px] gap-0 overflow-y-auto p-0">
-        <div className="flex items-end gap-4 border-b border-border px-6 pb-4 pt-6">
-          {wizard ? <WizardPose pose="hello" size={88} /> : <Assistant mood="talking" size={56} />}
-          <div className="min-w-0 pb-1">
-            <DialogTitle className="text-[19px] font-semibold">
-              <Trans>Here&apos;s what each option does</Trans>
-            </DialogTitle>
-            <DialogDescription className="mt-1 text-[14px]">
-              <Trans>Pick the one that sounds like your book. You can change it later, before the book is set up.</Trans>
-            </DialogDescription>
+      <DialogContent
+        className="max-w-[620px] gap-0 p-0"
+        onKeyDown={(e) => {
+          if (e.key === "ArrowRight") go(1)
+          else if (e.key === "ArrowLeft") go(-1)
+        }}
+      >
+        <DialogTitle className="sr-only">
+          <Trans>The options, one at a time</Trans>
+        </DialogTitle>
+        <div role="tablist" className="flex flex-wrap gap-1.5 px-6 pb-1 pr-14 pt-5">
+          {options.map((x, i) => (
+            <button
+              key={x.value}
+              type="button"
+              role="tab"
+              aria-selected={i === at}
+              onClick={() => setAt(i)}
+              className={cn("inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-[13.5px] font-medium transition-colors", i === at ? "border-transparent bg-foreground text-background" : "border-border text-muted-foreground hover:text-foreground")}
+            >
+              {chosen === x.value && <Check className="size-3.5 stroke-[3]" />}
+              {x.label}
+            </button>
+          ))}
+        </div>
+        <div key={o.value} className="gd-help-in flex flex-col gap-4 px-6 pb-2 pt-4">
+          <HelpPicture rec={rec} option={o} page={page} file={file} />
+          <div className="flex items-start gap-3">
+            {wizard ? <WizardPose pose="hello" size={76} className="-mt-1 shrink-0" /> : <Assistant mood="talking" size={48} />}
+            <div className="relative min-h-[104px] min-w-0 flex-1 rounded-[18px] bg-muted/60 px-4 py-3">
+              <DialogDescription asChild>
+                <div>
+                  <p className="text-[17px] font-semibold text-foreground">{o.label}</p>
+                  <p className="mt-1 text-[14.5px] leading-relaxed text-muted-foreground">{o.more ?? o.line}</p>
+                </div>
+              </DialogDescription>
+            </div>
           </div>
         </div>
-        <ul className="flex flex-col divide-y divide-border">
-          {options.map((o) => (
-            <li key={o.value} className="flex gap-4 px-6 py-4">
-              <HelpPicture rec={rec} option={o} page={page} file={file} />
-              <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
-                <span className="flex flex-wrap items-center gap-2 text-[16px] font-semibold">
-                  {o.label}
-                  {chosen === o.value && (
-                    <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
-                      <Trans>Picked</Trans>
-                    </span>
-                  )}
-                </span>
-                <span className="text-[14px] leading-snug text-muted-foreground">{o.more ?? o.line}</span>
-                {chosen !== o.value && (
-                  <button type="button" onClick={() => onPick(o.value)} className="lc-link -ml-1.5 mt-1 inline-flex min-h-9 items-center px-1.5 text-[13.5px] font-medium">
-                    <Trans>Pick this one</Trans>
-                  </button>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
+        <div className="flex items-center justify-between gap-3 px-6 pb-5 pt-3">
+          <div className="flex items-center gap-1">
+            <button type="button" onClick={() => go(-1)} className="inline-grid size-10 place-items-center rounded-full border border-border hover:bg-muted">
+              <ArrowLeft className="size-4" />
+              <span className="sr-only">
+                <Trans>Previous option</Trans>
+              </span>
+            </button>
+            <button type="button" onClick={() => go(1)} className="inline-grid size-10 place-items-center rounded-full border border-border hover:bg-muted">
+              <ArrowRight className="size-4" />
+              <span className="sr-only">
+                <Trans>Next option</Trans>
+              </span>
+            </button>
+            <span className="ml-2 text-[13px] tabular-nums text-muted-foreground">
+              <Trans>
+                {at + 1} of {options.length}
+              </Trans>
+            </span>
+          </div>
+          {picked ? (
+            <span className="inline-flex min-h-11 items-center gap-1.5 px-2 text-[14px] font-medium text-brand-700 dark:text-brand-300">
+              <Check className="size-4 stroke-[3]" />
+              <Trans>This is your pick</Trans>
+            </span>
+          ) : (
+            <PrimaryButton onClick={() => onPick(o.value)}>
+              <Trans>Pick this one</Trans>
+            </PrimaryButton>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   )
@@ -169,8 +216,8 @@ function HelpPicture({ rec, option, page, file }: { rec: SetupRecommendation; op
   const pages = screenPages(rec, option.look.pageGrouping, page)
   const srcs = useScreenImages(file, pages)
   return (
-    <span aria-hidden className="qd18-pv grid h-[92px] w-[136px] shrink-0 place-items-center overflow-hidden rounded-[10px] bg-muted">
-      {option.art ? <span className="block h-full w-full p-1.5">{option.art}</span> : <Screen shown={option.look} srcs={srcs} width={120} />}
+    <span aria-hidden className="qd18-pv grid h-[260px] w-full place-items-center overflow-hidden rounded-[14px] bg-muted">
+      {option.art ? <span className="block h-full w-full p-4">{option.art}</span> : <Screen shown={option.look} srcs={srcs} width={380} />}
     </span>
   )
 }

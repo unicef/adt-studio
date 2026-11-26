@@ -11,7 +11,7 @@ import { factArt } from "../shared/art/ConceptArt"
 import { FACT_HINT, plainTitle, QUESTION_SHORT } from "../shared/words"
 import { WizardSettings } from "../shared/WizardSettings"
 import { useWizardNames } from "../shared/wizardNames"
-import { Picture, PICTURE, showPick, SurePick } from "./SurePick"
+import { Picture, PICTURE, SurePick } from "./SurePick"
 
 /**
  * One fact on a Check screen. Sure (the engine didn't ask): its pick highlighted, the others under
@@ -46,7 +46,8 @@ export function FactPick({ rec, fact, chat, file, sets }: { rec: SetupRecommenda
     )
   }
 
-  const order = [value, ...FACT_OPTIONS[fact.id].filter((v) => v !== value)]
+  // The engine's pick first; the order stays put while the user tries the others.
+  const order = [fact.value, ...FACT_OPTIONS[fact.id].filter((v) => v !== fact.value)]
   const applies = settingsTouchedBy(rec, derived.current, fact.id)
   const touched = sets ? applies : []
   const result = touched
@@ -80,10 +81,7 @@ export function FactPick({ rec, fact, chat, file, sets }: { rec: SetupRecommenda
         order={order}
         answers={derived.current}
         chosen={value}
-        onAnswer={(v) => {
-          chat.answer(fact.id, v)
-          showPick(labelId, () => setOpen(false))
-        }}
+        onAnswer={(v) => chat.answer(fact.id, v)}
         file={file}
         labelId={labelId}
       />

@@ -195,3 +195,8 @@
 .gd-pick-in > * { animation: gd-pick-in 0.35s var(--lc-out, ease-out) both; }
 @media (prefers-reduced-motion: reduce) { .gd-pick-in > * { animation: none; } }
 .reduce-effects .gd-pick-in > * { animation: none; }
+
+/* The options dialog: each option fades in as the user moves between them. */
+.gd-help-in { animation: gd-help-in 200ms ease-out both; }
+@keyframes gd-help-in { from { opacity: 0; transform: translateY(4px); } }
+@media (prefers-reduced-motion: reduce) { .gd-help-in { animation: none; } }

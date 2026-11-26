@@ -12,7 +12,6 @@ import type { Answers } from "../../shared/useAnswers"
 import { plainTitle, SETTING_OPTIONS } from "../../shared/words"
 import { FactPick } from "../FactPick"
 import { RENDER_STRATEGIES } from "../../../../core/constants"
-import { showPick } from "../SurePick"
 import { WizardSettings } from "../../shared/WizardSettings"
 import { useWizardNames, WIZARD_SETTING, wizardValue } from "../../shared/wizardNames"
 import { screenFacts } from "../screens"
@@ -40,7 +39,9 @@ function LayoutPick({ rec, chat, file }: Props) {
     const words = plainTitle("renderStrategy", v)
     return words ? i18n._(words) : v
   }
-  const options = [value, ...allowed.filter((v) => v !== value)].map(
+  // The engine's pick first; the order stays put while the user tries the others.
+  const first = String(derived.fromAnswers.renderStrategy?.value ?? value)
+  const options = [...(allowed.includes(first) ? [first] : []), ...allowed.filter((v) => v !== first)].map(
     (v): LookOption => ({
       value: v,
       label: name(v),
@@ -75,10 +76,7 @@ function LayoutPick({ rec, chat, file }: Props) {
         options={options}
         page={rec.previewPage}
         chosen={value}
-        onPick={(v) => {
-          chat.override("renderStrategy", v)
-          showPick(labelId, () => setOpen(false))
-        }}
+        onPick={(v) => chat.override("renderStrategy", v)}
         file={file}
         labelId={labelId}
       />

@@ -88,15 +88,5 @@ export function SurePick({ picture, label, title, hint, result, changed, badge =
   )
 }
 
-/**
- * After another option is picked: scroll smoothly up to the pick (it has already changed), then
- * fold the options away, so the page never jumps.
- */
-export function showPick(labelId: string, close: () => void) {
-  const el = document.getElementById(labelId)?.closest("[data-pick]") as HTMLElement | null
-  el?.scrollIntoView({ behavior: "smooth", block: "start" })
-  window.setTimeout(close, el ? 380 : 0)
-}
-
 /** The pick's picture area, sized for a screen: full width on a phone, beside the words from sm up. */
 export const PICTURE = "h-[160px] w-full sm:h-[170px] sm:w-[270px] lg:h-[clamp(220px,32vh,360px)] lg:w-[clamp(340px,50vh,560px)]"
