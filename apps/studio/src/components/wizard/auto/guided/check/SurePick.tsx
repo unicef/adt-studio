@@ -10,6 +10,7 @@ import { useBox } from "../shared/screens/useBox"
 import type { Look } from "../shared/screens/look"
 import { Morph } from "../Morph"
 import { morph } from "../shared/motion"
+import { useCheckLayout } from "../shared/checkLayout"
 
 /** The book as it would come out with the current picks, on one of the user's pages. */
 export function Picture({ rec, look, page, file, className }: { rec: SetupRecommendation; look: Look; page: number; file: File | null | undefined; className?: string }) {
@@ -45,8 +46,9 @@ export function PickBadge({ changed }: { changed: boolean }) {
  * options and shows it here as "Your pick"; the screen's button then moves on.
  */
 export function SurePick({ picture, label, title, hint, result, changed, badge = true, labelId, open, onToggle, others, othersLabel, children }: { picture: ReactNode; label?: ReactNode; title: ReactNode; hint?: ReactNode; result?: ReactNode; changed: boolean; badge?: boolean; labelId: string; open: boolean; onToggle: () => void; others: boolean; othersLabel?: ReactNode; children?: ReactNode }) {
+  const flat = useCheckLayout() !== "card"
   return (
-    <div className="gd-sure flex flex-col gap-3 rounded-[18px] p-2.5 lg:p-3.5">
+    <div className={cn("flex flex-col gap-3 rounded-[18px]", flat ? "" : "gd-sure p-2.5 lg:p-3.5")}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5 lg:gap-7">
         <div data-vt-pick={`pick-${labelId}`} className="shrink-0" style={{ viewTransitionName: `pick-${labelId}` }}>
           {picture}

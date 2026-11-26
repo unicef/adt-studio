@@ -1,5 +1,6 @@
 /* eslint-disable lingui/no-unlocalized-strings -- setting ids and values, never shown */
 import { useState } from "react"
+import { msg } from "@lingui/core/macro"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Lock } from "lucide-react"
 import type { SetupRecommendation } from "@adt/types"
@@ -11,6 +12,8 @@ import { lookOf } from "../../shared/screens/look"
 import type { Answers } from "../../shared/useAnswers"
 import { plainTitle, SETTING_OPTIONS } from "../../shared/words"
 import { FactPick } from "../FactPick"
+import { useCheckLayout } from "../../shared/checkLayout"
+import { PickView } from "../PickView"
 import { morphFrom } from "../../shared/motion"
 import { WizardSettings } from "../../shared/WizardSettings"
 import { useWizardNames, WIZARD_SETTING, wizardValue } from "../../shared/wizardNames"
@@ -19,6 +22,8 @@ import { Picture, PICTURE, SurePick } from "../SurePick"
 
 type Props = { rec: SetupRecommendation; chat: Answers; file: File | null | undefined }
 
+const LAYOUT_LEAD = msg`Each page will be`
+
 /**
  * The page layout itself, when where the words sit doesn't change it (a school book is always
  * rebuilt): the layout highlighted, the preset's other layouts under "See the other options".
@@ -26,6 +31,7 @@ type Props = { rec: SetupRecommendation; chat: Answers; file: File | null | unde
 function LayoutPick({ rec, chat, file }: Props) {
   const { i18n } = useLingui()
   const names = useWizardNames()
+  const layout = useCheckLayout()
   const derived = chat.derived!
   const [open, setOpen] = useState(false)
   const value = String(derived.effective.renderStrategy?.value)
@@ -52,6 +58,27 @@ function LayoutPick({ rec, chat, file }: Props) {
   )
   const labelId = "gd-layout"
   const means = SETTING_VALUE.renderStrategy[value]?.means
+  if (layout !== "card")
+    return (
+      <PickView
+        layout={layout}
+        question={i18n._(SETTING_NAME.renderStrategy)}
+        sentence={{ before: i18n._(LAYOUT_LEAD), after: "." }}
+        options={options.map((o) => ({
+          value: o.value,
+          title: layout === "sentence" ? o.label.charAt(0).toLowerCase() + o.label.slice(1) : o.label,
+          hint: o.line,
+          thumb: <Picture rec={rec} look={o.look} page={rec.previewPage} file={file} className="h-full w-full" />,
+          extra: names && o.settings ? <WizardSettings settings={o.settings} only={o.only} className="mt-1.5" /> : undefined,
+        }))}
+        chosen={value}
+        guess={String(derived.fromAnswers.renderStrategy?.value)}
+        sure
+        pages={rec.settingEvidence.renderStrategy ?? []}
+        file={file}
+        onPick={(v) => chat.override("renderStrategy", v)}
+      />
+    )
   return (
     <SurePick
       picture={<Picture rec={rec} look={lookOf(derived.effective)} page={rec.previewPage} file={file} className={PICTURE} />}
