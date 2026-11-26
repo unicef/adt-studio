@@ -1,6 +1,6 @@
 import { useRef, type ReactNode } from "react"
 import { Trans } from "@lingui/react/macro"
-import { AlertTriangle, ArrowRight, BookOpenCheck, Check, FileText, FileUp, ListChecks, ScanSearch } from "lucide-react"
+import { AlertTriangle, ArrowRight, PlayCircle, BookOpenCheck, Check, FileText, FileUp, ListChecks, ScanSearch } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PrimaryButton } from "../../core/ui"
 import type { UploadFlow } from "../../start/upload/useUploadFlow"
@@ -209,7 +209,7 @@ function Again() {
  * is checked (opening, then OK or why not). A first run walks through the page with a spotlight
  * (`tour`). Back on this step later: the PDF with its page choice.
  */
-export function UploadPanel({ flow, rejected, onContinue, tour, onTour, onTourDone }: { flow: UploadFlow; rejected: boolean; onContinue: (() => void) | null; tour: number | null; onTour: (i: number) => void; onTourDone: () => void }) {
+export function UploadPanel({ flow, rejected, onContinue, tour, onTour, onTourDone, onTourAgain }: { flow: UploadFlow; rejected: boolean; onContinue: (() => void) | null; tour: number | null; onTour: (i: number) => void; onTourDone: () => void; onTourAgain: () => void }) {
   const cards = [useRef<HTMLLIElement>(null), useRef<HTMLLIElement>(null), useRef<HTMLLIElement>(null)]
   const drop = useRef<HTMLDivElement>(null)
   const name = useAssistantName()
@@ -267,6 +267,14 @@ export function UploadPanel({ flow, rejected, onContinue, tour, onTour, onTourDo
       <div ref={drop} className="rounded-[22px]">
         <DropZone flow={flow} rejected={rejected} />
       </div>
+      {tour === null && !flow.file && (
+        <div className="flex justify-center">
+          <button type="button" onClick={onTourAgain} className="lc-link inline-flex min-h-10 items-center gap-1.5 px-3 text-[13.5px] font-medium">
+            <PlayCircle className="size-4" />
+            <Trans>Take the tour again</Trans>
+          </button>
+        </div>
+      )}
       {tour !== null && <TourCoach stops={stops} at={tour} onNext={() => onTour(tour + 1)} onDone={onTourDone} />}
     </div>
   )

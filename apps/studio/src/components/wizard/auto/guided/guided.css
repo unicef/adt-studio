@@ -70,6 +70,14 @@ body:has([data-lab-toolbar]) .gd-foot { bottom: 84px; }
 
 /* The assistant talking: the part of its message not said yet is hidden (useTalk), and anything to press waits for the end. */
 ::highlight(gd-say) { color: transparent; }
+/* "stream": the newest words fade in (faintest at the edge). */
+::highlight(gd-say-near) { color: color-mix(in oklab, var(--lc-ink, currentColor) 25%, transparent); }
+::highlight(gd-say-far) { color: color-mix(in oklab, var(--lc-ink, currentColor) 60%, transparent); }
+/* "fade": the whole message rises in with a short blur. */
+@keyframes gd-say-fade { from { opacity: 0; transform: translateY(5px); filter: blur(5px); } }
+.gd-say[data-fade] { animation: gd-say-fade 0.55s var(--lc-out, ease-out) both; }
+@media (prefers-reduced-motion: reduce) { .gd-say[data-fade] { animation: none; } }
+.reduce-effects .gd-say[data-fade] { animation: none; }
 .gd-say[data-talking] :is(button, a, img, [role="img"]) { opacity: 0; }
 .gd-say :is(button, a, img, [role="img"]) { transition: opacity 0.3s ease; }
 
@@ -164,7 +172,7 @@ body:has([data-lab-toolbar]) .gd-foot { bottom: 84px; }
 
 /* The first-run tour (TourCoach): a dark veil over the page with the lit item cut out of it, and the assistant beside it. */
 .gd-tour-hole {
-  position: fixed; z-index: 60; pointer-events: none; border-radius: 24px;
+  position: fixed; z-index: 40; pointer-events: none; border-radius: 24px;
   box-shadow: 0 0 0 3px var(--brand-400), 0 0 0 200vmax rgb(8 12 24 / 0.66);
   transition: left 0.5s var(--lc-drawer), top 0.5s var(--lc-drawer), width 0.5s var(--lc-drawer), height 0.5s var(--lc-drawer);
 }

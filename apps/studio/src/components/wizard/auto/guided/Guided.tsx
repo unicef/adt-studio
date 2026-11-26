@@ -164,7 +164,7 @@ export function Guided({ onManual }: { onManual: () => void }) {
     const shownTour = flow.file ? null : tour
     says = <UploadSays flow={flow} rejected={!!rejectedAt && !validFile} />
     swap = `upload-${rejectedAt}-${flow.error ?? ""}-${validFile}-${!!flow.file}-${shownTour === null}`
-    panel = <UploadPanel flow={flow} rejected={!!rejectedAt && !validFile} onContinue={view === "upload" && validFile ? () => morph(() => setView(null)) : null} tour={shownTour} onTour={setTour} onTourDone={() => morph(endTour)} />
+    panel = <UploadPanel flow={flow} rejected={!!rejectedAt && !validFile} onContinue={view === "upload" && validFile ? () => morph(() => setView(null)) : null} tour={shownTour} onTour={setTour} onTourDone={() => morph(endTour)} onTourAgain={() => morph(() => setTour(0))} />
   } else if (shown === "reading") {
     if (failure) {
       swap = `failed-${attempt}`

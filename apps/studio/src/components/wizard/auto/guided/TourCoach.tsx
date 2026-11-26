@@ -101,7 +101,7 @@ export function TourCoach({ stops, at, onNext, onDone }: { stops: CoachStop[]; a
         aria-modal="false"
         aria-label={name}
         data-side={side}
-        className={cn("gd-tour-coach fixed z-[61] flex", !pos && "invisible", side === "right" && "flex-row items-center", side === "left" && "flex-row-reverse items-center", side === "below" && "flex-col items-start", side === "above" && "flex-col-reverse items-start", big && "flex-col items-center")}
+        className={cn("gd-tour-coach fixed z-[41] flex", !pos && "invisible", side === "right" && "flex-row items-center", side === "left" && "flex-row-reverse items-center", side === "below" && "flex-col items-start", side === "above" && "flex-col-reverse items-start", big && "flex-col items-center")}
         style={{ left: pos?.left ?? 0, top: pos?.top ?? 0, gap: big ? 14 : 10 }}
       >
         <span className="gd-tour-orb flex" style={{ viewTransitionName: "gd-orb" }}>
