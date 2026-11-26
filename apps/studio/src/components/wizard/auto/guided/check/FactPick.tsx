@@ -3,7 +3,6 @@ import { useLingui } from "@lingui/react/macro"
 import type { SetupFact, SetupRecommendation } from "@adt/types"
 import { FACT_OPTIONS, settingsTouchedBy } from "../../engine/answers"
 import { FACT_SHORT, SETTING_NAME } from "../../engine/words"
-import { Citation } from "../shared/Citation"
 import { PreviewChoices } from "../shared/PreviewChoices"
 import { lookOf } from "../shared/screens/look"
 import type { Answers } from "../shared/useAnswers"
@@ -26,12 +25,7 @@ export function FactPick({ rec, fact, chat, file, sets }: { rec: SetupRecommenda
   const value = derived.current[fact.id]
   const labelId = `gd-fact-${fact.id}`
   const page = fact.evidencePages[0] ?? rec.previewPage
-  const question = (
-    <>
-      {i18n._(QUESTION_SHORT[fact.id]!)}
-      <Citation file={file} pages={fact.evidencePages} />
-    </>
-  )
+  const question = i18n._(QUESTION_SHORT[fact.id]!)
 
   if (fact.ask) {
     const other = fact.secondOpinion && fact.secondOpinion !== fact.value ? fact.secondOpinion : null

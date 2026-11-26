@@ -2,7 +2,6 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { getDisplayName } from "@/lib/languages"
 import type { SetupRecommendation } from "@adt/types"
 import { RULE_WHY } from "../../engine/words"
-import { Citation } from "../shared/Citation"
 import type { Derived } from "../shared/useAnswers"
 import { Chip } from "../shared/bubbles"
 import { ASK_WHY, KIND_SAYS } from "../shared/words"
@@ -66,8 +65,7 @@ function Says({ rec, derived, screen, file, pageCount, firstBook, trying, onTryi
           </>
         ) : (
           <>
-            <strong className="font-semibold">{i18n._(KIND_SAYS[derived.proposed.genre]!)}</strong>
-            <Citation file={file} pages={genre?.evidencePages ?? []} /> {why(rec.settings.preset?.rule)}
+            <strong className="font-semibold">{i18n._(KIND_SAYS[derived.proposed.genre]!)}</strong> {why(rec.settings.preset?.rule)}
           </>
         )}{" "}
         {!rec.secondOpinion && (
@@ -82,7 +80,6 @@ function Says({ rec, derived, screen, file, pageCount, firstBook, trying, onTryi
     return (
       <p>
         {ask ? i18n._(ask) : why(derived.fromAnswers.renderStrategy?.rule)}
-        {!ask && <Citation file={file} pages={rec.settingEvidence.renderStrategy ?? []} />}
       </p>
     )
   }

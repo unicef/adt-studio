@@ -9,6 +9,7 @@ import { RULE_WHY, SETTING_NAME, SETTING_VALUE } from "../../../engine/words"
 import { LookChoices, type LookOption } from "../../shared/PreviewChoices"
 import { lookOf } from "../../shared/screens/look"
 import { LAYOUT_GUIDE } from "../../shared/optionGuide"
+import { Citation } from "../../shared/Citation"
 import type { Answers } from "../../shared/useAnswers"
 import { plainTitle, SETTING_OPTIONS } from "../../shared/words"
 import { FactPick } from "../FactPick"
@@ -52,7 +53,17 @@ function LayoutPick({ rec, chat, file }: Props) {
         return d ? i18n._(d) : undefined
       })(),
       guide: LAYOUT_GUIDE[v],
-      why: v === first && RULE_WHY[derived.fromAnswers.renderStrategy?.rule ?? ""] ? i18n._(RULE_WHY[derived.fromAnswers.renderStrategy!.rule]!) : undefined,
+      why:
+        v === first && RULE_WHY[derived.fromAnswers.renderStrategy?.rule ?? ""] ? (
+          <>
+            {i18n._(RULE_WHY[derived.fromAnswers.renderStrategy!.rule]!)}
+            {(rec.settingEvidence.renderStrategy ?? []).length > 0 && (
+              <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <Trans>Where I read it:</Trans> <Citation file={file} pages={rec.settingEvidence.renderStrategy ?? []} />
+              </span>
+            )}
+          </>
+        ) : undefined,
       look: lookOf({ ...derived.effective, renderStrategy: { value: v, rule: "user" } }),
       guess: v === derived.fromAnswers.renderStrategy?.value,
       settings: { ...derived.effective, renderStrategy: { value: v, rule: "user" } },

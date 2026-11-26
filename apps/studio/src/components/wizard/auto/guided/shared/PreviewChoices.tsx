@@ -151,7 +151,7 @@ function FactWhy({ fact, file }: { fact: SetupFact; file: File | null | undefine
       {fact.reason && <span className="block">“{fact.reason}”</span>}
       {fact.evidencePages.length > 0 && (
         <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
-          <Trans>Pages I looked at:</Trans> <Citation file={file} pages={fact.evidencePages} />
+          <Trans>Where I read it:</Trans> <Citation file={file} pages={fact.evidencePages} />
         </span>
       )}
       {other && <span className="mt-1.5 block">{i18n._(msg`A second look thought it could be “${i18n._(other)}”, so check this one.`)}</span>}
