@@ -37,7 +37,7 @@ const NARROW = 520
  */
 export type LookOption = { value: string; label: string; line: string; look: Look; guess: boolean; art?: ReactNode; settings?: SetupDecided; only?: SetupSettingId[]; changed?: SetupSettingId[] }
 
-function LookCard({ rec, option, page, narrow, chosen, first, onPick, file }: { rec: SetupRecommendation; option: LookOption; page: number; narrow: boolean; chosen: boolean; first: boolean; onPick: () => void; file: File | null | undefined }) {
+function LookCard({ rec, option, page, narrow, chosen, first, onPick, file }: { rec: SetupRecommendation; option: LookOption; page: number; narrow: boolean; chosen: boolean; first: boolean; onPick: (card: HTMLElement) => void; file: File | null | undefined }) {
   const describe = useDescribe()
   const names = useWizardNames()
   const { ref, box } = useBox<HTMLSpanElement>()
@@ -49,7 +49,7 @@ function LookCard({ rec, option, page, narrow, chosen, first, onPick, file }: { 
       type="button"
       aria-pressed={chosen}
       data-q-first={first ? "" : undefined}
-      onClick={onPick}
+      onClick={(e) => onPick(e.currentTarget)}
       aria-label={`${option.label}. ${option.line}.${option.art ? "" : ` ${describe(option.look, "desktop", pages)}`}`}
       className={cn("qd18-o group relative flex min-w-0 p-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500", narrow ? "flex-row items-center gap-3" : "flex-col", chosen && "is-sel")}
     >
@@ -88,13 +88,13 @@ function LookCard({ rec, option, page, narrow, chosen, first, onPick, file }: { 
  * would come out, drawn on one of the user's own pages, a plain label and one short line. The
  * picked card lifts with an accent edge; the others' pictures sit back a little.
  */
-export function LookChoices({ rec, options, page, chosen, onPick, file, labelId }: { rec: SetupRecommendation; options: LookOption[]; page: number; chosen?: string; onPick: (value: string) => void; file: File | null | undefined; labelId: string }) {
+export function LookChoices({ rec, options, page, chosen, onPick, file, labelId }: { rec: SetupRecommendation; options: LookOption[]; page: number; chosen?: string; onPick: (value: string, card: HTMLElement) => void; file: File | null | undefined; labelId: string }) {
   const { ref, box } = useBox()
   const cols = options.length
   const narrow = box.w > 0 && box.w < NARROW
   return (
     <div ref={ref} role="group" aria-labelledby={labelId} className="grid gap-3 pt-1" style={{ gridTemplateColumns: narrow ? "minmax(0, 1fr)" : `repeat(${cols}, minmax(0, 1fr))` }}>
-      {box.w > 0 && options.map((o, i) => <LookCard key={o.value} rec={rec} option={o} page={page} narrow={narrow} chosen={chosen === o.value} first={i === 0} onPick={() => onPick(o.value)} file={file} />)}
+      {box.w > 0 && options.map((o, i) => <LookCard key={o.value} rec={rec} option={o} page={page} narrow={narrow} chosen={chosen === o.value} first={i === 0} onPick={(card) => onPick(o.value, card)} file={file} />)}
     </div>
   )
 }
@@ -104,7 +104,7 @@ export function LookChoices({ rec, options, page, chosen, onPick, file, labelId 
  * up, on the page that shows the fact, with what you'd get in plain words ("Picture beside the
  * words"), or the answer's own hint when that wouldn't tell the answers apart.
  */
-export function PreviewChoices({ rec, fact, order, answers, chosen, onAnswer, file, labelId }: { rec: SetupRecommendation; fact: SetupFact; order: string[]; answers: FactAnswers; chosen?: string; onAnswer: (value: string) => void; file: File | null | undefined; labelId: string }) {
+export function PreviewChoices({ rec, fact, order, answers, chosen, onAnswer, file, labelId }: { rec: SetupRecommendation; fact: SetupFact; order: string[]; answers: FactAnswers; chosen?: string; onAnswer: (value: string, card: HTMLElement) => void; file: File | null | undefined; labelId: string }) {
   const { i18n } = useLingui()
   const touched = settingsTouchedBy(rec, answers, fact.id)
   // The setting the answers differ on most visibly comes first.

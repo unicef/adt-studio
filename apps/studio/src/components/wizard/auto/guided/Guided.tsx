@@ -6,6 +6,7 @@ import { FlowTopBar } from "@/components/FlowTopBar"
 import { cn } from "@/lib/utils"
 import { applySettings } from "../engine/answers"
 import { useEngineRun } from "../engine/useEngineRun"
+import { morph } from "./shared/motion"
 import { useWizardForm } from "../../core/wizardForm"
 import { useUploadFlow } from "../../start/upload/useUploadFlow"
 import "../../core/flow.css"
@@ -49,7 +50,7 @@ export function Guided({ onManual }: { onManual: () => void }) {
   const [rejectedAt, setRejectedAt] = useState(0)
   const [view, setView] = useState<StepId | null>(null)
   const [revealed, setRevealed] = useState(false)
-  const run = useEngineRun(validFile ? flow.file : null, attempt)
+  const run = useEngineRun(validFile ? flow.file : null, attempt, morph)
   const rec = run.status === "done" ? run.rec : null
   const failure = run.status === "failed" ? run.failure : null
   const chat = useAnswers(rec)
@@ -124,7 +125,7 @@ export function Guided({ onManual }: { onManual: () => void }) {
   if (shown === "upload") {
     says = <UploadSays flow={flow} rejected={!!rejectedAt && !validFile} />
     swap = `upload-${rejectedAt}-${flow.error ?? ""}-${validFile}`
-    panel = <UploadPanel flow={flow} onContinue={validFile ? () => setView(null) : null} />
+    panel = <UploadPanel flow={flow} onContinue={validFile ? () => morph(() => setView(null)) : null} />
   } else if (shown === "reading") {
     if (failure) {
       swap = `failed-${attempt}`
@@ -164,7 +165,7 @@ export function Guided({ onManual }: { onManual: () => void }) {
           {/* Check uses the width on wide screens: the list of its screens on the left, the screen on view beside it. The other steps stay one calm column. */}
           <div className="mx-auto flex w-full max-w-[1340px] flex-col px-4 pb-24 pt-6 sm:px-6 sm:pt-8">
             <div className="mx-auto w-full max-w-[760px] lg:max-w-[1180px]">
-              <Stepper at={at} shown={shown} failed={!!failure && at === "reading"} locked={create.locked} complete={lastRun?.status === "done"} onGo={(s) => setView(s === at ? null : s)} checkBars={bars} />
+              <Stepper at={at} shown={shown} failed={!!failure && at === "reading"} locked={create.locked} complete={lastRun?.status === "done"} onGo={(s) => morph(() => setView(s === at ? null : s))} checkBars={bars} />
             </div>
             <div className={shown === "check" ? "mt-7 grid gap-4 lg:mt-9 lg:grid-cols-[250px_minmax(0,980px)] lg:justify-center lg:gap-x-12" : cn("mx-auto mt-7 w-full max-w-[760px] lg:mt-9", shown === "upload" ? "lg:max-w-[1180px]" : "lg:max-w-[880px]")}>
               {aside}
@@ -172,7 +173,7 @@ export function Guided({ onManual }: { onManual: () => void }) {
                 <Bubble swap={swap} busy={busy}>
                   {says}
                 </Bubble>
-                <Morph swap={`${shown}-${!!panel}`} className="-mx-2 mt-4" inner="px-2 pb-3 pt-1">
+                <Morph swap={`${shown}-${!!panel}`} name="gd-panel" className="-mx-2 mt-4" inner="px-2 pb-3 pt-1">
                   {panel}
                 </Morph>
               </div>

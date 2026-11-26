@@ -4,6 +4,7 @@ import type { SetupDecided } from "@adt/types"
 import { classifyCreateError, useBookCreation, type CreateFailureKind } from "../../../core/useBookCreation"
 import { useWizardForm } from "../../../core/wizardForm"
 import { applySettings } from "../../engine/answers"
+import { morph } from "./motion"
 
 export type CreateRun = {
   n: number
@@ -34,13 +35,13 @@ export function useCreateRun() {
     busy.current = true
     const mine = token.current
     const update = (n: number, patch: Partial<CreateRun>) => {
-      if (token.current === mine) setRuns((rs) => rs.map((r) => (r.n === n ? { ...r, ...patch } : r)))
+      if (token.current === mine) morph(() => setRuns((rs) => rs.map((r) => (r.n === n ? { ...r, ...patch } : r))))
     }
     applySettings(form, settings)
     const values = form.state.values
     const n = runs.length
     const extract = willExtract(values)
-    setRuns((rs) => [...rs, { n, name: values.label.trim(), extract, status: "saving" }])
+    morph(() => setRuns((rs) => [...rs, { n, name: values.label.trim(), extract, status: "saving" }]))
     let label: string
     try {
       label = (await createBook(values, recId)).label

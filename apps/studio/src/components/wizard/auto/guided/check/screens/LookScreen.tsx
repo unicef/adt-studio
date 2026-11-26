@@ -11,6 +11,7 @@ import { lookOf } from "../../shared/screens/look"
 import type { Answers } from "../../shared/useAnswers"
 import { plainTitle, SETTING_OPTIONS } from "../../shared/words"
 import { FactPick } from "../FactPick"
+import { morphFrom } from "../../shared/motion"
 import { WizardSettings } from "../../shared/WizardSettings"
 import { useWizardNames, WIZARD_SETTING, wizardValue } from "../../shared/wizardNames"
 import { screenFacts } from "../screens"
@@ -69,10 +70,12 @@ function LayoutPick({ rec, chat, file }: Props) {
         options={options}
         page={rec.previewPage}
         chosen={value}
-        onPick={(v) => {
-          setOpen(false)
-          chat.override("renderStrategy", v)
-        }}
+        onPick={(v, card) =>
+          morphFrom(card, `pick-${labelId}`, () => {
+            setOpen(false)
+            chat.override("renderStrategy", v)
+          })
+        }
         file={file}
         labelId={labelId}
       />

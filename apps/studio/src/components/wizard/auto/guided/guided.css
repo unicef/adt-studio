@@ -67,3 +67,25 @@ body:has([data-lab-toolbar]) .gd-foot { bottom: 84px; }
 }
 .gd-sure .qd18-pg { transform: rotate(-1.5deg); }
 @media (min-width: 1024px) { .gd-aside .gd-foot { background: none; } }
+
+/* The assistant talking: the part of its message not said yet is hidden (useTalk), and anything to press waits for the end. */
+::highlight(gd-say) { color: transparent; }
+.gd-say[data-talking] :is(button, a, img, [role="img"]) { opacity: 0; }
+.gd-say :is(button, a, img, [role="img"]) { transition: opacity 0.3s ease; }
+
+/* Morphs between steps, screens and picks (shared/motion.ts): named places move and resize, the rest crossfades. */
+::view-transition-group(*) { animation-duration: 0.45s; animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1); }
+::view-transition-image-pair(*) { overflow: clip; }
+::view-transition-old(*), ::view-transition-new(*) { height: 100%; object-fit: none; object-position: top left; }
+/* Old and new crossfade together (same timing), so the screen never looks washed out halfway. */
+::view-transition-old(*), ::view-transition-new(*) { animation-duration: 0.3s; animation-timing-function: ease; }
+/* The step dot and the rail's highlight are shapes, not content: they stretch as they move. */
+::view-transition-old(gd-step-dot), ::view-transition-new(gd-step-dot) { height: 100%; width: 100%; object-fit: fill; }
+/* A picked card grows into the pick: its picture scales rather than crops. */
+[data-vt-off] { view-transition-name: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}
+:root.reduce-effects::view-transition-group(*),
+:root.reduce-effects::view-transition-old(*),
+:root.reduce-effects::view-transition-new(*) { animation: none !important; }

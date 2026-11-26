@@ -4,6 +4,7 @@ import type { SetupFact, SetupRecommendation } from "@adt/types"
 import { FACT_OPTIONS, settingsTouchedBy } from "../../engine/answers"
 import { FACT_SHORT, SETTING_NAME } from "../../engine/words"
 import { Citation } from "../shared/Citation"
+import { morphFrom } from "../shared/motion"
 import { PreviewChoices } from "../shared/PreviewChoices"
 import { lookOf } from "../shared/screens/look"
 import type { Answers } from "../shared/useAnswers"
@@ -80,10 +81,12 @@ export function FactPick({ rec, fact, chat, file, sets }: { rec: SetupRecommenda
         order={order}
         answers={derived.current}
         chosen={value}
-        onAnswer={(v) => {
-          setOpen(false)
-          chat.answer(fact.id, v)
-        }}
+        onAnswer={(v, card) =>
+          morphFrom(card, `pick-${labelId}`, () => {
+            setOpen(false)
+            chat.answer(fact.id, v)
+          })
+        }
         file={file}
         labelId={labelId}
       />

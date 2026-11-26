@@ -57,9 +57,11 @@ export function Stepper({ at, shown, failed, locked, complete, onGo, checkBars }
                   )}
                 </button>
                 {step === "check" && onScreen && checkBars ? (
-                  <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2">{checkBars}</span>
+                  <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2" style={{ viewTransitionName: "gd-step-dot" }}>
+                    {checkBars}
+                  </span>
                 ) : (
-                  <span aria-hidden className={cn("gd-dot absolute -bottom-2.5 left-1/2 size-1.5 -translate-x-1/2 rounded-full", onScreen ? (bad ? "bg-destructive" : "bg-[var(--gd-step)]") : "scale-0 opacity-0")} />
+                  <span aria-hidden style={onScreen ? { viewTransitionName: "gd-step-dot" } : undefined} className={cn("gd-dot absolute -bottom-2.5 left-1/2 size-1.5 -translate-x-1/2 rounded-full", onScreen ? (bad ? "bg-destructive" : "bg-[var(--gd-step)]") : "scale-0 opacity-0")} />
                 )}
               </li>
             </Fragment>

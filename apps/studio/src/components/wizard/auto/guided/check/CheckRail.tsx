@@ -38,6 +38,7 @@ export function CheckRail({ screens, at, done, values, onGo }: Props & { values:
                 type="button"
                 onClick={() => onGo(s)}
                 disabled={!passed}
+                style={current ? { viewTransitionName: "gd-rail-now" } : undefined}
                 aria-current={current ? "step" : undefined}
                 className={cn(
                   "flex w-full items-start gap-2.5 rounded-[12px] px-2.5 py-2 text-left lg:px-3 lg:py-2.5 transition-colors duration-200 disabled:cursor-default",

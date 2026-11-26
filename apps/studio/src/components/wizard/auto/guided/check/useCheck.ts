@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import type { SetupRecommendation } from "@adt/types"
+import { morph } from "../shared/motion"
 import type { Answers } from "../shared/useAnswers"
 import { CHECK_START, checkScreens, moveCheck, shownScreen, type CheckAction, type CheckState, type ScreenId } from "./screens"
 
@@ -19,9 +20,7 @@ export function useCheck(rec: SetupRecommendation | null, chat: Answers) {
   }, [rec?.id])
   const screens: ScreenId[] = rec && chat.derived ? checkScreens(rec, chat.derived.current) : []
   const at = screens.length ? shownScreen(state, screens) : "kind"
-  const move = (action: CheckAction) => {
-    setState((s) => moveCheck(s, action, screens))
-  }
+  const move = (action: CheckAction) => morph(() => setState((s) => moveCheck(s, action, screens)))
   return {
     screens,
     at,
@@ -39,7 +38,7 @@ export function useCheck(rec: SetupRecommendation | null, chat: Answers) {
     },
     jump: (to: ScreenId) => move({ type: "jump", to }),
     trying,
-    setTrying,
+    setTrying: (t: boolean) => morph(() => setTrying(t)),
   }
 }
 

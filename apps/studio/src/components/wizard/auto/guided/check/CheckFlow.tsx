@@ -116,7 +116,7 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
 
   return (
     <section aria-labelledby={HEADING} inert={locked} className="flex flex-col">
-      <Morph swap={at} className="-mx-2" inner="flex flex-col gap-3 px-2 pb-2 pt-1 lg:gap-4">
+      <Morph swap={at} name="gd-screen" className="-mx-2" inner="flex flex-col gap-3 px-2 pb-2 pt-1 lg:gap-4">
         <div className="flex items-baseline justify-between gap-3 px-1">
           <h2 id={HEADING} ref={heading} tabIndex={-1} className="rounded-md text-[19px] font-semibold lg:text-[24px] tracking-[-0.015em] outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60">
             {i18n._(SCREEN_TITLE[at])}
