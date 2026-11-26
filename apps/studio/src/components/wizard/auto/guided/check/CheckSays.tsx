@@ -26,15 +26,17 @@ export function CheckSays(props: Props) {
   )
 }
 
-/** The assistant offers to explain what's on screen (the options, or how languages work). */
+/** The assistant offers to explain what's on screen (the options, or how languages work): a line and a button. */
 function ExplainOffer() {
   const what = useExplainable()
   if (!what) return null
   return (
-    <button type="button" onClick={askExplain} className="lc-link -ml-1 mt-1.5 inline-flex min-h-8 items-center gap-1.5 px-1 text-[14px] font-medium">
-      <CircleHelp aria-hidden className="size-4" />
-      {what === "languages" ? <Trans>Not sure? I can explain how languages work.</Trans> : <Trans>Not sure? I can explain each option.</Trans>}
-    </button>
+    <p className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2 text-muted-foreground">
+      <span>{what === "languages" ? <Trans>Not sure what this changes?</Trans> : <Trans>Not sure which one fits your book?</Trans>}</span>
+      <Chip onClick={askExplain} icon={<CircleHelp className="size-4" />} className="h-9 px-3.5 text-[13.5px]">
+        {what === "languages" ? <Trans>How languages work</Trans> : <Trans>Explain the options</Trans>}
+      </Chip>
+    </p>
   )
 }
 

@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react"
 import type { MessageDescriptor } from "@lingui/core"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { ArrowLeft, ArrowRight, Check, Sparkles, Zap } from "lucide-react"
+import { ArrowLeft, ArrowRight, Check, Smartphone, Sparkles, Zap } from "lucide-react"
 import type { SetupRecommendation } from "@adt/types"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
@@ -35,7 +35,7 @@ export function OptionsHelp({ open, onOpenChange, rec, options, page, chosen, fi
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="top-[6vh] flex max-h-[88vh] max-w-[780px] translate-y-0 flex-col gap-0 overflow-hidden p-0"
+        className="flex h-[min(88vh,720px)] max-w-[820px] flex-col gap-0 overflow-hidden p-0 outline-none focus:outline-none focus-visible:outline-none"
         onKeyDown={(e) => {
           if (e.target instanceof HTMLElement && e.target.closest("[role=tablist]")) return
           if (e.key === "ArrowRight") go(1)
@@ -47,7 +47,7 @@ export function OptionsHelp({ open, onOpenChange, rec, options, page, chosen, fi
         </DialogTitle>
         <div
           role="tablist"
-          className="flex shrink-0 flex-wrap gap-1.5 border-b border-border px-6 pb-3.5 pr-14 pt-4"
+          className="flex shrink-0 gap-1 overflow-x-auto border-b border-border px-4 pr-14 pt-4"
           onKeyDown={(e) => {
             if (e.key === "ArrowRight") go(1)
             else if (e.key === "ArrowLeft") go(-1)
@@ -61,10 +61,24 @@ export function OptionsHelp({ open, onOpenChange, rec, options, page, chosen, fi
               aria-selected={i === at}
               tabIndex={i === at ? 0 : -1}
               onClick={() => setAt(i)}
-              className={cn("inline-flex min-h-9 items-center gap-1 rounded-full border px-3.5 text-[13.5px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2", i === at ? "border-transparent bg-brand-600 text-white dark:bg-brand-500" : "border-border text-muted-foreground hover:border-brand-300 hover:text-brand-700 dark:hover:text-brand-300")}
+              className={cn(
+                "group relative flex min-w-[112px] flex-1 basis-0 flex-col items-center gap-1.5 rounded-t-[12px] px-2 pb-3 pt-1.5 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500",
+                i === at ? "text-brand-700 dark:text-brand-300" : "text-muted-foreground hover:bg-black/[0.03] hover:text-foreground dark:hover:bg-white/[0.04]",
+              )}
             >
-              {chosen === x.value && <Check className="size-3.5 stroke-[3]" />}
-              {x.label}
+              <span aria-hidden className={cn("grid h-[52px] w-[84px] place-items-center overflow-hidden rounded-[8px] transition-opacity", i === at ? "opacity-100" : "opacity-70 group-hover:opacity-100")}>
+                {x.art ?? <TabPicture rec={rec} option={x} page={page} file={file} />}
+              </span>
+              <span className="flex items-start gap-1 text-[12.5px] font-medium leading-tight">
+                {chosen === x.value && <Check aria-hidden className="mt-px size-3.5 shrink-0 stroke-[3]" />}
+                <span className="line-clamp-2">{x.label}</span>
+              </span>
+              {chosen === x.value && (
+                <span className="sr-only">
+                  <Trans>(your pick)</Trans>
+                </span>
+              )}
+              <span aria-hidden className={cn("absolute inset-x-2 bottom-0 h-[3px] rounded-full transition-colors", i === at ? "bg-brand-500" : "bg-transparent")} />
             </button>
           ))}
         </div>
@@ -123,6 +137,12 @@ function Said({ m }: { m: MessageDescriptor }) {
   return <>{i18n._(m)}</>
 }
 
+function TabPicture({ rec, option, page, file }: { rec: SetupRecommendation; option: LookOption; page: number; file: File | null | undefined }) {
+  const pages = screenPages(rec, option.look.pageGrouping, page)
+  const srcs = useScreenImages(file, pages)
+  return <Screen shown={option.look} srcs={srcs} width={80} />
+}
+
 function HelpPicture({ rec, option, page, file }: { rec: SetupRecommendation; option: LookOption; page: number; file: File | null | undefined }) {
   const pages = screenPages(rec, option.look.pageGrouping, page)
   const srcs = useScreenImages(file, pages)
@@ -154,6 +174,17 @@ function CardBody({ o, options, rec, page, file, wizard, show }: BodyProps) {
                       <Trans>Books like this:</Trans>
                     </span>{" "}
                     <Said m={o.guide.examples} />
+                  </p>
+                )}
+                {o.phone && (
+                  <p className="flex gap-1.5 text-[13px] text-muted-foreground">
+                    <Smartphone className="mt-0.5 size-3.5 shrink-0 text-brand-500" />
+                    <span>
+                      <span className="font-medium text-foreground/80">
+                        <Trans>On a phone:</Trans>
+                      </span>{" "}
+                      {o.phone}
+                    </span>
                   </p>
                 )}
                 {o.guide?.making && (

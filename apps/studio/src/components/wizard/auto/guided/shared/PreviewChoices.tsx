@@ -30,7 +30,7 @@ const NARROW = 520
  * when the user's pages wouldn't tell the options apart. With "Wizard names" on, `settings` shows
  * what the option applies, `changed` marking what differs between the options.
  */
-export type LookOption = { value: string; label: string; line: string; look: Look; guess: boolean; art?: ReactNode; more?: string; tag?: ReactNode; guide?: OptionGuide; why?: ReactNode; settings?: SetupDecided; only?: SetupSettingId[]; changed?: SetupSettingId[] }
+export type LookOption = { value: string; label: string; line: string; look: Look; guess: boolean; art?: ReactNode; more?: string; phone?: string; tag?: ReactNode; guide?: OptionGuide; why?: ReactNode; settings?: SetupDecided; only?: SetupSettingId[]; changed?: SetupSettingId[] }
 
 function LookCard({ rec, option, page, narrow, chosen, first, onPick, file }: { rec: SetupRecommendation; option: LookOption; page: number; narrow: boolean; chosen: boolean; first: boolean; onPick: (card: HTMLElement) => void; file: File | null | undefined }) {
   const describe = useDescribe()

@@ -55,6 +55,7 @@ function LayoutPick({ rec, chat, file, asked }: Props & { asked: boolean }) {
       line: LAYOUT_AT_A_GLANCE[v] ? i18n._(LAYOUT_AT_A_GLANCE[v]!.line) : "",
       more: SETTING_VALUE.renderStrategy[v] ? i18n._(SETTING_VALUE.renderStrategy[v]!.means) : undefined,
       guide: LAYOUT_GUIDE[v],
+      phone: LAYOUT_AT_A_GLANCE[v] ? i18n._(LAYOUT_AT_A_GLANCE[v]!.phone) : undefined,
       why:
         v === first && RULE_WHY[derived.fromAnswers.renderStrategy?.rule ?? ""] ? (
           <>
