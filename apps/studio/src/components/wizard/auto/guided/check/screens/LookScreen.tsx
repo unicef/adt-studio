@@ -8,6 +8,7 @@ import { strategiesFor } from "../../../engine/answers"
 import { RULE_WHY, SETTING_NAME, SETTING_VALUE } from "../../../engine/words"
 import { LookChoices, type LookOption } from "../../shared/PreviewChoices"
 import { lookOf } from "../../shared/screens/look"
+import { LAYOUT_GUIDE } from "../../shared/optionGuide"
 import type { Answers } from "../../shared/useAnswers"
 import { plainTitle, SETTING_OPTIONS } from "../../shared/words"
 import { FactPick } from "../FactPick"
@@ -50,6 +51,8 @@ function LayoutPick({ rec, chat, file }: Props) {
         const d = RENDER_STRATEGIES.find((r) => r.id === v)?.description
         return d ? i18n._(d) : undefined
       })(),
+      guide: LAYOUT_GUIDE[v],
+      why: v === first && RULE_WHY[derived.fromAnswers.renderStrategy?.rule ?? ""] ? i18n._(RULE_WHY[derived.fromAnswers.renderStrategy!.rule]!) : undefined,
       look: lookOf({ ...derived.effective, renderStrategy: { value: v, rule: "user" } }),
       guess: v === derived.fromAnswers.renderStrategy?.value,
       settings: { ...derived.effective, renderStrategy: { value: v, rule: "user" } },

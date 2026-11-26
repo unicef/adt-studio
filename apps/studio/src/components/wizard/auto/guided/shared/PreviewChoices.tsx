@@ -1,16 +1,17 @@
 import { useState, type ReactNode } from "react"
-import { ArrowLeft, ArrowRight, Check, CircleHelp } from "lucide-react"
-import { PrimaryButton } from "../../../core/ui"
+import { CircleHelp } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
+import { msg } from "@lingui/core/macro"
 import type { SetupDecided, SetupFact, SetupRecommendation, SetupSettingId } from "@adt/types"
 import { cn } from "@/lib/utils"
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
-import { Assistant } from "./Assistant"
-import { useIsWizard, WizardPose } from "./WizardPose"
+import { OptionsHelp } from "./OptionsHelp"
+import { Screen } from "./Screen"
+import { Citation } from "./Citation"
+import { FACT_GUIDE, type OptionGuide } from "./optionGuide"
 import { settingsFor, settingsTouchedBy, type FactAnswers } from "../../engine/answers"
 import { FACT_LONG, FACT_SHORT } from "../../engine/words"
 import { FACT_HINT, plainTitle } from "./words"
-import { SCREEN, ScreenContent, type Shown } from "./screens/layouts"
+import { SCREEN } from "./screens/layouts"
 import { screenPages, useDescribe, useScreenImages } from "./screens/pages"
 import { useBox } from "./screens/useBox"
 import { lookOf, type Look } from "./screens/look"
@@ -19,18 +20,7 @@ import { WizardSettings } from "./WizardSettings"
 import { useWizardNames } from "./wizardNames"
 import "./question.css"
 
-/** One screen of the book as it would come out, drawn like a page on the board: no device frame. */
-export function Screen({ shown, srcs, width }: { shown: Shown; srcs: (string | undefined)[]; width: number }) {
-  const s = SCREEN.desktop
-  const scale = width / s.w
-  return (
-    <span className="qd18-pg relative block overflow-hidden rounded-[5px] bg-white" style={{ width, height: s.h * scale }}>
-      <span className="absolute left-0 top-0 block origin-top-left" style={{ transform: `scale(${scale})` }}>
-        <ScreenContent shown={shown} device="desktop" srcs={srcs} />
-      </span>
-    </span>
-  )
-}
+export { Screen }
 
 /** Below this width the cards stack as rows (picture beside the words), so the previews stay readable on a phone. */
 const NARROW = 520
@@ -40,7 +30,7 @@ const NARROW = 520
  * when the user's pages wouldn't tell the options apart. With "Wizard names" on, `settings` shows
  * what the option applies, `changed` marking what differs between the options.
  */
-export type LookOption = { value: string; label: string; line: string; look: Look; guess: boolean; art?: ReactNode; more?: string; settings?: SetupDecided; only?: SetupSettingId[]; changed?: SetupSettingId[] }
+export type LookOption = { value: string; label: string; line: string; look: Look; guess: boolean; art?: ReactNode; more?: string; guide?: OptionGuide; why?: ReactNode; settings?: SetupDecided; only?: SetupSettingId[]; changed?: SetupSettingId[] }
 
 function LookCard({ rec, option, page, narrow, chosen, first, onPick, file }: { rec: SetupRecommendation; option: LookOption; page: number; narrow: boolean; chosen: boolean; first: boolean; onPick: (card: HTMLElement) => void; file: File | null | undefined }) {
   const describe = useDescribe()
@@ -119,110 +109,6 @@ export function LookChoices({ rec, options, page, chosen, onPick, file, labelId 
 }
 
 /**
- * One option at a time, at more length than the cards can say: its picture large, and the
- * assistant explaining it in a speech bubble. Arrows (or the arrow keys) move between the
- * options, and the one shown can be picked from here.
- */
-function OptionsHelp({ open, onOpenChange, rec, options, page, chosen, file, onPick }: { open: boolean; onOpenChange: (open: boolean) => void; rec: SetupRecommendation; options: LookOption[]; page: number; chosen?: string; file: File | null | undefined; onPick: (value: string) => void }) {
-  const wizard = useIsWizard()
-  const [at, setAt] = useState(0)
-  const [was, setWas] = useState(false)
-  // Each time it opens, it starts on the picked option.
-  if (open !== was) {
-    setWas(open)
-    if (open) setAt(Math.max(0, options.findIndex((o) => o.value === chosen)))
-  }
-  const o = options[at]!
-  const go = (d: number) => setAt((i) => (i + d + options.length) % options.length)
-  const picked = chosen === o.value
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="max-w-[620px] gap-0 p-0"
-        onKeyDown={(e) => {
-          if (e.key === "ArrowRight") go(1)
-          else if (e.key === "ArrowLeft") go(-1)
-        }}
-      >
-        <DialogTitle className="sr-only">
-          <Trans>The options, one at a time</Trans>
-        </DialogTitle>
-        <div role="tablist" className="flex flex-wrap gap-1.5 px-6 pb-1 pr-14 pt-5">
-          {options.map((x, i) => (
-            <button
-              key={x.value}
-              type="button"
-              role="tab"
-              aria-selected={i === at}
-              onClick={() => setAt(i)}
-              className={cn("inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-[13.5px] font-medium transition-colors", i === at ? "border-transparent bg-foreground text-background" : "border-border text-muted-foreground hover:text-foreground")}
-            >
-              {chosen === x.value && <Check className="size-3.5 stroke-[3]" />}
-              {x.label}
-            </button>
-          ))}
-        </div>
-        <div key={o.value} className="gd-help-in flex flex-col gap-4 px-6 pb-2 pt-4">
-          <HelpPicture rec={rec} option={o} page={page} file={file} />
-          <div className="flex items-start gap-3">
-            {wizard ? <WizardPose pose="hello" size={76} className="-mt-1 shrink-0" /> : <Assistant mood="talking" size={48} />}
-            <div className="relative min-h-[104px] min-w-0 flex-1 rounded-[18px] bg-muted/60 px-4 py-3">
-              <DialogDescription asChild>
-                <div>
-                  <p className="text-[17px] font-semibold text-foreground">{o.label}</p>
-                  <p className="mt-1 text-[14.5px] leading-relaxed text-muted-foreground">{o.more ?? o.line}</p>
-                </div>
-              </DialogDescription>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center justify-between gap-3 px-6 pb-5 pt-3">
-          <div className="flex items-center gap-1">
-            <button type="button" onClick={() => go(-1)} className="inline-grid size-10 place-items-center rounded-full border border-border hover:bg-muted">
-              <ArrowLeft className="size-4" />
-              <span className="sr-only">
-                <Trans>Previous option</Trans>
-              </span>
-            </button>
-            <button type="button" onClick={() => go(1)} className="inline-grid size-10 place-items-center rounded-full border border-border hover:bg-muted">
-              <ArrowRight className="size-4" />
-              <span className="sr-only">
-                <Trans>Next option</Trans>
-              </span>
-            </button>
-            <span className="ml-2 text-[13px] tabular-nums text-muted-foreground">
-              <Trans>
-                {at + 1} of {options.length}
-              </Trans>
-            </span>
-          </div>
-          {picked ? (
-            <span className="inline-flex min-h-11 items-center gap-1.5 px-2 text-[14px] font-medium text-brand-700 dark:text-brand-300">
-              <Check className="size-4 stroke-[3]" />
-              <Trans>This is your pick</Trans>
-            </span>
-          ) : (
-            <PrimaryButton onClick={() => onPick(o.value)}>
-              <Trans>Pick this one</Trans>
-            </PrimaryButton>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function HelpPicture({ rec, option, page, file }: { rec: SetupRecommendation; option: LookOption; page: number; file: File | null | undefined }) {
-  const pages = screenPages(rec, option.look.pageGrouping, page)
-  const srcs = useScreenImages(file, pages)
-  return (
-    <span aria-hidden className="qd18-pv grid h-[260px] w-full place-items-center overflow-hidden rounded-[14px] bg-muted">
-      {option.art ? <span className="block h-full w-full p-4">{option.art}</span> : <Screen shown={option.look} srcs={srcs} width={380} />}
-    </span>
-  )
-}
-
-/**
  * The answers to one fact as picture cards (d18): each shows the book as that answer would set it
  * up, on the page that shows the fact, with what you'd get in plain words ("Picture beside the
  * words"), or the answer's own hint when that wouldn't tell the answers apart.
@@ -247,9 +133,28 @@ export function PreviewChoices({ rec, fact, order, answers, chosen, onAnswer, fi
     guess: value === fact.value,
     art: factArt(fact.id, value) ?? undefined,
     more: FACT_LONG[fact.id][value] ? i18n._(FACT_LONG[fact.id][value]!) : undefined,
+    guide: FACT_GUIDE[fact.id]?.[value],
+    why: value === fact.value ? <FactWhy fact={fact} file={file} /> : undefined,
     settings: decided[i],
     only: touched.length ? touched : undefined,
     changed,
   }))
   return <LookChoices rec={rec} options={options} page={fact.evidencePages[0] ?? rec.previewPage} chosen={chosen} onPick={onAnswer} file={file} labelId={labelId} />
+}
+
+/** Why the engine guessed this answer: the reading's own words and the pages it looked at. */
+function FactWhy({ fact, file }: { fact: SetupFact; file: File | null | undefined }) {
+  const { i18n } = useLingui()
+  const other = fact.secondOpinion && fact.secondOpinion !== fact.value ? FACT_SHORT[fact.id][fact.secondOpinion] : undefined
+  return (
+    <>
+      {fact.reason && <span className="block">“{fact.reason}”</span>}
+      {fact.evidencePages.length > 0 && (
+        <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          <Trans>Pages I looked at:</Trans> <Citation file={file} pages={fact.evidencePages} />
+        </span>
+      )}
+      {other && <span className="mt-1.5 block">{i18n._(msg`A second look thought it could be “${i18n._(other)}”, so check this one.`)}</span>}
+    </>
+  )
 }
