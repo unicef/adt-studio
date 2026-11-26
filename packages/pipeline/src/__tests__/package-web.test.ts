@@ -1116,12 +1116,6 @@ describe("packageAdtWeb", () => {
             generatedAt: "2026-01-01T00:00:00.000Z",
           },
         },
-        "element-audio": {
-          pg001: {
-            entries: [{ nodeId: "pg001_im001", text: "Mago" }],
-            generatedAt: "2026-01-01T00:00:00.000Z",
-          },
-        },
         "easy-read": {
           book: {
             generatedAt: "2026-01-02T00:00:00.000Z",
