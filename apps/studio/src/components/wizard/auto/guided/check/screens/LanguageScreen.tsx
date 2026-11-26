@@ -76,6 +76,7 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
       open={open}
       onToggle={() => setOpen((o) => !o)}
       others
+      accordion
       othersLabel={<Trans>Change the languages</Trans>}
       hideLabel={<Trans>Hide the languages</Trans>}
     >

@@ -16,6 +16,7 @@ import { activitiesApply } from "../guided/check/screens"
 import { GuidedFlow } from "../guided"
 import { setAssistantStyle, type AssistantLookId } from "../guided/shared/assistantLook"
 import { setWizardNames } from "../guided/shared/wizardNames"
+import { setDetailsLook, type DetailsLook } from "../guided/shared/detailsLook"
 
 /** The flow in order; Error branches off Reading. Check is its screens; Activities shows only when the book answer has it. */
 const FLOW: StepItem[] = [
@@ -53,6 +54,17 @@ const SETTINGS: LabControl[] = [
     options: [
       { value: "off", label: "Off" },
       { value: "on", label: "On" },
+    ],
+  },
+  {
+    key: "details",
+    label: "Other options",
+    default: "accordion",
+    options: [
+      { value: "accordion", label: "Accordion" },
+      { value: "switch", label: "Segmented switch" },
+      { value: "strip", label: "Thumbnail strip" },
+      { value: "sheet", label: "Bottom sheet" },
     ],
   },
   {
@@ -142,6 +154,10 @@ export default function AddBookLab() {
   useEffect(() => {
     setWizardNames(values.names === "on")
   }, [values.names])
+  // How a sure pick shows its other options.
+  useEffect(() => {
+    setDetailsLook((values.details as DetailsLook) || "accordion")
+  }, [values.details])
 
   const keepFile = useCallback((f: File) => {
     setFile(f)
@@ -185,7 +201,7 @@ export default function AddBookLab() {
     set(key, value)
     // A new engine answer replays the flow to the step you were at, so entrances
     // and loaders play again with the new pick.
-    if (key !== "speed" && key !== "error" && key !== "agent" && key !== "names") setJump((j) => ({ step: j.step === "play" ? "play" : actual, n: j.n + 1 }))
+    if (key !== "speed" && key !== "error" && key !== "agent" && key !== "names" && key !== "details") setJump((j) => ({ step: j.step === "play" ? "play" : actual, n: j.n + 1 }))
   }
 
   return (
