@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
+import { CircleHelp, Languages, Layers } from "lucide-react"
 import { useStore } from "@tanstack/react-form"
 import { msg } from "@lingui/core/macro"
 import { Trans, useLingui } from "@lingui/react/macro"
@@ -9,11 +10,10 @@ import { useWizardForm } from "../../../../core/wizardForm"
 import { bookLanguage } from "../screens"
 import { LanguagePicture } from "../../shared/art/ConceptArt"
 import { PICTURE, SurePick } from "../SurePick"
+import { LanguageHelp } from "./LanguageHelp"
 
 const PICKER_LABEL = msg`Edit the book in`
-const PICKER_HINT = msg`Picking another language translates the text into it.`
 const OUTPUT_LABEL = msg`Also make it in`
-const OUTPUT_HINT = msg`Output languages: extra versions of the finished book. You can add more later.`
 
 /** The language the book will be made in: the user's pick, or the book's own (null when nothing tells). */
 export function useBookLanguage(rec: SetupRecommendation): { found: string | null; picked: string | null; changed: boolean } {
@@ -34,6 +34,7 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
   const { i18n } = useLingui()
   const form = useWizardForm()
   const [open, setOpen] = useState(false)
+  const [help, setHelp] = useState(false)
   const { found, picked, changed } = useBookLanguage(rec)
   const outputs = useStore(form.store, (s) => s.values.outputLanguages)
   const outputSet = new Set(outputs.map(normalizeLocale))
@@ -65,19 +66,21 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
         )
       }
       result={
-        <span className="flex flex-col gap-1.5">
-          <span>
-            <Trans>You edit the book in this language. Pick another one only if you want the text translated into it.</Trans>
-          </span>
+        <span className="flex flex-col items-start gap-1">
           <span>
             {outputs.length ? (
               <Trans>
-                It will also come out in: <strong className="font-semibold">{outputNames}</strong>.
+                You edit it in this language. It also comes out in <strong className="font-semibold">{outputNames}</strong>.
               </Trans>
             ) : (
-              <Trans>Want the finished book in other languages too? Add output languages here, or later from the book&apos;s Translate step.</Trans>
+              <Trans>You edit it in this language. The finished book can also come out in others.</Trans>
             )}
           </span>
+          <button type="button" onClick={() => setHelp(true)} className="lc-link -ml-1 inline-flex min-h-8 items-center gap-1.5 px-1 text-[13.5px] font-medium">
+            <CircleHelp className="size-4" />
+            <Trans>How do languages work?</Trans>
+          </button>
+          <LanguageHelp open={help} onOpenChange={setHelp} found={found ? getDisplayName(found) : null} />
         </span>
       }
       changed={changed}
@@ -89,17 +92,35 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
       othersLabel={<Trans>Change the languages</Trans>}
       hideLabel={<Trans>Hide the languages</Trans>}
     >
-      <div className="grid gap-3 rounded-[14px] bg-[var(--lc-bubble)] p-3 lg:grid-cols-2">
-        <div className="flex flex-col gap-2">
-          <LanguagePicker label={i18n._(PICKER_LABEL)} hint={i18n._(PICKER_HINT)} selected={picked ?? ""} onSelect={(code) => form.setFieldValue("editingLanguage", code)} size="default" />
+      <div className="flex flex-col gap-3">
+        <LangPart icon={<Languages className="size-4" />} title={i18n._(PICKER_LABEL)} hint={<Trans>Only change it to translate the text into another language.</Trans>}>
+          <LanguagePicker label={i18n._(PICKER_LABEL)} selected={picked ?? ""} onSelect={(code) => form.setFieldValue("editingLanguage", code)} size="default" />
           {picked && (
             <button type="button" onClick={() => form.setFieldValue("editingLanguage", "")} className="lc-link self-start px-1 text-[13.5px] font-medium">
-              <Trans>Keep the book&apos;s own language</Trans>
+              {found ? <Trans>Keep {getDisplayName(found)}</Trans> : <Trans>Keep the book&apos;s own language</Trans>}
             </button>
           )}
-        </div>
-        <LanguagePicker label={i18n._(OUTPUT_LABEL)} hint={i18n._(OUTPUT_HINT)} selected={outputSet} onSelect={toggleOutput} multiple size="default" />
+        </LangPart>
+        <LangPart icon={<Layers className="size-4" />} title={i18n._(OUTPUT_LABEL)} hint={<Trans>Extra versions of the finished book, translated from it. Optional.</Trans>}>
+          <LanguagePicker label={i18n._(OUTPUT_LABEL)} selected={outputSet} onSelect={toggleOutput} multiple size="default" />
+        </LangPart>
       </div>
     </SurePick>
+  )
+}
+
+/** One of the two language choices: an icon, what it is, a line on what it does, and its picker. */
+function LangPart({ icon, title, hint, children }: { icon: ReactNode; title: string; hint: ReactNode; children: ReactNode }) {
+  return (
+    <section className="flex gap-3 rounded-[14px] bg-[var(--lc-bubble)] p-4 [&_label]:sr-only">
+      <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300">{icon}</span>
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <div>
+          <h3 className="text-[15px] font-semibold">{title}</h3>
+          <p className="text-[13.5px] text-muted-foreground">{hint}</p>
+        </div>
+        {children}
+      </div>
+    </section>
   )
 }
