@@ -163,8 +163,11 @@ body:has([data-lab-toolbar]) .gd-foot { bottom: 84px; }
   box-shadow: 0 0 0 3px var(--brand-400), 0 0 0 200vmax rgb(8 12 24 / 0.66);
   transition: left 0.5s var(--lc-drawer), top 0.5s var(--lc-drawer), width 0.5s var(--lc-drawer), height 0.5s var(--lc-drawer);
 }
+/* The veil fades in when the tour starts. */
+@keyframes gd-veil-in { from { opacity: 0; } }
+.gd-tour-hole { animation: gd-veil-in 0.35s ease-out both; }
 .dark .gd-tour-hole { box-shadow: 0 0 0 3px var(--brand-400), 0 0 0 200vmax rgb(0 0 0 / 0.72); }
-.gd-tour-coach { transition: left 0.6s var(--lc-out), top 0.6s var(--lc-out); }
+.gd-tour-glide { transition: left 0.6s var(--lc-out), top 0.6s var(--lc-out); }
 .gd-tour-orb { filter: drop-shadow(0 6px 14px rgb(43 127 255 / 0.3)); }
 /* The speech bubble points back at the assistant, and pops out of it. */
 .gd-speech { box-shadow: 0 22px 50px -16px rgb(0 0 0 / 0.5); animation: gd-speech-in 0.3s var(--lc-out) both; }
@@ -180,9 +183,6 @@ body:has([data-lab-toolbar]) .gd-foot { bottom: 84px; }
 .gd-speech[data-side="center"] { transform-origin: center top; }
 .gd-speech[data-side="center"] .gd-speech-tail { top: -6px; left: calc(50% - 9px); }
 @keyframes gd-speech-in { from { opacity: 0; transform: translateY(4px) scale(0.98); } }
-@media (prefers-reduced-motion: reduce) { .gd-tour-hole, .gd-tour-coach { transition: none; } .gd-speech { animation: none; } }
-.reduce-effects :is(.gd-tour-hole, .gd-tour-coach) { transition: none; }
+@media (prefers-reduced-motion: reduce) { .gd-tour-hole, .gd-tour-glide { transition: none; } .gd-speech { animation: none; } }
+.reduce-effects :is(.gd-tour-hole, .gd-tour-glide) { transition: none; }
 .reduce-effects .gd-speech { animation: none; }
-
-/* The tour's Next button fills up until the tour moves on by itself. */
-.gd-next-fill { position: absolute; inset: 0; transform-origin: left center; transform: scaleX(0); background: color-mix(in oklab, white 28%, transparent); pointer-events: none; }
