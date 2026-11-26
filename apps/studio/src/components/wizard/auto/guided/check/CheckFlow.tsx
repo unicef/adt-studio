@@ -110,7 +110,7 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
       {/* The bar stays at the bottom of the window, so the button never moves; the space above keeps it off the content. */}
       <div aria-hidden className="h-[120px]" />
       <div className="gd-bar fixed inset-x-0 bottom-0 z-20 border-t border-border bg-[var(--lc-bg)]/95 backdrop-blur-sm">
-        <div className="mx-auto flex w-full max-w-[720px] flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-4 sm:px-6">
+        <div className="mx-auto flex w-full max-w-[760px] flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-4 sm:px-6">
           {/* Where you are: this screen, the steps of Check as segments, and the count. */}
           <div className="flex min-w-0 flex-col gap-1.5">
             <span className="flex items-baseline gap-2 text-[14px]">

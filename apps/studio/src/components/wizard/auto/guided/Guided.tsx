@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState, type ReactNode } from "react"
+import { useContext, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react"
 import { flushSync } from "react-dom"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { FileDropOverlay } from "@/components/ui/file-drop-overlay"
@@ -201,6 +201,10 @@ export function Guided({ onManual }: { onManual: () => void }) {
   const busy = (shown === "reading" && !failure) || (shown === "create" && !!lastRun && (lastRun.status === "saving" || lastRun.status === "extracting"))
   const tone = failure && shown === "reading" ? "error" : lastRun?.status === "failed" && shown === "create" ? "error" : lastRun?.status === "done" && shown === "create" ? "done" : shown
 
+  // The page column: Check is one focused column, Upload shows its three cards side by side.
+  const column = shown === "check" ? "max-w-[760px]" : shown === "upload" ? "max-w-[760px] lg:max-w-[1080px]" : "max-w-[760px] lg:max-w-[880px]"
+  const scroller = useRef<HTMLDivElement>(null)
+  const { scale, vh } = usePageScale(scroller)
   return (
     <FinishContext.Provider value={{ onOpen: create.open }}>
       <div className="lc-root gd-root relative flex h-full min-h-0 flex-1 flex-col overflow-clip" data-tone={tone}>
@@ -213,13 +217,15 @@ export function Guided({ onManual }: { onManual: () => void }) {
           ))}
         </div>
 
-        <div className={cn("relative flex-1 overflow-y-auto overflow-x-hidden", settling && "invisible")} aria-busy={settling || undefined}>
-          {/* Check uses the width on wide screens: the list of its screens on the left, the screen on view beside it. The other steps stay one calm column. */}
-          <div className="mx-auto flex w-full max-w-[1340px] flex-col px-4 pb-24 pt-6 sm:px-6 sm:pt-8">
-            <div className="mx-auto w-full max-w-[760px] lg:max-w-[1180px]">
+        <div ref={scroller} className={cn("relative flex-1 overflow-y-auto overflow-x-hidden", settling && "invisible")} aria-busy={settling || undefined}>
+          {/* One column per step, and the stepper takes the same width, so its ends line up with the
+              bubble and the content. On big windows the whole page scales up (zoom) instead of
+              floating small in the middle; on short ones the spacing tightens. */}
+          <div className="mx-auto flex w-full flex-col px-4 pb-24 pt-6 sm:px-6 sm:pt-8 [@media(max-height:800px)]:pt-4" style={{ zoom: scale, "--gd-vh": `${vh}px` } as CSSProperties}>
+            <div className={cn("gd-col mx-auto w-full", column)}>
               <Stepper at={at} shown={shown} failed={!!failure && at === "reading"} locked={create.locked} complete={lastRun?.status === "done"} onGo={(s) => morph(() => setView(s === at ? null : s))} checkBars={bars} />
             </div>
-            <div className={shown === "check" ? "mx-auto mt-7 w-full max-w-[720px] lg:mt-9" : cn("mx-auto mt-7 w-full max-w-[760px] lg:mt-9", shown === "upload" ? "lg:max-w-[1180px]" : "lg:max-w-[880px]")}>
+            <div className={cn("gd-col mx-auto mt-7 w-full lg:mt-9 [@media(max-height:800px)]:mt-4", column)}>
               <div className="min-w-0">
                 <Bubble swap={swap} busy={busy} away={shown === "upload" && !flow.file && tour !== null}>
                   {says}
@@ -237,4 +243,28 @@ export function Guided({ onManual }: { onManual: () => void }) {
       </div>
     </FinishContext.Provider>
   )
+}
+
+/**
+ * How much the page scales up on a big window: 1 up to the desktop app's default window
+ * (1440x900), then with the window (width and height both), up to 1.5. A desktop window is never
+ * smaller than 1280x720, where the page stays at 1 and its spacing tightens instead.
+ */
+function usePageScale(ref: RefObject<HTMLElement | null>): { scale: number; vh: number } {
+  const [size, setSize] = useState({ scale: 1, vh: typeof window === "undefined" ? 9 : window.innerHeight / 100 })
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const fit = () => {
+      const s = Math.min(el.clientWidth / 1440, el.clientHeight / 920)
+      const scale = Math.round(Math.min(1.5, Math.max(1, s)) * 100) / 100
+      // A vh inside the scaled page is scaled too: --gd-vh is one hundredth of the window's height in page units.
+      setSize({ scale, vh: window.innerHeight / scale / 100 })
+    }
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [ref])
+  return size
 }

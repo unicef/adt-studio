@@ -31,7 +31,7 @@ export function ReadingMessage({ run, rec, onManual }: { run: EngineRun; rec: Se
 export function ReadingCard({ file, pageCount }: { file: File | null; pageCount: number }) {
   const wizard = useIsWizard()
   return (
-    <div className="gd-reading flex w-full flex-col items-center gap-5 rounded-[22px] border-2 border-[var(--gd-step)] bg-[var(--lc-bubble)] px-6 py-10 text-center lg:py-[clamp(40px,7vh,84px)]" style={{ viewTransitionName: "gd-drop" }}>
+    <div className="gd-reading flex w-full flex-col items-center gap-5 rounded-[22px] border-2 border-[var(--gd-step)] bg-[var(--lc-bubble)] px-6 py-10 text-center lg:py-[clamp(40px,calc(var(--gd-vh,1vh)*7),84px)]" style={{ viewTransitionName: "gd-drop" }}>
       {file && pageCount > 0 ? (
         <span className="flex items-center">
           {/* The wizard points its wand at the pages: its scan beam ends over the first one. */}

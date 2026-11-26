@@ -58,7 +58,7 @@ export function SurePick({ picture, label, title, hint, result, changed, badge =
   }, [open])
   return (
     <div data-pick className="flex scroll-mt-24 flex-col gap-5">
-      <div data-vt-pick={`pick-${labelId}`} className="w-full shrink-0 [&>*>*]:!h-[clamp(220px,34vh,360px)] [&>*>*]:!w-full" style={{ viewTransitionName: `pick-${labelId}` }}>
+      <div data-vt-pick={`pick-${labelId}`} className="w-full shrink-0 [&>*>*]:!h-[clamp(170px,calc(var(--gd-vh,1vh)*30),360px)] [&>*>*]:!w-full" style={{ viewTransitionName: `pick-${labelId}` }}>
         <div key={typeof title === "string" ? title : undefined} className="gd-pick-in contents">
           {picture}
         </div>
@@ -95,4 +95,5 @@ export function SurePick({ picture, label, title, hint, result, changed, badge =
 }
 
 /** The pick's picture area, sized for a screen: full width on a phone, beside the words from sm up. */
-export const PICTURE = "h-[160px] w-full sm:h-[170px] sm:w-[270px] lg:h-[clamp(220px,32vh,360px)] lg:w-[clamp(340px,50vh,560px)]"
+// eslint-disable-next-line lingui/no-unlocalized-strings -- Tailwind classes, never shown
+export const PICTURE = "h-[160px] w-full sm:h-[170px] sm:w-[270px] lg:h-[clamp(220px,calc(var(--gd-vh,1vh)*32),360px)] lg:w-[clamp(340px,calc(var(--gd-vh,1vh)*50),560px)]"
