@@ -20,7 +20,9 @@ export function useCheck(rec: SetupRecommendation | null, chat: Answers) {
   }, [rec?.id])
   const screens: ScreenId[] = rec && chat.derived ? checkScreens(rec, chat.derived.current) : []
   const at = screens.length ? shownScreen(state, screens) : "kind"
-  const move = (action: CheckAction) => morph(() => setState((s) => moveCheck(s, action, screens)))
+  // No page morph between screens: the new screen slides in on its own (CheckFlow), and the
+  // fixed bottom bar stays where it is while its title, count and progress animate.
+  const move = (action: CheckAction) => setState((s) => moveCheck(s, action, screens))
   return {
     screens,
     at,

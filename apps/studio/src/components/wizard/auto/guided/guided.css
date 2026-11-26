@@ -204,3 +204,28 @@
 /* The bottom bar is fixed to the window: in a step morph it is snapshotted on its own, so it never
    rides along inside the page's snapshot (where it would sit at the wrong place). */
 .gd-bar { view-transition-name: gd-bar; }
+
+/* Between Check screens: the new screen slides in from the side the flow went (data-dir), and in
+   the fixed bottom bar only the parts that change move: the title and count, the button label,
+   Back, and the progress segments filling. The bar itself never moves. */
+.gd-screen-in { animation: gd-screen-next 420ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.gd-screen-in[data-dir="back"] { animation-name: gd-screen-back; }
+@keyframes gd-screen-next { from { opacity: 0; transform: translateX(28px); } }
+@keyframes gd-screen-back { from { opacity: 0; transform: translateX(-28px); } }
+.gd-bar-in { animation: gd-bar-next 320ms cubic-bezier(0.22, 1, 0.36, 1) both; display: inline-flex; }
+.gd-bar-in[data-dir="back"] { animation-name: gd-bar-back; }
+@keyframes gd-bar-next { from { opacity: 0; transform: translateY(6px); } }
+@keyframes gd-bar-back { from { opacity: 0; transform: translateY(-6px); } }
+.gd-seg { transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 300ms ease; }
+@media (prefers-reduced-motion: reduce) {
+  .gd-screen-in, .gd-bar-in { animation: none; }
+  .gd-seg { transition: none; }
+}
+:root.reduce-effects .gd-screen-in, :root.reduce-effects .gd-bar-in { animation: none; }
+:root.reduce-effects .gd-seg { transition: none; }
+
+/* The assistant's words on a new screen come in softly (the bubble stays put). */
+.gd-enter { animation: gd-words-in 280ms ease-out both; }
+@keyframes gd-words-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .gd-enter { animation: none; } }
+:root.reduce-effects .gd-enter { animation: none; }
