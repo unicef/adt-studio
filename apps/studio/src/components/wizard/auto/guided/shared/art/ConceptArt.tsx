@@ -251,3 +251,18 @@ export function LanguagePicture({ code, outputs }: { code: string | null; output
     </span>
   )
 }
+
+/** The page layouts' illustrations: a printed page becoming the screen, on a tablet and a phone. */
+const LAYOUT_IMAGE: Record<string, string> = {
+  llm: "layout-ai",
+  "llm-overlay": "layout-overlay",
+  single_column: "layout-single-column",
+  two_column_story: "layout-two-column",
+  fixed_layout: "layout-fixed",
+}
+
+/** A page layout's illustration (null for a layout without one). */
+export function layoutArt(strategy: string): ReactNode | null {
+  const name = LAYOUT_IMAGE[strategy]
+  return name ? <Illustration name={name} /> : null
+}

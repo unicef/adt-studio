@@ -8,28 +8,31 @@ import { strategiesFor } from "../../../engine/answers"
 import { RULE_WHY, SETTING_NAME, SETTING_VALUE } from "../../../engine/words"
 import { LookChoices, type LookOption } from "../../shared/PreviewChoices"
 import { lookOf } from "../../shared/screens/look"
+import { layoutArt } from "../../shared/art/ConceptArt"
+import { MethodTag, usesAI } from "../../shared/MethodTag"
 import { LAYOUT_GUIDE } from "../../shared/optionGuide"
 import { Citation } from "../../shared/Citation"
 import type { Answers } from "../../shared/useAnswers"
 import { plainTitle, SETTING_OPTIONS } from "../../shared/words"
-import { FactPick } from "../FactPick"
 import { RENDER_STRATEGIES } from "../../../../core/constants"
 import { WizardSettings } from "../../shared/WizardSettings"
 import { useWizardNames, WIZARD_SETTING, wizardValue } from "../../shared/wizardNames"
 import { screenFacts } from "../screens"
-import { Picture, PICTURE, SurePick } from "../SurePick"
+import { PICTURE, SurePick } from "../SurePick"
 
 type Props = { rec: SetupRecommendation; chat: Answers; file: File | null | undefined }
 
 /**
- * The page layout itself, when where the words sit doesn't change it (a school book is always
- * rebuilt): the layout highlighted, the preset's other layouts under "See the other options".
+ * The page layout itself: how each page comes out on screen. The layout is the pick (where the
+ * words sit only explains the guess), each shown as an illustration of a printed page becoming the
+ * screen, and tagged with how it's made: by the AI (slower, uses credits) or from a template.
+ * When the engine asked (its readings disagree on where the words sit), the options start open.
  */
-function LayoutPick({ rec, chat, file }: Props) {
+function LayoutPick({ rec, chat, file, asked }: Props & { asked: boolean }) {
   const { i18n } = useLingui()
   const names = useWizardNames()
   const derived = chat.derived!
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(asked)
   const value = String(derived.effective.renderStrategy?.value)
   const shown = new Set(SETTING_OPTIONS.renderStrategy.map((o) => String(o.value)))
   const allowed = strategiesFor(derived.effective.preset?.value).filter((s) => shown.has(s))
@@ -43,11 +46,14 @@ function LayoutPick({ rec, chat, file }: Props) {
   }
   // The engine's pick first; the order stays put while the user tries the others.
   const first = String(derived.fromAnswers.renderStrategy?.value ?? value)
-  const options = [...(allowed.includes(first) ? [first] : []), ...allowed.filter((v) => v !== first)].map(
+  // The guess first, then the template layouts, then the AI ones.
+  const rest = allowed.filter((v) => v !== first).sort((a, b) => Number(usesAI(a)) - Number(usesAI(b)))
+  const options = [...(allowed.includes(first) ? [first] : []), ...rest].map(
     (v): LookOption => ({
       value: v,
       label: name(v),
-      line: SETTING_VALUE.renderStrategy[v] ? i18n._(SETTING_VALUE.renderStrategy[v]!.means) : "",
+      // The card says only its name and how it's made; what it means is in "What do these options mean?".
+      line: "",
       more: (() => {
         const d = RENDER_STRATEGIES.find((r) => r.id === v)?.description
         return d ? i18n._(d) : undefined
@@ -64,6 +70,8 @@ function LayoutPick({ rec, chat, file }: Props) {
             )}
           </>
         ) : undefined,
+      art: layoutArt(v) ?? undefined,
+      tag: <MethodTag strategy={v} />,
       look: lookOf({ ...derived.effective, renderStrategy: { value: v, rule: "user" } }),
       guess: v === derived.fromAnswers.renderStrategy?.value,
       settings: { ...derived.effective, renderStrategy: { value: v, rule: "user" } },
@@ -74,11 +82,12 @@ function LayoutPick({ rec, chat, file }: Props) {
   const means = SETTING_VALUE.renderStrategy[value]?.means
   return (
     <SurePick
-      picture={<Picture rec={rec} look={lookOf(derived.effective)} page={rec.previewPage} file={file} className={PICTURE} />}
-      label={i18n._(SETTING_NAME.renderStrategy)}
+      picture={<span className={`qd18-pv grid shrink-0 place-items-center rounded-[12px] p-3 ${PICTURE}`}>{layoutArt(value)}</span>}
+      label={<Trans>How the pages look on screen</Trans>}
       title={name(value)}
       hint={means ? i18n._(means) : undefined}
-      result={names ? <WizardSettings settings={derived.effective} only={["preset", "renderStrategy", "pageGrouping"]} /> : undefined}
+      result={names ? <WizardSettings settings={derived.effective} only={["preset", "renderStrategy", "pageGrouping"]} /> : <MethodTag strategy={value} long className="mt-1" />}
+      badge={!asked}
       changed={derived.source("renderStrategy") === "changed"}
       labelId={labelId}
       open={open}
@@ -138,12 +147,12 @@ function GroupingLine({ rec, chat }: Omit<Props, "file">) {
   )
 }
 
-/** Screen 2 · How the pages look: where the words sit (or the layout itself), with the book as it would come out, and the two-page line. */
+/** Screen 3 · How the pages look: the page layout (its options start open when the engine asked), and the two-page line. */
 export function LookScreen({ rec, chat, file }: Props) {
   const fact = screenFacts(rec, chat.derived!.current, "look")[0]
   return (
     <div className="flex flex-col gap-3">
-      {fact ? <FactPick rec={rec} fact={fact} chat={chat} file={file} /> : <LayoutPick rec={rec} chat={chat} file={file} />}
+      <LayoutPick rec={rec} chat={chat} file={file} asked={!!fact?.ask} />
       <GroupingLine rec={rec} chat={chat} />
     </div>
   )

@@ -30,7 +30,7 @@ const NARROW = 520
  * when the user's pages wouldn't tell the options apart. With "Wizard names" on, `settings` shows
  * what the option applies, `changed` marking what differs between the options.
  */
-export type LookOption = { value: string; label: string; line: string; look: Look; guess: boolean; art?: ReactNode; more?: string; guide?: OptionGuide; why?: ReactNode; settings?: SetupDecided; only?: SetupSettingId[]; changed?: SetupSettingId[] }
+export type LookOption = { value: string; label: string; line: string; look: Look; guess: boolean; art?: ReactNode; more?: string; tag?: ReactNode; guide?: OptionGuide; why?: ReactNode; settings?: SetupDecided; only?: SetupSettingId[]; changed?: SetupSettingId[] }
 
 function LookCard({ rec, option, page, narrow, chosen, first, onPick, file }: { rec: SetupRecommendation; option: LookOption; page: number; narrow: boolean; chosen: boolean; first: boolean; onPick: (card: HTMLElement) => void; file: File | null | undefined }) {
   const describe = useDescribe()
@@ -71,7 +71,8 @@ function LookCard({ rec, option, page, narrow, chosen, first, onPick, file }: { 
           </span>
         )}
         <span className="text-[15px] font-medium leading-tight lg:text-[17px]">{option.label}</span>
-        <span className="mt-0.5 text-[13px] leading-snug text-muted-foreground lg:text-[14.5px]">{option.line}</span>
+        {option.line && <span className="mt-0.5 text-[13px] leading-snug text-muted-foreground lg:text-[14.5px]">{option.line}</span>}
+        {option.tag && <span className="mt-2">{option.tag}</span>}
         {names && option.settings && <WizardSettings settings={option.settings} only={option.only} changed={option.changed} className="mt-2" />}
       </span>
     </button>
