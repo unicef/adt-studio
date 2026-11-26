@@ -189,6 +189,30 @@ describe("AudioSection (SPEC-0014)", () => {
     expect((textarea as HTMLTextAreaElement).value).toBe("Mago")
   })
 
+  it("shows an id collision without offering a useless Retry", async () => {
+    calls.getElementAudio.mockResolvedValue(
+      view([{ nodeId: "pg001_im001", text: "Mago", sourcePageId: "pg001" }]),
+    )
+    calls.updateElementAudio.mockRejectedValue(
+      Object.assign(
+        new Error(
+          "Element pg001_im001 cannot use pg001_im001_audio: the id is already rendered on page pg001.",
+        ),
+        { status: 409, code: "element-audio-id-collision" },
+      ),
+    )
+
+    render(<AudioSection dataId="pg001_im001" pageId="pg001" />, { wrapper: Providers })
+
+    const textarea = await screen.findByLabelText("Element audio script")
+    fireEvent.change(textarea, { target: { value: "Maga" } })
+    fireEvent.click(screen.getByRole("button", { name: /Save/ }))
+
+    await screen.findByText(/already rendered on page pg001/)
+    expect(screen.queryByRole("button", { name: "Retry" })).toBeNull()
+    expect((textarea as HTMLTextAreaElement).value).toBe("Maga")
+  })
+
   it("retries a busy-pipeline 409 without reloading or discarding the draft", async () => {
     calls.getElementAudio.mockResolvedValue(
       view([{ nodeId: "pg001_im001", text: "Mago", sourcePageId: "pg001" }]),
@@ -323,6 +347,21 @@ describe("AudioSection (SPEC-0014)", () => {
       expect((textarea as HTMLTextAreaElement).value).toBe("Hechicero")
     })
     expect(calls.updateElementAudio).not.toHaveBeenCalled()
+
+    calls.updateElementAudio.mockResolvedValue({
+      pageId: "pg001",
+      versions: { pg001: 3 },
+      entries: [{ nodeId: "pg001_im001", text: "Hechicera", sourcePageId: "pg001" }],
+    })
+    fireEvent.change(textarea, { target: { value: "Hechicera" } })
+    fireEvent.click(screen.getByRole("button", { name: /Save/ }))
+
+    await waitFor(() => {
+      expect(calls.updateElementAudio).toHaveBeenCalledWith("book", "pg001", {
+        versions: { pg001: 2 },
+        entries: [{ nodeId: "pg001_im001", text: "Hechicera", sourcePageId: "pg001" }],
+      })
+    })
   })
 
   it("keeps an unsaved draft when the author inspects another element and returns", async () => {

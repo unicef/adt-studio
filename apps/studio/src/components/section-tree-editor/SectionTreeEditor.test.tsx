@@ -254,6 +254,18 @@ describe("SectionTreeEditor element-audio notice (AC-8)", () => {
       "Element duplicated. Authored element audio is not copied to the new element.",
     )
   })
+
+  it("does not warn when the duplicated subtree has no image", () => {
+    const textOnlySection: PageSectioningSection = {
+      ...initialSection,
+      nodes: [{ nodeId: "only-text", role: "text", text: "Hola", isPruned: false }],
+    }
+    render(<Harness initial={textOnlySection} onStructuralChange={vi.fn()} />)
+    const row = document.querySelector<HTMLElement>('[data-node-id="only-text"]')
+    expect(row).toBeTruthy()
+    fireEvent.click(within(row!).getByText("Duplicate"))
+    expect(toast.info).not.toHaveBeenCalled()
+  })
 })
 
 describe("SectionTreeEditor inherited prune (#596)", () => {

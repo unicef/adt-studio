@@ -66,6 +66,8 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
   // reload and discard the draft. A busy pipeline also answers 409, but it
   // retries the save instead; see routes/element-audio.ts for the two codes.
   const [conflict, setConflict] = useState(false)
+  // An id collision is not retryable: the same save will always fail.
+  const [retryable, setRetryable] = useState(true)
   const [saved, setSaved] = useState(false)
   const draftRef = useRef({ dataId, dirty: false, versions: query.data?.versions ?? {} })
   const valueRef = useRef(value)
@@ -141,6 +143,7 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
     setSaved(false)
     setError(null)
     setConflict(false)
+    setRetryable(true)
   }
 
   const discard = () => {
@@ -154,6 +157,7 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
     setSaved(false)
     setError(null)
     setConflict(false)
+    setRetryable(true)
   }
 
   const save = async () => {
@@ -161,6 +165,7 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
     setSaving(true)
     setError(null)
     setConflict(false)
+    setRetryable(true)
     setSaved(false)
     try {
       const view = await api.updateElementAudio(bookLabel, pageId, {
@@ -185,6 +190,7 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
       // and keeps the draft. Only a moved or duplicated row needs a reload.
       const code = apiErrorCode(err)
       setConflict(code === "element-audio-conflict" || code === "element-audio-duplicate")
+      setRetryable(code !== "element-audio-id-collision")
     } finally {
       setSaving(false)
     }
@@ -204,6 +210,7 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
     setSaved(false)
     setError(null)
     setConflict(false)
+    setRetryable(true)
   }
 
   if (!bookLabel) return null
@@ -304,13 +311,15 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
       {error ? (
         <div className="flex items-center justify-between gap-2">
           <p className="text-[10px] text-red-700">{error}</p>
-          <button
-            type="button"
-            onClick={() => void (conflict ? reload() : save())}
-            className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer"
-          >
-            {t`Retry`}
-          </button>
+          {retryable ? (
+            <button
+              type="button"
+              onClick={() => void (conflict ? reload() : save())}
+              className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer"
+            >
+              {t`Retry`}
+            </button>
+          ) : null}
         </div>
       ) : null}
     </section>
