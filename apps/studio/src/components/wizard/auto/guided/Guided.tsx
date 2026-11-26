@@ -112,15 +112,16 @@ export function Guided({ onManual }: { onManual: () => void }) {
     else morph(() => setAt(atNow))
   }, [atNow])
   // Until a lab jump (or a reload on one) reaches its step, the page stays blank: the steps it
-  // passes on the way (upload, reading) never flash.
-  const settling = !!labTarget && labTarget !== "start" && labTarget !== "reading" && labTarget !== "error" && at !== "check" && at !== "create"
+  // passes on the way (upload, reading) never flash. With no PDF to jump with, Upload shows.
+  const settling = !!flow.file && !!labTarget && labTarget !== "start" && labTarget !== "reading" && labTarget !== "error" && at !== "check" && at !== "create"
 
   // A first run starts with a tour of the page: the assistant, each card, then the drop zone.
   const firstRun = useFirstRun()
   const [tour, setTour] = useState<number | null>(null)
   const toured = useRef(false)
   useEffect(() => {
-    if (firstRun && !toured.current && !flow.file) {
+    // Not on a lab jump past Start: the lab opens a later step, not the first-run page.
+    if (firstRun && !toured.current && !flow.file && (!labTarget || labTarget === "start")) {
       toured.current = true
       setTour(0)
     }
