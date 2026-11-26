@@ -1,4 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro"
+import { CircleHelp } from "lucide-react"
+import { askExplain, useExplainable } from "../shared/explain"
 import { getDisplayName } from "@/lib/languages"
 import type { SetupRecommendation } from "@adt/types"
 import { RULE_WHY } from "../../engine/words"
@@ -16,8 +18,24 @@ import { useBookLanguage } from "./screens/LanguageScreen"
 type Props = { rec: SetupRecommendation; derived: Derived; screen: ScreenId; file: File | null | undefined; pageCount: number; firstBook: boolean; trying: boolean | null; onTrying: (trying: boolean) => void }
 
 export function CheckSays(props: Props) {
-  if (props.screen === "language") return <LanguageSays rec={props.rec} />
-  return <Says {...props} />
+  return (
+    <>
+      {props.screen === "language" ? <LanguageSays rec={props.rec} /> : <Says {...props} />}
+      <ExplainOffer />
+    </>
+  )
+}
+
+/** The assistant offers to explain what's on screen (the options, or how languages work). */
+function ExplainOffer() {
+  const what = useExplainable()
+  if (!what) return null
+  return (
+    <button type="button" onClick={askExplain} className="lc-link -ml-1 mt-1.5 inline-flex min-h-8 items-center gap-1.5 px-1 text-[14px] font-medium">
+      <CircleHelp aria-hidden className="size-4" />
+      {what === "languages" ? <Trans>Not sure? I can explain how languages work.</Trans> : <Trans>Not sure? I can explain each option.</Trans>}
+    </button>
+  )
 }
 
 function LanguageSays({ rec }: { rec: SetupRecommendation }) {

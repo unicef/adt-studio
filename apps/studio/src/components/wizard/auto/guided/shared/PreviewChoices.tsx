@@ -1,10 +1,10 @@
 import { useState, type ReactNode } from "react"
-import { CircleHelp } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
 import type { SetupDecided, SetupFact, SetupRecommendation, SetupSettingId } from "@adt/types"
 import { cn } from "@/lib/utils"
 import { OptionsHelp } from "./OptionsHelp"
+import { useExplain } from "./explain"
 import { Screen } from "./Screen"
 import { Citation } from "./Citation"
 import { FACT_GUIDE, type OptionGuide } from "./optionGuide"
@@ -91,20 +91,14 @@ export function LookChoices({ rec, options, page, chosen, onPick, file, labelId 
   const narrow = box.w > 0 && box.w < NARROW
   const [help, setHelp] = useState(false)
   const explains = options.some((o) => o.more)
+  // The assistant's bubble offers this explanation ("Not sure? I can explain ...").
+  useExplain("options", () => setHelp(true), explains)
   return (
     <div className="flex flex-col gap-2 pt-1">
       <div ref={ref} role="group" aria-labelledby={labelId} className="grid gap-3" style={{ gridTemplateColumns: narrow ? "minmax(0, 1fr)" : `repeat(${cols}, minmax(0, 1fr))` }}>
         {box.w > 0 && options.map((o, i) => <LookCard key={o.value} rec={rec} option={o} page={page} narrow={narrow} chosen={chosen === o.value} first={i === 0} onPick={(card) => onPick(o.value, card)} file={file} />)}
       </div>
-      {explains && (
-        <>
-          <button type="button" onClick={() => setHelp(true)} className="lc-link -ml-1.5 inline-flex min-h-9 w-fit items-center gap-1.5 px-1.5 text-[13.5px] font-medium">
-            <CircleHelp className="size-4" />
-            <Trans>What do these options mean?</Trans>
-          </button>
-          <OptionsHelp open={help} onOpenChange={setHelp} rec={rec} options={options} page={page} chosen={chosen} file={file} onPick={(v) => { setHelp(false); onPick(v, null) }} />
-        </>
-      )}
+      {explains && <OptionsHelp open={help} onOpenChange={setHelp} rec={rec} options={options} page={page} chosen={chosen} file={file} onPick={(v) => { setHelp(false); onPick(v, null) }} />}
     </div>
   )
 }

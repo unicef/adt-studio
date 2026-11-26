@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react"
-import { CircleHelp, Languages } from "lucide-react"
+import { Languages } from "lucide-react"
 import { useStore } from "@tanstack/react-form"
 import { msg } from "@lingui/core/macro"
 import { Trans, useLingui } from "@lingui/react/macro"
@@ -11,6 +11,7 @@ import { bookLanguage } from "../screens"
 import { LanguagePicture } from "../../shared/art/ConceptArt"
 import { PICTURE, SurePick } from "../SurePick"
 import { LanguageHelp } from "./LanguageHelp"
+import { useExplain } from "../../shared/explain"
 
 const PICKER_LABEL = msg`Edit the book in`
 
@@ -34,6 +35,8 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
   const form = useWizardForm()
   const [open, setOpen] = useState(false)
   const [help, setHelp] = useState(false)
+  // The assistant's bubble offers this explanation ("Not sure? I can explain ...").
+  useExplain("languages", () => setHelp(true))
   const { found, picked, changed } = useBookLanguage(rec)
   const outputs = useStore(form.store, (s) => s.values.outputLanguages)
   const shown = changed ? picked : found
@@ -63,10 +66,6 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
           <span>
             <Trans>You edit the book in this language.</Trans>
           </span>
-          <button type="button" onClick={() => setHelp(true)} className="lc-link -ml-1 inline-flex min-h-8 items-center gap-1.5 px-1 text-[13.5px] font-medium">
-            <CircleHelp className="size-4" />
-            <Trans>How do languages work?</Trans>
-          </button>
           <LanguageHelp open={help} onOpenChange={setHelp} found={found ? getDisplayName(found) : null} />
         </span>
       }

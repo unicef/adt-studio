@@ -14,7 +14,6 @@ import { LAYOUT_AT_A_GLANCE, LAYOUT_GUIDE } from "../../shared/optionGuide"
 import { Citation } from "../../shared/Citation"
 import type { Answers } from "../../shared/useAnswers"
 import { plainTitle, SETTING_OPTIONS } from "../../shared/words"
-import { RENDER_STRATEGIES } from "../../../../core/constants"
 import { WizardSettings } from "../../shared/WizardSettings"
 import { useWizardNames, WIZARD_SETTING, wizardValue } from "../../shared/wizardNames"
 import { screenFacts } from "../screens"
@@ -54,10 +53,7 @@ function LayoutPick({ rec, chat, file, asked }: Props & { asked: boolean }) {
       label: name(v),
       // The card: its name, one line on what you get, and how it's made.
       line: LAYOUT_AT_A_GLANCE[v] ? i18n._(LAYOUT_AT_A_GLANCE[v]!.line) : "",
-      more: (() => {
-        const d = RENDER_STRATEGIES.find((r) => r.id === v)?.description
-        return d ? i18n._(d) : undefined
-      })(),
+      more: SETTING_VALUE.renderStrategy[v] ? i18n._(SETTING_VALUE.renderStrategy[v]!.means) : undefined,
       guide: LAYOUT_GUIDE[v],
       why:
         v === first && RULE_WHY[derived.fromAnswers.renderStrategy?.rule ?? ""] ? (
