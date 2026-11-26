@@ -2069,6 +2069,12 @@ msgstr "Aplicando alterações…"
 msgid "Approve"
 msgstr "Aprovar"
 
+msgid "Approve or decline the change first"
+msgstr "Primeiro aprove ou recuse a alteração"
+
+msgid "Approve this change?"
+msgstr "Aprovar esta alteração?"
+
 msgid "Archive"
 msgstr "Arquivo"
 
@@ -3675,6 +3681,9 @@ msgstr "Cobertura"
 msgid "Covered"
 msgstr "Com vídeo"
 
+msgid "Create a custom section"
+msgstr "Criar uma seção personalizada"
+
 msgid "Create a free account first"
 msgstr "Crie uma conta gratuita primeiro"
 
@@ -3692,6 +3701,9 @@ msgstr "Crie uma sessão de revisor para este livro."
 
 msgid "Create ADT"
 msgstr "Criar ADT"
+
+msgid "Create an activity"
+msgstr "Criar uma atividade"
 
 msgid "Create descriptive captions for images to improve accessibility."
 msgstr "Cria texto alternativo descritivo para as imagens, melhorando a acessibilidade."
@@ -5808,6 +5820,9 @@ msgstr "Como as atividades são renderizadas em cada seção."
 msgid "How ADT Studio looks on this machine."
 msgstr "Como o ADT Studio aparece nesta máquina."
 
+msgid "How can I help with this book?"
+msgstr "Como posso ajudar com este livro?"
+
 msgid "How captions work"
 msgstr "Como funciona o texto alternativo"
 
@@ -6680,6 +6695,12 @@ msgstr "Visualização em lista"
 
 msgid "list_item"
 msgstr "item_lista"
+
+msgid "Listed page images"
+msgstr "Imagens da página listadas"
+
+msgid "Listed the pages"
+msgstr "Páginas listadas"
 
 msgid "Listed under Features"
 msgstr "Listados em Recursos"
@@ -9640,6 +9661,12 @@ msgstr "Reexecutar tradução"
 msgid "Read"
 msgstr "Ler"
 
+msgid "Read a page"
+msgstr "Leu uma página"
+
+msgid "Read a section"
+msgstr "Leu uma seção"
+
 msgid "Read aloud"
 msgstr "Ler em voz alta"
 
@@ -10263,6 +10290,9 @@ msgstr "Restaurado para a v{version}"
 msgid "Restricted license"
 msgstr "Licença restrita"
 
+msgid "Result"
+msgstr "Resultado"
+
 msgid "Results"
 msgstr "Resultados"
 
@@ -10747,6 +10777,9 @@ msgstr "Rolar para mais páginas"
 
 msgid "Scroll to previous pages"
 msgstr "Rolar para páginas anteriores"
+
+msgid "Scroll to the latest message"
+msgstr "Ir para a última mensagem"
 
 msgid "Search beta versions"
 msgstr "Buscar versões beta"
@@ -12054,6 +12087,9 @@ msgstr "Sucesso"
 msgid "Suggest improved translations when an entry needs attention"
 msgstr "Sugerir traduções melhoradas quando uma entrada precisar de atenção"
 
+msgid "Suggest improvements for the first page"
+msgstr "Sugira melhorias para a primeira página"
+
 #. placeholder {0}: controlsLabel(item.controls)
 msgid "Suggested for {0}"
 msgstr "Sugeridos para {0}"
@@ -12354,8 +12390,11 @@ msgstr "O arquivo contém uma pasta ou um arquivo fora da estrutura ADT padrão.
 msgid "The archive must contain a project database and its PDF. Re-export it from ADT Studio."
 msgstr "O arquivo deve conter um banco de dados de projeto e seu PDF. Exporte-o novamente do ADT Studio."
 
-msgid "The assistant wants to change the book:"
-msgstr "O assistente quer alterar o livro:"
+#~ msgid "The assistant wants to change the book:"
+#~ msgstr "O assistente quer alterar o livro:"
+
+msgid "The assistant wants to change the book. Nothing is saved until you approve."
+msgstr "O assistente quer alterar o livro. Nada é salvo até você aprovar."
 
 msgid "The back cover of the book."
 msgstr "A contracapa do livro."
@@ -13690,6 +13729,9 @@ msgstr "Atualizado — os leitores veem suas últimas edições."
 msgid "Update"
 msgstr "Atualizar"
 
+msgid "Update a section"
+msgstr "Atualizar uma seção"
+
 msgid "Update all"
 msgstr "Atualizar tudo"
 
@@ -14212,6 +14254,9 @@ msgstr "O que o ADT Studio faz"
 msgid "What is the main role of a plant's roots?"
 msgstr "Qual é a principal função das raízes de uma planta?"
 
+msgid "What is this book about?"
+msgstr "Sobre o que é este livro?"
+
 msgid "What readers leave on a shared book lands here"
 msgstr "O que os leitores deixam em um livro compartilhado chega aqui"
 
@@ -14292,6 +14337,9 @@ msgstr "Qual motor executa o pipeline de extração e geração."
 
 msgid "Which pages"
 msgstr "Quais páginas"
+
+msgid "Which pages have activities?"
+msgstr "Quais páginas têm atividades?"
 
 msgid "Which process releases oxygen?"
 msgstr "Qual processo libera oxigênio?"

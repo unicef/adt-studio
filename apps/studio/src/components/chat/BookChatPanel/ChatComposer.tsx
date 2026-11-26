@@ -1,8 +1,8 @@
 import { useState } from "react"
-import { Trans, useLingui } from "@lingui/react/macro"
+import { useLingui } from "@lingui/react/macro"
+import { ArrowUp, Square } from "lucide-react"
 import { CHAT_MESSAGE_MAX_LENGTH } from "@adt/types"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "@/components/ui/input-group"
 
 interface ChatComposerProps {
   busy: boolean
@@ -24,39 +24,41 @@ export function ChatComposer({ busy, disabled, onSend, onStop }: ChatComposerPro
 
   return (
     <form
-      className="flex flex-col gap-2 border-t border-border p-3"
+      className="shrink-0 p-3"
       onSubmit={(event) => {
         event.preventDefault()
         submit()
       }}
     >
-      <Textarea
-        value={text}
-        maxLength={CHAT_MESSAGE_MAX_LENGTH}
-        disabled={disabled}
-        rows={3}
-        aria-label={t`Message`}
-        placeholder={t`Ask about this book…`}
-        className="min-h-[72px] resize-none"
-        onChange={(event) => setText(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" && !event.shiftKey) {
-            event.preventDefault()
-            submit()
-          }
-        }}
-      />
-      <div className="flex justify-end">
-        {busy ? (
-          <Button type="button" size="sm" variant="outline" onClick={onStop}>
-            <Trans>Stop</Trans>
-          </Button>
-        ) : (
-          <Button type="submit" size="sm" disabled={disabled || !text.trim()}>
-            <Trans>Send</Trans>
-          </Button>
-        )}
-      </div>
+      <InputGroup className="rounded-xl bg-background">
+        <InputGroupTextarea
+          value={text}
+          maxLength={CHAT_MESSAGE_MAX_LENGTH}
+          disabled={disabled}
+          rows={2}
+          aria-label={t`Message`}
+          placeholder={disabled ? t`Approve or decline the change first` : t`Ask about this book…`}
+          className="max-h-40 min-h-[52px] px-3"
+          onChange={(event) => setText(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault()
+              submit()
+            }
+          }}
+        />
+        <InputGroupAddon align="block-end" className="justify-end">
+          {busy ? (
+            <InputGroupButton size="icon-sm" variant="outline" className="rounded-full" onClick={onStop} aria-label={t`Stop`}>
+              <Square className="size-3.5 fill-current" />
+            </InputGroupButton>
+          ) : (
+            <InputGroupButton type="submit" size="icon-sm" variant="default" className="rounded-full" disabled={disabled || !text.trim()} aria-label={t`Send`}>
+              <ArrowUp className="size-4" />
+            </InputGroupButton>
+          )}
+        </InputGroupAddon>
+      </InputGroup>
     </form>
   )
 }

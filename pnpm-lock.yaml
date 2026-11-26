@@ -425,6 +425,9 @@ importers:
       '@rolldown/plugin-babel':
         specifier: ^0.2.3
         version: 0.2.3(@babel/core@7.29.0)(@babel/runtime@7.29.2)(rolldown@1.0.3)(vite@8.0.16(@types/node@24.12.2)(esbuild@0.28.1)(jiti@2.6.1)(tsx@4.21.0))
+      '@shadcn/react':
+        specifier: 0.3.1
+        version: 0.3.1(@types/react@19.2.13)(react@19.2.4)
       '@tanstack/react-form':
         specifier: ^1.28.5
         version: 1.28.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -3058,6 +3061,17 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@shadcn/react@0.3.1':
+    resolution: {integrity: sha512-2gOR0HDMtWeRsCZfNDaU0YDFdgH3zsDQ6lz67Fv/y/qjY9y+R8kJqAn6q56phqv7/zHi0wqURjntrNO9zL7vnQ==}
+    peerDependencies:
+      '@types/react': '>=19'
+      react: '>=19'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      react:
+        optional: true
+
   '@sinclair/typebox@0.27.10':
     resolution: {integrity: sha512-MTBk/3jGLNB2tVxv6uLlFh1iu64iYOQ2PbdOSK3NW8JZsmlaOh2q6sdtKowBhfw8QFLmYNzTW4/oK4uATIi6ZA==}
 
@@ -3646,6 +3660,7 @@ packages:
   '@xmldom/xmldom@0.8.13':
     resolution: {integrity: sha512-KRYzxepc14G/CEpEGc3Yn+JKaAeT63smlDr+vjB8jRfgTBBI9wRj/nkQEO+ucV8p8I9bfKLWp37uHgFrbntPvw==}
     engines: {node: '>=10.0.0'}
+    deprecated: this version has critical issues, please update to the latest version
 
   abbrev@3.0.1:
     resolution: {integrity: sha512-AO2ac6pjRB3SJmGJo+v5/aK6Omggp6fsLrs6wN9bd35ulu4cCwaAU9+7ZhXjeqHVkaHThLuzH0nZr0YpCDhygg==}
@@ -8839,6 +8854,11 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.57.1':
     optional: true
+
+  '@shadcn/react@0.3.1(@types/react@19.2.13)(react@19.2.4)':
+    optionalDependencies:
+      '@types/react': 19.2.13
+      react: 19.2.4
 
   '@sinclair/typebox@0.27.10': {}
 

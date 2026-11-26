@@ -2069,6 +2069,12 @@ msgstr "Applying changes…"
 msgid "Approve"
 msgstr "Approve"
 
+msgid "Approve or decline the change first"
+msgstr "Approve or decline the change first"
+
+msgid "Approve this change?"
+msgstr "Approve this change?"
+
 msgid "Archive"
 msgstr "Archive"
 
@@ -3675,6 +3681,9 @@ msgstr "Coverage"
 msgid "Covered"
 msgstr "Covered"
 
+msgid "Create a custom section"
+msgstr "Create a custom section"
+
 msgid "Create a free account first"
 msgstr "Create a free account first"
 
@@ -3692,6 +3701,9 @@ msgstr "Create a reviewer session for this book."
 
 msgid "Create ADT"
 msgstr "Create ADT"
+
+msgid "Create an activity"
+msgstr "Create an activity"
 
 msgid "Create descriptive captions for images to improve accessibility."
 msgstr "Create descriptive captions for images to improve accessibility."
@@ -5808,6 +5820,9 @@ msgstr "How activities are rendered in each section."
 msgid "How ADT Studio looks on this machine."
 msgstr "How ADT Studio looks on this machine."
 
+msgid "How can I help with this book?"
+msgstr "How can I help with this book?"
+
 msgid "How captions work"
 msgstr "How captions work"
 
@@ -6680,6 +6695,12 @@ msgstr "List view"
 
 msgid "list_item"
 msgstr "list_item"
+
+msgid "Listed page images"
+msgstr "Listed page images"
+
+msgid "Listed the pages"
+msgstr "Listed the pages"
 
 msgid "Listed under Features"
 msgstr "Listed under Features"
@@ -9640,6 +9661,12 @@ msgstr "Re-run translation"
 msgid "Read"
 msgstr "Read"
 
+msgid "Read a page"
+msgstr "Read a page"
+
+msgid "Read a section"
+msgstr "Read a section"
+
 msgid "Read aloud"
 msgstr "Read aloud"
 
@@ -10263,6 +10290,9 @@ msgstr "Restored to v{version}"
 msgid "Restricted license"
 msgstr "Restricted license"
 
+msgid "Result"
+msgstr "Result"
+
 msgid "Results"
 msgstr "Results"
 
@@ -10747,6 +10777,9 @@ msgstr "Scroll to more pages"
 
 msgid "Scroll to previous pages"
 msgstr "Scroll to previous pages"
+
+msgid "Scroll to the latest message"
+msgstr "Scroll to the latest message"
 
 msgid "Search beta versions"
 msgstr "Search beta versions"
@@ -12054,6 +12087,9 @@ msgstr "Success"
 msgid "Suggest improved translations when an entry needs attention"
 msgstr "Suggest improved translations when an entry needs attention"
 
+msgid "Suggest improvements for the first page"
+msgstr "Suggest improvements for the first page"
+
 #. placeholder {0}: controlsLabel(item.controls)
 msgid "Suggested for {0}"
 msgstr "Suggested for {0}"
@@ -12354,8 +12390,11 @@ msgstr "The archive contains a folder or file outside the standard ADT layout."
 msgid "The archive must contain a project database and its PDF. Re-export it from ADT Studio."
 msgstr "The archive must contain a project database and its PDF. Re-export it from ADT Studio."
 
-msgid "The assistant wants to change the book:"
-msgstr "The assistant wants to change the book:"
+#~ msgid "The assistant wants to change the book:"
+#~ msgstr "The assistant wants to change the book:"
+
+msgid "The assistant wants to change the book. Nothing is saved until you approve."
+msgstr "The assistant wants to change the book. Nothing is saved until you approve."
 
 msgid "The back cover of the book."
 msgstr "The back cover of the book."
@@ -13690,6 +13729,9 @@ msgstr "Up to date — readers see your latest edits."
 msgid "Update"
 msgstr "Update"
 
+msgid "Update a section"
+msgstr "Update a section"
+
 msgid "Update all"
 msgstr "Update all"
 
@@ -14212,6 +14254,9 @@ msgstr "What ADT Studio does"
 msgid "What is the main role of a plant's roots?"
 msgstr "What is the main role of a plant's roots?"
 
+msgid "What is this book about?"
+msgstr "What is this book about?"
+
 msgid "What readers leave on a shared book lands here"
 msgstr "What readers leave on a shared book lands here"
 
@@ -14292,6 +14337,9 @@ msgstr "Which engine runs the extraction and generation pipeline."
 
 msgid "Which pages"
 msgstr "Which pages"
+
+msgid "Which pages have activities?"
+msgstr "Which pages have activities?"
 
 msgid "Which process releases oxygen?"
 msgstr "Which process releases oxygen?"

@@ -2071,6 +2071,12 @@ msgstr "Duke zbatuar ndryshimet…"
 msgid "Approve"
 msgstr "Mirato"
 
+msgid "Approve or decline the change first"
+msgstr "Fillimisht mirato ose refuzo ndryshimin"
+
+msgid "Approve this change?"
+msgstr "Ta miratosh këtë ndryshim?"
+
 msgid "Archive"
 msgstr "Arkivi"
 
@@ -3677,6 +3683,9 @@ msgstr "Mbulim"
 msgid "Covered"
 msgstr "Mbuluar"
 
+msgid "Create a custom section"
+msgstr "Krijo një seksion të personalizuar"
+
 msgid "Create a free account first"
 msgstr "Krijo një llogari falas së pari"
 
@@ -3694,6 +3703,9 @@ msgstr "Krijoni një sesion rishikuesi për këtë libër."
 
 msgid "Create ADT"
 msgstr "Krijo ADT"
+
+msgid "Create an activity"
+msgstr "Krijo një aktivitet"
 
 msgid "Create descriptive captions for images to improve accessibility."
 msgstr "Krijoni përshkrime përshkruese për imazhet për të përmirësuar aksesueshmërinë."
@@ -5810,6 +5822,9 @@ msgstr "Si renderohen aktivitetet në çdo seksion."
 msgid "How ADT Studio looks on this machine."
 msgstr "Si duket ADT Studio në këtë makinë."
 
+msgid "How can I help with this book?"
+msgstr "Si mund të të ndihmoj me këtë libër?"
+
 msgid "How captions work"
 msgstr "Si funksionojnë titujt"
 
@@ -6682,6 +6697,12 @@ msgstr "Pamje liste"
 
 msgid "list_item"
 msgstr "list_item"
+
+msgid "Listed page images"
+msgstr "U listuan imazhet e faqes"
+
+msgid "Listed the pages"
+msgstr "U listuan faqet"
 
 msgid "Listed under Features"
 msgstr "Të listuara te Veçoritë"
@@ -9642,6 +9663,12 @@ msgstr "Ri-ekzekuto përkthimin"
 msgid "Read"
 msgstr "Lexo"
 
+msgid "Read a page"
+msgstr "Lexoi një faqe"
+
+msgid "Read a section"
+msgstr "Lexoi një seksion"
+
 msgid "Read aloud"
 msgstr "Lexo me zë të lartë"
 
@@ -10265,6 +10292,9 @@ msgstr "Rikthyer te v{version}"
 msgid "Restricted license"
 msgstr "Licencë e kufizuar"
 
+msgid "Result"
+msgstr "Rezultati"
+
 msgid "Results"
 msgstr "Rezultatet"
 
@@ -10749,6 +10779,9 @@ msgstr "Lëviz për më shumë faqe"
 
 msgid "Scroll to previous pages"
 msgstr "Lëviz te faqet e mëparshme"
+
+msgid "Scroll to the latest message"
+msgstr "Shko te mesazhi i fundit"
 
 msgid "Search beta versions"
 msgstr "Kërko versionet beta"
@@ -12056,6 +12089,9 @@ msgstr "Sukses"
 msgid "Suggest improved translations when an entry needs attention"
 msgstr "Sugjero përkthime të përmirësuara kur një hyrje kërkon vëmendje"
 
+msgid "Suggest improvements for the first page"
+msgstr "Sugjero përmirësime për faqen e parë"
+
 #. placeholder {0}: controlsLabel(item.controls)
 msgid "Suggested for {0}"
 msgstr "Të sugjeruara për {0}"
@@ -12356,8 +12392,11 @@ msgstr "Arkivi përmban një dosje ose skedar jashtë strukturës standarde ADT.
 msgid "The archive must contain a project database and its PDF. Re-export it from ADT Studio."
 msgstr "Arkivi duhet të përmbajë një bazë të dhënash projekti dhe PDF-në e tij. Eksportojeni përsëri nga ADT Studio."
 
-msgid "The assistant wants to change the book:"
-msgstr "Asistenti dëshiron të ndryshojë librin:"
+#~ msgid "The assistant wants to change the book:"
+#~ msgstr "Asistenti dëshiron të ndryshojë librin:"
+
+msgid "The assistant wants to change the book. Nothing is saved until you approve."
+msgstr "Asistenti dëshiron të ndryshojë librin. Asgjë nuk ruhet derisa ta miratosh."
 
 msgid "The back cover of the book."
 msgstr "Kapaku i pasëm i librit."
@@ -13692,6 +13731,9 @@ msgstr "I përditësuar — lexuesit shohin ndryshimet tuaja më të fundit."
 msgid "Update"
 msgstr "Përditëso"
 
+msgid "Update a section"
+msgstr "Përditëso një seksion"
+
 msgid "Update all"
 msgstr "Përditëso të gjitha"
 
@@ -14214,6 +14256,9 @@ msgstr "Çfarë bën ADT Studio"
 msgid "What is the main role of a plant's roots?"
 msgstr "Cili është roli kryesor i rrënjëve të një bime?"
 
+msgid "What is this book about?"
+msgstr "Për çfarë bën fjalë ky libër?"
+
 msgid "What readers leave on a shared book lands here"
 msgstr "Çfarë lënë lexuesit në një libër të ndarë vjen këtu"
 
@@ -14294,6 +14339,9 @@ msgstr "Cili motor drejton linjën e nxjerrjes dhe gjenerimit."
 
 msgid "Which pages"
 msgstr "Cilat faqe"
+
+msgid "Which pages have activities?"
+msgstr "Cilat faqe kanë aktivitete?"
 
 msgid "Which process releases oxygen?"
 msgstr "Cili proces çliron oksigjen?"

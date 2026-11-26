@@ -36,6 +36,7 @@
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@rolldown/plugin-babel": "^0.2.3",
+    "@shadcn/react": "0.3.1",
     "@tanstack/react-form": "^1.28.5",
     "@tanstack/react-query": "^5.0.0",
     "@tanstack/react-router": "^1.0.0",
