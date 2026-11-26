@@ -359,7 +359,6 @@ interface ElementAudioLocation {
 function buildElementLocationIndex(
   storage: Storage,
   pages: PageData[],
-  options?: { includePruned?: boolean },
 ): Map<string, ElementAudioLocation> {
   const index = new Map<string, ElementAudioLocation>()
   for (const page of pages) {
@@ -373,8 +372,7 @@ function buildElementLocationIndex(
     const sectioning = getRenderSectioning(storage, page.pageId)
     for (const renderedSection of rendering.sections) {
       const section = resolveRenderedSection(renderedSection, sectioning?.sections ?? [], rendering.sections)
-      if (!section) continue
-      if (section.isPruned && !options?.includePruned) continue
+      if (!section || section.isPruned) continue
       const sectionId = renderedSectionId(renderedSection)
       if (!sectionId) continue
       const doc = parseDocument(renderedSection.html)

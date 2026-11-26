@@ -3,12 +3,25 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import sqlite from "node-sqlite3-wasm"
+import { IDENTITY_HISTORY_NODES } from "@adt/types"
 import { createBookStorage, resolveBookPaths } from "../book-storage.js"
 import { HISTORY_EVIDENCE_SQL, nodesSql } from "../history-schema.js"
 
 const roots: string[] = []
 afterEach(() => {
   for (const root of roots.splice(0)) fs.rmSync(root, { recursive: true, force: true })
+})
+
+/** The identity list persisted by evidence version 1 on develop. Pin it: a
+ *  change needs a versioned migration and a retained-v1 fixture. */
+const DEVELOP_IDENTITY_HISTORY_NODES = [
+  "page-sectioning", "fixed-layout-sectioning", "web-rendering", "glossary",
+  "quiz-generation", "text-catalog", "text-catalog-translation", "core-tts-catalog",
+  "easy-read", "tts", "tts-timestamps", "word-timestamps", "image-captioning",
+] as const
+
+it("pins the identity-node list that defines persisted evidence version 1", () => {
+  expect(IDENTITY_HISTORY_NODES).toEqual([...DEVELOP_IDENTITY_HISTORY_NODES])
 })
 
 /**
@@ -28,10 +41,10 @@ it("opens a book whose evidence predates the current identity-node list", () => 
   }
 
   const { dbPath } = resolveBookPaths("book", root)
-  // Simulate the previous build by rewriting only the trigger list. When the
-  // current list differs, initHistoryEvidence must not silently accept it.
-  const legacyNodesSql = nodesSql.replace(/,'element-audio'$/, "")
-  const legacySql = HISTORY_EVIDENCE_SQL.replaceAll(nodesSql, legacyNodesSql)
+  // Use the develop list, not the current one: the test must still simulate an
+  // older book if the list changes again.
+  const developNodesSql = DEVELOP_IDENTITY_HISTORY_NODES.map((node) => `'${node}'`).join(",")
+  const developSql = HISTORY_EVIDENCE_SQL.replaceAll(nodesSql, developNodesSql)
   const raw = new sqlite.Database(dbPath)
   try {
     for (const row of raw.all(
@@ -39,7 +52,7 @@ it("opens a book whose evidence predates the current identity-node list", () => 
     ) as { name: string }[]) {
       raw.exec(`DROP TRIGGER ${row.name}`)
     }
-    raw.exec(legacySql)
+    raw.exec(developSql)
     raw.run(
       "UPDATE schema_version SET history_evidence_version=1, history_evidence_gap=0, history_legacy_capture=1 WHERE id=1",
     )
