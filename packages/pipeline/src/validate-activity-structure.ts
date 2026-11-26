@@ -802,15 +802,22 @@ export const ACTIVITY_RULES: Record<string, ActivityRule[]> = {
   activity_ordering: ORDERING_RULES,
 }
 
+/** One failed rule: its id (the rule's `name`) and the message it returned. */
+export interface FailedActivityCheck {
+  check: string
+  message: string
+}
+
 /**
  * Run every registered rule for the given section type against `section`.
- * Returns a flat list of error strings (empty when no rule fired). Unknown
- * section types are a no-op — non-activity content silently passes.
+ * Returns one entry per failure, with the rule's id, so the import review can
+ * name each check (#1155). Unknown section types are a no-op — non-activity
+ * content silently passes.
  */
-export function validateActivityStructure(
+export function validateActivityStructureChecks(
   section: Element,
   sectionType: string,
-): string[] {
+): FailedActivityCheck[] {
   // Custom activities share one rule set, keyed by the `activity_custom` prefix
   // (the suffix — _jigsaw, _crossword, … — is free-form).
   const rules = sectionType.startsWith("activity_custom")
@@ -818,5 +825,14 @@ export function validateActivityStructure(
     : ACTIVITY_RULES[sectionType]
   if (!rules) return []
   const ctx: ActivityRuleContext = { section, sectionType }
-  return rules.flatMap((rule) => rule.check(ctx))
+  return rules.flatMap((rule) => rule.check(ctx).map((message) => ({ check: rule.name, message })))
+}
+
+/** The messages of {@link validateActivityStructureChecks}, as page generation
+ * feeds them back to the model. */
+export function validateActivityStructure(
+  section: Element,
+  sectionType: string,
+): string[] {
+  return validateActivityStructureChecks(section, sectionType).map((failure) => failure.message)
 }

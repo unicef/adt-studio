@@ -91,6 +91,10 @@ msgstr "(template)"
 msgid "(this section)"
 msgstr "(this section)"
 
+#. placeholder {0}: group.count
+msgid "{0, plural, one {(# time)} other {(# times)}}"
+msgstr "{0, plural, one {(# time)} other {(# times)}}"
+
 #. placeholder {0}: books.length
 msgid "{0, plural, one {# book in your library} other {# books in your library}}"
 msgstr "{0, plural, one {# book in your library} other {# books in your library}}"
@@ -495,6 +499,14 @@ msgstr "{availableCount} more you can generate after import:"
 #. placeholder {0}: items.length
 msgid "{classifiedCount} of {0} classified"
 msgstr "{classifiedCount} of {0} classified"
+
+#. placeholder {0}: items.length
+msgid "{classifiedCount} of {0} confirmed"
+msgstr "{classifiedCount} of {0} confirmed"
+
+#. placeholder {0}: items.length
+msgid "{classifiedCount} of {0} reviewed"
+msgstr "{classifiedCount} of {0} reviewed"
 
 msgid "{clock} elapsed · usually 1 to 5 minutes"
 msgstr "{clock} elapsed · usually 1 to 5 minutes"
@@ -995,11 +1007,29 @@ msgstr "A → Z"
 msgid "A balanced glossary for most books."
 msgstr "A balanced glossary for most books."
 
+msgid "A blank is written in the wrong format"
+msgstr "A blank is written in the wrong format"
+
 msgid "A book is still being shared, or sharing is still being set up. Quitting stops it partway — you can start it again next time."
 msgstr "A book is still being shared, or sharing is still being set up. Quitting stops it partway — you can start it again next time."
 
 msgid "A book with this name already exists."
 msgstr "A book with this name already exists."
+
+msgid "A card has no accessible name or can’t be used with a keyboard"
+msgstr "A card has no accessible name or can’t be used with a keyboard"
+
+msgid "A checkbox has no group name"
+msgstr "A checkbox has no group name"
+
+msgid "A checkbox isn’t inside its label"
+msgstr "A checkbox isn’t inside its label"
+
+msgid "A choice button has no group name"
+msgstr "A choice button has no group name"
+
+msgid "A choice button isn’t inside its label"
+msgstr "A choice button isn’t inside its label"
 
 msgid "A close, long-term relationship between two different species, often benefiting both."
 msgstr "A close, long-term relationship between two different species, often benefiting both."
@@ -1013,8 +1043,14 @@ msgstr "A code is set, but not on this computer. Make a new one to hand it out."
 msgid "A comment you pick opens here, next to its page."
 msgstr "A comment you pick opens here, next to its page."
 
+msgid "A drop zone has no accessible name"
+msgstr "A drop zone has no accessible name"
+
 msgid "A few spreads in a single book"
 msgstr "A few spreads in a single book"
+
+msgid "A field has no accessible name"
+msgstr "A field has no accessible name"
 
 msgid "A figure of speech that describes one thing as if it were another to draw a comparison."
 msgstr "A figure of speech that describes one thing as if it were another to draw a comparison."
@@ -1106,6 +1142,9 @@ msgstr "A section with text in a highlighted box."
 msgid "A select-all-that-apply activity where the learner can choose more than one option per question."
 msgstr "A select-all-that-apply activity where the learner can choose more than one option per question."
 
+msgid "A sentence isn’t fully split into selectable words"
+msgstr "A sentence isn’t fully split into selectable words"
+
 msgid "A separator page between sections."
 msgstr "A separator page between sections."
 
@@ -1148,8 +1187,17 @@ msgstr "A system notification when the window is in the background."
 msgid "A table-filling activity."
 msgstr "A table-filling activity."
 
+msgid "A text box has no accessible name"
+msgstr "A text box has no accessible name"
+
 msgid "A true or false activity."
 msgstr "A true or false activity."
+
+msgid "A true-or-false answer has no mark to show the result"
+msgstr "A true-or-false answer has no mark to show the result"
+
+msgid "A true-or-false question doesn’t have exactly two answers"
+msgstr "A true-or-false question doesn’t have exactly two answers"
 
 msgid "A unique identifier used as the book folder name."
 msgstr "A unique identifier used as the book folder name."
@@ -1944,6 +1992,12 @@ msgstr "An activity where the learner underlines one or more words, phrases, or 
 msgid "An AI image is being generated. Cancel it and navigate?"
 msgstr "An AI image is being generated. Cancel it and navigate?"
 
+msgid "An answer field has no item id"
+msgstr "An answer field has no item id"
+
+msgid "An answer option’s label is missing the class the reader needs"
+msgstr "An answer option’s label is missing the class the reader needs"
+
 msgid "An API key set in the server environment takes precedence over this sign-in. Remove it there to run on the signed-in account."
 msgstr "An API key set in the server environment takes precedence over this sign-in. Remove it there to run on the signed-in account."
 
@@ -1958,6 +2012,15 @@ msgstr "An input needs review."
 
 msgid "An open-ended answer activity."
 msgstr "An open-ended answer activity."
+
+msgid "An underline option has no item id"
+msgstr "An underline option has no item id"
+
+msgid "An underline option has no text"
+msgstr "An underline option has no text"
+
+msgid "An underline option isn’t in a question group"
+msgstr "An underline option isn’t in a question group"
 
 msgid "An update is going out. These can be changed once it's done."
 msgstr "An update is going out. These can be changed once it's done."
@@ -3292,6 +3355,9 @@ msgstr "Configure voices and accents"
 
 msgid "Confirm activity pages"
 msgstr "Confirm activity pages"
+
+msgid "Confirm every page"
+msgstr "Confirm every page"
 
 msgid "Confirm merge"
 msgstr "Confirm merge"
@@ -5001,6 +5067,9 @@ msgstr "failed"
 
 msgid "Failed"
 msgstr "Failed"
+
+msgid "Failed checks"
+msgstr "Failed checks"
 
 msgid "Failed to create book."
 msgstr "Failed to create book."
@@ -10303,6 +10372,9 @@ msgstr "Restricted license"
 msgid "Results"
 msgstr "Results"
 
+msgid "Results aren’t announced to screen readers"
+msgstr "Results aren’t announced to screen readers"
+
 msgid "Resume sharing"
 msgstr "Resume sharing"
 
@@ -10392,6 +10464,9 @@ msgstr "Review complete: all {0} reviewed translations are acceptable."
 
 msgid "Review each heading’s level, page, confidence, style cluster, and storyboard assignment."
 msgstr "Review each heading’s level, page, confidence, style cluster, and storyboard assignment."
+
+msgid "Review every page"
+msgstr "Review every page"
 
 msgid "Review items"
 msgstr "Review items"
@@ -12379,6 +12454,12 @@ msgstr "That reply didn't send. Try again."
 msgid "The activity changed while feedback was being generated. Review your draft and try again."
 msgstr "The activity changed while feedback was being generated. Review your draft and try again."
 
+msgid "The activity has no accessible name"
+msgstr "The activity has no accessible name"
+
+msgid "The activity has no words or phrases to underline"
+msgstr "The activity has no words or phrases to underline"
+
 msgid "The activity structure needs confirmation."
 msgstr "The activity structure needs confirmation."
 
@@ -12617,6 +12698,9 @@ msgstr "The message carries the title, the link and the code."
 
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "The model detects bounding boxes so each visual element can be stored and laid out separately."
+
+msgid "The ordering list or its items aren’t marked up as the reader expects"
+msgstr "The ordering list or its items aren’t marked up as the reader expects"
 
 msgid "The original history could not be verified. Existing records and assets have been retained. Recovery requires trustworthy evidence for these exact versions."
 msgstr "The original history could not be verified. Existing records and assets have been retained. Recovery requires trustworthy evidence for these exact versions."
@@ -13555,6 +13639,9 @@ msgstr "Two Columns Story"
 
 msgid "Two elements share a data-id but their content differs."
 msgstr "Two elements share a data-id but their content differs."
+
+msgid "Two items share the same activity id"
+msgstr "Two items share the same activity id"
 
 msgid "Two ways to start — from a source PDF, or from a project that already exists."
 msgstr "Two ways to start — from a source PDF, or from a project that already exists."

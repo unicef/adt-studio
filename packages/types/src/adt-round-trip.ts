@@ -315,6 +315,9 @@ export const AdtImportedActivityReviewItem = z.object({
   reasons: z.array(AdtActivityReviewReason),
   signals: z.array(z.string()),
   validationErrors: z.array(z.string()),
+  /** The rule id behind each entry of `validationErrors`, in the same order.
+   * Optional: previews from before #1155 don't carry it. */
+  failedChecks: z.array(z.string()).optional(),
   textPreview: z.string(),
   previewHtml: z.string(),
   /** Controls a learner can use on the page, by kind. Absent from older previews. */

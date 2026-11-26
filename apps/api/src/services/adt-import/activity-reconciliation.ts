@@ -127,6 +127,7 @@ export function analyzeImportedActivities(
       reasons,
       signals: inspection.signals,
       validationErrors: inspection.validationErrors,
+      failedChecks: inspection.failedChecks,
       textPreview: inspection.textPreview,
       controls: inspection.controls,
       heading: inspection.heading,

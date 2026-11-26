@@ -1,7 +1,7 @@
 import { DomUtils, parseDocument } from "htmlparser2"
 
 import { supportsEditableActivity } from "../extract-editable-activity.js"
-import { validateActivityStructure } from "../validate-activity-structure.js"
+import { validateActivityStructureChecks } from "../validate-activity-structure.js"
 
 export const ACTIVITY_CLASSIFICATION_GUIDE = [
   { type: "activity_quiz", description: "A generated comprehension quiz page." },
@@ -53,6 +53,8 @@ export interface ImportedActivityInspection {
   supportsStudioEditing: boolean
   signals: ImportedActivitySignal[]
   validationErrors: string[]
+  /** The rule id behind each entry of `validationErrors`, in the same order. */
+  failedChecks: string[]
   textPreview: string
   /** Which controls the section holds, so the review can say "a text field"
    * instead of "interactive controls", and suggest types that fit. */
@@ -141,6 +143,9 @@ export function inspectImportedActivity(
     }
   }
 
+  const failures = section && isActivity && sectionType
+    ? validateActivityStructureChecks(section, sectionType)
+    : []
   return {
     sectionId: expectedSectionId,
     sectionType,
@@ -153,9 +158,9 @@ export function inspectImportedActivity(
       sectionType && (sectionType === "activity_quiz" || supportsEditableActivity(sectionType)),
     ),
     signals: [...signals],
-    validationErrors: section && isActivity && sectionType
-      ? validateActivityStructure(section, sectionType)
-      : [],
+    validationErrors: failures.map((failure) => failure.message),
+    // The rule id of each message, in the same order (#1155).
+    failedChecks: failures.map((failure) => failure.check),
     textPreview: section
       ? textWithoutExecutableContent(section).replace(/\s+/g, " ").trim().slice(0, 240)
       : "",

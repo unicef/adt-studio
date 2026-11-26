@@ -91,6 +91,10 @@ msgstr "(template)"
 msgid "(this section)"
 msgstr "(esta seção)"
 
+#. placeholder {0}: group.count
+msgid "{0, plural, one {(# time)} other {(# times)}}"
+msgstr "{0, plural, one {(# vez)} other {(# vezes)}}"
+
 #. placeholder {0}: books.length
 msgid "{0, plural, one {# book in your library} other {# books in your library}}"
 msgstr "{0, plural, one {# livro na sua biblioteca} other {# livros na sua biblioteca}}"
@@ -495,6 +499,14 @@ msgstr "Mais {availableCount} que você pode gerar depois de importar:"
 #. placeholder {0}: items.length
 msgid "{classifiedCount} of {0} classified"
 msgstr "{classifiedCount} de {0} classificadas"
+
+#. placeholder {0}: items.length
+msgid "{classifiedCount} of {0} confirmed"
+msgstr "{classifiedCount} de {0} confirmadas"
+
+#. placeholder {0}: items.length
+msgid "{classifiedCount} of {0} reviewed"
+msgstr "{classifiedCount} de {0} revisadas"
 
 msgid "{clock} elapsed · usually 1 to 5 minutes"
 msgstr "{clock} decorrido · geralmente 1 a 5 minutos"
@@ -995,11 +1007,29 @@ msgstr "A → Z"
 msgid "A balanced glossary for most books."
 msgstr "Um glossário equilibrado para a maioria dos livros."
 
+msgid "A blank is written in the wrong format"
+msgstr "Uma lacuna está escrita no formato errado"
+
 msgid "A book is still being shared, or sharing is still being set up. Quitting stops it partway — you can start it again next time."
 msgstr "Um livro ainda está sendo compartilhado, ou o compartilhamento ainda está sendo configurado. Sair agora interrompe o processo no meio — você pode começar de novo na próxima vez."
 
 msgid "A book with this name already exists."
 msgstr "Um livro com este nome já existe."
+
+msgid "A card has no accessible name or can’t be used with a keyboard"
+msgstr "Um cartão não tem nome acessível ou não pode ser usado com o teclado"
+
+msgid "A checkbox has no group name"
+msgstr "Uma caixa de seleção não tem nome de grupo"
+
+msgid "A checkbox isn’t inside its label"
+msgstr "Uma caixa de seleção não está dentro do seu rótulo"
+
+msgid "A choice button has no group name"
+msgstr "Um botão de opção não tem nome de grupo"
+
+msgid "A choice button isn’t inside its label"
+msgstr "Um botão de opção não está dentro do seu rótulo"
 
 msgid "A close, long-term relationship between two different species, often benefiting both."
 msgstr "Uma relação próxima e de longo prazo entre duas espécies diferentes, muitas vezes beneficiando ambas."
@@ -1013,8 +1043,14 @@ msgstr "Há um código definido, mas não neste computador. Crie um novo para po
 msgid "A comment you pick opens here, next to its page."
 msgstr "O comentário que você escolher abre aqui, ao lado da página dele."
 
+msgid "A drop zone has no accessible name"
+msgstr "Uma área de soltar não tem nome acessível"
+
 msgid "A few spreads in a single book"
 msgstr "Algumas páginas duplas em um único livro"
+
+msgid "A field has no accessible name"
+msgstr "Um campo não tem nome acessível"
 
 msgid "A figure of speech that describes one thing as if it were another to draw a comparison."
 msgstr "Uma figura de linguagem que descreve uma coisa como se fosse outra para fazer uma comparação."
@@ -1106,6 +1142,9 @@ msgstr "Uma seção com texto em uma caixa destacada."
 msgid "A select-all-that-apply activity where the learner can choose more than one option per question."
 msgstr "Uma atividade do tipo \"marcar todas as que se aplicam\", em que o estudante pode escolher mais de uma opção por pergunta."
 
+msgid "A sentence isn’t fully split into selectable words"
+msgstr "Uma frase não está totalmente dividida em palavras selecionáveis"
+
 msgid "A separator page between sections."
 msgstr "Uma página separadora entre seções."
 
@@ -1148,8 +1187,17 @@ msgstr "Uma notificação do sistema quando a janela está em segundo plano."
 msgid "A table-filling activity."
 msgstr "Uma atividade de preenchimento de tabela."
 
+msgid "A text box has no accessible name"
+msgstr "Uma caixa de texto não tem nome acessível"
+
 msgid "A true or false activity."
 msgstr "Uma atividade de verdadeiro ou falso."
+
+msgid "A true-or-false answer has no mark to show the result"
+msgstr "Uma resposta de verdadeiro ou falso não tem a marca que mostra o resultado"
+
+msgid "A true-or-false question doesn’t have exactly two answers"
+msgstr "Uma pergunta de verdadeiro ou falso não tem exatamente duas respostas"
 
 msgid "A unique identifier used as the book folder name."
 msgstr "Um identificador único usado como nome da pasta do livro."
@@ -1944,6 +1992,12 @@ msgstr "Uma atividade em que o aluno sublinha uma ou mais palavras, expressões 
 msgid "An AI image is being generated. Cancel it and navigate?"
 msgstr "Uma imagem com IA está sendo gerada. Cancelar e navegar?"
 
+msgid "An answer field has no item id"
+msgstr "Um campo de resposta não tem id de item"
+
+msgid "An answer option’s label is missing the class the reader needs"
+msgstr "Falta no rótulo de uma opção de resposta a classe de que o leitor precisa"
+
 msgid "An API key set in the server environment takes precedence over this sign-in. Remove it there to run on the signed-in account."
 msgstr "Uma chave de API definida no ambiente do servidor tem prioridade sobre este login. Remova-a de lá para usar a conta conectada."
 
@@ -1958,6 +2012,15 @@ msgstr "Uma entrada precisa de revisão."
 
 msgid "An open-ended answer activity."
 msgstr "Uma atividade de resposta aberta."
+
+msgid "An underline option has no item id"
+msgstr "Uma opção de sublinhar não tem id de item"
+
+msgid "An underline option has no text"
+msgstr "Uma opção de sublinhar não tem texto"
+
+msgid "An underline option isn’t in a question group"
+msgstr "Uma opção de sublinhar não está em um grupo de pergunta"
 
 msgid "An update is going out. These can be changed once it's done."
 msgstr "Uma atualização está sendo enviada. Estas opções podem ser alteradas quando ela terminar."
@@ -3292,6 +3355,9 @@ msgstr "Configurar vozes e sotaques"
 
 msgid "Confirm activity pages"
 msgstr "Confirmar páginas de atividade"
+
+msgid "Confirm every page"
+msgstr "Confirmar cada página"
 
 msgid "Confirm merge"
 msgstr "Confirmar mesclagem"
@@ -5001,6 +5067,9 @@ msgstr "falhou"
 
 msgid "Failed"
 msgstr "Falhou"
+
+msgid "Failed checks"
+msgstr "Verificações que falharam"
 
 msgid "Failed to create book."
 msgstr "Falha ao criar livro."
@@ -10303,6 +10372,9 @@ msgstr "Licença restrita"
 msgid "Results"
 msgstr "Resultados"
 
+msgid "Results aren’t announced to screen readers"
+msgstr "Os resultados não são anunciados aos leitores de tela"
+
 msgid "Resume sharing"
 msgstr "Retomar compartilhamento"
 
@@ -10392,6 +10464,9 @@ msgstr "Revisão concluída: todas as {0} traduções revisadas são aceitáveis
 
 msgid "Review each heading’s level, page, confidence, style cluster, and storyboard assignment."
 msgstr "Revise o nível, a página, a confiança, o grupo de estilos e a atribuição no storyboard de cada título."
+
+msgid "Review every page"
+msgstr "Revisar cada página"
 
 msgid "Review items"
 msgstr "Revisar itens"
@@ -12379,6 +12454,12 @@ msgstr "A resposta não foi enviada. Tente de novo."
 msgid "The activity changed while feedback was being generated. Review your draft and try again."
 msgstr "A atividade mudou durante a geração do feedback. Revise seu rascunho e tente novamente."
 
+msgid "The activity has no accessible name"
+msgstr "A atividade não tem nome acessível"
+
+msgid "The activity has no words or phrases to underline"
+msgstr "A atividade não tem palavras nem frases para sublinhar"
+
 msgid "The activity structure needs confirmation."
 msgstr "A estrutura da atividade precisa de confirmação."
 
@@ -12617,6 +12698,9 @@ msgstr "A mensagem leva o título, o link e o código."
 
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "O modelo detecta caixas delimitadoras para que cada elemento visual possa ser armazenado e disposto separadamente."
+
+msgid "The ordering list or its items aren’t marked up as the reader expects"
+msgstr "A lista de ordenar ou seus itens não têm a marcação que o leitor espera"
 
 msgid "The original history could not be verified. Existing records and assets have been retained. Recovery requires trustworthy evidence for these exact versions."
 msgstr "Não foi possível verificar o histórico original. Os registros e recursos existentes foram mantidos. A recuperação exige evidências confiáveis para estas versões exatas."
@@ -13555,6 +13639,9 @@ msgstr "História em duas colunas"
 
 msgid "Two elements share a data-id but their content differs."
 msgstr "Dois elementos compartilham um data-id, mas o conteúdo é diferente."
+
+msgid "Two items share the same activity id"
+msgstr "Dois itens compartilham o mesmo id de atividade"
 
 msgid "Two ways to start — from a source PDF, or from a project that already exists."
 msgstr "Duas maneiras de começar — a partir de um PDF de origem ou de um projeto que já existe."
