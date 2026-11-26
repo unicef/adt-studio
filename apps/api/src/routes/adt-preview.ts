@@ -878,8 +878,11 @@ export function createAdtPreviewRoutes(
           const elementId = elementAudioTextIds.has(entry.id)
             ? parseElementAudioTextId(entry.id)
             : null
-          if (elementId && published.has(entry.id)) authored.set(elementId, entry.speechText)
-          else map[entry.id] = entry.speechText
+          if (elementId) {
+            if (published.has(entry.id)) authored.set(elementId, entry.speechText)
+          } else {
+            map[entry.id] = entry.speechText
+          }
         }
       }
       // Precedence is a post-pass, not loop order (SPEC-0014 §2). The authored

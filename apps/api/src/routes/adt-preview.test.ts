@@ -604,12 +604,13 @@ describe("ADT preview routes", () => {
       pg001_im001: "pg001_im001.mp3",
       pg001_im001_easy_read: "pg001_im001_easy_read.mp3",
     })
-    expect(
-      await (await app.request(`/books/${label}/adt-preview/content/i18n/en/speech_texts.json`)).json(),
-    ).toMatchObject({
+    const mutedSpeech = await (await app.request(`/books/${label}/adt-preview/content/i18n/en/speech_texts.json`)).json() as Record<string, string>
+    expect(mutedSpeech).toMatchObject({
       pg001_im001: "pg001_im001",
       pg001_im001_easy_read: "pg001_im001_easy_read",
     })
+    // The bundle omits the synthetic key when its audio is muted; mirror it.
+    expect(mutedSpeech.pg001_im001_audio).toBeUndefined()
   })
 
   // The preview manifest must resolve narrator names exactly the way the
