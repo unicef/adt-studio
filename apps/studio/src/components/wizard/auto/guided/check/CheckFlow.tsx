@@ -135,7 +135,7 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
             {last ? (
               <button type="button" onClick={onManual} className="lc-link inline-flex min-h-11 items-center gap-1.5 px-3 text-[13.5px] font-medium">
                 <Wrench className="size-4" />
-                <Trans>Set it up myself</Trans>
+                <Trans>Choose every setting myself</Trans>
               </button>
             ) : (
               !check.returning && (

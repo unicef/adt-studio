@@ -109,15 +109,15 @@ function Says({ rec, derived, screen, file, pageCount, firstBook, trying, onTryi
         <div className="flex flex-col gap-3">
           <p>
             <Trans>
-              <strong className="font-semibold">Is this your first book?</strong> Are you just trying ADT Studio out, or do you want this book converted?
+              <strong className="font-semibold">Is this your first book?</strong> If you&apos;re just trying ADT Studio, I&apos;ll suggest a few pages so it&apos;s quick. If you want the whole book, we keep all its pages.
             </Trans>
           </p>
           <div className="flex flex-wrap gap-2">
             <Chip onClick={() => onTrying(true)}>
-              <Trans>Just trying it out</Trans>
+              <Trans>Just trying: a few pages</Trans>
             </Chip>
             <Chip onClick={() => onTrying(false)}>
-              <Trans>I want this book</Trans>
+              <Trans>I want the whole book</Trans>
             </Chip>
           </div>
         </div>

@@ -36,7 +36,7 @@ const STEPS: { image: string; icon: ReactNode; title: ReactNode; text: ReactNode
     text: <Trans>A few quick choices, one at a time: the kind of book, its language, how the pages look, which pages to convert.</Trans>,
     says: (
       <Trans>
-        <strong className="font-semibold">You stay in charge.</strong> I read your book in two different ways: when both agree I&apos;m sure and you just confirm; when they don&apos;t, I ask you instead of guessing.
+        <strong className="font-semibold">You stay in charge.</strong> I read your book twice, looking at it a different way each time: when both readings agree I&apos;m sure and you just confirm; when they don&apos;t, I ask you instead of guessing.
       </Trans>
     ),
   },
@@ -232,7 +232,7 @@ export function UploadPanel({ flow, rejected, onContinue, tour, onTour, onTourDo
       pose: "hello",
       says: (
         <Trans>
-          <strong className="font-semibold">Ready when you are.</strong> I check the PDF opens before we start, so a damaged or locked file is caught right away.
+          <strong className="font-semibold">Ready when you are.</strong> I check the PDF opens before we start, so a damaged or password-protected file is caught right away.
         </Trans>
       ),
     },

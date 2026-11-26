@@ -15,8 +15,8 @@ export type OptionGuide = {
   making?: { ai: boolean; says: MessageDescriptor }
 }
 
-const AI_MAKING = { ai: true, says: msg`The AI builds every page, so setting up takes longer and uses AI credits.` }
-const TEMPLATE_MAKING = { ai: false, says: msg`Pages are laid out from a template, with no AI work on the layout, so it is quicker and costs no AI credits for the layout.` }
+const AI_MAKING = { ai: true, says: msg`The AI builds every page, so setting up takes longer and uses your AI account, which may cost money.` }
+const TEMPLATE_MAKING = { ai: false, says: msg`The pages go into a ready-made layout without the AI, so it is quick and costs nothing extra.` }
 
 /** Per fact (genre, exercises, composition, diagrams), per answer. */
 export const FACT_GUIDE: Record<string, Record<string, OptionGuide>> = {
@@ -117,14 +117,14 @@ export const FACT_GUIDE: Record<string, Record<string, OptionGuide>> = {
 /** Per page layout (render strategy). */
 export const LAYOUT_GUIDE: Record<string, OptionGuide> = {
   llm: {
-    fits: [msg`Pages mix headings, text, pictures and exercises.`, msg`Readers use phones as well as computers.`, msg`Reading well on any screen matters more than the printed look.`],
+    fits: [msg`Most of each page is text, or pages mix headings, text, pictures and exercises.`, msg`Readers use phones as well as computers.`, msg`Reading well on any screen matters more than the printed look.`],
     better: [{ when: msg`The page must look exactly as printed.`, go: "fixed_layout" }],
-    examples: msg`School books, workbooks, guides with many parts.`,
+    examples: msg`Chapter books and novels, school books, workbooks, guides.`,
     making: AI_MAKING,
   },
   "llm-overlay": {
-    fits: [msg`The words sit on the pictures, and the PDF is a scan with no real text.`, msg`You want the printed look with real, readable words.`],
-    better: [{ when: msg`The PDF already has real text.`, go: "fixed_layout" }],
+    fits: [msg`The words sit on the pictures, and you can't select or copy the words in your PDF (it is a scan).`, msg`You want the printed look, with words that work like normal text.`],
+    better: [{ when: msg`You can select and copy the words in your PDF.`, go: "fixed_layout" }],
     examples: msg`Scanned picture books.`,
     making: AI_MAKING,
   },
@@ -144,7 +144,7 @@ export const LAYOUT_GUIDE: Record<string, OptionGuide> = {
     fits: [msg`The words are part of the picture.`, msg`The design of the printed page matters.`],
     better: [{ when: msg`Readers will mostly use phones, where a whole page gets small.`, go: "llm" }],
     examples: msg`Picture books, posters, designed pages.`,
-    making: { ai: false, says: msg`Each page is kept as it is printed, with no AI work on the layout, so it is quick and costs no AI credits for the layout.` },
+    making: { ai: false, says: msg`Each page is kept as it is printed, without the AI, so it is quick and costs nothing extra.` },
   },
 }
 
@@ -170,12 +170,12 @@ export const LAYOUT_AT_A_GLANCE: Record<string, { line: MessageDescriptor; best:
   },
   llm: {
     line: msg`The AI rebuilds each page to fit the screen.`,
-    best: msg`School books and pages with many parts: headings, pictures, exercises.`,
+    best: msg`Books that are mostly words, and school books with many parts.`,
     phone: msg`Everything rearranges into one easy column.`,
   },
   "llm-overlay": {
-    line: msg`The printed page stays, with real words laid on top.`,
-    best: msg`Scanned picture books, where the PDF has no real text.`,
+    line: msg`The printed page stays, and the AI types its words again on top.`,
+    best: msg`Scanned picture books: PDFs where you can't select or copy the words.`,
     phone: msg`The whole page shrinks to fit, like the printed page.`,
   },
 }

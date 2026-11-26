@@ -198,9 +198,7 @@ function CardBody({ o, options, rec, page, file, wizard, show }: BodyProps) {
 
             {o.why && (
               <div className="rounded-[12px] bg-brand-50 px-4 py-2.5 text-[13.5px] text-brand-900 dark:bg-brand-500/10 dark:text-brand-100">
-                <span className="font-semibold">
-                  <Trans>Why I suggested it:</Trans>
-                </span>{" "}
+                <span className="font-semibold">{o.guess ? <Trans>Why I suggested it:</Trans> : <Trans>Why it could be this one:</Trans>}</span>{" "}
                 {o.why}
               </div>
             )}

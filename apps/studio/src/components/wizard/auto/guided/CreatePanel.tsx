@@ -13,7 +13,7 @@ export function CreateSays({ run, onRetry, onRename }: { run: CreateRun; onRetry
       <p>
         {run.extract && !run.warning ? (
           <Trans>
-            <strong className="font-semibold">Done.</strong> “{name}” is set up, and the conversion of its first pages has started.
+            <strong className="font-semibold">Done.</strong> “{name}” is set up. I&apos;ve started making its first pages; open the book to follow along.
           </Trans>
         ) : (
           <Trans>

@@ -70,11 +70,11 @@ export const SETTING_VALUE: Record<SetupSettingId, Record<string, { name: Messag
     llm: { name: msg`Rebuilt to fit the screen`, means: msg`The AI rebuilds each page so it reads well on any screen size.` },
     "llm-overlay": {
       name: msg`Printed page, words rebuilt on top`,
-      means: msg`The page picture stays, and the AI puts real, readable words over it.`,
+      means: msg`The page picture stays, and the AI types its words again on top, so they work like normal text.`,
     },
     single_column: { name: msg`One column, like an article`, means: msg`The words flow in one clean column, with pictures in between.` },
     two_column_story: { name: msg`Picture beside the words`, means: msg`Each page shows the picture on one side and its words on the other.` },
-    fixed_layout: { name: msg`Keep the printed page`, means: msg`Each page looks exactly like the printed book, with the words made readable and selectable.` },
+    fixed_layout: { name: msg`Keep the printed page`, means: msg`Each page looks exactly like the printed book.` },
   },
   pageGrouping: {
     single: { name: msg`One PDF page per screen`, means: msg`Every page of the PDF becomes one screen.` },
@@ -102,8 +102,8 @@ export const RULE_WHY: Record<string, MessageDescriptor> = {
   "render-reference-column": msg`Information reads best as one clean column.`,
   "render-textbook-ai": msg`Lessons and exercises need their structure rebuilt.`,
   "render-keep-page": msg`The words sit on the pictures, so we keep your page as it is.`,
-  "render-overlay-no-text-layer": msg`The words sit on the pictures, but the PDF has no real text, so the AI rebuilds the words over the page.`,
-  "render-overlay-no-text-beside": msg`The words sit beside the pictures, but the PDF has no real text, so the AI rebuilds the words over the page.`,
+  "render-overlay-no-text-layer": msg`The words sit on the pictures, but your PDF is a scan (its words can't be selected), so the AI types them again over the page.`,
+  "render-overlay-no-text-beside": msg`The words sit beside the pictures, but your PDF is a scan (its words can't be selected), so the AI types them again over the page.`,
   "render-side-by-side": msg`The words sit beside the pictures, so they can go side by side.`,
   "render-reflow": msg`The book is mostly words, so they can flow to fit the screen.`,
   "group-joined-spreads": msg`Pictures run across two facing pages.`,
@@ -119,7 +119,7 @@ export const RULE_WHY: Record<string, MessageDescriptor> = {
   "sections-page": msg`Each page reads as one piece.`,
   "figures-keep-together": msg`The book has labelled pictures like maps or diagrams.`,
   "figures-none": msg`The book has no labelled pictures.`,
-  "figures-no-text-layer": msg`The PDF has no real text, so there are no labels to keep together.`,
+  "figures-no-text-layer": msg`Your PDF is a scan (its words can't be selected), so there are no labels to keep together.`,
 }
 
 export const TEXT_LAYER: Record<string, MessageDescriptor> = {

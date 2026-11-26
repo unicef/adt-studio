@@ -18,21 +18,21 @@ export function LanguageHelp({ open, onOpenChange, found }: { open: boolean; onO
               <Trans>How languages work</Trans>
             </DialogTitle>
             <DialogDescription className="mt-0.5 text-[13.5px]">
-              <Trans>The language you edit the book in, and what changing it does.</Trans>
+              <Trans>The book&apos;s language, and what changing it does.</Trans>
             </DialogDescription>
           </div>
         </div>
         <div className="flex flex-col gap-5 px-6 py-5 text-[14px] leading-relaxed">
-          <Part icon={<Languages className="size-4" />} title={<Trans>The language you edit in</Trans>}>
+          <Part icon={<Languages className="size-4" />} title={<Trans>The book's language</Trans>}>
             {found ? (
-              <Trans>The text you see and edit in the book. It starts as {found}, the language I found in your PDF, so nothing is translated.</Trans>
+              <Trans>The book stays in {found}, the language I found in your PDF, so nothing is translated.</Trans>
             ) : (
-              <Trans>The text you see and edit in the book. It starts as the book&apos;s own language, so nothing is translated.</Trans>
+              <Trans>The book stays in its own language, so nothing is translated.</Trans>
             )}{" "}
-            <Trans>Pick another one only if you want the text translated into it when the book is set up.</Trans>
+            <Trans>Pick another language only if you want the whole book translated into it.</Trans>
           </Part>
           <Part icon={<Sparkles className="size-4" />} title={<Trans>Translation uses the AI</Trans>}>
-            <Trans>If you pick another language, the AI translates the text into it, so setting up takes longer and uses AI credits.</Trans>
+            <Trans>If you pick another language, the AI translates the text into it, so setting up takes longer and uses your AI account, which may cost money.</Trans>
           </Part>
           <Part icon={<RefreshCw className="size-4" />} title={<Trans>Can I change it later?</Trans>}>
             <Trans>You can change it until you set up the book. To have the finished book in more languages, add them later from the book&apos;s Translate step.</Trans>

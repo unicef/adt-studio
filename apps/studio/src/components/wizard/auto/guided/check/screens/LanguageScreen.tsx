@@ -13,7 +13,7 @@ import { PICTURE, SurePick } from "../SurePick"
 import { LanguageHelp } from "./LanguageHelp"
 import { useExplain } from "../../shared/explain"
 
-const PICKER_LABEL = msg`Edit the book in`
+const PICKER_LABEL = msg`Translate the book into`
 
 /** The language the book will be made in: the user's pick, or the book's own (null when nothing tells). */
 export function useBookLanguage(rec: SetupRecommendation): { found: string | null; picked: string | null; changed: boolean } {
@@ -64,7 +64,7 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
       result={
         <span className="flex flex-col items-start gap-1">
           <span>
-            <Trans>You edit the book in this language.</Trans>
+            <Trans>The book stays in this language.</Trans>
           </span>
           <LanguageHelp open={help} onOpenChange={setHelp} found={found ? getDisplayName(found) : null} />
         </span>
@@ -79,7 +79,7 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
       hideLabel={<Trans>Hide the languages</Trans>}
     >
       <div className="flex flex-col gap-3">
-        <LangPart icon={<Languages className="size-4" />} title={i18n._(PICKER_LABEL)} hint={<Trans>Only change it to translate the text into another language.</Trans>}>
+        <LangPart icon={<Languages className="size-4" />} title={i18n._(PICKER_LABEL)} hint={<Trans>Only if you want the whole book in another language.</Trans>}>
           <LanguagePicker label={i18n._(PICKER_LABEL)} selected={picked ?? ""} onSelect={(code) => form.setFieldValue("editingLanguage", code)} size="default" />
           {picked && (
             <button type="button" onClick={() => form.setFieldValue("editingLanguage", "")} className="lc-link self-start px-1 text-[13.5px] font-medium">

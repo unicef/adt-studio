@@ -33,7 +33,7 @@ export function useScreenValues(rec: SetupRecommendation | null, derived: Derive
     // eslint-disable-next-line lingui/no-unlocalized-strings -- setting ids
     facts.includes("exercises") ? (names ? named("activitiesGenerator") : derived.effective.activitiesGenerator?.value === true ? t`Activities on` : t`No activities`) : null,
     // eslint-disable-next-line lingui/no-unlocalized-strings -- setting ids
-    facts.includes("diagrams") ? (names ? named("figureExtraction") : derived.effective.figureExtraction?.value === "auto" ? t`Labelled pictures kept whole` : t`No labelled pictures`) : null,
+    facts.includes("diagrams") ? (names ? named("figureExtraction") : derived.effective.figureExtraction?.value === "auto" ? t`Maps and diagrams kept with their labels` : t`No maps or diagrams`) : null,
   ]
     .filter(Boolean)
     .join(" · ")

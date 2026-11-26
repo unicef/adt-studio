@@ -129,7 +129,7 @@ export function PreviewChoices({ rec, fact, order, answers, chosen, onAnswer, fi
     art: factArt(fact.id, value) ?? undefined,
     more: FACT_LONG[fact.id][value] ? i18n._(FACT_LONG[fact.id][value]!) : undefined,
     guide: FACT_GUIDE[fact.id]?.[value],
-    why: value === fact.value ? <FactWhy fact={fact} file={file} /> : undefined,
+    why: value === fact.value ? <FactWhy fact={fact} file={file} /> : fact.secondOpinion === value && fact.secondOpinion !== fact.value ? <SecondWhy fact={fact} /> : undefined,
     settings: decided[i],
     only: touched.length ? touched : undefined,
     changed,
@@ -137,19 +137,39 @@ export function PreviewChoices({ rec, fact, order, answers, chosen, onAnswer, fi
   return <LookChoices rec={rec} options={options} page={fact.evidencePages[0] ?? rec.previewPage} chosen={chosen} onPick={onAnswer} file={file} labelId={labelId} />
 }
 
-/** Why the engine guessed this answer: the reading's own words and the pages it looked at. */
+/**
+ * Why the engine guessed this answer. The engine reads the book twice: its guess comes from the
+ * first reading (the pages), and `reason` is the second reading's own words, so the reason is
+ * shown here only when both readings agree; when they don't, it goes with the second reading's
+ * answer (SecondWhy) and this one says so.
+ */
 function FactWhy({ fact, file }: { fact: SetupFact; file: File | null | undefined }) {
   const { i18n } = useLingui()
   const other = fact.secondOpinion && fact.secondOpinion !== fact.value ? FACT_SHORT[fact.id][fact.secondOpinion] : undefined
   return (
     <>
-      {fact.reason && <span className="block">“{fact.reason}”</span>}
+      {other ? (
+        <span className="block">{i18n._(msg`This is what I saw on the pages I looked at. But when I read the book a second time, I thought it could be “${i18n._(other)}”, so please check.`)}</span>
+      ) : (
+        fact.reason && <span className="block">“{fact.reason}”</span>
+      )}
       {fact.evidencePages.length > 0 && (
         <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
           <Trans>Where I read it:</Trans> <Citation file={file} pages={fact.evidencePages} />
         </span>
       )}
-      {other && <span className="mt-1.5 block">{i18n._(msg`A second look thought it could be “${i18n._(other)}”, so check this one.`)}</span>}
+    </>
+  )
+}
+
+/** On the second reading's answer, when the two readings disagree: its own words. */
+function SecondWhy({ fact }: { fact: SetupFact }) {
+  return (
+    <>
+      <span className="block">
+        <Trans>My second reading picked this one.</Trans>
+      </span>
+      {fact.reason && <span className="mt-1 block">“{fact.reason}”</span>}
     </>
   )
 }
