@@ -1,13 +1,13 @@
-import type { ReactNode } from "react"
+import { useRef, type ReactNode } from "react"
 import { Trans } from "@lingui/react/macro"
 import { AlertTriangle, ArrowRight, BookOpenCheck, Check, FileText, FileUp, ListChecks, ScanSearch } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PrimaryButton } from "../../core/ui"
 import type { UploadFlow } from "../../start/upload/useUploadFlow"
 import { Attachment } from "./shared/Attachment"
-import { Chip } from "./shared/bubbles"
 import { LC_PRIMARY } from "./shared/Create"
 import { Illustration } from "./shared/Illustration"
+import { TourCoach, type CoachStop } from "./TourCoach"
 
 /** The three steps ahead, shown above the drop zone (and walked through on a first run). */
 const STEPS: { image: string; icon: ReactNode; title: ReactNode; text: ReactNode; says: ReactNode }[] = [
@@ -48,12 +48,12 @@ const STEPS: { image: string; icon: ReactNode; title: ReactNode; text: ReactNode
 
 /**
  * The first-run tour's stops, on the page as it is (nothing moves): 0 the assistant introduces
- * itself, 1–3 one card each, 4 the drop zone. The bubble says each and carries Next / Skip.
+ * itself, 1–3 one card each, 4 the drop zone. The assistant floats next to each (TourCoach).
  */
 export const TOUR_STOPS = STEPS.length + 2
 
-/** Upload's bubble: the tour stop, what to do, or what the drop zone found. */
-export function UploadSays({ flow, rejected, tour, onTour, onTourDone }: { flow: UploadFlow; rejected: boolean; tour: number | null; onTour: (i: number) => void; onTourDone: () => void }) {
+/** Upload's bubble: what to do, or what the drop zone found. */
+export function UploadSays({ flow, rejected }: { flow: UploadFlow; rejected: boolean }) {
   if (flow.file && flow.error === "password")
     return (
       <Trans>
@@ -79,36 +79,6 @@ export function UploadSays({ flow, rejected, tour, onTour, onTourDone }: { flow:
       </Trans>
     )
   if (flow.file) return <Trans>Let me check that this PDF opens…</Trans>
-  if (tour !== null) {
-    const says =
-      tour === 0 ? (
-        <Trans>
-          <strong className="font-semibold">Hi! I&apos;m the ADT Assistant.</strong> I&apos;ll help you turn a PDF into an accessible digital book. Let me show you how it goes.
-        </Trans>
-      ) : tour <= STEPS.length ? (
-        STEPS[tour - 1]!.says
-      ) : (
-        <Trans>
-          <strong className="font-semibold">That&apos;s it.</strong> When you&apos;re ready, drop your PDF here.
-        </Trans>
-      )
-    const last = tour === TOUR_STOPS - 1
-    return (
-      <div className="flex flex-col gap-3">
-        <p>{says}</p>
-        <div className="flex flex-wrap items-center gap-2">
-          <Chip primary onClick={() => (last ? onTourDone() : onTour(tour + 1))} icon={last ? undefined : <ArrowRight className="size-4" />} className="flex-row-reverse">
-            {last ? <Trans>Got it</Trans> : tour === 0 ? <Trans>Show me</Trans> : <Trans>Next</Trans>}
-          </Chip>
-          {!last && (
-            <button type="button" onClick={onTourDone} className="inline-flex min-h-11 items-center rounded-full px-3 text-[14px] text-muted-foreground underline decoration-border underline-offset-4 hover:text-foreground">
-              <Trans>Skip the tour</Trans>
-            </button>
-          )}
-        </div>
-      </div>
-    )
-  }
   return (
     <Trans>
       <strong className="font-semibold">Drop a PDF and I&apos;ll read it.</strong> Then we check a few things together, and I create the book.
@@ -244,7 +214,32 @@ function Again() {
  * is checked (opening, then OK or why not). A first run walks through the page with a spotlight
  * (`tour`). Back on this step later: the PDF with its page choice.
  */
-export function UploadPanel({ flow, rejected, onContinue, tour }: { flow: UploadFlow; rejected: boolean; onContinue: (() => void) | null; tour: number | null }) {
+export function UploadPanel({ flow, rejected, onContinue, tour, onTour, onTourDone }: { flow: UploadFlow; rejected: boolean; onContinue: (() => void) | null; tour: number | null; onTour: (i: number) => void; onTourDone: () => void }) {
+  const area = useRef<HTMLDivElement>(null)
+  const row = useRef<HTMLOListElement>(null)
+  const cards = [useRef<HTMLLIElement>(null), useRef<HTMLLIElement>(null), useRef<HTMLLIElement>(null)]
+  const drop = useRef<HTMLDivElement>(null)
+  const stops: CoachStop[] = [
+    {
+      target: row,
+      place: "over",
+      says: (
+        <Trans>
+          <strong className="font-semibold">Hi! I&apos;m the ADT Assistant.</strong> I&apos;ll help you turn a PDF into an accessible digital book. Let me show you how it goes.
+        </Trans>
+      ),
+    },
+    ...STEPS.map((s, i): CoachStop => ({ target: cards[i]!, place: "below", says: s.says })),
+    {
+      target: drop,
+      place: "over",
+      says: (
+        <Trans>
+          <strong className="font-semibold">That&apos;s it.</strong> When you&apos;re ready, drop your PDF here.
+        </Trans>
+      ),
+    },
+  ]
   if (flow.file && flow.pageCount > 0 && !flow.error && onContinue)
     return (
       <div className="flex flex-col items-start gap-4">
@@ -255,10 +250,10 @@ export function UploadPanel({ flow, rejected, onContinue, tour }: { flow: Upload
       </div>
     )
   return (
-    <div className="flex flex-col gap-4 lg:gap-5">
-      <ol className="grid gap-3 sm:grid-cols-3 lg:gap-4">
+    <div ref={area} className="relative flex flex-col gap-4 lg:gap-5">
+      <ol ref={row} className="grid gap-3 sm:grid-cols-3 lg:gap-4">
         {STEPS.map((s, i) => (
-          <li key={s.image} className={cn("gd-spot lc-surface flex flex-row items-center gap-4 p-3 sm:flex-col sm:items-stretch sm:gap-3 lg:p-4", spot(tour, i))}>
+          <li key={s.image} ref={cards[i]} className={cn("gd-spot lc-surface flex flex-row items-center gap-4 p-3 sm:flex-col sm:items-stretch sm:gap-3 lg:p-4", spot(tour, i))}>
             <span className="qd18-pv grid h-[84px] w-[112px] shrink-0 place-items-center overflow-hidden rounded-[14px] p-1.5 sm:h-[clamp(120px,17vh,210px)] sm:w-auto sm:p-3">
               <Illustration name={s.image} fallback={<span className="grid size-12 place-items-center rounded-full bg-[var(--lc-accent-soft)] text-[var(--lc-accent-text)]">{s.icon}</span>} />
             </span>
@@ -272,9 +267,10 @@ export function UploadPanel({ flow, rejected, onContinue, tour }: { flow: Upload
           </li>
         ))}
       </ol>
-      <div className={cn("gd-spot rounded-[22px]", spot(tour, "drop"))}>
+      <div ref={drop} className={cn("gd-spot rounded-[22px]", spot(tour, "drop"))}>
         <DropZone flow={flow} rejected={rejected} />
       </div>
+      {tour !== null && <TourCoach stops={stops} at={tour} area={area} onNext={() => onTour(tour + 1)} onDone={onTourDone} />}
     </div>
   )
 }

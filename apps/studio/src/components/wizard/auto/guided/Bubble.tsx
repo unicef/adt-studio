@@ -1,5 +1,6 @@
 import { useRef, type ReactNode } from "react"
 import { Trans } from "@lingui/react/macro"
+import { cn } from "@/lib/utils"
 import { Assistant } from "./shared/Assistant"
 import { useTalk } from "./shared/useTalk"
 import { Morph } from "./Morph"
@@ -9,12 +10,13 @@ import { Morph } from "./Morph"
  * flow moves on (never a new bubble), so `swap` names what it is saying now; each new message is
  * said in reading order while the orb moves (`useTalk`).
  */
-export function Bubble({ swap, busy, children }: { swap: string; busy?: boolean; children: ReactNode }) {
+/** `away`: the assistant is elsewhere on the page (the first-run tour), so this bubble keeps its place but isn't shown. */
+export function Bubble({ swap, busy, away, children }: { swap: string; busy?: boolean; away?: boolean; children: ReactNode }) {
   const words = useRef<HTMLDivElement>(null)
   const talking = useTalk(words, swap)
   return (
-    <div className="flex items-start gap-3">
-      <span className="lc-avatar mt-0.5 flex" style={{ viewTransitionName: "gd-orb" }}>
+    <div className={cn("flex items-start gap-3 transition-opacity duration-300", away && "invisible opacity-0")} aria-hidden={away || undefined}>
+      <span className="lc-avatar mt-0.5 flex" style={away ? undefined : { viewTransitionName: "gd-orb" }}>
         <Assistant mood={talking ? "talking" : busy ? "thinking" : "idle"} size={40} />
       </span>
       <div className="min-w-0 flex-1">

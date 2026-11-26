@@ -145,3 +145,10 @@ body:has([data-lab-toolbar]) .gd-foot { bottom: 84px; }
 @media (prefers-reduced-motion: reduce) { .gd-breathe, .gd-pop { animation: none; } .gd-spot { transition: none; } }
 .reduce-effects :is(.gd-breathe, .gd-pop) { animation: none; }
 .reduce-effects .gd-spot { transition: none; }
+
+/* The tour's floating assistant glides from item to item; its pointer is a small rotated square. */
+.gd-coach { transition: left 0.45s cubic-bezier(0.32, 0.72, 0, 1), top 0.45s cubic-bezier(0.32, 0.72, 0, 1); }
+.gd-coach-pointer { position: absolute; width: 14px; height: 14px; transform: rotate(45deg); background: var(--lc-bubble); box-shadow: -1px -1px 0 0 var(--lc-line); }
+.gd-coach-pointer.-bottom-\[7px\] { box-shadow: 1px 1px 0 0 var(--lc-line); }
+@media (prefers-reduced-motion: reduce) { .gd-coach { transition: none; } }
+.reduce-effects .gd-coach { transition: none; }

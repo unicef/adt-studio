@@ -160,9 +160,9 @@ export function Guided({ onManual }: { onManual: () => void }) {
   let bars: ReactNode = null
   if (shown === "upload") {
     const shownTour = flow.file ? null : tour
-    says = <UploadSays flow={flow} rejected={!!rejectedAt && !validFile} tour={shownTour} onTour={setTour} onTourDone={endTour} />
-    swap = `upload-${rejectedAt}-${flow.error ?? ""}-${validFile}-${!!flow.file}-${shownTour}`
-    panel = <UploadPanel flow={flow} rejected={!!rejectedAt && !validFile} onContinue={view === "upload" && validFile ? () => morph(() => setView(null)) : null} tour={shownTour} />
+    says = <UploadSays flow={flow} rejected={!!rejectedAt && !validFile} />
+    swap = `upload-${rejectedAt}-${flow.error ?? ""}-${validFile}-${!!flow.file}-${shownTour === null}`
+    panel = <UploadPanel flow={flow} rejected={!!rejectedAt && !validFile} onContinue={view === "upload" && validFile ? () => morph(() => setView(null)) : null} tour={shownTour} onTour={setTour} onTourDone={() => morph(endTour)} />
   } else if (shown === "reading") {
     if (failure) {
       swap = `failed-${attempt}`
@@ -208,7 +208,7 @@ export function Guided({ onManual }: { onManual: () => void }) {
             <div className={shown === "check" ? "mt-7 grid gap-4 lg:mt-9 lg:grid-cols-[250px_minmax(0,980px)] lg:justify-center lg:gap-x-12" : cn("mx-auto mt-7 w-full max-w-[760px] lg:mt-9", shown === "upload" ? "lg:max-w-[1180px]" : "lg:max-w-[880px]")}>
               {aside}
               <div className="min-w-0">
-                <Bubble swap={swap} busy={busy}>
+                <Bubble swap={swap} busy={busy} away={shown === "upload" && !flow.file && tour !== null}>
                   {says}
                 </Bubble>
                 <Morph swap={`${shown}-${!!panel}`} name="gd-panel" className="-mx-2 mt-4" inner="px-2 pb-3 pt-1">
