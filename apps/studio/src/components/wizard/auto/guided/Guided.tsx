@@ -21,6 +21,8 @@ import { useCreateRun } from "./shared/useCreateRun"
 import { markTourSeen, useFirstBook, useFirstRun } from "./shared/useFirstBook"
 import { Bubble } from "./Bubble"
 import { CheckFlow } from "./check/CheckFlow"
+import { BookSoFar } from "./check/BookSoFar"
+import { useCheckLayout, type CheckLayout } from "./shared/checkLayout"
 import { CheckBars, CheckRail } from "./check/CheckRail"
 import { CheckSays } from "./check/CheckSays"
 import { useCheck } from "./check/useCheck"
@@ -34,6 +36,14 @@ import "./guided.css"
 
 /** How long the Check bubble stands alone before the first screen comes in under it. */
 const REVEAL_MS = 650
+
+/** Check's page grid per layout: the list of screens left (current), none (split, focus), the book so far right (summary). */
+const CHECK_GRID: Record<CheckLayout, string> = {
+  current: "mt-7 grid gap-4 lg:mt-9 lg:grid-cols-[250px_minmax(0,980px)] lg:justify-center lg:gap-x-12",
+  split: "mx-auto mt-7 w-full max-w-[1180px] lg:mt-9",
+  focus: "mx-auto mt-7 w-full max-w-[720px] lg:mt-9",
+  summary: "mt-7 grid gap-4 lg:mt-9 lg:grid-cols-[minmax(0,900px)_280px] lg:justify-center lg:gap-x-14",
+}
 /** How long the drop zone shows that the PDF is fine before the flow moves on. */
 const READY_MS = 1100
 
@@ -59,6 +69,7 @@ export function Guided({ onManual }: { onManual: () => void }) {
   const chat = useAnswers(rec)
   const check = useCheck(rec, chat)
   const firstBook = useFirstBook()
+  const layout = useCheckLayout()
   const assistant = useAssistantName()
   const create = useCreateRun()
   const lastRun = create.runs[create.runs.length - 1]
@@ -178,7 +189,12 @@ export function Guided({ onManual }: { onManual: () => void }) {
     swap = `check-${check.at}-${check.trying}`
     says = <CheckSays rec={rec} derived={chat.derived} screen={check.at} file={flow.file} pageCount={flow.pageCount} firstBook={firstBook} trying={check.trying} onTrying={check.setTrying} />
     panel = revealed && <CheckFlow rec={rec} chat={chat} check={check} values={values} file={flow.file} pageCount={flow.pageCount} locked={create.locked} onCreate={onCreate} onManual={manual} />
-    aside = <CheckRail screens={check.screens} at={check.at} done={check.done} values={values} onGo={(s) => check.go(s)} />
+    aside =
+      layout === "current" ? (
+        <CheckRail screens={check.screens} at={check.at} done={check.done} values={values} onGo={(s) => check.go(s)} />
+      ) : layout === "summary" ? (
+        <BookSoFar screens={check.screens} at={check.at} done={check.done} values={values} onGo={(s) => check.go(s)} />
+      ) : null
     bars = <CheckBars screens={check.screens} at={check.at} done={check.done} />
   } else if (shown === "create" && lastRun) {
     swap = `create-${lastRun.n}-${lastRun.status === "failed" ? "failed" : lastRun.status === "done" ? "done" : "busy"}`
@@ -207,8 +223,8 @@ export function Guided({ onManual }: { onManual: () => void }) {
             <div className="mx-auto w-full max-w-[760px] lg:max-w-[1180px]">
               <Stepper at={at} shown={shown} failed={!!failure && at === "reading"} locked={create.locked} complete={lastRun?.status === "done"} onGo={(s) => morph(() => setView(s === at ? null : s))} checkBars={bars} />
             </div>
-            <div className={shown === "check" ? "mt-7 grid gap-4 lg:mt-9 lg:grid-cols-[250px_minmax(0,980px)] lg:justify-center lg:gap-x-12" : cn("mx-auto mt-7 w-full max-w-[760px] lg:mt-9", shown === "upload" ? "lg:max-w-[1180px]" : "lg:max-w-[880px]")}>
-              {aside}
+            <div className={shown === "check" ? CHECK_GRID[layout] : cn("mx-auto mt-7 w-full max-w-[760px] lg:mt-9", shown === "upload" ? "lg:max-w-[1180px]" : "lg:max-w-[880px]")}>
+              {layout !== "summary" && aside}
               <div className="min-w-0">
                 <Bubble swap={swap} busy={busy} away={shown === "upload" && !flow.file && tour !== null}>
                   {says}
@@ -217,6 +233,7 @@ export function Guided({ onManual }: { onManual: () => void }) {
                   {panel}
                 </Morph>
               </div>
+              {layout === "summary" && aside}
             </div>
           </div>
         </div>

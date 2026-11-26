@@ -49,12 +49,12 @@ const SETTINGS: LabControl[] = [
   {
     key: "layout",
     label: "Check layout",
-    default: "card",
+    default: "current",
     options: [
-      { value: "card", label: "Card (current)" },
-      { value: "list", label: "List" },
-      { value: "evidence", label: "Evidence" },
-      { value: "sentence", label: "Sentence" },
+      { value: "current", label: "Current" },
+      { value: "split", label: "Split" },
+      { value: "focus", label: "Focus" },
+      { value: "summary", label: "Summary" },
     ],
   },
   {

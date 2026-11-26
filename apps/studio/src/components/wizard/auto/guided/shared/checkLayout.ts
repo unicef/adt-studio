@@ -1,13 +1,13 @@
 import { useSyncExternalStore } from "react"
 
 /**
- * How Check shows a decision (a lab setting while we compare them):
- * - card: the pick highlighted in a card with a picture, the others behind "See the other options"
- * - list: the question, then every answer as a plain row; the pick is checked
- * - evidence: the book's own pages that led to the answer, beside the answer and a switch for the others
- * - sentence: one plain statement with the answer as an inline choice, then the reason and the pages
+ * How the Check page is arranged around its decision (a lab setting while we compare them):
+ * - current: the list of screens on the left, the decision in an outlined card
+ * - split: no list; the picture large on the left, the answer, its options and the buttons on the right
+ * - focus: one narrow column, top to bottom (the picture across it), with a bar for Back / Next
+ * - summary: the decision on the left, without a card; on the right "Your book" fills in as you go
  */
-export const CHECK_LAYOUTS = ["card", "list", "evidence", "sentence"] as const
+export const CHECK_LAYOUTS = ["current", "split", "focus", "summary"] as const
 export type CheckLayout = (typeof CHECK_LAYOUTS)[number]
 
 const KEY = "add-book:check-layout"
@@ -17,9 +17,9 @@ function read(): CheckLayout {
   if (cache) return cache
   try {
     const v = localStorage.getItem(KEY) as CheckLayout | null
-    cache = v && CHECK_LAYOUTS.includes(v) ? v : "card"
+    cache = v && CHECK_LAYOUTS.includes(v) ? v : "current"
   } catch {
-    cache = "card"
+    cache = "current"
   }
   return cache
 }
@@ -39,6 +39,6 @@ export function useCheckLayout(): CheckLayout {
       return () => listeners.delete(l)
     },
     read,
-    () => "card",
+    () => "current",
   )
 }

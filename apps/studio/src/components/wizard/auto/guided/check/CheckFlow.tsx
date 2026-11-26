@@ -17,6 +17,7 @@ import { PagesScreen } from "./screens/PagesScreen"
 import { screenFacts, screenSure } from "./screens"
 import type { Check } from "./useCheck"
 import { SCREEN_TITLE } from "./words"
+import { useCheckLayout } from "../shared/checkLayout"
 import { setWizardNames, useWizardNames } from "../shared/wizardNames"
 
 const HEADING = "gd-check-title"
@@ -66,6 +67,8 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
   const { i18n } = useLingui()
   const derived = chat.derived!
   const { at, screens } = check
+  const layout = useCheckLayout()
+  const lean = layout === "split" || layout === "focus"
   const index = screens.indexOf(at)
   const last = at === "name"
   // Pages is the user's own pick, so it just continues; the others are sure unless the engine asked.
@@ -114,34 +117,42 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
   else if (at === "activities") body = <ActivitiesScreen rec={rec} chat={chat} file={file} />
   else body = <NameScreen screens={screens} values={values} settings={derived.effective} onEdit={(s) => check.go(s, true)} />
 
+  const meta = (
+    <span className="flex shrink-0 items-center gap-4">
+      <NamesSwitch />
+      <span className="text-[13px] tabular-nums text-muted-foreground lg:text-[14.5px]">
+        <Trans>
+          {index + 1} of {screens.length}
+        </Trans>
+      </span>
+    </span>
+  )
+
   return (
     <section aria-labelledby={HEADING} inert={locked} className="flex flex-col">
       <Morph swap={at} name="gd-screen" className="-mx-2" inner="flex flex-col gap-3 px-2 pb-2 pt-1 lg:gap-4">
-        <div className="flex items-baseline justify-between gap-3 px-1">
+        {/* Split and focus let the decision lead: the screen's name is only for screen readers, and the count and switch move to the bottom bar. */}
+        <div className={cn("flex items-baseline justify-between gap-3 px-1", lean && "sr-only")}>
           <h2 id={HEADING} ref={heading} tabIndex={-1} className="rounded-md text-[19px] font-semibold lg:text-[24px] tracking-[-0.015em] outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60">
             {i18n._(SCREEN_TITLE[at])}
           </h2>
-          <span className="flex shrink-0 items-center gap-4">
-            <NamesSwitch />
-            <span className="text-[13px] tabular-nums text-muted-foreground lg:text-[14.5px]">
-              <Trans>
-                {index + 1} of {screens.length}
-              </Trans>
-            </span>
-          </span>
+          {!lean && meta}
         </div>
         {body}
       </Morph>
-      <div className="gd-foot sticky bottom-0 z-10 -mx-2 flex flex-col gap-1 px-2 pb-4 pt-5">
+      <div className={cn("gd-foot sticky bottom-0 z-10 -mx-2 flex flex-col gap-1 px-2 pb-4 pt-5", layout === "focus" && "mt-4 border-t border-border pt-4")}>
         <div className="flex items-center justify-between gap-3">
-          {index > 0 ? (
-            <button type="button" onClick={check.back} className="lc-link -ml-2 inline-flex min-h-11 items-center gap-1.5 px-3 text-[14.5px] font-medium">
-              <ArrowLeft className="size-4" />
-              <Trans>Back</Trans>
-            </button>
-          ) : (
-            <span />
-          )}
+          <span className="flex items-center gap-4">
+            {index > 0 ? (
+              <button type="button" onClick={check.back} className="lc-link -ml-2 inline-flex min-h-11 items-center gap-1.5 px-3 text-[14.5px] font-medium">
+                <ArrowLeft className="size-4" />
+                <Trans>Back</Trans>
+              </button>
+            ) : (
+              !lean && <span />
+            )}
+            {lean && meta}
+          </span>
           <PrimaryButton
             onClick={primary}
             disabled={locked}

@@ -46,36 +46,68 @@ export function PickBadge({ changed }: { changed: boolean }) {
  * options and shows it here as "Your pick"; the screen's button then moves on.
  */
 export function SurePick({ picture, label, title, hint, result, changed, badge = true, labelId, open, onToggle, others, othersLabel, children }: { picture: ReactNode; label?: ReactNode; title: ReactNode; hint?: ReactNode; result?: ReactNode; changed: boolean; badge?: boolean; labelId: string; open: boolean; onToggle: () => void; others: boolean; othersLabel?: ReactNode; children?: ReactNode }) {
-  const flat = useCheckLayout() !== "card"
-  return (
-    <div className={cn("flex flex-col gap-3 rounded-[18px]", flat ? "" : "gd-sure p-2.5 lg:p-3.5")}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5 lg:gap-7">
-        <div data-vt-pick={`pick-${labelId}`} className="shrink-0" style={{ viewTransitionName: `pick-${labelId}` }}>
-          {picture}
+  const layout = useCheckLayout()
+  const big = layout === "split" || layout === "focus"
+  const text = (
+    <div className={cn("flex min-w-0 flex-1 flex-col items-start gap-1", layout === "current" && "px-1.5 pb-1 sm:px-0 sm:pb-0 sm:pr-2", big && "gap-2")}>
+      {label && (
+        <span id={labelId} className={cn("text-muted-foreground", big ? "text-[15px] lg:text-[16px]" : "text-[13px] lg:text-[14.5px]")}>
+          {label}
+        </span>
+      )}
+      <span className="flex flex-wrap items-center gap-2">
+        <span className={cn("font-semibold leading-tight", big ? "text-[26px] tracking-[-0.02em] lg:text-[34px]" : "text-[18px] tracking-[-0.01em] lg:text-[22px]")}>{title}</span>
+        {(badge || changed) && <PickBadge changed={changed} />}
+      </span>
+      {hint && <span className={cn("leading-snug text-muted-foreground", big ? "text-[15.5px] lg:text-[17px]" : "text-[14px] lg:text-[15.5px]")}>{hint}</span>}
+      {result && <span className="text-[13.5px] leading-snug text-foreground/85 lg:text-[15px]">{result}</span>}
+      {others && (
+        <button type="button" aria-expanded={open} onClick={() => morph(onToggle)} className="lc-link -ml-1.5 mt-1 inline-flex min-h-9 items-center gap-1 px-1.5 text-[13.5px] font-medium">
+          {open ? <Trans>Hide the other options</Trans> : (othersLabel ?? <Trans>See the other options</Trans>)}
+          <ChevronDown className={cn("size-3.5 transition-transform motion-reduce:transition-none", open && "rotate-180")} />
+        </button>
+      )}
+    </div>
+  )
+  const pic = (
+    <div
+      data-vt-pick={`pick-${labelId}`}
+      className={cn("shrink-0", layout === "split" && "w-full [&>*]:!h-[clamp(300px,50vh,540px)] [&>*]:!w-full", layout === "focus" && "w-full [&>*]:!h-[clamp(220px,34vh,360px)] [&>*]:!w-full")}
+      style={{ viewTransitionName: `pick-${labelId}` }}
+    >
+      {picture}
+    </div>
+  )
+  const more = (
+    <Morph swap={String(open)} inner="">
+      {open && <div className="px-0.5 pb-1">{children}</div>}
+    </Morph>
+  )
+  if (layout === "split")
+    return (
+      <div className="flex flex-col gap-6">
+        <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-12">
+          {pic}
+          {text}
         </div>
-        <div className="flex min-w-0 flex-1 flex-col items-start gap-1 px-1.5 pb-1 sm:px-0 sm:pb-0 sm:pr-2">
-          {label && (
-            <span id={labelId} className="text-[13px] text-muted-foreground lg:text-[14.5px]">
-              {label}
-            </span>
-          )}
-          <span className="flex flex-wrap items-center gap-2">
-            <span className="text-[18px] font-semibold leading-tight tracking-[-0.01em] lg:text-[22px]">{title}</span>
-            {(badge || changed) && <PickBadge changed={changed} />}
-          </span>
-          {hint && <span className="text-[14px] leading-snug text-muted-foreground lg:text-[15.5px]">{hint}</span>}
-          {result && <span className="text-[13.5px] leading-snug text-foreground/85 lg:text-[15px]">{result}</span>}
-          {others && (
-            <button type="button" aria-expanded={open} onClick={() => morph(onToggle)} className="lc-link -ml-1.5 mt-1 inline-flex min-h-9 items-center gap-1 px-1.5 text-[13.5px] font-medium">
-              {open ? <Trans>Hide the other options</Trans> : (othersLabel ?? <Trans>See the other options</Trans>)}
-              <ChevronDown className={cn("size-3.5 transition-transform motion-reduce:transition-none", open && "rotate-180")} />
-            </button>
-          )}
-        </div>
+        {more}
       </div>
-      <Morph swap={String(open)} inner="">
-        {open && <div className="px-0.5 pb-1">{children}</div>}
-      </Morph>
+    )
+  if (layout === "focus")
+    return (
+      <div className="flex flex-col gap-5">
+        {pic}
+        {text}
+        {more}
+      </div>
+    )
+  return (
+    <div className={cn("flex flex-col gap-3 rounded-[18px]", layout === "current" && "gd-sure p-2.5 lg:p-3.5")}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5 lg:gap-7">
+        {pic}
+        {text}
+      </div>
+      {more}
     </div>
   )
 }
