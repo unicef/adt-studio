@@ -290,6 +290,80 @@ function findGroupForOption(
   return groups.find((g) => g.key === key) ?? null
 }
 
+const DECLARED_GROUP_SELECTOR = '[role="radiogroup"], [role="group"], fieldset'
+const QUESTION_TEXT_SELECTOR = "[data-id], legend, h1, h2, h3, h4, h5, h6, p"
+
+/**
+ * The element that becomes a question's `radiogroup`: the wrapper the page
+ * already declares around the question (`role="group"` or a fieldset), else
+ * the smallest element holding all of its options. Returns null when that
+ * element is the section itself or also holds another question's options —
+ * the markup then has no per-question wrapper, and widening the group would
+ * merge questions.
+ */
+function findGroupContainer(
+  section: HTMLElement,
+  group: QuestionGroup,
+  groups: QuestionGroup[],
+): HTMLElement | null {
+  let container = group.options[0]?.parentElement ?? null
+  while (container && !group.options.every((opt) => container!.contains(opt))) {
+    container = container.parentElement
+  }
+  if (!container) return null
+  const usable = (el: HTMLElement): boolean =>
+    el !== section &&
+    section.contains(el) &&
+    !groups.some(
+      (other) =>
+        other !== group && other.options.some((opt) => el.contains(opt)),
+    )
+  const declared = container.closest<HTMLElement>(DECLARED_GROUP_SELECTOR)
+  if (declared && usable(declared)) return declared
+  return usable(container) ? container : null
+}
+
+/**
+ * The question a group of options answers: the nearest text element that
+ * precedes the group's first option and is not part of any option. The search
+ * stays inside the group's own declared wrapper when the page has one, so a
+ * question never borrows its neighbour's text.
+ */
+function findQuestionElement(
+  section: HTMLElement,
+  container: HTMLElement,
+  group: QuestionGroup,
+): HTMLElement | null {
+  const firstOption = group.options[0]
+  if (!firstOption) return null
+  const declared = container.closest<HTMLElement>(DECLARED_GROUP_SELECTOR)
+  const scope = declared && section.contains(declared) ? declared : section
+  let question: HTMLElement | null = null
+  for (const el of Array.from(
+    scope.querySelectorAll<HTMLElement>(QUESTION_TEXT_SELECTOR),
+  )) {
+    const precedesFirstOption =
+      (el.compareDocumentPosition(firstOption) &
+        Node.DOCUMENT_POSITION_FOLLOWING) !==
+      0
+    if (!precedesFirstOption) break
+    if (el.closest(".activity-option, label")) continue
+    if (el.contains(firstOption)) continue
+    if (el.tagName === "IMG" || !el.textContent?.trim()) continue
+    question = el
+  }
+  return question
+}
+
+function ensureElementId(el: HTMLElement, section: HTMLElement): string {
+  if (el.id) return el.id
+  const base = `${section.getAttribute("data-section-id") ?? "quiz"}-question`
+  let n = 1
+  while (document.getElementById(`${base}-${n}`)) n++
+  el.id = `${base}-${n}`
+  return el.id
+}
+
 function clearOptionState(option: HTMLElement, isStandaloneQuiz: boolean): void {
   option.classList.remove(
     "selected-option",
@@ -576,19 +650,35 @@ export function initializeQuizActivity(): (() => void) | null {
     if (href) navigateToPage(href)
   }
 
-  // WCAG 4.1.2: a list of `role="radio"` options is meaningless to screen
-  // readers without a `role="radiogroup"` container that names the group.
-  // The section ships with `role="article"` from the template — override it
-  // since the section's primary semantic here IS the radio group. For
-  // multi-group sections this is best-effort: ideally each <fieldset>/<div>
-  // around a single question would carry the radiogroup, but the prompt
-  // doesn't currently emit that container.
-  section.setAttribute("role", "radiogroup")
+  // WCAG 1.3.1 / 4.1.2: each question is its own `radiogroup`, named by its
+  // question text. The section keeps whatever role it shipped with — one
+  // radiogroup over a whole section would merge every question on the page
+  // into a single set of answers.
+  const fallbackNamedContainers: HTMLElement[] = []
+  for (const group of groups) {
+    const container = findGroupContainer(section, group, groups)
+    if (!container) continue
+    container.setAttribute("role", "radiogroup")
+    if (
+      container.hasAttribute("aria-labelledby") ||
+      container.hasAttribute("aria-label")
+    ) {
+      continue
+    }
+    const question = findQuestionElement(section, container, group)
+    if (question) {
+      container.setAttribute("aria-labelledby", ensureElementId(question, section))
+    } else {
+      fallbackNamedContainers.push(container)
+    }
+  }
   const applyLocalizedAria = () => {
-    section.setAttribute(
-      "aria-label",
-      tr("activity-options-label", "Answer options"),
-    )
+    for (const container of fallbackNamedContainers) {
+      container.setAttribute(
+        "aria-label",
+        tr("activity-options-label", "Answer options"),
+      )
+    }
   }
   applyLocalizedAria()
 
@@ -640,11 +730,17 @@ export function initializeQuizActivity(): (() => void) | null {
         'input[type="radio"]',
       )
       if (innerRadio) {
-        // Keep native radios out of the tab order so keyboard focus lands on the
-        // option label (which doesn't arrow-navigate), leaving the reader's
-        // arrow-key page turn free. Selection is still driven by Enter/Space and
-        // the number keys.
+        // The option label is the one radio a reader meets: it takes focus and
+        // carries `aria-checked`. The native radio inside it stays in the DOM
+        // (same name, value and item ID; its `checked` state still drives the
+        // page's CSS) but is taken out of the tab order and the accessibility
+        // tree, so the option is not announced as a radio inside a radio. Focus
+        // stays on the label because a focused native radio arrow-navigates its
+        // group and swallows the reader's arrow-key page turn. `inert` is the
+        // complete form; `aria-hidden` + `tabindex` cover engines without it.
         innerRadio.setAttribute("tabindex", "-1")
+        innerRadio.setAttribute("aria-hidden", "true")
+        innerRadio.setAttribute("inert", "")
         const onChange = () => {
           if (innerRadio.checked) handleSelect(option)
         }
