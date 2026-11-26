@@ -111,6 +111,9 @@ export function Guided({ onManual }: { onManual: () => void }) {
     if (jumping) setAt(atNow)
     else morph(() => setAt(atNow))
   }, [atNow])
+  // Until a lab jump (or a reload on one) reaches its step, the page stays blank: the steps it
+  // passes on the way (upload, reading) never flash.
+  const settling = !!labTarget && labTarget !== "start" && labTarget !== "reading" && labTarget !== "error" && at !== "check" && at !== "create"
 
   // A first run starts with a tour of the page: the assistant, each card, then the drop zone.
   const firstRun = useFirstRun()
@@ -209,7 +212,7 @@ export function Guided({ onManual }: { onManual: () => void }) {
           ))}
         </div>
 
-        <div className="relative flex-1 overflow-y-auto overflow-x-hidden">
+        <div className={cn("relative flex-1 overflow-y-auto overflow-x-hidden", settling && "invisible")} aria-busy={settling || undefined}>
           {/* Check uses the width on wide screens: the list of its screens on the left, the screen on view beside it. The other steps stay one calm column. */}
           <div className="mx-auto flex w-full max-w-[1340px] flex-col px-4 pb-24 pt-6 sm:px-6 sm:pt-8">
             <div className="mx-auto w-full max-w-[760px] lg:max-w-[1180px]">
