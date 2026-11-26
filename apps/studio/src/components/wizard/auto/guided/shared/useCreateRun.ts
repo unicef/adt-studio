@@ -41,7 +41,7 @@ export function useCreateRun() {
     const values = form.state.values
     const n = runs.length
     const extract = willExtract(values)
-    morph(() => setRuns((rs) => [...rs, { n, name: values.label.trim(), extract, status: "saving" }]))
+    setRuns((rs) => [...rs, { n, name: values.label.trim(), extract, status: "saving" }])
     let label: string
     try {
       label = (await createBook(values, recId)).label

@@ -89,3 +89,45 @@ body:has([data-lab-toolbar]) .gd-foot { bottom: 84px; }
 :root.reduce-effects::view-transition-group(*),
 :root.reduce-effects::view-transition-old(*),
 :root.reduce-effects::view-transition-new(*) { animation: none !important; }
+
+/* The assistant (shared/Assistant.tsx): an orb with a face that breathes, blinks, talks and reads. */
+.gd-ai { width: var(--ai); height: var(--ai); }
+.gd-ai-body { --lc-orb: var(--ai); position: relative; display: grid; place-items: center; animation: gd-ai-breathe 3.6s ease-in-out infinite; }
+.gd-ai-face { width: 100%; height: 100%; }
+.gd-ai-eyes { fill: #fff; transform-origin: 20px 18px; animation: gd-ai-blink 4.8s infinite; }
+.gd-ai-mouth { fill: #fff; transform-origin: 20px 26.5px; opacity: 0; }
+.gd-ai-smile { fill: none; stroke: #fff; stroke-width: 2.2; stroke-linecap: round; transition: opacity 0.15s ease; }
+.gd-ai[data-mood="talking"] .gd-ai-mouth { opacity: 1; }
+.gd-ai[data-mood="talking"] .gd-ai-smile { opacity: 0; }
+.gd-ai-ring { position: absolute; inset: 0; border-radius: 9999px; opacity: 0; box-shadow: 0 0 0 2px color-mix(in oklab, var(--brand-500) 55%, transparent); }
+@keyframes gd-ai-breathe { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-1.5px) scale(1.03); } }
+@keyframes gd-ai-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+/* Talking: the mouth opens and closes at a speech-like, uneven pace; the body nods; a ring ripples out. */
+.gd-ai[data-mood="talking"] .gd-ai-mouth { animation: gd-ai-talk 0.62s ease-in-out infinite; }
+.gd-ai[data-mood="talking"] .gd-ai-body { animation: gd-ai-nod 0.62s ease-in-out infinite; }
+.gd-ai[data-mood="talking"] .gd-ai-ring { animation: gd-ai-ripple 1.3s ease-out infinite; }
+@keyframes gd-ai-talk { 0% { transform: scaleY(0.4); } 20% { transform: scaleY(1.9) scaleX(0.9); } 38% { transform: scaleY(0.7); } 55% { transform: scaleY(1.5); } 72% { transform: scaleY(0.5); } 86% { transform: scaleY(1.2) scaleX(0.95); } 100% { transform: scaleY(0.4); } }
+@keyframes gd-ai-nod { 0%, 100% { transform: translateY(0) rotate(0); } 30% { transform: translateY(-1px) rotate(-2deg); } 65% { transform: translateY(0.5px) rotate(1.5deg); } }
+@keyframes gd-ai-ripple { 0% { transform: scale(1); opacity: 0.7; } 100% { transform: scale(1.55); opacity: 0; } }
+/* Thinking: the eyes read from side to side, the ring breathes. */
+.gd-ai[data-mood="thinking"] .gd-ai-eyes { animation: gd-ai-read 1.6s ease-in-out infinite; }
+
+.gd-ai[data-mood="thinking"] .gd-ai-ring { animation: gd-ai-ripple 2.2s ease-out infinite; }
+@keyframes gd-ai-read { 0%, 100% { transform: translateX(-2.2px); } 45% { transform: translateX(2.2px); } 55% { transform: translateX(2.2px); } }
+@media (prefers-reduced-motion: reduce) {
+  .gd-ai *, .gd-ai-body { animation: none !important; }
+}
+.reduce-effects :is(.gd-ai *, .gd-ai-body) { animation: none !important; }
+
+/* The PDF being read, where it was dropped: an indeterminate bar slides under the pages. */
+.gd-reading-bar > span { display: block; height: 100%; width: 35%; border-radius: inherit; background: var(--gd-step); animation: gd-bar 1.4s ease-in-out infinite; }
+@keyframes gd-bar { 0% { transform: translateX(-110%); } 100% { transform: translateX(310%); } }
+/* Check comes in: the list of its screens cascades. */
+@keyframes gd-rise { from { opacity: 0; transform: translateY(8px); } }
+.gd-rise { animation: gd-rise 0.45s var(--lc-out, cubic-bezier(0.23, 1, 0.32, 1)) both; }
+/* The tour's dots. */
+.gd-tour-dot { transition: width 0.3s var(--lc-out, ease), background-color 0.3s ease; }
+@media (prefers-reduced-motion: reduce) {
+  .gd-reading-bar > span, .gd-rise { animation: none; }
+}
+.reduce-effects :is(.gd-reading-bar > span, .gd-rise) { animation: none; }

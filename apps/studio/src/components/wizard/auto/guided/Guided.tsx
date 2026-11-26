@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { flushSync } from "react-dom"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { FileDropOverlay } from "@/components/ui/file-drop-overlay"
@@ -14,10 +14,10 @@ import { FinishContext } from "./shared/finish"
 import { NAME_INPUT } from "./shared/Create"
 import { EngineError } from "./shared/EngineError"
 import { useLabDrive } from "./shared/labDrive"
-import { ReadingMessage } from "./shared/Reading"
+import { ReadingCard, ReadingMessage } from "./shared/Reading"
 import { useAnswers } from "./shared/useAnswers"
 import { useCreateRun } from "./shared/useCreateRun"
-import { useFirstBook } from "./shared/useFirstBook"
+import { markTourSeen, useFirstBook, useFirstRun } from "./shared/useFirstBook"
 import { Bubble } from "./Bubble"
 import { CheckFlow } from "./check/CheckFlow"
 import { CheckBars, CheckRail } from "./check/CheckRail"
@@ -50,7 +50,7 @@ export function Guided({ onManual }: { onManual: () => void }) {
   const [rejectedAt, setRejectedAt] = useState(0)
   const [view, setView] = useState<StepId | null>(null)
   const [revealed, setRevealed] = useState(false)
-  const run = useEngineRun(validFile ? flow.file : null, attempt, morph)
+  const run = useEngineRun(validFile ? flow.file : null, attempt)
   const rec = run.status === "done" ? run.rec : null
   const failure = run.status === "failed" ? run.failure : null
   const chat = useAnswers(rec)
@@ -77,11 +77,35 @@ export function Guided({ onManual }: { onManual: () => void }) {
   // Check: the bubble first, then the first screen under it.
   useEffect(() => {
     if (!rec) return setRevealed(false)
-    const id = window.setTimeout(() => setRevealed(true), REVEAL_MS)
+    const id = window.setTimeout(() => morph(() => setRevealed(true)), REVEAL_MS)
     return () => window.clearTimeout(id)
   }, [rec])
 
-  const at: StepId = !validFile ? "upload" : !rec ? "reading" : lastRun ? "create" : "check"
+  // The step the flow is at; what's on screen follows it through a morph, so every step change animates.
+  const atNow: StepId = !validFile ? "upload" : !rec ? "reading" : lastRun ? "create" : "check"
+  const [at, setAt] = useState<StepId>(atNow)
+  useEffect(() => {
+    if (at !== atNow) morph(() => setAt(atNow))
+  }, [atNow])
+
+  // A first run starts with the tour of the three steps, one at a time.
+  const firstRun = useFirstRun()
+  const [tour, setTour] = useState<number | null>(null)
+  const toured = useRef(false)
+  useEffect(() => {
+    if (firstRun && !toured.current && !flow.file) {
+      toured.current = true
+      setTour(0)
+    }
+  }, [firstRun])
+  const endTour = () => {
+    markTourSeen()
+    setTour(null)
+  }
+  // Dropping a PDF during the tour ends it.
+  useEffect(() => {
+    if (flow.file && tour !== null) endTour()
+  }, [flow.file])
   const shown: StepId = view && STEPS.indexOf(view) < STEPS.indexOf(at) ? view : at
   // Dev lab only (no-op elsewhere): reports the step and plays the lab's jumps.
   useLabDrive({
@@ -123,16 +147,17 @@ export function Guided({ onManual }: { onManual: () => void }) {
   let aside: ReactNode = null
   let bars: ReactNode = null
   if (shown === "upload") {
-    says = <UploadSays flow={flow} rejected={!!rejectedAt && !validFile} />
-    swap = `upload-${rejectedAt}-${flow.error ?? ""}-${validFile}`
-    panel = <UploadPanel flow={flow} onContinue={validFile ? () => morph(() => setView(null)) : null} />
+    says = <UploadSays flow={flow} rejected={!!rejectedAt && !validFile} tour={flow.file ? null : tour} />
+    swap = `upload-${rejectedAt}-${flow.error ?? ""}-${validFile}-${!!flow.file}-${tour}`
+    panel = <UploadPanel flow={flow} onContinue={view === "upload" && validFile ? () => morph(() => setView(null)) : null} tour={tour} onTour={setTour} onTourDone={endTour} />
   } else if (shown === "reading") {
     if (failure) {
       swap = `failed-${attempt}`
       says = <EngineError failure={failure} current onRetry={() => setAttempt((a) => a + 1)} onManual={manual} />
     } else {
       swap = `reading-${attempt}`
-      says = <ReadingMessage file={flow.file!} pageCount={flow.pageCount} run={run} rec={rec} onManual={manual} />
+      says = <ReadingMessage run={run} rec={rec} onManual={manual} />
+      panel = <ReadingCard file={flow.file} pageCount={flow.pageCount} />
     }
   } else if (shown === "check" && rec && chat.derived && values) {
     swap = `check-${check.at}-${check.trying}`

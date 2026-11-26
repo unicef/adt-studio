@@ -1,6 +1,6 @@
 import { useRef, type ReactNode } from "react"
 import { Trans } from "@lingui/react/macro"
-import { Orb } from "./shared/bubbles"
+import { Assistant } from "./shared/Assistant"
 import { useTalk } from "./shared/useTalk"
 import { Morph } from "./Morph"
 
@@ -14,8 +14,8 @@ export function Bubble({ swap, busy, children }: { swap: string; busy?: boolean;
   const talking = useTalk(words, swap)
   return (
     <div className="flex items-start gap-3">
-      <span className="lc-avatar mt-1 flex" style={{ viewTransitionName: "gd-orb" }}>
-        <Orb typing={busy || talking} size={32} />
+      <span className="lc-avatar mt-0.5 flex" style={{ viewTransitionName: "gd-orb" }}>
+        <Assistant mood={talking ? "talking" : busy ? "thinking" : "idle"} size={40} />
       </span>
       <div className="min-w-0 flex-1">
         <span className="sr-only">
