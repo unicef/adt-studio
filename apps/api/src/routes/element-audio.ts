@@ -153,6 +153,12 @@ class ElementAudioConflict extends Error {
   }
 }
 
+/** The synthetic catalog id is already a rendered element. Retrying the same
+ *  save cannot succeed, so the client must show the error without a Retry. */
+class ElementAudioIdCollision extends Error {
+  readonly code = "element-audio-id-collision"
+}
+
 /**
  * Merge-on-stale for one source row. The submitted entry is applied only when
  * the client changed it and the saved row did not; the same `nodeId` changed on
@@ -337,9 +343,9 @@ export function createElementAudioRoutes(booksDir: string): Hono {
             // display text in the export. Legacy books can have one.
             const syntheticId = elementAudioTextId(entry.nodeId)
             if (locations.has(syntheticId)) {
-              throw new HTTPException(409, {
-                message: `Element ${entry.nodeId} cannot use ${syntheticId}: the id is already rendered on page ${locations.get(syntheticId)?.pageId}.`,
-              })
+              throw new ElementAudioIdCollision(
+                `Element ${entry.nodeId} cannot use ${syntheticId}: the id is already rendered on page ${locations.get(syntheticId)?.pageId}.`,
+              )
             }
             const group = groups.get(pageId) ?? []
             group.push(entry)
@@ -391,6 +397,9 @@ export function createElementAudioRoutes(booksDir: string): Hono {
             { error: err.message, code: err.code, versions: err.versions },
             409,
           )
+        }
+        if (err instanceof ElementAudioIdCollision) {
+          return c.json({ error: err.message, code: err.code }, 409)
         }
         throw err
       }

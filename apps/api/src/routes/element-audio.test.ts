@@ -636,6 +636,7 @@ describe("element-audio route (SPEC-0014)", () => {
     })
     expect(collision.status).toBe(409)
     expect(collision.body.error).toContain("pg001_im001_audio")
+    expect(collision.body.code).toBe("element-audio-id-collision")
 
     const other = await put("pg001", {
       versions: {},
