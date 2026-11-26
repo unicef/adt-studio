@@ -1,0 +1,13 @@
+/* Inline page citations. The animation stops under reduced motion and Reduce effects. */
+
+/* the page in the citation card slides as you flip. */
+@keyframes ev-flip-in { from { opacity: 0; transform: translateX(18px) scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes ev-flip-back { from { opacity: 0; transform: translateX(-18px) scale(0.96); } to { opacity: 1; transform: none; } }
+.ev-flip { animation: ev-flip-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.ev-flip.ev-flip-back { animation-name: ev-flip-back; }
+.ev-card { transform-origin: var(--radix-hover-card-content-transform-origin); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ev-flip { animation: none; }
+}
+.reduce-effects .ev-flip { animation: none; }

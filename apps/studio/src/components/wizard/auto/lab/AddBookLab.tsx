@@ -11,11 +11,9 @@ import { proposedAnswers } from "../engine/answers"
 import { labEngine, loadScenario, SCENARIOS, type LabError, type ScenarioId, type Speed } from "./mockEngine"
 import { labCreation } from "./labCreation"
 import { forgetSavedPdf, loadSavedPdf, savePdf } from "./savedPdf"
-import { IDEA_GROUPS, IdeasContext, type Ideas } from "../variants/guided/shared/ideaGroups"
-import { LabDriveContext, type FlowStep, type LabTarget } from "../variants/guided/shared/labDrive"
-import { activitiesApply } from "../variants/guided/check/screens"
-import { GuidedFlow } from "../variants/guided"
-import { GUIDED_IDEAS, GUIDED_STEP_GROUPS, PLAIN } from "../variants/guided/ideas"
+import { LabDriveContext, type FlowStep } from "../guided/shared/labDrive"
+import { activitiesApply } from "../guided/check/screens"
+import { GuidedFlow } from "../guided"
 
 /** The flow in order; Error branches off Reading. Check is its screens; Activities shows only when the book answer has it. */
 const FLOW: StepItem[] = [
@@ -46,49 +44,12 @@ const SETTINGS: LabControl[] = [
     ],
   },
 ]
-/** Older links still land: Found is the first screen, Q1 / Q2 the screen of the first / second question, Ready the last screen. */
-const OLD_STEPS = [
-  { value: "found", label: "Found" },
-  { value: "q1", label: "Q1" },
-  { value: "q2", label: "Q2" },
-  { value: "ready", label: "Ready" },
-]
-const STEP_CONTROL: LabControl = { key: "step", label: "Step", default: "start", options: [...FLOW.map((s) => ({ value: s.id, label: s.label })), ...OLD_STEPS] }
+const STEP_CONTROL: LabControl = { key: "step", label: "Step", default: "start", options: [...FLOW.map((s) => ({ value: s.id, label: s.label }))] }
 
-/**
- * Guided: only the groups and ideas that apply to it. "Now" is Guided's own pick (its default);
- * Plain turns the group off.
- */
-const GUIDED_CONTROLS: LabControl[] = IDEA_GROUPS.flatMap((g) => {
-  const spec = (GUIDED_IDEAS as Record<string, { default: string; options: readonly string[] }>)[g.key]
-  if (!spec) return []
-  const option = (id: string) => g.options.find(([value]) => value === id)!
-  const [, defLabel, defHint] = option(spec.default)
-  return [
-    {
-      key: g.key,
-      label: g.label,
-      options: [
-        // eslint-disable-next-line lingui/no-unlocalized-strings -- dev-only lab labels
-        { value: "now", label: `Default: ${defLabel}`, hint: `Guided's pick (${spec.default}). ${defHint}` },
-        ...spec.options.filter((id) => id !== spec.default).map((id) => {
-          const [value, label, hint] = option(id)
-          return { value, label, hint }
-        }),
-        // eslint-disable-next-line lingui/no-unlocalized-strings -- dev-only lab labels
-        { value: PLAIN, label: "Plain", hint: "No idea from the board for this group." },
-      ],
-    },
-  ]
-})
-
-const ALL_CONTROLS = [...SETTINGS, STEP_CONTROL, ...GUIDED_CONTROLS]
-
-/** Guided's idea value for a group: the lab's value when Guided offers it, else "now". */
-const valueFor = (key: string, value: string | undefined) => (GUIDED_CONTROLS.find((c) => c.key === key)?.options.some((o) => o.value === value) ? value! : "now")
+const ALL_CONTROLS = [...SETTINGS, STEP_CONTROL]
 
 /** A jump: the step to land on ("play" runs from the PDF at the chosen speed), and a counter that remounts the flow. */
-type Jump = { step: LabTarget | "play"; n: number }
+type Jump = { step: FlowStep | "play"; n: number }
 
 /** Puts the lab's PDF into a fresh form (unless the jump is to Start), and keeps any PDF dropped. */
 function KeepFile({ file, seed, onFile }: { file: File | null; seed: boolean; onFile: (f: File) => void }) {
@@ -112,16 +73,15 @@ function KeepFile({ file, seed, onFile }: { file: File | null; seed: boolean; on
 /**
  * Add Book lab (dev builds only, `/books/new?lab`) for the Guided design. The bar's
  * stepper jumps the real flow to any step of the flow, with the steps before it answered with
- * the assistant's guesses, and follows the flow when you click through it by hand. Only the idea
- * groups that change the current step are in the bar; the book answer, speed and error are in its
- * settings. Creating a book is simulated (no request reaches the API), and the last PDF
+ * the assistant's guesses, and follows the flow when you click through it by hand. The book
+ * answer, speed and error are in its settings. Creating a book is simulated (no request reaches the API), and the last PDF
  * dropped is kept in IndexedDB so the jumps work after a reload.
  */
 export default function AddBookLab() {
   const [values, set] = useLabParams(ALL_CONTROLS)
   const [file, setFile] = useState<File | null>(null)
   const [loaded, setLoaded] = useState(false)
-  const [jump, setJump] = useState<Jump>(() => ({ step: values.step as LabTarget, n: 0 }))
+  const [jump, setJump] = useState<Jump>(() => ({ step: values.step as FlowStep, n: 0 }))
   const [actual, setActual] = useState<FlowStep>(() => (FLOW.some((s) => s.id === values.step) ? (values.step as FlowStep) : "kind"))
   const [activities, setActivities] = useState(true)
   const real = useEngineClient()
@@ -156,7 +116,6 @@ export default function AddBookLab() {
   const creation = useMemo(() => labCreation(mode === "creating"), [mode])
 
   const scenario = SCENARIOS.find((s) => s.id === values.book)
-  const ideas = useMemo(() => Object.fromEntries(IDEA_GROUPS.map((g) => [g.key, valueFor(g.key, values[g.key])])) as Ideas, [values])
 
   const steps = FLOW.filter((s) => s.id !== "activities" || activities)
 
@@ -181,7 +140,7 @@ export default function AddBookLab() {
   const onChange = (key: string, value: string) => {
     if (key === "step") return goTo(value as FlowStep)
     set(key, value)
-    // A new engine answer or idea replays the flow to the step you were at, so entrances
+    // A new engine answer replays the flow to the step you were at, so entrances
     // and loaders play again with the new pick.
     if (key !== "speed" && key !== "error") setJump((j) => ({ step: j.step === "play" ? "play" : actual, n: j.n + 1 }))
   }
@@ -194,9 +153,7 @@ export default function AddBookLab() {
             <WizardFormProvider>
               <KeepFile file={file} seed={mode !== "start"} onFile={keepFile} />
               <LabDriveContext.Provider value={drive}>
-                <IdeasContext.Provider value={ideas}>
-                  <GuidedFlow />
-                </IdeasContext.Provider>
+                <GuidedFlow />
               </LabDriveContext.Provider>
             </WizardFormProvider>
           </WizardProvider>
@@ -208,8 +165,6 @@ export default function AddBookLab() {
         onStep={goTo}
         pdfName={file?.name ?? null}
         settings={SETTINGS}
-        ideas={GUIDED_CONTROLS}
-        shownGroups={GUIDED_STEP_GROUPS[actual]}
         values={values}
         onChange={onChange}
         onReplay={() => goTo("play")}

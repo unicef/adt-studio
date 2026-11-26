@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import type { SetupRecommendation } from "@adt/types"
 import { useEngineClient } from "./client"
-import { classifySetupError, type SetupFailure } from "../recommendation/client"
+import { classifySetupError, type SetupFailure } from "../errors/failure"
 
 /** After this long the screens may say the answer is slow; the engine's median is about 6.5 s (gpt-5.4-mini). */
 export const ENGINE_SLOW_AFTER_MS = 12000

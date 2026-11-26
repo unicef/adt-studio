@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { NoProviderGate } from "@/components/app/NoProviderGate"
 import { WizardProvider } from "@/components/wizard/core/WizardProvider"
 import { WizardFormProvider } from "@/components/wizard/core/WizardFormProvider"
-import { AddBookFlow } from "@/components/wizard/AddBookFlow"
+import { GuidedFlow } from "@/components/wizard/auto/guided"
 
 // Dev builds only: `/books/new?lab` opens the Add Book variant lab. In a production build
 // `import.meta.env.DEV` is false, so the lab and its saved answers are left out of the bundle.
@@ -23,7 +23,7 @@ function AddBookPage() {
     <NoProviderGate>
       <WizardProvider>
         <WizardFormProvider>
-          <AddBookFlow />
+          <GuidedFlow />
         </WizardFormProvider>
       </WizardProvider>
     </NoProviderGate>

@@ -1,0 +1,24 @@
+/* The reading loader: real pages with a scan line. It stops under reduced motion and under `.reduce-effects`, leaving the still pages. */
+
+/* A real page as the board draws one: a small radius and a soft paper shadow, no outline. */
+.lcl-page { box-shadow: 0 1px 2px rgb(15 23 42 / 0.18), 0 6px 16px -8px rgb(15 23 42 / 0.25); }
+.dark .lcl-page { box-shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 6px 16px -8px rgb(0 0 0 / 0.6); }
+
+/* Scan line: a glowing line walks down each page, leaving a soft tint, page after page. */
+@keyframes lcl-scan { 0% { top: -16px; opacity: 1; } 70% { top: 100%; opacity: 1; } 71%, 100% { top: 100%; opacity: 0; } }
+@keyframes lcl-lit { 0% { clip-path: inset(0 0 100% 0); opacity: 1; } 70% { clip-path: inset(0); opacity: 1; } 100% { clip-path: inset(0); opacity: 0; } }
+.lcl-scan-line {
+  position: absolute; left: -4px; right: -4px; top: -16px; height: 16px; pointer-events: none;
+  background: linear-gradient(to bottom, transparent, color-mix(in oklab, var(--brand-600) 55%, transparent) 70%, var(--brand-600) 92%, transparent);
+  animation: lcl-scan 2.4s var(--lc-out, cubic-bezier(0.23, 1, 0.32, 1)) infinite both;
+}
+.lcl-scan-tint {
+  position: absolute; inset: 0; pointer-events: none;
+  background: color-mix(in oklab, var(--brand-600) 16%, transparent);
+  animation: lcl-lit 2.4s var(--lc-out, cubic-bezier(0.23, 1, 0.32, 1)) infinite both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lcl-scan-line, .lcl-scan-tint { animation: none; opacity: 0; }
+}
+.reduce-effects :is(.lcl-scan-line, .lcl-scan-tint) { animation: none; opacity: 0; }
