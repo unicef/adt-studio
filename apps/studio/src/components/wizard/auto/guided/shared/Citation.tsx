@@ -1,5 +1,5 @@
 import { useRef, useState, type KeyboardEvent } from "react"
-import { Trans, useLingui } from "@lingui/react/macro"
+import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import { ChevronLeft, ChevronRight, FileText } from "lucide-react"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { usePageThumb } from "@/components/wizard/core/pdf/usePageThumb"
@@ -9,40 +9,58 @@ import "./citation.css"
 
 const ARROW = "grid size-7 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
 
-function Flip({ file, page, dir, onOpen }: { file: File; page: number; dir: number; onOpen: () => void }) {
+/** One page on the track: drawn once, kept while the card is open. */
+function Slide({ file, page, onOpen, current }: { file: File; page: number; onOpen: () => void; current: boolean }) {
   const { t } = useLingui()
   const src = usePageThumb(file, page, 220)
   return (
-    <button type="button" onClick={onOpen} aria-label={t`Show page ${page} larger`} className="group grid h-[214px] w-full place-items-center overflow-hidden rounded-[10px] bg-[var(--lc-stage,var(--muted))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500">
-      <span key={page} className={cn("ev-flip grid place-items-center", dir < 0 && "ev-flip-back")}>
-        {src ? <img src={src} alt="" className="max-h-[200px] max-w-[160px] rounded-[3px] shadow-[0_6px_16px_-8px_rgba(15,23,42,0.5)] ring-1 ring-border transition-transform duration-200 group-hover:scale-[1.03] motion-reduce:transition-none" /> : <FileText className="size-6 text-muted-foreground/50" />}
-      </span>
+    <button
+      type="button"
+      onClick={onOpen}
+      tabIndex={current ? 0 : -1}
+      aria-hidden={!current || undefined}
+      aria-label={t`Show page ${page} larger`}
+      className="group grid h-[214px] w-full shrink-0 place-items-center rounded-[10px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+    >
+      {src ? (
+        <img src={src} alt="" draggable={false} className="max-h-[200px] max-w-[160px] rounded-[3px] shadow-[0_6px_16px_-8px_rgba(15,23,42,0.5)] ring-1 ring-border transition-transform duration-200 group-hover:scale-[1.03] motion-reduce:transition-none" />
+      ) : (
+        <span className="h-[190px] w-[140px] animate-pulse rounded-[3px] bg-muted motion-reduce:animate-none" />
+      )}
     </button>
   )
 }
 
+/** The evidence pages side by side in a strip that slides to the current one. */
+function Track({ file, pages, at, onOpen }: { file: File; pages: number[]; at: number; onOpen: (page: number) => void }) {
+  return (
+    <div className="overflow-hidden rounded-[10px] bg-[var(--lc-stage,var(--muted))]">
+      <div className="ev-track flex" style={{ transform: `translateX(${-at * 100}%)` }}>
+        {pages.map((p, i) => (
+          <Slide key={p} file={file} page={p} current={i === at} onOpen={() => onOpen(p)} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 /**
- * An inline citation in the assistant's sentence ("p. 4 +2"), after shadcn AI Elements'
- * InlineCitation. Hover, focus or click opens a card with the page; ← → flip through the evidence
- * pages (on the marker or in the card); the page opens the large viewer.
+ * An inline citation in the assistant's sentence: "4 pages" (or "Page 24"), after shadcn AI
+ * Elements' InlineCitation. Hover, focus or click opens a card with the pages it read this on; ← →
+ * slide through them (on the marker or in the card); a page opens the large viewer.
  */
 export function Citation({ file, pages, className }: { file: File | null | undefined; pages: number[]; className?: string }) {
   const { t, i18n } = useLingui()
   const list = evidenceList(pages)
   const [open, setOpen] = useState(false)
   const [at, setAt] = useState(0)
-  const [dir, setDir] = useState(1)
   const [viewer, setViewer] = useState<number | null>(null)
   const content = useRef<HTMLDivElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
   if (!file || list.length === 0) return null
   const page = list[at] ?? list[0]!
   const firstPage = list[0]!
-  const more = list.length - 1
-  const flip = (d: number) => {
-    setDir(d)
-    setAt((a) => (a + d + list.length) % list.length)
-  }
+  const flip = (d: number) => setAt((a) => (a + d + list.length) % list.length)
   const inside = (el: Element | null) => !!el && (content.current?.contains(el) || trigger.current === el)
   const keys = (e: KeyboardEvent) => {
     if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
@@ -85,14 +103,12 @@ export function Citation({ file, pages, className }: { file: File | null | undef
               }
               keys(e)
             }}
-            aria-label={list.length === 1 ? t`Evidence: page ${firstPage}` : t`Evidence: pages ${all}`}
+            aria-label={list.length === 1 ? t`Read on page ${firstPage}` : t`Read on pages ${all}`}
             aria-expanded={open}
-            className={cn("ev-cite ml-1.5 mr-0.5 inline-flex translate-y-[-1px] items-center gap-1 rounded-[7px] bg-brand-50 px-1.5 py-px align-middle font-mono text-[0.68em] font-semibold leading-[1.5] text-brand-700 ring-1 ring-brand-200 transition-[background-color,box-shadow] hover:bg-brand-100 hover:ring-brand-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-500 data-[state=open]:bg-brand-100 data-[state=open]:ring-brand-400", className)}
+            className={cn("ev-cite ml-1.5 mr-0.5 inline-flex translate-y-[-1px] items-center gap-1 rounded-full bg-brand-50 px-2 py-px align-middle text-[0.72em] font-semibold leading-[1.5] text-brand-700 ring-1 ring-brand-200 transition-[background-color,box-shadow] hover:bg-brand-100 hover:ring-brand-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-500 data-[state=open]:bg-brand-100 data-[state=open]:ring-brand-400", className)}
           >
-            <span>
-              <Trans>p. {firstPage}</Trans>
-            </span>
-            {more > 0 && <span className="text-brand-700/70">+{more}</span>}
+            <FileText aria-hidden className="size-[1.05em]" />
+            {list.length === 1 ? <Trans>Page {firstPage}</Trans> : <Plural value={list.length} one="# page" other="# pages" />}
           </button>
         </HoverCardTrigger>
         <HoverCardContent
@@ -106,10 +122,18 @@ export function Citation({ file, pages, className }: { file: File | null | undef
           }}
           onEscapeKeyDown={() => setOpen(false)}
         >
-          <Flip file={file} page={page} dir={dir} onOpen={() => {
-            setViewer(page)
-            setOpen(false)
-          }} />
+          <p className="px-1 pb-1.5 text-[12px] font-medium text-muted-foreground">
+            {list.length === 1 ? <Trans>The page I read this on</Trans> : <Trans>The pages I read this on</Trans>}
+          </p>
+          <Track
+            file={file}
+            pages={list}
+            at={at}
+            onOpen={(p) => {
+              setViewer(p)
+              setOpen(false)
+            }}
+          />
           <div className="mt-1.5 flex items-center justify-between gap-1">
             {list.length > 1 ? (
               <button type="button" onClick={() => flip(-1)} aria-label={t`Previous page`} className={ARROW}>
@@ -118,13 +142,14 @@ export function Citation({ file, pages, className }: { file: File | null | undef
             ) : (
               <span className="size-7" />
             )}
-            <span className="text-[12px] font-semibold tabular-nums text-muted-foreground" aria-live="polite">
-              {list.length > 1 ? (
-                <Trans>
-                  p. {page} · {at + 1} of {list.length}
-                </Trans>
-              ) : (
-                <Trans>p. {page}</Trans>
+            <span className="flex flex-col items-center gap-1 text-[12px] font-semibold tabular-nums text-muted-foreground" aria-live="polite">
+              <Trans>Page {page}</Trans>
+              {list.length > 1 && (
+                <span aria-hidden className="flex gap-1">
+                  {list.map((p, i) => (
+                    <span key={p} className={cn("size-1.5 rounded-full transition-colors duration-200", i === at ? "bg-brand-500" : "bg-border")} />
+                  ))}
+                </span>
               )}
             </span>
             {list.length > 1 ? (
