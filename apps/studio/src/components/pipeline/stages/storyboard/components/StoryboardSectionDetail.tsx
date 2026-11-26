@@ -2449,8 +2449,11 @@ export function StoryboardSectionDetail({
 
     const leafPath = section ? findNodePath(section.nodes, dataId) : null
     const leaf = leafPath ? leafPath[leafPath.length - 1] : null
+    // A node in a pruned section is hidden whatever its own flag says; the
+    // audio inspector must not offer a save the server will reject.
+    const sectionPruned = section?.isPruned ?? false
     // A node under a pruned container is hidden whatever its own flag says.
-    const ancestorPruned = leafPath?.slice(0, -1).some((n) => n.isPruned) ?? false
+    const ancestorPruned = sectionPruned || (leafPath?.slice(0, -1).some((n) => n.isPruned) ?? false)
     const isImage =
       tag === "img" ||
       leaf?.role === "image" ||
