@@ -15,6 +15,7 @@ import { useLabDrive } from "./shared/labDrive"
 import { ReadingMessage } from "./shared/Reading"
 import { useAnswers } from "./shared/useAnswers"
 import { useCreateRun } from "./shared/useCreateRun"
+import { useFirstBook } from "./shared/useFirstBook"
 import { Bubble } from "./Bubble"
 import { CheckFlow } from "./check/CheckFlow"
 import { CheckBars, CheckRail } from "./check/CheckRail"
@@ -51,7 +52,8 @@ export function Guided({ onManual }: { onManual: () => void }) {
   const rec = run.status === "done" ? run.rec : null
   const failure = run.status === "failed" ? run.failure : null
   const chat = useAnswers(rec)
-  const check = useCheck(rec, chat, flow.pageCount)
+  const check = useCheck(rec, chat)
+  const firstBook = useFirstBook()
   const create = useCreateRun()
   const lastRun = create.runs[create.runs.length - 1]
   const values = useScreenValues(rec, chat.derived, flow.pageCount)
@@ -131,8 +133,8 @@ export function Guided({ onManual }: { onManual: () => void }) {
       says = <ReadingMessage file={flow.file!} pageCount={flow.pageCount} run={run} rec={rec} onManual={manual} />
     }
   } else if (shown === "check" && rec && chat.derived && values) {
-    swap = `check-${check.at}`
-    says = <CheckSays rec={rec} derived={chat.derived} screen={check.at} file={flow.file} pageCount={flow.pageCount} />
+    swap = `check-${check.at}-${check.trying}`
+    says = <CheckSays rec={rec} derived={chat.derived} screen={check.at} file={flow.file} pageCount={flow.pageCount} firstBook={firstBook} trying={check.trying} onTrying={check.setTrying} />
     panel = revealed && <CheckFlow rec={rec} chat={chat} check={check} values={values} file={flow.file} pageCount={flow.pageCount} locked={create.locked} onCreate={onCreate} onManual={manual} />
     aside = <CheckRail screens={check.screens} at={check.at} done={check.done} values={values} onGo={(s) => check.go(s)} />
     bars = <CheckBars screens={check.screens} at={check.at} done={check.done} />
@@ -159,11 +161,11 @@ export function Guided({ onManual }: { onManual: () => void }) {
 
         <div className="relative flex-1 overflow-y-auto overflow-x-hidden">
           {/* Check uses the width on wide screens: the list of its screens on the left, the screen on view beside it. The other steps stay one calm column. */}
-          <div className="mx-auto flex w-full max-w-[1120px] flex-col px-4 pb-24 pt-6 sm:px-6 sm:pt-8">
-            <div className="mx-auto w-full max-w-[760px]">
+          <div className="mx-auto flex w-full max-w-[1340px] flex-col px-4 pb-24 pt-6 sm:px-6 sm:pt-8">
+            <div className="mx-auto w-full max-w-[760px] lg:max-w-[980px]">
               <Stepper at={at} shown={shown} failed={!!failure && at === "reading"} locked={create.locked} complete={lastRun?.status === "done"} onGo={(s) => setView(s === at ? null : s)} checkBars={bars} />
             </div>
-            <div className={shown === "check" ? "mt-7 grid gap-4 lg:grid-cols-[210px_minmax(0,760px)] lg:justify-center lg:gap-x-10" : "mx-auto mt-7 w-full max-w-[760px]"}>
+            <div className={shown === "check" ? "mt-7 grid gap-4 lg:mt-9 lg:grid-cols-[250px_minmax(0,980px)] lg:justify-center lg:gap-x-12" : "mx-auto mt-7 w-full max-w-[760px] lg:mt-9 lg:max-w-[880px]"}>
               {aside}
               <div className="min-w-0">
                 <Bubble swap={swap} busy={busy}>

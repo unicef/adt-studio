@@ -1,64 +1,41 @@
-import { useState } from "react"
 import { useStore } from "@tanstack/react-form"
-import { Trans, useLingui } from "@lingui/react/macro"
+import { Trans } from "@lingui/react/macro"
 import { ArrowRight } from "lucide-react"
-import type { SetupRecommendation } from "@adt/types"
 import { PageThumb, ScopeField } from "../../../../core/fields/ScopeField"
 import { useWizardForm } from "../../../../core/wizardForm"
-import { defaultPageRange, skippedPages } from "../screens"
-import { SurePick } from "../SurePick"
-
-/** What the engine left out, in a line: "I left out the opening pages (2–7) and the end pages (50–52)." */
-function Skipped({ rec, pageCount }: { rec: SetupRecommendation; pageCount: number }) {
-  const { t } = useLingui()
-  const parts = skippedPages(rec, pageCount).map((s) => {
-    const pages = s.from === s.to ? String(s.from) : `${s.from}–${s.to}`
-    return s.why === "opening" ? t`the opening pages (${pages})` : t`the end pages (${pages})`
-  })
-  if (!parts.length) return <Trans>Nothing to leave out: every page is part of the book.</Trans>
-  const list = parts.join(t` and `)
-  return <Trans>I left out {list}.</Trans>
-}
 
 /**
- * Screen 3 · Pages to import: the engine's range (opening and end pages left out), shown as its
- * first and last page, with the wizard's own page picker under "Choose other pages". The range
- * lives in the wizard form, where creating the book and the step-by-step wizard read it.
+ * Screen · Pages to import: the user's pick (every page until they choose), with the wizard's own
+ * page picker. The assistant's line above asks a first-time user whether they're trying it out,
+ * and suggests a few pages for a large book.
  */
-export function PagesScreen({ rec, pageCount }: { rec: SetupRecommendation; pageCount: number }) {
+export function PagesScreen({ pageCount }: { pageCount: number }) {
   const form = useWizardForm()
-  const [open, setOpen] = useState(false)
   const file = useStore(form.store, (s) => s.values.file)
   const scope = useStore(form.store, (s) => s.values.scope)
   const start = parseInt(useStore(form.store, (s) => s.values.startPage)) || 1
   const end = parseInt(useStore(form.store, (s) => s.values.endPage)) || pageCount
-  const all = scope === "whole" || (start <= 1 && end >= pageCount)
   const first = scope === "range" ? start : 1
   const last = scope === "range" ? end : pageCount
-  const suggested = defaultPageRange(rec, pageCount)
-  const changed = scope === "split" || (all ? suggested.scope !== "whole" : suggested.scope === "whole" || start !== suggested.start || end !== suggested.end)
+  const chosen = scope === "range" ? end - start + 1 : pageCount
   return (
-    <SurePick
-      picture={
-        <span className="qd18-pv flex h-[150px] w-full shrink-0 items-center justify-center gap-3 rounded-[12px] sm:w-[240px]">
+    <div className="lc-surface flex flex-col gap-4 p-4 sm:p-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+        <span className="qd18-pv flex h-[150px] w-full shrink-0 items-center justify-center gap-3 rounded-[12px] sm:h-[160px] sm:w-[260px] lg:h-[200px] lg:w-[320px]">
           <PageThumb file={file} page={first} />
           <ArrowRight aria-hidden className="size-4 text-muted-foreground" />
           <PageThumb file={file} page={last} />
         </span>
-      }
-      label={<Trans>Pages to import</Trans>}
-      title={scope === "split" ? <Trans>Split into parts</Trans> : all ? <Trans>All {pageCount} pages</Trans> : <Trans>Pages {start}–{end}</Trans>}
-      hint={changed ? <Trans>Your choice of pages.</Trans> : <Skipped rec={rec} pageCount={pageCount} />}
-      changed={changed}
-      labelId="gd-pages"
-      open={open}
-      onToggle={() => setOpen((o) => !o)}
-      others
-      othersLabel={<Trans>Choose other pages</Trans>}
-    >
-      <div className="rounded-[14px] bg-[var(--lc-bubble)] p-3">
-        <ScopeField />
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="text-[14px] text-muted-foreground">
+            <Trans>This PDF has {pageCount} pages.</Trans>
+          </span>
+          <span className="text-[20px] font-semibold leading-tight tracking-[-0.01em]">
+            {scope === "split" ? <Trans>Split into parts</Trans> : scope === "range" && chosen < pageCount ? <Trans>Pages {start}–{end}</Trans> : <Trans>All {pageCount} pages</Trans>}
+          </span>
+        </div>
       </div>
-    </SurePick>
+      <ScopeField className="text-[14.5px]" />
+    </div>
   )
 }

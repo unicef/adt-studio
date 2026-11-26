@@ -10,6 +10,7 @@ import type { Answers } from "../shared/useAnswers"
 import { Morph } from "../Morph"
 import { ActivitiesScreen } from "./screens/ActivitiesScreen"
 import { KindScreen } from "./screens/KindScreen"
+import { LanguageScreen } from "./screens/LanguageScreen"
 import { LookScreen } from "./screens/LookScreen"
 import { NameScreen } from "./screens/NameScreen"
 import { PagesScreen } from "./screens/PagesScreen"
@@ -47,7 +48,8 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
   const { at, screens } = check
   const index = screens.indexOf(at)
   const last = at === "name"
-  const sure = screenSure(rec, derived.current, at)
+  // Pages is the user's own pick, so it just continues; the others are sure unless the engine asked.
+  const sure = at !== "pages" && screenSure(rec, derived.current, at)
   const create = useCreate(onCreate)
   const heading = useRef<HTMLHeadingElement>(null)
   const moved = useRef(false)
@@ -86,19 +88,20 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
 
   let body: ReactNode = null
   if (at === "kind") body = <KindScreen rec={rec} chat={chat} file={file} />
+  else if (at === "language") body = <LanguageScreen rec={rec} />
   else if (at === "look") body = <LookScreen rec={rec} chat={chat} file={file} />
-  else if (at === "pages") body = <PagesScreen rec={rec} pageCount={pageCount} />
+  else if (at === "pages") body = <PagesScreen pageCount={pageCount} />
   else if (at === "activities") body = <ActivitiesScreen rec={rec} chat={chat} file={file} />
   else body = <NameScreen screens={screens} values={values} onEdit={(s) => check.go(s, true)} />
 
   return (
     <section aria-labelledby={HEADING} inert={locked} className="flex flex-col">
-      <Morph swap={at} className="-mx-2" inner="flex flex-col gap-3 px-2 pb-2 pt-1">
+      <Morph swap={at} className="-mx-2" inner="flex flex-col gap-3 px-2 pb-2 pt-1 lg:gap-4">
         <div className="flex items-baseline justify-between gap-3 px-1">
-          <h2 id={HEADING} ref={heading} tabIndex={-1} className="rounded-md text-[19px] font-semibold tracking-[-0.015em] outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60">
+          <h2 id={HEADING} ref={heading} tabIndex={-1} className="rounded-md text-[19px] font-semibold lg:text-[24px] tracking-[-0.015em] outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60">
             {i18n._(SCREEN_TITLE[at])}
           </h2>
-          <span className="shrink-0 text-[13px] tabular-nums text-muted-foreground">
+          <span className="shrink-0 text-[13px] tabular-nums text-muted-foreground lg:text-[14.5px]">
             <Trans>
               {index + 1} of {screens.length}
             </Trans>
@@ -120,7 +123,7 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
             onClick={primary}
             disabled={locked}
             icon={last ? <Sparkles className="size-4" /> : sure ? <CheckIcon className="size-4" /> : undefined}
-            className={cn(LC_PRIMARY, "min-w-[148px]")}
+            className={cn(LC_PRIMARY, "min-w-[148px] lg:h-12 lg:min-w-[176px] lg:px-7 lg:text-[15.5px]")}
           >
             {last ? <Trans>Create book</Trans> : check.returning ? <Trans>Back to the summary</Trans> : sure ? <Trans>Looks right</Trans> : <Trans>Continue</Trans>}
           </PrimaryButton>

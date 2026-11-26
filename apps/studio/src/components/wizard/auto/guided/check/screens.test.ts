@@ -5,7 +5,7 @@ import spread from "../../lab/fixtures/spread-no-questions.json"
 import textbook from "../../lab/fixtures/textbook.json"
 import twoQuestions from "../../lab/fixtures/two-questions.json"
 import { proposedAnswers } from "../../engine/answers"
-import { CHECK_START, checkScreens, defaultPageRange, moveCheck, screenFacts, screenOf, screenSure, shownScreen, skippedPages, type CheckState, type ScreenId } from "./screens"
+import { bookLanguage, CHECK_START, checkScreens, moveCheck, screenFacts, screenOf, screenSure, shownScreen, type CheckState, type ScreenId } from "./screens"
 
 // The macros aren't compiled under vitest; the preset constants use them.
 vi.mock("@lingui/core/macro", () => ({ msg: (strings: TemplateStringsArray) => ({ id: strings.join("") }) }))
@@ -16,11 +16,11 @@ const ids = (rec: SetupRecommendation, screen: ScreenId) => screenFacts(rec, pro
 
 describe("which screens show", () => {
   it("leaves Activities out for a story the engine is sure of", () => {
-    expect(screensOf(as(spread))).toEqual(["kind", "look", "pages", "name"])
+    expect(screensOf(as(spread))).toEqual(["kind", "language", "look", "pages", "name"])
   })
 
   it("shows Activities for a school book, with both exercises and labelled pictures", () => {
-    expect(screensOf(as(textbook))).toEqual(["kind", "look", "pages", "activities", "name"])
+    expect(screensOf(as(textbook))).toEqual(["kind", "language", "look", "pages", "activities", "name"])
     expect(ids(as(textbook), "activities")).toEqual(["exercises", "diagrams"])
   })
 
@@ -50,7 +50,7 @@ describe("sure vs asked", () => {
   it("asks on the screens of the asked facts only", () => {
     const rec = as(twoQuestions)
     const sure = Object.fromEntries(screensOf(rec).map((s) => [s, screenSure(rec, proposedAnswers(rec), s)]))
-    expect(sure).toEqual({ kind: true, look: false, pages: true, activities: false, name: true })
+    expect(sure).toEqual({ kind: true, language: true, look: false, pages: true, activities: false, name: true })
     expect(screenSure(as(askKind), proposedAnswers(as(askKind)), "kind")).toBe(false)
   })
 
@@ -96,18 +96,10 @@ describe("moving through Check", () => {
   })
 })
 
-describe("pages to import", () => {
-  it("takes the engine's range, fitted to the PDF", () => {
-    expect(defaultPageRange(as(spread), 52)).toEqual({ scope: "range", start: 8, end: 49 })
-    expect(defaultPageRange(as(twoQuestions), 52)).toEqual({ scope: "range", start: 24, end: 52 })
-  })
-
-  it("is the whole book when the range covers it or there is none", () => {
-    expect(defaultPageRange({ ...as(spread), pageRange: null }, 52)).toEqual({ scope: "whole", start: 1, end: 52 })
-    expect(defaultPageRange({ ...as(spread), pageRange: { ...as(spread).pageRange!, start: 1, end: 60 } }, 52).scope).toBe("whole")
-  })
-
-  it("lists the pages left out within the PDF", () => {
-    expect(skippedPages(as(twoQuestions), 52)).toEqual([{ from: 2, to: 23, why: "opening" }])
+describe("book language", () => {
+  it("takes the engine's language, else what the PDF says", () => {
+    expect(bookLanguage({ ...as(spread), language: { code: "sq", source: "ai" } })).toBe("sq")
+    expect(bookLanguage({ ...as(spread), language: { code: null, source: null } })).toBeNull()
+    expect(bookLanguage({ ...as(spread), language: undefined, measured: { ...as(spread).measured, language: "pt" } })).toBe("pt")
   })
 })

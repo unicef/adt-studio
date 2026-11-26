@@ -120,6 +120,18 @@ export function breakTies(labels: Pick<PageLabelsReading, "facts" | "ties">, que
 }
 
 /** The parsed answers of both readings, kept with the recommendation (maximum transparency). */
+/**
+ * The book's language: what the questions reading saw on the pages (works on scans too), else the
+ * stop-word guess from the PDF's text, else the PDF's own language tag (often left at a default).
+ */
+export function bookLanguage(fromAi: string | null, measured: { pdfTag: string | null; guess: string | null }): SetupRecommendation["language"] {
+  const tag = measured.pdfTag ? (measured.pdfTag.toLowerCase().split(/[-_]/)[0] ?? null) : null
+  if (fromAi) return { code: fromAi, source: "ai" }
+  if (measured.guess) return { code: measured.guess, source: "text" }
+  if (tag && /^[a-z]{2}$/.test(tag)) return { code: tag, source: "pdf-tag" }
+  return { code: null, source: null }
+}
+
 function readingsRecord(labels: PageLabelsReading | null, questions: QuestionsReading | null): SetupReadings {
   return {
     labels: labels
@@ -141,6 +153,7 @@ function readingsRecord(labels: PageLabelsReading | null, questions: QuestionsRe
               return [id, { answer: a.answer, confidence: a.confidence, evidencePages: a.evidencePages, reason: a.reason }]
             }),
           ) as NonNullable<SetupReadings["questions"]>["answers"],
+          language: questions.language,
         }
       : null,
   }
@@ -253,6 +266,7 @@ export async function recommendSetup(opts: RecommendSetupOptions): Promise<Setup
       medianChars: measured.textDensity.medianChars,
       language: measured.language.pdfTag ?? measured.language.guess,
     },
+    language: bookLanguage(questions?.language ?? null, measured.language),
     facts,
     settings: toWire(decided),
     settingsByFacts: allCombinations(measured),

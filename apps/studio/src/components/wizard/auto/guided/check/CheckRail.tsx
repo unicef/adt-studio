@@ -40,7 +40,7 @@ export function CheckRail({ screens, at, done, values, onGo }: Props & { values:
                 disabled={!passed}
                 aria-current={current ? "step" : undefined}
                 className={cn(
-                  "flex w-full items-start gap-2.5 rounded-[12px] px-2.5 py-2 text-left transition-colors duration-200 disabled:cursor-default",
+                  "flex w-full items-start gap-2.5 rounded-[12px] px-2.5 py-2 text-left lg:px-3 lg:py-2.5 transition-colors duration-200 disabled:cursor-default",
                   current && "bg-[var(--lc-bubble)] shadow-[var(--lc-shadow)]",
                   passed && "hover:bg-[var(--lc-bubble)]",
                   !current && !passed && "text-muted-foreground/70",
@@ -55,8 +55,8 @@ export function CheckRail({ screens, at, done, values, onGo }: Props & { values:
                   {passed ? <Check className="size-3 stroke-[3]" /> : i + 1}
                 </span>
                 <span className="flex min-w-0 flex-col">
-                  <span className={cn("text-[14px] leading-tight", current && "font-semibold")}>{i18n._(SCREEN_TITLE[s])}</span>
-                  {passed && values[s] && <span className="mt-0.5 text-[12.5px] leading-snug text-muted-foreground">{values[s]}</span>}
+                  <span className={cn("text-[14px] leading-tight lg:text-[15.5px]", current && "font-semibold")}>{i18n._(SCREEN_TITLE[s])}</span>
+                  {passed && values[s] && <span className="mt-0.5 text-[12.5px] leading-snug text-muted-foreground lg:text-[13.5px]">{values[s]}</span>}
                   {passed && (
                     <span className="sr-only">
                       <Trans>(done, open again)</Trans>

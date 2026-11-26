@@ -1,16 +1,53 @@
 import { Trans, useLingui } from "@lingui/react/macro"
+import { getDisplayName } from "@/lib/languages"
 import type { SetupRecommendation } from "@adt/types"
 import { RULE_WHY } from "../../engine/words"
 import { Citation } from "../shared/Citation"
 import type { Derived } from "../shared/useAnswers"
+import { Chip } from "../shared/bubbles"
 import { ASK_WHY, KIND_SAYS } from "../shared/words"
-import { defaultPageRange, screenFacts, type ScreenId } from "./screens"
+import { LARGE_BOOK, screenFacts, type ScreenId } from "./screens"
+import { useBookLanguage } from "./screens/LanguageScreen"
 
 /**
  * The assistant's one line about the decision on screen: what it found and why (the rulebook's
- * reason), or why it asks. The first screen opens with the kind of book it found.
+ * reason), or why it asks. The first screen opens with the kind of book it found. On Pages it
+ * asks a first-time user whether they're just trying it out.
  */
-export function CheckSays({ rec, derived, screen, file, pageCount }: { rec: SetupRecommendation; derived: Derived; screen: ScreenId; file: File | null | undefined; pageCount: number }) {
+type Props = { rec: SetupRecommendation; derived: Derived; screen: ScreenId; file: File | null | undefined; pageCount: number; firstBook: boolean; trying: boolean | null; onTrying: (trying: boolean) => void }
+
+export function CheckSays(props: Props) {
+  if (props.screen === "language") return <LanguageSays rec={props.rec} />
+  return <Says {...props} />
+}
+
+function LanguageSays({ rec }: { rec: SetupRecommendation }) {
+  const { found, picked, changed } = useBookLanguage(rec)
+  if (changed && picked) {
+    const name = getDisplayName(picked)
+    return (
+      <p>
+        <Trans>I&apos;ll translate the text into {name}.</Trans>
+      </p>
+    )
+  }
+  if (!found)
+    return (
+      <p>
+        <Trans>I couldn&apos;t tell the book&apos;s language from the PDF, so I&apos;ll keep whatever language it&apos;s in.</Trans>
+      </p>
+    )
+  const name = getDisplayName(found)
+  return (
+    <p>
+      <Trans>
+        <strong className="font-semibold">Your book is in {name}.</strong> I&apos;ll keep it in {name}.
+      </Trans>
+    </p>
+  )
+}
+
+function Says({ rec, derived, screen, file, pageCount, firstBook, trying, onTrying }: Props) {
   const { i18n } = useLingui()
   const asked = screenFacts(rec, derived.current, screen).find((f) => f.ask)
   const ask = asked?.askReason ? ASK_WHY[asked.askReason] : undefined
@@ -50,16 +87,43 @@ export function CheckSays({ rec, derived, screen, file, pageCount }: { rec: Setu
     )
   }
   if (screen === "pages") {
-    const range = defaultPageRange(rec, pageCount)
+    if (firstBook && trying === null)
+      return (
+        <div className="flex flex-col gap-3">
+          <p>
+            <Trans>
+              <strong className="font-semibold">Is this your first book?</strong> Are you just trying ADT Studio out, or do you want this book converted?
+            </Trans>
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Chip onClick={() => onTrying(true)}>
+              <Trans>Just trying it out</Trans>
+            </Chip>
+            <Chip onClick={() => onTrying(false)}>
+              <Trans>I want this book</Trans>
+            </Chip>
+          </div>
+        </div>
+      )
+    if (trying)
+      return (
+        <p>
+          <Trans>
+            <strong className="font-semibold">Then a few pages are enough.</strong> Pick 5 to 10 pages below to see how the book comes out. Converting all of them takes longer and costs more.
+          </Trans>
+        </p>
+      )
+    if (pageCount > LARGE_BOOK)
+      return (
+        <p>
+          <Trans>
+            <strong className="font-semibold">This is a big book: {pageCount} pages.</strong> Converting all of them takes a while and uses more of your AI credit, so you may want to start with a few.
+          </Trans>
+        </p>
+      )
     return (
       <p>
-        {range.scope === "whole" ? (
-          <Trans>I&apos;d import all {pageCount} pages.</Trans>
-        ) : (
-          <Trans>
-            I&apos;d import pages {range.start}–{range.end}: the book itself, without the pages around it.
-          </Trans>
-        )}
+        <Trans>Pick the pages to convert. All {pageCount} are selected.</Trans>
       </p>
     )
   }

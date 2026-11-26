@@ -41,7 +41,7 @@ function LookCard({ rec, option, page, width, narrow, chosen, first, onPick, fil
       aria-label={`${option.label}. ${option.line}. ${describe(option.look, "desktop", pages)}`}
       className={cn("qd18-o group relative flex min-w-0 p-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500", narrow ? "flex-row items-center gap-3" : "flex-col", chosen && "is-sel")}
     >
-      <span className={cn("qd18-pv relative grid shrink-0 place-items-center overflow-hidden rounded-[12px]", narrow ? "h-[96px] w-[132px]" : "h-[150px]")}>
+      <span className={cn("qd18-pv relative grid shrink-0 place-items-center overflow-hidden rounded-[12px]", narrow ? "h-[96px] w-[132px]" : "h-[150px] lg:h-[200px]")}>
         <span className="qd18-dev">
           <Screen shown={option.look} srcs={srcs} width={width} />
         </span>
@@ -57,8 +57,8 @@ function LookCard({ rec, option, page, width, narrow, chosen, first, onPick, fil
             <Trans>My guess</Trans>
           </span>
         )}
-        <span className="text-[15px] font-medium leading-tight">{option.label}</span>
-        <span className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{option.line}</span>
+        <span className="text-[15px] font-medium leading-tight lg:text-[17px]">{option.label}</span>
+        <span className="mt-0.5 text-[13px] leading-snug text-muted-foreground lg:text-[14.5px]">{option.line}</span>
       </span>
     </button>
   )

@@ -1,31 +1,22 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import type { SetupRecommendation } from "@adt/types"
-import { useWizardForm } from "../../../core/wizardForm"
 import type { Answers } from "../shared/useAnswers"
-import { CHECK_START, checkScreens, defaultPageRange, moveCheck, shownScreen, type CheckAction, type CheckState, type ScreenId } from "./screens"
+import { CHECK_START, checkScreens, moveCheck, shownScreen, type CheckAction, type CheckState, type ScreenId } from "./screens"
 
 /**
  * Check's screens for one engine answer: which ones show, the one on view and the ones passed.
- * When the answer comes in, the engine's page range goes into the wizard form (where the
- * step-by-step wizard and creating the book read it), unless the user already chose pages.
+ * The pages to import are the user's to pick (all of them until they choose), so nothing goes
+ * into the form here. `trying` is the first-time user's answer on Pages: just trying it out (true),
+ * the whole book (false), or not answered.
  */
-export function useCheck(rec: SetupRecommendation | null, chat: Answers, pageCount: number) {
-  const form = useWizardForm()
+export function useCheck(rec: SetupRecommendation | null, chat: Answers) {
   const [state, setState] = useState<CheckState>(CHECK_START)
-  const ranged = useRef<string | null>(null)
+  const [trying, setTrying] = useState<boolean | null>(null)
 
   useEffect(() => {
     setState(CHECK_START)
-    if (!rec || ranged.current === rec.id || pageCount < 1) return
-    ranged.current = rec.id
-    if (form.state.values.scope !== "whole") return
-    const range = defaultPageRange(rec, pageCount)
-    if (range.scope === "whole") return
-    form.setFieldValue("scope", "range")
-    form.setFieldValue("startPage", String(range.start))
-    form.setFieldValue("endPage", String(range.end))
-  }, [rec?.id, pageCount])
-
+    setTrying(null)
+  }, [rec?.id])
   const screens: ScreenId[] = rec && chat.derived ? checkScreens(rec, chat.derived.current) : []
   const at = screens.length ? shownScreen(state, screens) : "kind"
   const move = (action: CheckAction) => setState((s) => moveCheck(s, action, screens))
@@ -45,6 +36,8 @@ export function useCheck(rec: SetupRecommendation | null, chat: Answers, pageCou
       move({ type: "end" })
     },
     jump: (to: ScreenId) => move({ type: "jump", to }),
+    trying,
+    setTrying,
   }
 }
 

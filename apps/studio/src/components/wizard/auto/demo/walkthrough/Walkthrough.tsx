@@ -289,13 +289,6 @@ function Labels({ rec, file }: { rec: SetupRecommendation; file: File | null }) 
           The model's own whole-book guess: <b className="text-foreground">{labels.bookGenre}</b> (not used; the count decides).
         </p>
       )}
-      {rec.pageRange && (
-        <Why>
-          The labels also give the pages to import: <b>pages {rec.pageRange.start}–{rec.pageRange.end}</b>
-          {rec.pageRange.keepCover && ", cover kept"}
-          {rec.pageRange.skipped.map((s) => `, skips ${s.from}–${s.to} (${s.why})`).join("")}. The user can always change the range.
-        </Why>
-      )}
     </Card>
   )
 }
@@ -305,7 +298,14 @@ function Questions({ rec, file }: { rec: SetupRecommendation; file: File | null 
   const answers = rec.readings?.questions?.answers
   return (
     <Card step="4" title="Reading B: four plain questions" kind="ai" aside={<span className="text-[12.5px] text-muted-foreground">the second opinion · {ms(rec.timings.questionsMs)}</span>}>
-      <p className="mb-3 max-w-[820px] text-[14px] text-muted-foreground">The model sees its pages together and answers four questions a teacher could answer from the paper book, picking one of the given answers and saying why in its own words. It is also told the measurement (for example, how much text sits on pictures).</p>
+      <p className="mb-3 max-w-[820px] text-[14px] text-muted-foreground">The model sees its pages together and answers four questions a teacher could answer from the paper book, and names the language of the words, picking one of the given answers and saying why in its own words. It is also told the measurement (for example, how much text sits on pictures).</p>
+      <p className="mb-3 text-[13.5px]">
+        Language it saw on the pages: <Tag tone="info">{rec.readings?.questions?.language ?? "—"}</Tag>{" "}
+        <span className="text-muted-foreground">
+          · used for the book: <b className="text-foreground">{rec.language?.code ?? rec.measured.language ?? "unknown"}</b>
+          {rec.language?.source && ` (from ${rec.language.source === "ai" ? "this reading" : rec.language.source === "text" ? "the PDF's text" : "the PDF's language tag"})`}
+        </span>
+      </p>
       {!rec.secondOpinion ? (
         <p className="text-[13.5px] text-muted-foreground">This reading did not finish.</p>
       ) : (
@@ -430,7 +430,7 @@ function Result({ rec, file }: { rec: SetupRecommendation; file: File | null }) 
           <Page file={file} page={rec.previewPage} width={96} />
         </div>
         <p className="max-w-[640px] text-[13px] text-muted-foreground">
-          {rec.pageRange ? `Pages ${rec.pageRange.start}–${rec.pageRange.end} are imported by default. ` : ""}
+          The user picks the pages to import (every page until they choose).{" "}
           The book is created with these settings and the recommendation id <code>{rec.id}</code>, so it remembers which run picked them. {rec.lockedSettings.length > 0 && `Fixed once created: ${rec.lockedSettings.map((id) => WIZARD_NAME[id]).join(", ")}.`}
         </p>
       </div>

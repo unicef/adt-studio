@@ -20,7 +20,8 @@ export {
   samplePlan,
   suggestRange,
   countLabels,
+  languageCode,
   type PageLabel,
   type RenderPages,
 } from "./readings.js"
-export { recommendSetup, factQuestions, breakTies, type FactQuestion, type RecommendSetupOptions } from "./recommend.js"
+export { recommendSetup, factQuestions, breakTies, bookLanguage, type FactQuestion, type RecommendSetupOptions } from "./recommend.js"

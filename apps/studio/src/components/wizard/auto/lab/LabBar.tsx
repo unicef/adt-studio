@@ -34,6 +34,12 @@ function Select({ control, value, onChange }: { control: LabControl; value: stri
   )
 }
 
+function Field({ settings, id, values, onChange }: { settings: LabControl[]; id: string; values: LabValues; onChange: (key: string, value: string) => void }) {
+  const control = settings.find((c) => c.key === id)
+  if (!control) return null
+  return <Select control={control} value={values[id] ?? control.default ?? control.options[0]!.value} onChange={(v) => onChange(id, v)} />
+}
+
 function Panel({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   return (
     <div className={`pointer-events-auto mb-2 max-h-[min(560px,70vh)] overflow-y-auto rounded-2xl bg-zinc-900/95 p-4 text-white shadow-[0_18px_48px_rgba(0,0,0,0.35)] ring-1 ring-white/10 backdrop-blur-md w-[min(440px,calc(100vw-32px))]`}>
@@ -145,16 +151,19 @@ export function LabBar({
         <Panel title="Lab settings" onClose={() => setOpen(false)}>
           <div className="flex flex-col gap-4">
             <Row label="Book answer" hint={note}>
-              <Select control={settings[0]!} value={values[settings[0]!.key]!} onChange={(v) => onChange(settings[0]!.key, v)} />
+              <Field settings={settings} id="book" values={values} onChange={onChange} />
             </Row>
             <div className="grid grid-cols-2 gap-3">
               <Row label="Speed" hint="When you drop a PDF on Start, or Replay.">
-                <Select control={settings[1]!} value={values[settings[1]!.key]!} onChange={(v) => onChange(settings[1]!.key, v)} />
+                <Field settings={settings} id="speed" values={values} onChange={onChange} />
               </Row>
               <Row label="Error" hint="Shown on the Error step (API key when none), and on Replay.">
-                <Select control={settings[2]!} value={values[settings[2]!.key]!} onChange={(v) => onChange(settings[2]!.key, v)} />
+                <Field settings={settings} id="error" values={values} onChange={onChange} />
               </Row>
             </div>
+            <Row label="Library" hint="Empty plays a first-time user: Pages asks if they're just trying it out.">
+              <Field settings={settings} id="library" values={values} onChange={onChange} />
+            </Row>
             <Row label="PDF">
               <div className="flex items-center gap-2">
                 <span className="min-w-0 flex-1 truncate text-[12.5px] text-white/80" title={pdfName ?? undefined}>

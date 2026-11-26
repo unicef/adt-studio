@@ -7,9 +7,9 @@ import type { useCreateRun } from "./useCreateRun"
 /** Where the flow is, in order, for the lab's stepper: Check is its screens. */
 export type FlowStep = "start" | "reading" | ScreenId | "creating" | "done" | "error"
 
-const ORDER: FlowStep[] = ["start", "reading", "kind", "look", "pages", "activities", "name", "creating", "done", "error"]
+const ORDER: FlowStep[] = ["start", "reading", "kind", "language", "look", "pages", "activities", "name", "creating", "done", "error"]
 
-const SCREENS: string[] = ["kind", "look", "pages", "activities", "name"]
+const SCREENS: string[] = ["kind", "language", "look", "pages", "activities", "name"]
 const isScreen = (step: string): step is ScreenId => SCREENS.includes(step)
 
 /**
@@ -17,7 +17,7 @@ const isScreen = (step: string): step is ScreenId => SCREENS.includes(step)
  * jumped to, so the flow opens that screen (the ones before it passed with the assistant's
  * guesses); `onStep` hears where the flow really is, also when the user clicks through it by hand.
  */
-export const LabDriveContext = createContext<{ target: FlowStep | null; onStep: (step: FlowStep) => void } | null>(null)
+export const LabDriveContext = createContext<{ target: FlowStep | null; onStep: (step: FlowStep) => void; library?: "empty" | "books" } | null>(null)
 
 const useDrive = () => useContext(LabDriveContext)
 

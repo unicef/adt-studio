@@ -2,12 +2,12 @@ import type { SetupBookFactId, SetupFact, SetupRecommendation } from "@adt/types
 import { askedFacts, factsThatMatter, settingsFor, type FactAnswers } from "../../engine/answers"
 
 /**
- * Check as small screens, one decision each: the kind of book, how the pages look, the pages to
- * import, the activities (school books, or when the engine asks about exercises or labelled
+ * Check as small screens, one decision each: the kind of book, its language, how the pages look,
+ * the pages to import, the activities (school books, or when the engine asks about exercises or labelled
  * pictures) and the name. Everything here is worked out from the engine's answer and the current
  * answers, so the screens follow the user's picks (another kind of book can bring Activities in).
  */
-export const SCREEN_IDS = ["kind", "look", "pages", "activities", "name"] as const
+export const SCREEN_IDS = ["kind", "language", "look", "pages", "activities", "name"] as const
 export type ScreenId = (typeof SCREEN_IDS)[number]
 
 const ACTIVITY_FACTS: SetupBookFactId[] = ["exercises", "diagrams"]
@@ -62,20 +62,12 @@ export function screenOf(fact: SetupBookFactId): ScreenId {
   return fact === "genre" ? "kind" : fact === "composition" ? "look" : "activities"
 }
 
-/** Pages to import by default: the engine's suggestion (opening and end pages left out), fitted to the PDF. */
-export function defaultPageRange(rec: SetupRecommendation, pageCount: number): { scope: "whole" | "range"; start: number; end: number } {
-  const whole = { scope: "whole" as const, start: 1, end: pageCount }
-  const range = rec.pageRange
-  if (!range || pageCount < 1) return whole
-  const start = Math.min(Math.max(1, range.start), pageCount)
-  const end = Math.min(Math.max(start, range.end), pageCount)
-  if (start <= 1 && end >= pageCount) return whole
-  return { scope: "range", start, end }
-}
+/** From this many pages a book is large: the Pages screen suggests trying a few pages first. */
+export const LARGE_BOOK = 50
 
-/** The pages the engine left out, fitted to the PDF (a range past its end is dropped). */
-export function skippedPages(rec: SetupRecommendation, pageCount: number): { from: number; to: number; why: "opening" | "end" }[] {
-  return (rec.pageRange?.skipped ?? []).filter((s) => s.from <= pageCount).map((s) => ({ ...s, to: Math.min(s.to, pageCount) }))
+/** The book's language from the engine: what the AI saw on the pages, else what the PDF's text or tag says. Null when nothing tells. */
+export function bookLanguage(rec: SetupRecommendation): string | null {
+  return rec.language ? rec.language.code : rec.measured.language
 }
 
 /** Where the user is in Check: the screen on view, the ones passed, and where Continue goes after an Edit from the summary. */

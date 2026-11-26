@@ -139,6 +139,8 @@ export interface QuestionsReading {
   pages: number[]
   answers: Record<BookFactId, QuestionAnswer>
   facts: BookFacts
+  /** The language most of the book's words are in, as an ISO 639-1 code; null when the pages show no words. */
+  language: string | null
   usage: TokenUsage
   ms: number
   uploadBytes: number
@@ -157,6 +159,9 @@ const QuestionsSchema = z.object({
   exercises: answerSchema("exercises"),
   composition: answerSchema("composition"),
   diagrams: answerSchema("diagrams"),
+  language: z
+    .string()
+    .describe('The language most of the book\'s words are written in, as a two-letter ISO 639-1 code (for example "en", "pt", "es", "fr", "sq"). "none" when the shown pages have no words.'),
 })
 
 function questionsContext(b: BookProfile, f: MeasuredFacts, pages: number[]): string {
@@ -209,17 +214,25 @@ export async function readQuestions(opts: {
     signal: opts.signal,
     log: { taskType: "setup-recommender", promptName: "setup-recommender-questions" },
   })
-  const answers = res.object as Record<BookFactId, QuestionAnswer>
+  const { language, ...rest } = res.object
+  const answers = rest as Record<BookFactId, QuestionAnswer>
   for (const id of BOOK_FACT_IDS) answers[id].evidencePages = answers[id].evidencePages.filter((p) => pages.includes(p))
   const facts = Object.fromEntries(BOOK_FACT_IDS.map((id) => [id, answers[id].answer])) as unknown as BookFacts
   return {
     pages,
     answers,
     facts,
+    language: languageCode(language),
     usage: res.usage ?? { inputTokens: 0, outputTokens: 0 },
     ms: performance.now() - started,
     uploadBytes,
   }
+}
+
+/** A two-letter language code from the model's answer, or null ("none", or anything that isn't a code). */
+export function languageCode(answer: string | undefined): string | null {
+  const code = (answer ?? "").trim().toLowerCase().split(/[-_]/)[0] ?? ""
+  return /^[a-z]{2}$/.test(code) ? code : null
 }
 
 // ---------------------------------------------------------------------------

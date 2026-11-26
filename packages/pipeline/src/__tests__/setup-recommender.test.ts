@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest"
 import type { BookProfile } from "@adt/pdf"
 import { measureFacts, type MeasuredFacts } from "../setup-recommender/facts.js"
 import { decide, factMatters, type BookFacts } from "../setup-recommender/rules.js"
-import { breakTies, factQuestions } from "../setup-recommender/recommend.js"
-import { countLabels, PLACEMENTS, PLAIN_QUESTIONS, samplePlan, suggestRange, type PageLabel } from "../setup-recommender/readings.js"
+import { bookLanguage, breakTies, factQuestions } from "../setup-recommender/recommend.js"
+import { countLabels, languageCode, PLACEMENTS, PLAIN_QUESTIONS, samplePlan, suggestRange, type PageLabel } from "../setup-recommender/readings.js"
 
 const measured = (over: Partial<MeasuredFacts> = {}): MeasuredFacts => ({
   pageStorage: { value: "single-pages", via: null, evidence: [], seams: 0, pairs: 5, wideShare: 0 },
@@ -214,5 +214,23 @@ describe("split spreads", () => {
 
   it("keeps single pages for a text book with an occasional full-page picture", () => {
     expect(measureFacts(bookOf("P" + "TTTPTTTTTTPTTTTTTTPTTTTT" + "-")).pageStorage.value).toBe("single-pages")
+  })
+})
+
+describe("book language", () => {
+  it("reads a two-letter code from the model's answer", () => {
+    expect(languageCode("pt")).toBe("pt")
+    expect(languageCode(" ES ")).toBe("es")
+    expect(languageCode("pt-BR")).toBe("pt")
+    expect(languageCode("none")).toBeNull()
+    expect(languageCode("Portuguese")).toBeNull()
+    expect(languageCode(undefined)).toBeNull()
+  })
+
+  it("prefers the AI, then the text guess, then the PDF tag", () => {
+    expect(bookLanguage("sq", { pdfTag: "en-US", guess: "en" })).toEqual({ code: "sq", source: "ai" })
+    expect(bookLanguage(null, { pdfTag: "en-US", guess: "es" })).toEqual({ code: "es", source: "text" })
+    expect(bookLanguage(null, { pdfTag: "en-US", guess: null })).toEqual({ code: "en", source: "pdf-tag" })
+    expect(bookLanguage(null, { pdfTag: null, guess: null })).toEqual({ code: null, source: null })
   })
 })

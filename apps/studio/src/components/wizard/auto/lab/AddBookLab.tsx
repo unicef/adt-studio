@@ -20,6 +20,7 @@ const FLOW: StepItem[] = [
   { id: "start", label: "Start" },
   { id: "reading", label: "Reading" },
   { id: "kind", label: "Kind" },
+  { id: "language", label: "Language" },
   { id: "look", label: "Look" },
   { id: "pages", label: "Pages" },
   { id: "activities", label: "Activities" },
@@ -32,6 +33,16 @@ const FLOW: StepItem[] = [
 const SETTINGS: LabControl[] = [
   { key: "book", label: "Book answer", default: "two-questions", options: SCENARIOS.map((s) => ({ value: s.id, label: s.label })) },
   { key: "speed", label: "Speed", default: "normal", options: [{ value: "fast", label: "Fast" }, { value: "normal", label: "Normal" }, { value: "slow", label: "Slow" }, { value: "hold", label: "Never" }] },
+  {
+    key: "library",
+    label: "Library",
+    default: "auto",
+    options: [
+      { value: "auto", label: "Real library" },
+      { value: "empty", label: "Empty (first book)" },
+      { value: "books", label: "Has books" },
+    ],
+  },
   {
     key: "error",
     label: "Error",
@@ -135,7 +146,8 @@ export default function AddBookLab() {
     },
     [set],
   )
-  const drive = useMemo(() => ({ target: mode === "play" ? null : mode, onStep }), [mode, onStep])
+  const library = values.library === "empty" || values.library === "books" ? (values.library as "empty" | "books") : undefined
+  const drive = useMemo(() => ({ target: mode === "play" ? null : mode, onStep, library }), [mode, onStep, library])
 
   const onChange = (key: string, value: string) => {
     if (key === "step") return goTo(value as FlowStep)

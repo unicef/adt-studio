@@ -1,10 +1,11 @@
 import { useStore } from "@tanstack/react-form"
 import { useLingui } from "@lingui/react/macro"
 import type { SetupRecommendation } from "@adt/types"
+import { getDisplayName } from "@/lib/languages"
 import { useWizardForm } from "../../../core/wizardForm"
 import type { Derived } from "../shared/useAnswers"
 import { plainTitle } from "../shared/words"
-import { activityFacts, type ScreenId } from "./screens"
+import { activityFacts, bookLanguage, type ScreenId } from "./screens"
 
 /** What each screen settled, in a few words, for the list of screens and the summary. */
 export function useScreenValues(rec: SetupRecommendation | null, derived: Derived | null, pageCount: number): Record<ScreenId, string> | null {
@@ -13,6 +14,7 @@ export function useScreenValues(rec: SetupRecommendation | null, derived: Derive
   const scope = useStore(form.store, (s) => s.values.scope)
   const start = parseInt(useStore(form.store, (s) => s.values.startPage)) || 1
   const end = parseInt(useStore(form.store, (s) => s.values.endPage)) || pageCount
+  const editing = useStore(form.store, (s) => s.values.editingLanguage).trim()
   if (!rec || !derived) return null
   const plain = (id: Parameters<typeof plainTitle>[0]) => {
     const words = plainTitle(id, derived.effective[id]?.value)
@@ -26,6 +28,8 @@ export function useScreenValues(rec: SetupRecommendation | null, derived: Derive
   ]
     .filter(Boolean)
     .join(" · ")
+  const found = bookLanguage(rec)
+  const language = editing ? getDisplayName(editing) : found ? getDisplayName(found) : t`The book's own`
   // eslint-disable-next-line lingui/no-unlocalized-strings -- setting ids
-  return { kind: plain("preset"), look: plain("renderStrategy"), pages, activities, name: "" }
+  return { kind: plain("preset"), language, look: plain("renderStrategy"), pages, activities, name: "" }
 }

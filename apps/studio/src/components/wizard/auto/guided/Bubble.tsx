@@ -17,7 +17,7 @@ export function Bubble({ swap, busy, children }: { swap: string; busy?: boolean;
         <span className="sr-only">
           <Trans>ADT Assistant:</Trans>
         </span>
-        <Morph swap={swap} className="gd-bubble lc-bubble rounded-tl-[8px]" inner="px-5 py-4 text-[15.5px] leading-[1.55]">
+        <Morph swap={swap} className="gd-bubble lc-bubble rounded-tl-[8px]" inner="px-5 py-4 text-[15.5px] leading-[1.55] lg:px-6 lg:py-5 lg:text-[17px]">
           {children}
         </Morph>
       </div>

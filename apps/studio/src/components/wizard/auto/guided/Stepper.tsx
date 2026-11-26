@@ -38,7 +38,7 @@ export function Stepper({ at, shown, failed, locked, complete, onGo, checkBars }
                   onClick={() => onGo(step)}
                   disabled={!canGo}
                   aria-current={onScreen ? "step" : undefined}
-                  className={cn("group flex items-center gap-2 rounded-full py-1 pl-1 pr-3 text-[14px] transition-colors duration-200 disabled:cursor-default", !onScreen && "max-sm:pr-1", canGo && "hover:bg-[var(--lc-bubble)]", onScreen ? "font-semibold text-foreground" : done ? "text-foreground/80" : "text-muted-foreground")}
+                  className={cn("group flex items-center gap-2 rounded-full py-1 pl-1 pr-3 text-[14px] transition-colors lg:text-[15.5px] duration-200 disabled:cursor-default", !onScreen && "max-sm:pr-1", canGo && "hover:bg-[var(--lc-bubble)]", onScreen ? "font-semibold text-foreground" : done ? "text-foreground/80" : "text-muted-foreground")}
                 >
                   <span
                     className={cn(

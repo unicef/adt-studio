@@ -117,6 +117,8 @@ export const SetupReadings = z.object({
     .object({
       pages: z.array(z.number().int()),
       answers: z.record(SetupBookFactId, SetupQuestionAnswer),
+      /** The language the reading saw on the pages (ISO 639-1), null when none. Optional: older runs don't have it. */
+      language: z.string().nullable().optional(),
     })
     .nullable(),
 })
@@ -147,6 +149,16 @@ export const SetupRecommendation = z.object({
     medianChars: z.number(),
     language: z.string().nullable(),
   }),
+  /**
+   * The book's language (ISO 639-1) and where it came from: the questions reading, the PDF's text,
+   * or the PDF's language tag. Null when nothing tells. Optional: older runs don't have it.
+   */
+  language: z
+    .object({
+      code: z.string().nullable(),
+      source: z.enum(["ai", "text", "pdf-tag"]).nullable(),
+    })
+    .optional(),
   facts: z.array(SetupFact),
   /** Settings for the facts as proposed. */
   settings: SetupDecided,
