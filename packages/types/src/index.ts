@@ -794,3 +794,17 @@ export * from "./history-recovery.js"
 export { PackageOwnershipReceipt, DerivedWebpubFiles } from "./package-ownership.js"
 
 export { type TextDirection, getTextDirection } from "./text-direction.js"
+
+export {
+  SetupBookFactId,
+  SetupSettingId,
+  SetupSettings,
+  SetupSettingPick,
+  SetupDecided,
+  SetupFact,
+  SetupPageRange,
+  SetupQuestionAnswer,
+  SetupReadings,
+  SetupRecommendation,
+  setupFactsKey,
+} from "./setup-recommendation.js"

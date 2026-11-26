@@ -616,3 +616,13 @@ export { isPublicOutputId, publicOutputOwners, ambiguousPublicOutputIds, ambiguo
 export { storyboardSourceWarnings, captureStoryboardSource, publishSynchronizedStoryboardText } from "./storyboard-source-state.js"
 
 export { assertDerivedPackageFilesAvailable } from "./packaging/derived-bundle-files.js"
+
+// Auto mode (issue #333, experiment lane): setup recommender engine E3.
+export {
+  recommendSetup,
+  measureFacts,
+  decide as decideSetup,
+  type RecommendSetupOptions,
+  type MeasuredFacts,
+  type RenderPages,
+} from "./setup-recommender/index.js"

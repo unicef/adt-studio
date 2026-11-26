@@ -14,6 +14,7 @@ import { Route as AppRouteImport } from "./routes/_app"
 import { Route as AppIndexRouteImport } from "./routes/_app.index"
 import { Route as PromptsSettingsRouteImport } from "./routes/prompts.settings"
 import { Route as DevPublishLoadersRouteImport } from "./routes/dev.publish-loaders"
+import { Route as DevAutoModeRouteImport } from "./routes/dev.auto-mode"
 import { Route as BooksNewRouteImport } from "./routes/books.new"
 import { Route as BooksImportRouteImport } from "./routes/books.import"
 import { Route as BooksLabelRouteImport } from "./routes/books.$label"
@@ -58,6 +59,11 @@ const PromptsSettingsRoute = PromptsSettingsRouteImport.update({
 const DevPublishLoadersRoute = DevPublishLoadersRouteImport.update({
   id: "/dev/publish-loaders",
   path: "/dev/publish-loaders",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DevAutoModeRoute = DevAutoModeRouteImport.update({
+  id: "/dev/auto-mode",
+  path: "/dev/auto-mode",
   getParentRoute: () => rootRouteImport,
 } as any)
 const BooksNewRoute = BooksNewRouteImport.update({
@@ -176,6 +182,7 @@ export interface FileRoutesByFullPath {
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
+  "/dev/auto-mode": typeof DevAutoModeRoute
   "/dev/publish-loaders": typeof DevPublishLoadersRoute
   "/prompts/settings": typeof PromptsSettingsRoute
   "/settings/about": typeof AppSettingsAboutRoute
@@ -200,6 +207,7 @@ export interface FileRoutesByTo {
   "/library": typeof AppLibraryRoute
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
+  "/dev/auto-mode": typeof DevAutoModeRoute
   "/dev/publish-loaders": typeof DevPublishLoadersRoute
   "/prompts/settings": typeof PromptsSettingsRoute
   "/": typeof AppIndexRoute
@@ -228,6 +236,7 @@ export interface FileRoutesById {
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
+  "/dev/auto-mode": typeof DevAutoModeRoute
   "/dev/publish-loaders": typeof DevPublishLoadersRoute
   "/prompts/settings": typeof PromptsSettingsRoute
   "/_app/": typeof AppIndexRoute
@@ -258,6 +267,7 @@ export interface FileRouteTypes {
     | "/books/$label"
     | "/books/import"
     | "/books/new"
+    | "/dev/auto-mode"
     | "/dev/publish-loaders"
     | "/prompts/settings"
     | "/settings/about"
@@ -282,6 +292,7 @@ export interface FileRouteTypes {
     | "/library"
     | "/books/import"
     | "/books/new"
+    | "/dev/auto-mode"
     | "/dev/publish-loaders"
     | "/prompts/settings"
     | "/"
@@ -309,6 +320,7 @@ export interface FileRouteTypes {
     | "/books/$label"
     | "/books/import"
     | "/books/new"
+    | "/dev/auto-mode"
     | "/dev/publish-loaders"
     | "/prompts/settings"
     | "/_app/"
@@ -335,6 +347,7 @@ export interface RootRouteChildren {
   BooksLabelRoute: typeof BooksLabelRouteWithChildren
   BooksImportRoute: typeof BooksImportRoute
   BooksNewRoute: typeof BooksNewRoute
+  DevAutoModeRoute: typeof DevAutoModeRoute
   DevPublishLoadersRoute: typeof DevPublishLoadersRoute
   PromptsSettingsRoute: typeof PromptsSettingsRoute
 }
@@ -374,6 +387,13 @@ declare module "@tanstack/react-router" {
       path: "/dev/publish-loaders"
       fullPath: "/dev/publish-loaders"
       preLoaderRoute: typeof DevPublishLoadersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/dev/auto-mode": {
+      id: "/dev/auto-mode"
+      path: "/dev/auto-mode"
+      fullPath: "/dev/auto-mode"
+      preLoaderRoute: typeof DevAutoModeRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/books/new": {
@@ -608,6 +628,7 @@ const rootRouteChildren: RootRouteChildren = {
   BooksLabelRoute: BooksLabelRouteWithChildren,
   BooksImportRoute: BooksImportRoute,
   BooksNewRoute: BooksNewRoute,
+  DevAutoModeRoute: DevAutoModeRoute,
   DevPublishLoadersRoute: DevPublishLoadersRoute,
   PromptsSettingsRoute: PromptsSettingsRoute,
 }
