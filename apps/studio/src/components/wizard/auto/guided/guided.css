@@ -100,15 +100,15 @@ body:has([data-lab-toolbar]) .gd-foot { bottom: 84px; }
 .gd-ai[data-mood="talking"] .gd-ai-mouth { opacity: 1; }
 .gd-ai[data-mood="talking"] .gd-ai-smile { opacity: 0; }
 .gd-ai-ring { position: absolute; inset: 0; border-radius: 9999px; opacity: 0; box-shadow: 0 0 0 2px color-mix(in oklab, var(--brand-500) 55%, transparent); }
-@keyframes gd-ai-breathe { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-1.5px) scale(1.03); } }
+@keyframes gd-ai-breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-0.75px); } }
 @keyframes gd-ai-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
 /* Talking: the mouth opens and closes at a speech-like, uneven pace; the body nods; a ring ripples out. */
 .gd-ai[data-mood="talking"] .gd-ai-mouth { animation: gd-ai-talk 0.62s ease-in-out infinite; }
 .gd-ai[data-mood="talking"] .gd-ai-body { animation: gd-ai-nod 0.62s ease-in-out infinite; }
 .gd-ai[data-mood="talking"] .gd-ai-ring { animation: gd-ai-ripple 1.3s ease-out infinite; }
-@keyframes gd-ai-talk { 0% { transform: scaleY(0.4); } 20% { transform: scaleY(1.9) scaleX(0.9); } 38% { transform: scaleY(0.7); } 55% { transform: scaleY(1.5); } 72% { transform: scaleY(0.5); } 86% { transform: scaleY(1.2) scaleX(0.95); } 100% { transform: scaleY(0.4); } }
-@keyframes gd-ai-nod { 0%, 100% { transform: translateY(0) rotate(0); } 30% { transform: translateY(-1px) rotate(-2deg); } 65% { transform: translateY(0.5px) rotate(1.5deg); } }
-@keyframes gd-ai-ripple { 0% { transform: scale(1); opacity: 0.7; } 100% { transform: scale(1.55); opacity: 0; } }
+@keyframes gd-ai-talk { 0% { transform: scaleY(0.5); } 25% { transform: scaleY(1.35); } 50% { transform: scaleY(0.7); } 75% { transform: scaleY(1.15); } 100% { transform: scaleY(0.5); } }
+@keyframes gd-ai-nod { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-0.5px); } }
+@keyframes gd-ai-ripple { 0% { transform: scale(1); opacity: 0.35; } 100% { transform: scale(1.25); opacity: 0; } }
 /* Thinking: the eyes read from side to side, the ring breathes. */
 .gd-ai[data-mood="thinking"] .gd-ai-eyes { animation: gd-ai-read 1.6s ease-in-out infinite; }
 
@@ -153,10 +153,10 @@ body:has([data-lab-toolbar]) .gd-foot { bottom: 84px; }
   transition: left 0.5s var(--lc-drawer), top 0.5s var(--lc-drawer), width 0.5s var(--lc-drawer), height 0.5s var(--lc-drawer);
 }
 .dark .gd-tour-hole { box-shadow: 0 0 0 3px var(--brand-400), 0 0 0 200vmax rgb(0 0 0 / 0.72); }
-.gd-tour-coach { transition: left 0.5s var(--lc-drawer), top 0.5s var(--lc-drawer); }
-.gd-tour-orb { filter: drop-shadow(0 8px 18px rgb(43 127 255 / 0.45)); }
+.gd-tour-coach { transition: left 0.6s var(--lc-out), top 0.6s var(--lc-out); }
+.gd-tour-orb { filter: drop-shadow(0 6px 14px rgb(43 127 255 / 0.3)); }
 /* The speech bubble points back at the assistant, and pops out of it. */
-.gd-speech { box-shadow: 0 22px 50px -16px rgb(0 0 0 / 0.5); animation: gd-speech-in 0.42s var(--lc-pop) both; }
+.gd-speech { box-shadow: 0 22px 50px -16px rgb(0 0 0 / 0.5); animation: gd-speech-in 0.3s var(--lc-out) both; }
 .gd-speech-tail { position: absolute; width: 18px; height: 18px; background: inherit; border-radius: 3px; transform: rotate(45deg); }
 .gd-speech[data-side="right"] { transform-origin: left center; }
 .gd-speech[data-side="right"] .gd-speech-tail { left: -6px; top: calc(50% - 9px); }
@@ -168,7 +168,7 @@ body:has([data-lab-toolbar]) .gd-foot { bottom: 84px; }
 .gd-speech[data-side="above"] .gd-speech-tail { bottom: -6px; left: 19px; }
 .gd-speech[data-side="center"] { transform-origin: center top; }
 .gd-speech[data-side="center"] .gd-speech-tail { top: -6px; left: calc(50% - 9px); }
-@keyframes gd-speech-in { from { opacity: 0; transform: scale(0.82); } }
+@keyframes gd-speech-in { from { opacity: 0; transform: translateY(4px) scale(0.98); } }
 @media (prefers-reduced-motion: reduce) { .gd-tour-hole, .gd-tour-coach { transition: none; } .gd-speech { animation: none; } }
 .reduce-effects :is(.gd-tour-hole, .gd-tour-coach) { transition: none; }
 .reduce-effects .gd-speech { animation: none; }

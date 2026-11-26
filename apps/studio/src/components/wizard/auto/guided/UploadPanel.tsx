@@ -214,7 +214,7 @@ export function UploadPanel({ flow, rejected, onContinue, tour, onTour, onTourDo
       side: "center",
       says: (
         <Trans>
-          <strong className="font-semibold">Hi! I&apos;m the ADT Assistant.</strong> I&apos;ll help you turn a PDF into an accessible digital book. Let me show you how it goes.
+          <strong className="font-semibold">Hi! I&apos;m the ADT Assistant.</strong> I&apos;m here to help you pick the best settings for your book. For now I help only here, when you add a book; later I&apos;ll help in other parts of ADT Studio too. Let me show you how it goes.
         </Trans>
       ),
     },
