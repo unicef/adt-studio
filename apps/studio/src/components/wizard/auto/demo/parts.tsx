@@ -19,7 +19,7 @@ export function Card({ step, title, kind, children, className, aside }: { step?:
   )
 }
 
-export function Kind({ kind }: { kind: "measure" | "ai" | "rules" | "user" }) {
+function Kind({ kind }: { kind: "measure" | "ai" | "rules" | "user" }) {
   const map = {
     measure: ["No AI · mupdf", "bg-slate-100 text-slate-700 dark:bg-slate-500/15 dark:text-slate-300"],
     ai: ["AI call", "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300"],

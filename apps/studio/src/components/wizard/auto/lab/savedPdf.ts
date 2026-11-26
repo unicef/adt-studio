@@ -31,27 +31,28 @@ async function tx<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => I
   }
 }
 
-export async function loadSavedPdf(): Promise<File | null> {
+/** `key` keeps separate slots (the lab, the engine demo). */
+export async function loadSavedPdf(key = KEY): Promise<File | null> {
   try {
-    const saved = await tx<Saved | undefined>("readonly", (s) => s.get(KEY))
+    const saved = await tx<Saved | undefined>("readonly", (s) => s.get(key))
     return saved ? new File([saved.blob], saved.name, { type: saved.type, lastModified: saved.lastModified }) : null
   } catch {
     return null
   }
 }
 
-export async function savePdf(file: File): Promise<void> {
+export async function savePdf(file: File, key = KEY): Promise<void> {
   try {
     const saved: Saved = { name: file.name, type: file.type, lastModified: file.lastModified, blob: file }
-    await tx("readwrite", (s) => s.put(saved, KEY))
+    await tx("readwrite", (s) => s.put(saved, key))
   } catch {
     /* storage blocked: the PDF only lasts until reload */
   }
 }
 
-export async function forgetSavedPdf(): Promise<void> {
+export async function forgetSavedPdf(key = KEY): Promise<void> {
   try {
-    await tx("readwrite", (s) => s.delete(KEY))
+    await tx("readwrite", (s) => s.delete(key))
   } catch {
     /* nothing to forget */
   }

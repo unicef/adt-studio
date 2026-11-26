@@ -8,11 +8,11 @@ import { RULE_WHY } from "../engine/words"
 import { Card, Pages, Tag, WIZARD_NAME, wizardValue } from "./parts"
 
 /**
- * Step 3 as a playground: the four facts go in, the six settings come out. The engine sends the
+ * The rulebook as a playground: the four facts go in, the six settings come out. The engine sends the
  * settings for every combination (`settingsByFacts`), so changing a fact here just looks one up,
  * which is exactly what the Add Book screen does when the user answers a question.
  */
-export function Rulebook({ rec, file }: { rec: SetupRecommendation; file: File | null }) {
+export function Rulebook({ step, rec, file }: { step: string; rec: SetupRecommendation; file: File | null }) {
   const { i18n } = useLingui()
   const proposed = proposedAnswers(rec)
   const [answers, setAnswers] = useState<FactAnswers>(proposed)
@@ -23,7 +23,7 @@ export function Rulebook({ rec, file }: { rec: SetupRecommendation; file: File |
 
   return (
     <Card
-      step="3"
+      step={step}
       title="Rulebook: facts → settings"
       kind="rules"
       aside={
