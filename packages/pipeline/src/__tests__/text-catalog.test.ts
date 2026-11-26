@@ -5,6 +5,7 @@ import {
   extractTextCatalogEntriesFromHtml,
   exportedActivityCatalogIds,
 } from "../text-catalog.js"
+import { collectElementAudioTextIds } from "../element-audio-ids.js"
 
 function createMockStorage(
   nodeData: Record<string, Record<string, unknown>>,
@@ -821,6 +822,39 @@ describe("buildTextCatalog — element-audio (SPEC-0014)", () => {
 
     const entry = (await buildTextCatalog(storage, [page])).entries.find((item) => item.id === "pg001_im001_audio")
     expect(entry?.locations).toEqual([{ pageId: "pg001", sectionId: "pg001_fixture_0", role: "element-audio" }])
+  })
+
+  it("AC-24: a non-image artifact row is neither catalogued nor classified as authored", async () => {
+    const storage = createMockStorage({
+      "web-rendering": {
+        pg001: {
+          sections: [{
+            sectionIndex: 0,
+            sectionType: "content",
+            reasoning: "",
+            html: '<section><p data-id="pg001_t001">Body</p></section>',
+          }],
+        },
+      },
+      ...artifactFixture([{ nodeId: "pg001_t001", text: "Mago" }]),
+    })
+
+    const result = await buildTextCatalog(storage, [page])
+
+    expect(result.entries.find((entry) => entry.id === "pg001_t001_audio")).toBeUndefined()
+    expect(collectElementAudioTextIds(storage).has("pg001_t001_audio")).toBe(false)
+  })
+
+  it("AC-24: a cleared script is neither catalogued nor classified as authored", async () => {
+    const storage = createMockStorage({
+      ...renderingFixture(),
+      ...artifactFixture([{ nodeId: "pg001_im001", text: "   " }]),
+    })
+
+    const result = await buildTextCatalog(storage, [page])
+
+    expect(result.entries.find((entry) => entry.id === "pg001_im001_audio")).toBeUndefined()
+    expect(collectElementAudioTextIds(storage).has("pg001_im001_audio")).toBe(false)
   })
 
   it("AC-6: rebuilds re-emit the entry from the artifact", async () => {

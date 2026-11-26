@@ -14,7 +14,6 @@ import type {
 } from "@adt/types"
 import {
   ELEMENT_AUDIO_NODE,
-  ElementAudioEntry as ElementAudioEntrySchema,
   WebRenderingOutput as WebRenderingOutputSchema,
   answerTextId,
   elementAudioTextId,
@@ -23,6 +22,7 @@ import {
   withResolvedQuizIds,
 } from "@adt/types"
 import type { Storage, PageData } from "@adt/storage"
+import { authoredElementAudioEntries } from "./element-audio-ids.js"
 import { getGlossaryItemTextId } from "./glossary.js"
 import { withLegacyRenderingOwnership, getRenderSectioning, renderedSectionId, resolveRenderedSection } from "./render-sectioning.js"
 import { pad3, textContentExcludingScripts } from "./html-text.js"
@@ -356,7 +356,11 @@ interface ElementAudioLocation {
  * move between pages (`pages.ts` move-section). The derived catalog follows
  * the element's current location, not the artifact's page key.
  */
-function buildElementLocationIndex(storage: Storage, pages: PageData[]): Map<string, ElementAudioLocation> {
+function buildElementLocationIndex(
+  storage: Storage,
+  pages: PageData[],
+  options?: { includePruned?: boolean },
+): Map<string, ElementAudioLocation> {
   const index = new Map<string, ElementAudioLocation>()
   for (const page of pages) {
     const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
@@ -369,7 +373,8 @@ function buildElementLocationIndex(storage: Storage, pages: PageData[]): Map<str
     const sectioning = getRenderSectioning(storage, page.pageId)
     for (const renderedSection of rendering.sections) {
       const section = resolveRenderedSection(renderedSection, sectioning?.sections ?? [], rendering.sections)
-      if (!section || section.isPruned) continue
+      if (!section) continue
+      if (section.isPruned && !options?.includePruned) continue
       const sectionId = renderedSectionId(renderedSection)
       if (!sectionId) continue
       const doc = parseDocument(renderedSection.html)
@@ -409,25 +414,15 @@ function loadElementAudioEntries(
   const row = storage.getLatestNodeData(ELEMENT_AUDIO_NODE, pageId)
   if (!row) return []
 
-  const data = row.data as { entries?: unknown } | null
-  if (!data || !Array.isArray(data.entries)) return []
-
-  const seen = new Set<string>()
   const entries: ElementAudioCatalogEntry[] = []
-  for (const candidate of data.entries) {
-    const parsed = ElementAudioEntrySchema.safeParse(candidate)
-    if (!parsed.success) continue
-    const text = parsed.data.text.trim()
-    if (text.length === 0) continue
-    if (seen.has(parsed.data.nodeId)) continue
-    seen.add(parsed.data.nodeId)
-    const location = locations.get(parsed.data.nodeId)
+  for (const authored of authoredElementAudioEntries(row.data)) {
+    const location = locations.get(authored.nodeId)
     if (!location) continue
     entries.push({
       pageId: location.pageId,
       entry: {
-        id: elementAudioTextId(parsed.data.nodeId),
-        text,
+        id: elementAudioTextId(authored.nodeId),
+        text: authored.text,
         locations: [{ pageId: location.pageId, sectionId: location.sectionId, role: "element-audio" }],
       },
     })

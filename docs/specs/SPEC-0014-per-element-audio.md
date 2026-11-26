@@ -8,7 +8,7 @@ issues: ["#890"]
 prs: ["#1145"]
 adr: "docs/DECISIONS.md#028-per-element-authored-fields-with-no-catalog-home-live-in-their-own-versioned-node"
 created: 2026-09-23
-updated: 2026-11-18
+updated: 2026-11-26
 ---
 
 <!--
@@ -289,9 +289,8 @@ remap: audios[nodeId] = <file of `${nodeId}_audio`>,  speech_texts[nodeId] = scr
 - **Display isolation.** The synthetic entry is speech, not display content. Packaging and the
   preview exclude it from `texts.json`; otherwise the script would appear as page text and could be
   word-highlighted under an id with no DOM element. It appears only in `speech_texts.json`,
-  `audios.json`, `audio_voices.json` and `element_audio.json`. The `texts.json` exclusion belongs to
-  PR 4 and must land before or with the PR 3 authoring UI, or the script would briefly appear as page
-  text.
+  `audios.json`, `audio_voices.json` and `element_audio.json`. The bundle exclusion lands with the
+  authoring UI in PR 3; PR 4 mirrors it in the preview.
 - **Category mutes.** The synthetic id contains an image id, but it is not a caption.
   `getTextCatalogCategory` classifies the authored synthetic id as text and `isTtsExcluded`
   skips category mutes for it; an explicit `excluded_text_ids` entry still wins. Muting captions
@@ -479,8 +478,8 @@ Chosen: **Option A**. Rough costs are per rollout PR; refer to the §9 review bu
 - **#941** — soft navigation extended to the desktop preview: the trigger binds per `pageEpoch`.
 - **#821 / #916** (both merged) — the trigger relies on their soft-navigation lifecycle and the
   badge must remain a sibling/overlay because `applyTranslationsToDOM` rewrites element content.
-- **#758 / #923** — new pipeline UI / HTML editor: the authoring section targets the classic UI
-  first (see Rollout).
+- **#758 / #923** - new pipeline UI / HTML editor: the authoring section targets the classic UI
+  first; porting it to the new pipeline UI is not scheduled by this spec.
 - **SPEC-0001 / SPEC-0002** — merged prerequisites; this spec is written against their contract.
 - **SPEC-0008** — stable identifiers; text leaves are deferred to it.
 
@@ -537,13 +536,14 @@ driven with a stub synthesizer and no API keys.
 | Runtime | `apps/adt-runtime/src/features/audio/` (new; jsdom with scripts) | AC-3, AC-4 (sweep inclusion), AC-5, AC-10, **AC-9** (attributes + Enter/Space), **AC-20** (manifest gate) |
 | i18n | `apps/studio/src/locales/*.po` + the CI `i18n` job | **AC-13** |
 | axe-core | `packages/pipeline/src/__tests__/accessibility-assessment.test.ts` | AC-9 (assert **no new** violations on static HTML) |
-| Mutation checks | manual (ver `plan_testeo_spec0014_pr1.md`) | every new guard |
+| Mutation checks | manual | every new guard |
 | Manual | running Studio | AC-11 (badge plays, body selects), AC-3 audibly |
 
 ## Rollout
 
-Independently revertable PRs, each within the §9 review budget. **Nothing is user-visible until the
-last one.** (The four are tracked as #895–#898 under #894.)
+PRs that land in order 1→4, each within the §9 review budget. **Nothing is user-visible until the
+last one.** The stack reverts from the top down (PR 4 → PR 1): later PRs import symbols introduced
+earlier. (The four are tracked as #895–#898 under #894.)
 
 1. **PR 1 — plumbing, no UI.** `element-audio` schema + storage read/write + `buildTextCatalog`
    emitting synthetic entries with a book-wide current-page/section index, visibility filtering and
@@ -557,17 +557,18 @@ last one.** (The four are tracked as #895–#898 under #894.)
    pages (page membership), and the text-catalog/outputs query invalidation. Value: the script can be
    saved and versioned through the API.
 3. **PR 3 — authoring.** The Storyboard inspector section in the **classic** `StyleEditorPanel`
-   (unconditional pattern), the save-path wiring, `VersionedStep` registration, i18n, and the filter
-   that hides `${nodeId}_audio` from the Languages/Core TTS editors. **Depends on the `texts.json`
-   exclusion**: land that part of PR 4 before or with PR 3, or the script would appear as page text.
-   Value: the author can write the script.
-4. **PR 4 — playback.** The packaging remap (bundle **and** preview mirrors), including
-   `element_audio.json`, the `texts.json` exclusion, the easy-read key removal and the withheld
+   (unconditional pattern), the save-path wiring, `VersionedStep` registration, i18n, the filter
+   that hides `${nodeId}_audio` from the Languages/Core TTS editors, and the **bundle `texts.json`
+   exclusion** so the script never appears as page text while the UI exists. Value: the author can
+   write the script.
+4. **PR 4 — playback.** The packaging remap (bundle **and** preview mirrors), including the preview
+   `texts.json` exclusion, `element_audio.json`, the easy-read key removal and the withheld
    timestamps; the runtime manifest fetch, sweep inclusion, trigger and badge; the a11y attributes.
    **Written against merged `develop`** (SPEC-0001's filename/freshness contract). Value: the reader
    hears it.
 
-No feature flag; each PR reverts alone.
+No feature flag. Revert the stack from PR 4 down to PR 1; PR 3 and PR 4 land and revert together
+because the `texts.json` exclusion spans the bundle (PR 3) and the preview mirror (PR 4).
 
 ## Decisions to ratify
 
