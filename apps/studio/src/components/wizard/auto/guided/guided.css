@@ -146,9 +146,29 @@ body:has([data-lab-toolbar]) .gd-foot { bottom: 84px; }
 .reduce-effects :is(.gd-breathe, .gd-pop) { animation: none; }
 .reduce-effects .gd-spot { transition: none; }
 
-/* The tour's floating assistant glides from item to item; its pointer is a small rotated square. */
-.gd-coach { transition: left 0.45s cubic-bezier(0.32, 0.72, 0, 1), top 0.45s cubic-bezier(0.32, 0.72, 0, 1); }
-.gd-coach-pointer { position: absolute; width: 14px; height: 14px; transform: rotate(45deg); background: var(--lc-bubble); box-shadow: -1px -1px 0 0 var(--lc-line); }
-.gd-coach-pointer.-bottom-\[7px\] { box-shadow: 1px 1px 0 0 var(--lc-line); }
-@media (prefers-reduced-motion: reduce) { .gd-coach { transition: none; } }
-.reduce-effects .gd-coach { transition: none; }
+/* The first-run tour (TourCoach): a dark veil over the page with the lit item cut out of it, and the assistant beside it. */
+.gd-tour-hole {
+  position: fixed; z-index: 60; pointer-events: none; border-radius: 24px;
+  box-shadow: 0 0 0 3px var(--brand-400), 0 0 0 200vmax rgb(8 12 24 / 0.66);
+  transition: left 0.5s var(--lc-drawer), top 0.5s var(--lc-drawer), width 0.5s var(--lc-drawer), height 0.5s var(--lc-drawer);
+}
+.dark .gd-tour-hole { box-shadow: 0 0 0 3px var(--brand-400), 0 0 0 200vmax rgb(0 0 0 / 0.72); }
+.gd-tour-coach { transition: left 0.5s var(--lc-drawer), top 0.5s var(--lc-drawer); }
+.gd-tour-orb { filter: drop-shadow(0 8px 18px rgb(43 127 255 / 0.45)); }
+/* The speech bubble points back at the assistant, and pops out of it. */
+.gd-speech { box-shadow: 0 22px 50px -16px rgb(0 0 0 / 0.5); animation: gd-speech-in 0.42s var(--lc-pop) both; }
+.gd-speech-tail { position: absolute; width: 18px; height: 18px; background: inherit; border-radius: 3px; transform: rotate(45deg); }
+.gd-speech[data-side="right"] { transform-origin: left center; }
+.gd-speech[data-side="right"] .gd-speech-tail { left: -6px; top: calc(50% - 9px); }
+.gd-speech[data-side="left"] { transform-origin: right center; }
+.gd-speech[data-side="left"] .gd-speech-tail { right: -6px; top: calc(50% - 9px); }
+.gd-speech[data-side="below"] { transform-origin: 28px top; }
+.gd-speech[data-side="below"] .gd-speech-tail { top: -6px; left: 19px; }
+.gd-speech[data-side="above"] { transform-origin: 28px bottom; }
+.gd-speech[data-side="above"] .gd-speech-tail { bottom: -6px; left: 19px; }
+.gd-speech[data-side="center"] { transform-origin: center top; }
+.gd-speech[data-side="center"] .gd-speech-tail { top: -6px; left: calc(50% - 9px); }
+@keyframes gd-speech-in { from { opacity: 0; transform: scale(0.82); } }
+@media (prefers-reduced-motion: reduce) { .gd-tour-hole, .gd-tour-coach { transition: none; } .gd-speech { animation: none; } }
+.reduce-effects :is(.gd-tour-hole, .gd-tour-coach) { transition: none; }
+.reduce-effects .gd-speech { animation: none; }

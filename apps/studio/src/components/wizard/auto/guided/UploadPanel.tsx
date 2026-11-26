@@ -7,7 +7,10 @@ import type { UploadFlow } from "../../start/upload/useUploadFlow"
 import { Attachment } from "./shared/Attachment"
 import { LC_PRIMARY } from "./shared/Create"
 import { Illustration } from "./shared/Illustration"
-import { TourCoach, type CoachStop } from "./TourCoach"
+import { TourCoach, type CoachStop, type Side } from "./TourCoach"
+
+/** Where the assistant stands for each card, so the tour moves around instead of down a line. */
+const SIDES: Side[] = ["right", "below", "left"]
 
 /** The three steps ahead, shown above the drop zone (and walked through on a first run). */
 const STEPS: { image: string; icon: ReactNode; title: ReactNode; text: ReactNode; says: ReactNode }[] = [
@@ -84,18 +87,6 @@ export function UploadSays({ flow, rejected }: { flow: UploadFlow; rejected: boo
       <strong className="font-semibold">Drop a PDF and I&apos;ll read it.</strong> Then we check a few things together, and I create the book.
     </Trans>
   )
-}
-
-/** Which part of the page the tour points at: a card (0–2), the drop zone ("drop"), or nothing. */
-type Focus = number | "drop" | null
-const focusOf = (tour: number | null): Focus => (tour === null || tour === 0 ? null : tour <= STEPS.length ? tour - 1 : "drop")
-
-/** In the tour, what it isn't pointing at steps back; what it points at is outlined. Nothing moves. */
-const spot = (tour: number | null, me: Focus) => {
-  if (tour === null) return ""
-  const f = focusOf(tour)
-  if (f === null) return "gd-spot-rest"
-  return f === me ? "gd-spot-on" : "gd-spot-off"
 }
 
 /** The drop zone, and the checks on the PDF dropped in it: opening, then OK or why not. Same box throughout. */
@@ -215,24 +206,22 @@ function Again() {
  * (`tour`). Back on this step later: the PDF with its page choice.
  */
 export function UploadPanel({ flow, rejected, onContinue, tour, onTour, onTourDone }: { flow: UploadFlow; rejected: boolean; onContinue: (() => void) | null; tour: number | null; onTour: (i: number) => void; onTourDone: () => void }) {
-  const area = useRef<HTMLDivElement>(null)
-  const row = useRef<HTMLOListElement>(null)
   const cards = [useRef<HTMLLIElement>(null), useRef<HTMLLIElement>(null), useRef<HTMLLIElement>(null)]
   const drop = useRef<HTMLDivElement>(null)
   const stops: CoachStop[] = [
     {
-      target: row,
-      place: "over",
+      target: null,
+      side: "center",
       says: (
         <Trans>
           <strong className="font-semibold">Hi! I&apos;m the ADT Assistant.</strong> I&apos;ll help you turn a PDF into an accessible digital book. Let me show you how it goes.
         </Trans>
       ),
     },
-    ...STEPS.map((s, i): CoachStop => ({ target: cards[i]!, place: "below", says: s.says })),
+    ...STEPS.map((s, i): CoachStop => ({ target: cards[i]!, side: SIDES[i]!, says: s.says })),
     {
       target: drop,
-      place: "over",
+      side: "above",
       says: (
         <Trans>
           <strong className="font-semibold">That&apos;s it.</strong> When you&apos;re ready, drop your PDF here.
@@ -250,10 +239,10 @@ export function UploadPanel({ flow, rejected, onContinue, tour, onTour, onTourDo
       </div>
     )
   return (
-    <div ref={area} className="relative flex flex-col gap-4 lg:gap-5">
-      <ol ref={row} className="grid gap-3 sm:grid-cols-3 lg:gap-4">
+    <div className="relative flex flex-col gap-4 lg:gap-5">
+      <ol className="grid gap-3 sm:grid-cols-3 lg:gap-4">
         {STEPS.map((s, i) => (
-          <li key={s.image} ref={cards[i]} className={cn("gd-spot lc-surface flex flex-row items-center gap-4 p-3 sm:flex-col sm:items-stretch sm:gap-3 lg:p-4", spot(tour, i))}>
+          <li key={s.image} ref={cards[i]} className={cn("lc-surface flex flex-row items-center gap-4 p-3 sm:flex-col sm:items-stretch sm:gap-3 lg:p-4")}>
             <span className="qd18-pv grid h-[84px] w-[112px] shrink-0 place-items-center overflow-hidden rounded-[14px] p-1.5 sm:h-[clamp(120px,17vh,210px)] sm:w-auto sm:p-3">
               <Illustration name={s.image} fallback={<span className="grid size-12 place-items-center rounded-full bg-[var(--lc-accent-soft)] text-[var(--lc-accent-text)]">{s.icon}</span>} />
             </span>
@@ -267,10 +256,10 @@ export function UploadPanel({ flow, rejected, onContinue, tour, onTour, onTourDo
           </li>
         ))}
       </ol>
-      <div ref={drop} className={cn("gd-spot rounded-[22px]", spot(tour, "drop"))}>
+      <div ref={drop} className="rounded-[22px]">
         <DropZone flow={flow} rejected={rejected} />
       </div>
-      {tour !== null && <TourCoach stops={stops} at={tour} area={area} onNext={() => onTour(tour + 1)} onDone={onTourDone} />}
+      {tour !== null && <TourCoach stops={stops} at={tour} onNext={() => onTour(tour + 1)} onDone={onTourDone} />}
     </div>
   )
 }
