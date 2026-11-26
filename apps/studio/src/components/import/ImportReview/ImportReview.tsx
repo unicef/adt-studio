@@ -48,7 +48,7 @@ export function ImportReview({
   onReplace: () => void
 }) {
   const { t } = useLingui()
-  const model = useReviewModel(preview, unresolvedActivityCount, validationError)
+  const model = useReviewModel(preview, unresolvedActivityCount, validationError, decidedSectionIds)
   const title = previewTitle(preview)
   const importing = importState === "importing"
   const adt = isAdtBundleImportPreview(preview) ? preview : null

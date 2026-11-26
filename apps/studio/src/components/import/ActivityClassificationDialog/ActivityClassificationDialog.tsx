@@ -34,9 +34,11 @@ function withControlsOutlined(html: string): string {
   return /<\/head>/i.test(html) ? html.replace(/<\/head>/i, `${CONTROL_OUTLINE}</head>`) : CONTROL_OUTLINE + html
 }
 
-/** The type a page whose checks failed already has: the one in its markup. */
+/** The type a page whose checks failed already has. The server's suggestion is
+ * the markup's type spelled as the import accepts it: a raw
+ * `activity_custom-drag` would make the import fail. */
 function keepType(item: ActivityReview["items"][number]): string {
-  return item.detectedType ?? item.suggestedType
+  return item.suggestedType
 }
 
 export function ActivityClassificationDialog({
@@ -171,7 +173,7 @@ export function ActivityClassificationDialog({
                               ? t`Not an activity`
                               : activityTypeLabel(decisions[item.sectionId] ?? item.suggestedType)
                             : failsOnlyChecks(item)
-                              ? <Plural value={item.validationErrors.length} one="# check failed" other="# checks failed" />
+                              ? <Plural value={item.validationErrors.length} one="# problem found" other="# problems found" />
                               : item.controls?.length
                                 ? t`Has ${controlsLabel(item.controls)}`
                                 : reasonLabel(item.reasons[0])}
@@ -216,7 +218,7 @@ export function ActivityClassificationDialog({
                       is accepted only failed its checks (#1155). */}
                   {failsOnlyChecks(activeItem)
                     ? <>
-                        <Trans>Its type, {activityTypeLabel(keepType(activeItem))}, is accepted, but <Plural value={activeItem.validationErrors.length} one="# accessibility check failed" other="# accessibility checks failed" /> for it. Keeping the type imports the page as it is.</Trans>
+                        <Trans>Its type, {activityTypeLabel(keepType(activeItem))}, is accepted, but <Plural value={activeItem.validationErrors.length} one="# accessibility problem was found" other="# accessibility problems were found" /> for it. Keeping the type imports the page as it is.</Trans>
                         {activeItem.controls?.length ? <> <Trans>Outlined: {controlsLabel(activeItem.controls)} found on this page.</Trans></> : null}
                       </>
                     : activeItem.reasons.length === 0 || activeItem.reasons.includes("interactive-unmarked")

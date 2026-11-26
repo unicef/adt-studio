@@ -84,6 +84,8 @@ export function useReviewModel(
   preview: AnyImportPreview,
   unresolvedActivityCount: number,
   validationError: FriendlyError | null,
+  /** Activity pages already answered in the dialog. */
+  decidedSectionIds: ReadonlySet<string>,
 ): ReviewModel {
   const { t, i18n } = useLingui()
   const locale = i18n?.locale ?? "en"
@@ -261,7 +263,11 @@ export function useReviewModel(
     const issueCount = countOf(() => true)
     const mode: ReviewMode = repair ? "repair" : unresolvedActivityCount > 0 ? "activity" : "ready"
     const activityTotal = (adt.activityReview?.activityCount ?? 0) + (adt.activityReview?.quizCount ?? 0)
-    const activityKind = activityReviewKind(adt.activityReview?.items ?? [])
+    // Describe only the pages still to answer, as the banner does: once one
+    // group is decided, the rest may all need a type or all need confirming.
+    const activityKind = activityReviewKind((adt.activityReview?.items ?? []).filter((item) => (
+      !decidedSectionIds.has(item.sectionId)
+    )))
     const outputs = adt.outputLanguages?.length ?? 0
     const source = languageName(adt.sourceLanguage, locale)
     const changes: Record<AdtBundleImportPreview["exportComparisonStatus"], { status: Status; value: string; state: CheckState }> = {

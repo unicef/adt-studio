@@ -528,16 +528,16 @@ describe("ImportProject", () => {
     expect(screen.queryByText(/needs? a type/)).toBeNull()
     // Each page names what failed, never "interactive controls" it doesn't have.
     expect(screen.getByText("Me gustaría conocerte", { selector: "span" }).closest("li")?.textContent)
-      .toBe("Me gustaría conocerte: 2 accessibility checks failed")
+      .toBe("Me gustaría conocerte: 2 accessibility problems found")
     expect(screen.getByText("Leemos juntos", { selector: "span" }).closest("li")?.textContent)
-      .toBe("Leemos juntos: 1 accessibility check failed")
+      .toBe("Leemos juntos: 1 accessibility problem found")
     expect(screen.queryByText(/interactive controls/)).toBeNull()
     expect(screen.getByText("Activities").closest("li")?.textContent).toContain("2 to confirm")
 
     fireEvent.click(screen.getByRole("button", { name: "Confirm pages" }))
     const dialog = screen.getByRole("dialog")
     expect(within(dialog).getByText("Confirm activity pages")).toBeTruthy()
-    expect(within(dialog).getByText(/Its type, Custom activity, is accepted/).textContent).toContain("2 accessibility checks failed")
+    expect(within(dialog).getByText(/Its type, Custom activity, is accepted/).textContent).toContain("2 accessibility problems were found")
     // Keeping the type is offered first, and a person still chooses it.
     const keep = within(dialog).getByRole("radio", { name: /Keep Custom activity/ })
     expect(keep).toHaveProperty("checked", false)
@@ -578,6 +578,69 @@ describe("ImportProject", () => {
     expect(screen.getByText("Portada", { selector: "span" }).closest("li")?.textContent)
       .toBe("Portada: The exported activity marker is missing.")
     expect(screen.queryByText(/interactive controls/)).toBeNull()
+  })
+
+  it("keeps the type the import accepts when the markup spells it differently", async () => {
+    // The server takes only lowercase letters, digits and underscores, so the
+    // page's own `activity_custom-drag` would make the import fail.
+    previewImport.mockResolvedValue(activityPreview([
+      { ...checksOnly("pg001_sec001", "Arrastra", 1, []), detectedType: "activity_custom-drag", suggestedType: "activity_custom_drag" },
+    ]))
+
+    const view = render(<ImportProject />)
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement
+    const file = new File(["zip"], "workbook.zip", { type: "application/zip" })
+    fireEvent.change(input, { target: { files: [file] } })
+
+    fireEvent.click(await screen.findByRole("button", { name: "Confirm pages" }))
+    const dialog = screen.getByRole("dialog")
+    fireEvent.click(within(dialog).getByRole("radio", { name: /Keep Custom activity: drag/ }))
+    fireEvent.click(within(dialog).getByRole("button", { name: "Finish review" }))
+    fireEvent.click(screen.getByRole("button", { name: "Import as new project" }))
+
+    expect(importAdt).toHaveBeenCalledWith(
+      { zip: file, activityDecisions: [{ sectionId: "pg001_sec001", type: "activity_custom_drag" }] },
+      expect.any(Object),
+    )
+  })
+
+  it("describes only the pages still to answer once some are decided", async () => {
+    previewImport.mockResolvedValue(activityPreview([
+      checksOnly("pg001_sec001", "Me gustaría conocerte", 2, [{ kind: "text-field", count: 3 }]),
+      {
+        sectionId: "pg002_sec001", href: "pg002_sec001.html", heading: "Portada", detectedType: null,
+        suggestedType: "activity_custom_external", kind: "candidate", reasons: ["missing-marker"], controls: [],
+      },
+    ]))
+
+    const view = render(<ImportProject />)
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement
+    fireEvent.change(input, { target: { files: [new File(["zip"], "workbook.zip", { type: "application/zip" })] } })
+
+    fireEvent.click(await screen.findByRole("button", { name: "Review pages" }))
+    const dialog = screen.getByRole("dialog")
+    fireEvent.click(within(dialog).getByRole("radio", { name: /Keep Custom activity/ }))
+    fireEvent.keyDown(dialog, { key: "Escape" })
+
+    // Only the page that needs a type is left, and every text says so.
+    expect(await screen.findByText("Choose a type for 1 activity page")).toBeTruthy()
+    expect(screen.getByText("Activities").closest("li")?.textContent).toMatch(/1 .*a type/)
+    expect(screen.queryByText(/to review/)).toBeNull()
+  })
+
+  it("finds the page's own type when filtering by its description", async () => {
+    previewImport.mockResolvedValue(activityPreview([
+      { ...checksOnly("pg001_sec001", "Une las palabras", 1, []), declaredType: "activity_matching", detectedType: "activity_matching", suggestedType: "activity_matching" },
+    ]))
+
+    const view = render(<ImportProject />)
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement
+    fireEvent.change(input, { target: { files: [new File(["zip"], "workbook.zip", { type: "application/zip" })] } })
+
+    fireEvent.click(await screen.findByRole("button", { name: "Confirm pages" }))
+    const dialog = screen.getByRole("dialog")
+    fireEvent.change(within(dialog).getByPlaceholderText("Filter types"), { target: { value: "pair" } })
+    expect(within(dialog).getByRole("radio", { name: /Keep Matching/ })).toBeTruthy()
   })
 
   it("explains and blocks an exported ADT outside the supported HTML contract", async () => {

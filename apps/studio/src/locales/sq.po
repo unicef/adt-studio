@@ -102,8 +102,8 @@ msgid "{0, plural, one {# book} other {# books}}"
 msgstr "{0, plural, one {# libër} other {# libra}}"
 
 #. placeholder {0}: item.validationErrors.length
-msgid "{0, plural, one {# check failed} other {# checks failed}}"
-msgstr "{0, plural, one {# kontroll dështoi} other {# kontrolle dështuan}}"
+#~ msgid "{0, plural, one {# check failed} other {# checks failed}}"
+#~ msgstr "{0, plural, one {# kontroll dështoi} other {# kontrolle dështuan}}"
 
 #. placeholder {0}: threads.length
 msgid "{0, plural, one {# comment waiting on you} other {# comments waiting on you}}"
@@ -143,6 +143,10 @@ msgstr "{0, plural, one {# faqe} other {# faqe}}"
 #. placeholder {0}: adt.pageCount
 msgid "{0, plural, one {# page} other {# pages}} and {imageCount, plural, one {# image} other {# images}} read"
 msgstr "{0, plural, one {# faqe} other {# faqe}} dhe {imageCount, plural, one {# imazh} other {# imazhe}} të lexuara"
+
+#. placeholder {0}: item.validationErrors.length
+msgid "{0, plural, one {# problem found} other {# problems found}}"
+msgstr "{0, plural, one {# problem u gjet} other {# probleme u gjetën}}"
 
 #. placeholder {0}: thread.replyCount
 msgid "{0, plural, one {# reply} other {# replies}}"
@@ -885,8 +889,11 @@ msgstr "×4"
 msgid "<0>{name}</0> has {controls}"
 msgstr "<0>{name}</0> ka {controls}"
 
-msgid "<0>{name}</0>: {failed, plural, one {# accessibility check failed} other {# accessibility checks failed}}"
-msgstr "<0>{name}</0>: {failed, plural, one {# kontroll aksesueshmërie dështoi} other {# kontrolle aksesueshmërie dështuan}}"
+#~ msgid "<0>{name}</0>: {failed, plural, one {# accessibility check failed} other {# accessibility checks failed}}"
+#~ msgstr "<0>{name}</0>: {failed, plural, one {# kontroll aksesueshmërie dështoi} other {# kontrolle aksesueshmërie dështuan}}"
+
+msgid "<0>{name}</0>: {problems, plural, one {# accessibility problem found} other {# accessibility problems found}}"
+msgstr "<0>{name}</0>: {problems, plural, one {# problem aksesueshmërie u gjet} other {# probleme aksesueshmërie u gjetën}}"
 
 msgid "<0>{name}</0>: {reason}"
 msgstr "<0>{name}</0>: {reason}"
@@ -6066,8 +6073,11 @@ msgstr "Importimi nuk mund të fillojë derisa çdo faqe të ketë një lloj. Zg
 msgid "Import existing project"
 msgstr "Importo projekt ekzistues"
 
-msgid "Import it with this type. The failed checks stay as they are."
-msgstr "Importojeni me këtë lloj. Kontrollet që dështuan mbeten siç janë."
+msgid "Import it with this type. The accessibility problems stay as they are."
+msgstr "Importojeni me këtë lloj. Problemet e aksesueshmërisë mbeten siç janë."
+
+#~ msgid "Import it with this type. The failed checks stay as they are."
+#~ msgstr "Importojeni me këtë lloj. Kontrollet që dështuan mbeten siç janë."
 
 msgid "Import progress"
 msgstr "Progresi i importimit"
@@ -6345,8 +6355,13 @@ msgstr "Faqja e tij në njërën anë, biseda dhe kutia e përgjigjes në tjetr�
 
 #. placeholder {0}: activityTypeLabel(keepType(activeItem))
 #. placeholder {1}: activeItem.validationErrors.length
-msgid "Its type, {0}, is accepted, but {1, plural, one {# accessibility check failed} other {# accessibility checks failed}} for it. Keeping the type imports the page as it is."
-msgstr "Lloji i saj, {0}, pranohet, por {1, plural, one {# kontroll aksesueshmërie dështoi} other {# kontrolle aksesueshmërie dështuan}} për të. Nëse e mbani llojin, faqja importohet ashtu siç është."
+#~ msgid "Its type, {0}, is accepted, but {1, plural, one {# accessibility check failed} other {# accessibility checks failed}} for it. Keeping the type imports the page as it is."
+#~ msgstr "Lloji i saj, {0}, pranohet, por {1, plural, one {# kontroll aksesueshmërie dështoi} other {# kontrolle aksesueshmërie dështuan}} për të. Nëse e mbani llojin, faqja importohet ashtu siç është."
+
+#. placeholder {0}: activityTypeLabel(keepType(activeItem))
+#. placeholder {1}: activeItem.validationErrors.length
+msgid "Its type, {0}, is accepted, but {1, plural, one {# accessibility problem was found} other {# accessibility problems were found}} for it. Keeping the type imports the page as it is."
+msgstr "Lloji i saj, {0}, pranohet, por {1, plural, one {u gjet # problem aksesueshmërie} other {u gjetën # probleme aksesueshmërie}} për të. Nëse e mbani llojin, faqja importohet ashtu siç është."
 
 msgid "Jane Reviewer"
 msgstr "Jane Rishikuese"

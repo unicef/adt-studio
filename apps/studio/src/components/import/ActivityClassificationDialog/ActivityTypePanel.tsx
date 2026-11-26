@@ -73,8 +73,12 @@ export function ActivityTypePanel({
   )
 
   const keepLabel = keepType ? t`Keep ${typeLabel(keepType)}` : ""
-  const keepText = t`Import it with this type. The failed checks stay as they are.`
-  const keep = keepType && matches(keepLabel, keepText) ? [option(keepType, keepLabel, keepText)] : []
+  const keepText = t`Import it with this type. The accessibility problems stay as they are.`
+  // The type itself is filtered out of the lists below, so match its own
+  // label and description here too.
+  const keep = keepType && (matches(keepLabel, keepText) || matches(typeLabel(keepType), typeDescription(keepType)))
+    ? [option(keepType, keepLabel, keepText)]
+    : []
   const notActivity = matches(notActivityLabel, notActivityText) ? [option(null, notActivityLabel, notActivityText)] : []
   const suggestedOptions = suggested
     .filter((type) => matches(typeLabel(type), typeDescription(type)))

@@ -100,8 +100,8 @@ msgid "{0, plural, one {# book} other {# books}}"
 msgstr "{0, plural, one {# livro} other {# livros}}"
 
 #. placeholder {0}: item.validationErrors.length
-msgid "{0, plural, one {# check failed} other {# checks failed}}"
-msgstr "{0, plural, one {# verificação falhou} other {# verificações falharam}}"
+#~ msgid "{0, plural, one {# check failed} other {# checks failed}}"
+#~ msgstr "{0, plural, one {# verificação falhou} other {# verificações falharam}}"
 
 #. placeholder {0}: threads.length
 msgid "{0, plural, one {# comment waiting on you} other {# comments waiting on you}}"
@@ -141,6 +141,10 @@ msgstr "{0, plural, one {# página} other {# páginas}}"
 #. placeholder {0}: adt.pageCount
 msgid "{0, plural, one {# page} other {# pages}} and {imageCount, plural, one {# image} other {# images}} read"
 msgstr "{0, plural, one {# página lida} other {# páginas lidas}} e {imageCount, plural, one {# imagem lida} other {# imagens lidas}}"
+
+#. placeholder {0}: item.validationErrors.length
+msgid "{0, plural, one {# problem found} other {# problems found}}"
+msgstr "{0, plural, one {# problema encontrado} other {# problemas encontrados}}"
 
 #. placeholder {0}: thread.replyCount
 msgid "{0, plural, one {# reply} other {# replies}}"
@@ -883,8 +887,11 @@ msgstr "×4"
 msgid "<0>{name}</0> has {controls}"
 msgstr "<0>{name}</0> tem {controls}"
 
-msgid "<0>{name}</0>: {failed, plural, one {# accessibility check failed} other {# accessibility checks failed}}"
-msgstr "<0>{name}</0>: {failed, plural, one {# verificação de acessibilidade falhou} other {# verificações de acessibilidade falharam}}"
+#~ msgid "<0>{name}</0>: {failed, plural, one {# accessibility check failed} other {# accessibility checks failed}}"
+#~ msgstr "<0>{name}</0>: {failed, plural, one {# verificação de acessibilidade falhou} other {# verificações de acessibilidade falharam}}"
+
+msgid "<0>{name}</0>: {problems, plural, one {# accessibility problem found} other {# accessibility problems found}}"
+msgstr "<0>{name}</0>: {problems, plural, one {# problema de acessibilidade encontrado} other {# problemas de acessibilidade encontrados}}"
 
 msgid "<0>{name}</0>: {reason}"
 msgstr "<0>{name}</0>: {reason}"
@@ -6064,8 +6071,11 @@ msgstr "A importação não pode começar até que cada página tenha um tipo. E
 msgid "Import existing project"
 msgstr "Importar projeto existente"
 
-msgid "Import it with this type. The failed checks stay as they are."
-msgstr "Importe com este tipo. As verificações que falharam ficam como estão."
+msgid "Import it with this type. The accessibility problems stay as they are."
+msgstr "Importe com este tipo. Os problemas de acessibilidade ficam como estão."
+
+#~ msgid "Import it with this type. The failed checks stay as they are."
+#~ msgstr "Importe com este tipo. As verificações que falharam ficam como estão."
 
 msgid "Import progress"
 msgstr "Progresso da importação"
@@ -6343,8 +6353,13 @@ msgstr "A página de um lado, a conversa e uma caixa de resposta do outro."
 
 #. placeholder {0}: activityTypeLabel(keepType(activeItem))
 #. placeholder {1}: activeItem.validationErrors.length
-msgid "Its type, {0}, is accepted, but {1, plural, one {# accessibility check failed} other {# accessibility checks failed}} for it. Keeping the type imports the page as it is."
-msgstr "O tipo dela, {0}, é aceito, mas {1, plural, one {# verificação de acessibilidade falhou} other {# verificações de acessibilidade falharam}} para esse tipo. Manter o tipo importa a página como está."
+#~ msgid "Its type, {0}, is accepted, but {1, plural, one {# accessibility check failed} other {# accessibility checks failed}} for it. Keeping the type imports the page as it is."
+#~ msgstr "O tipo dela, {0}, é aceito, mas {1, plural, one {# verificação de acessibilidade falhou} other {# verificações de acessibilidade falharam}} para esse tipo. Manter o tipo importa a página como está."
+
+#. placeholder {0}: activityTypeLabel(keepType(activeItem))
+#. placeholder {1}: activeItem.validationErrors.length
+msgid "Its type, {0}, is accepted, but {1, plural, one {# accessibility problem was found} other {# accessibility problems were found}} for it. Keeping the type imports the page as it is."
+msgstr "O tipo dela, {0}, é aceito, mas {1, plural, one {foi encontrado # problema de acessibilidade} other {foram encontrados # problemas de acessibilidade}} para esse tipo. Manter o tipo importa a página como está."
 
 msgid "Jane Reviewer"
 msgstr "Maria Silva"

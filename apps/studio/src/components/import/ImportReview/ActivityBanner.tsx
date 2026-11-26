@@ -69,10 +69,10 @@ export function ActivityBanner({
           {shown.map((item) => {
             const name = pageName(item)
             if (failsOnlyChecks(item)) {
-              const failed = item.validationErrors.length
+              const problems = item.validationErrors.length
               return (
                 <li key={item.sectionId}>
-                  <Trans><span className="font-semibold">{name}</span>: <Plural value={failed} one="# accessibility check failed" other="# accessibility checks failed" /></Trans>
+                  <Trans><span className="font-semibold">{name}</span>: <Plural value={problems} one="# accessibility problem found" other="# accessibility problems found" /></Trans>
                 </li>
               )
             }
