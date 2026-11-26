@@ -83,7 +83,6 @@ export function ReaderPreviewPane({ workspace, label }: { workspace: ReaderWorks
   return (
     <div className="flex h-full min-h-0 flex-col bg-muted/30">
       <div className="flex shrink-0 items-center gap-2 border-b bg-background px-2 py-1 text-xs">
-        <span className="font-medium"><Trans>Preview</Trans></span>
         {compiling && <span className="text-muted-foreground"><Trans>Compiling...</Trans></span>}
         <Button size="sm" variant="ghost" className="ml-auto h-7 px-2 text-xs" onClick={() => iframeRef.current?.contentWindow?.location.reload()} title={t`Reload the preview`}>
           <RefreshCw className="h-3.5 w-3.5" />

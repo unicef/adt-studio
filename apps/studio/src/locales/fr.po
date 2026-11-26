@@ -3113,6 +3113,9 @@ msgstr "Le clonage a échoué"
 msgid "Close"
 msgstr "Fermer"
 
+msgid "Close {name}"
+msgstr "Fermer {name}"
+
 msgid "Close assistant"
 msgstr "Fermer l'assistant"
 
@@ -4896,6 +4899,9 @@ msgstr "Expiration"
 
 msgid "Explain the term in simple language."
 msgstr "Expliquez le terme en langage simple."
+
+msgid "Explorer"
+msgstr "Explorateur"
 
 msgid "Export"
 msgstr "Exporter"
@@ -8511,6 +8517,9 @@ msgstr "Ouvrir les détails de {title}"
 
 msgid "Open edit panel"
 msgstr "Ouvrir le panneau de modification"
+
+msgid "Open files"
+msgstr "Fichiers ouverts"
 
 msgid "Open image preview"
 msgstr "Ouvrir l'aperçu de l'image"
@@ -12868,6 +12877,9 @@ msgstr "Portez ce vieux whisky au juge blond qui fume 0123456789"
 
 msgid "The quick brown fox jumps over the lazy dog."
 msgstr "Le vif renard brun saute par-dessus le chien paresseux."
+
+msgid "The reader does not compile"
+msgstr "Le lecteur ne compile pas"
 
 msgid "The reader does not compile. The preview shows the last version that did."
 msgstr "Le lecteur ne compile pas. L’aperçu affiche la dernière version qui compilait."

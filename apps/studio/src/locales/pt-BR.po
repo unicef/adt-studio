@@ -3111,6 +3111,9 @@ msgstr "Falha ao clonar"
 msgid "Close"
 msgstr "Fechar"
 
+msgid "Close {name}"
+msgstr "Fechar {name}"
+
 msgid "Close assistant"
 msgstr "Fechar assistente"
 
@@ -4894,6 +4897,9 @@ msgstr "Expiração"
 
 msgid "Explain the term in simple language."
 msgstr "Explique o termo em linguagem simples."
+
+msgid "Explorer"
+msgstr "Explorador"
 
 msgid "Export"
 msgstr "Exportar"
@@ -8509,6 +8515,9 @@ msgstr "Abrir detalhes de {title}"
 
 msgid "Open edit panel"
 msgstr "Abrir painel de edição"
+
+msgid "Open files"
+msgstr "Arquivos abertos"
 
 msgid "Open image preview"
 msgstr "Ampliar imagem"
@@ -12866,6 +12875,9 @@ msgstr "Um pequeno jabuti xereta viu dez cegonhas felizes 0123456789"
 
 msgid "The quick brown fox jumps over the lazy dog."
 msgstr "A rápida raposa marrom salta sobre o cão preguiçoso."
+
+msgid "The reader does not compile"
+msgstr "O leitor não compila"
 
 msgid "The reader does not compile. The preview shows the last version that did."
 msgstr "O leitor não compila. A prévia mostra a última versão que compilou."

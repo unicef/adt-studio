@@ -3111,6 +3111,9 @@ msgstr "Error al clonar"
 msgid "Close"
 msgstr "Cerrar"
 
+msgid "Close {name}"
+msgstr "Cerrar {name}"
+
 msgid "Close assistant"
 msgstr "Cerrar asistente"
 
@@ -4894,6 +4897,9 @@ msgstr "Vencimiento"
 
 msgid "Explain the term in simple language."
 msgstr "Explica el término en un lenguaje sencillo."
+
+msgid "Explorer"
+msgstr "Explorador"
 
 msgid "Export"
 msgstr "Exportar"
@@ -8509,6 +8515,9 @@ msgstr "Abrir detalles de {title}"
 
 msgid "Open edit panel"
 msgstr "Abrir panel de edición"
+
+msgid "Open files"
+msgstr "Archivos abiertos"
 
 msgid "Open image preview"
 msgstr "Abrir vista previa de la imagen"
@@ -12866,6 +12875,9 @@ msgstr "El veloz murciélago hindú comía feliz cardillo y kiwi 0123456789"
 
 msgid "The quick brown fox jumps over the lazy dog."
 msgstr "El veloz zorro marrón salta sobre el perro perezoso."
+
+msgid "The reader does not compile"
+msgstr "El lector no compila"
 
 msgid "The reader does not compile. The preview shows the last version that did."
 msgstr "El lector no compila. La vista previa muestra la última versión que sí compiló."

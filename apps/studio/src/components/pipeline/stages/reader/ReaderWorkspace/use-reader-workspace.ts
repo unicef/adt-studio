@@ -17,11 +17,20 @@ export function readerSourceKey(label: string | null): string[] {
   return label ? ["books", label, "reader-source"] : ["reader-source-global"]
 }
 
+export function tabAfterClose(tabs: string[], closing: string, active: string | null): string | null {
+  if (closing !== active) return active
+  const index = tabs.indexOf(closing)
+  const rest = tabs.filter((path) => path !== closing)
+  return rest[index] ?? rest[index - 1] ?? null
+}
+
 export function useReaderWorkspace(label: string | null) {
   const queryClient = useQueryClient()
   const prefix = readerSourcePrefix(label)
   const key = readerSourceKey(label)
   const [selected, setSelected] = useState<string | null>(null)
+  const [tabs, setTabs] = useState<string[]>([])
+  const [previewActive, setPreviewActive] = useState(label !== null)
   const [buffers, setBuffers] = useState<Record<string, string>>({})
   const [compileErrors, setCompileErrors] = useState<ReaderSourceCompileError[]>([])
   const [reveal, setReveal] = useState<RevealTarget | null>(null)
@@ -94,9 +103,18 @@ export function useReaderWorkspace(label: string | null) {
   )
 
   const open = useCallback((path: string, line?: number) => {
+    setTabs((current) => (current.includes(path) ? current : [...current, path]))
     setSelected(path)
+    setPreviewActive(false)
     if (line) setReveal({ path, line, nonce: Date.now() })
   }, [])
+
+  const close = (path: string) => {
+    const next = tabAfterClose(tabs, path, selected)
+    setTabs(tabs.filter((tab) => tab !== path))
+    setSelected(next)
+    if (!next) setPreviewActive(label !== null)
+  }
 
   return {
     label,
@@ -106,6 +124,10 @@ export function useReaderWorkspace(label: string | null) {
     file,
     selected,
     open,
+    tabs,
+    close,
+    previewActive,
+    showPreview: () => setPreviewActive(true),
     content: selected ? (buffers[selected] ?? file.data?.content ?? "") : "",
     setContent,
     buffers,

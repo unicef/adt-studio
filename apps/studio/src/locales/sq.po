@@ -3113,6 +3113,9 @@ msgstr "Klonifikimi dështoi"
 msgid "Close"
 msgstr "Mbyll"
 
+msgid "Close {name}"
+msgstr "Mbyll {name}"
+
 msgid "Close assistant"
 msgstr "Mbyll asistentin"
 
@@ -4896,6 +4899,9 @@ msgstr "Skadimi"
 
 msgid "Explain the term in simple language."
 msgstr "Shpjegoni termin në gjuhë të thjeshtë."
+
+msgid "Explorer"
+msgstr "Eksploruesi"
 
 msgid "Export"
 msgstr "Eksporto"
@@ -8511,6 +8517,9 @@ msgstr "Hap detajet për {title}"
 
 msgid "Open edit panel"
 msgstr "Hapni panelin e redaktimit"
+
+msgid "Open files"
+msgstr "Skedarët e hapur"
 
 msgid "Open image preview"
 msgstr "Hapni pamjen paraprake të imazhit"
@@ -12868,6 +12877,9 @@ msgstr "Dhelpra e shpejtë kafe kërcen mbi qenin përtac 0123456789"
 
 msgid "The quick brown fox jumps over the lazy dog."
 msgstr "Dhelpra e shpejtë kafe kërcen mbi qenin dembel."
+
+msgid "The reader does not compile"
+msgstr "Lexuesi nuk përpilohet"
 
 msgid "The reader does not compile. The preview shows the last version that did."
 msgstr "Lexuesi nuk përpilohet. Parapamja tregon versionin e fundit që u përpilua."

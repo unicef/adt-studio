@@ -3111,6 +3111,9 @@ msgstr "Clone failed"
 msgid "Close"
 msgstr "Close"
 
+msgid "Close {name}"
+msgstr "Close {name}"
+
 msgid "Close assistant"
 msgstr "Close assistant"
 
@@ -4894,6 +4897,9 @@ msgstr "Expiry"
 
 msgid "Explain the term in simple language."
 msgstr "Explain the term in simple language."
+
+msgid "Explorer"
+msgstr "Explorer"
 
 msgid "Export"
 msgstr "Export"
@@ -8509,6 +8515,9 @@ msgstr "Open details for {title}"
 
 msgid "Open edit panel"
 msgstr "Open edit panel"
+
+msgid "Open files"
+msgstr "Open files"
 
 msgid "Open image preview"
 msgstr "Open image preview"
@@ -12866,6 +12875,9 @@ msgstr "The quick brown fox jumps over the lazy dog 0123456789"
 
 msgid "The quick brown fox jumps over the lazy dog."
 msgstr "The quick brown fox jumps over the lazy dog."
+
+msgid "The reader does not compile"
+msgstr "The reader does not compile"
 
 msgid "The reader does not compile. The preview shows the last version that did."
 msgstr "The reader does not compile. The preview shows the last version that did."
