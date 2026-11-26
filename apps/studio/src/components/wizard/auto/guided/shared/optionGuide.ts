@@ -15,7 +15,7 @@ export type OptionGuide = {
   making?: { ai: boolean; says: MessageDescriptor }
 }
 
-const AI_MAKING = { ai: true, says: msg`The AI builds every page, so setting up takes longer and uses your AI account, which may cost money.` }
+const AI_MAKING = { ai: true, says: msg`The AI builds every page, so setting up takes longer and uses the AI service set up in Settings, which may charge for it.` }
 const TEMPLATE_MAKING = { ai: false, says: msg`The pages go into a ready-made layout without the AI, so it is quick and costs nothing extra.` }
 
 /** Per fact (genre, exercises, composition, diagrams), per answer. */

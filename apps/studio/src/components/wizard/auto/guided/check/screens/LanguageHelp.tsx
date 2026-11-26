@@ -32,7 +32,7 @@ export function LanguageHelp({ open, onOpenChange, found }: { open: boolean; onO
             <Trans>Pick another language only if you want the whole book translated into it.</Trans>
           </Part>
           <Part icon={<Sparkles className="size-4" />} title={<Trans>Translation uses the AI</Trans>}>
-            <Trans>If you pick another language, the AI translates the text into it, so setting up takes longer and uses your AI account, which may cost money.</Trans>
+            <Trans>If you pick another language, the AI translates the text into it, so setting up takes longer and uses the AI service set up in Settings, which may charge for it.</Trans>
           </Part>
           <Part icon={<RefreshCw className="size-4" />} title={<Trans>Can I change it later?</Trans>}>
             <Trans>You can change it until you set up the book. To have the finished book in more languages, add them later from the book&apos;s Translate step.</Trans>

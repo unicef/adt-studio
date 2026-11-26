@@ -7,7 +7,7 @@ export const SCREEN_TITLE: Record<ScreenId, MessageDescriptor> = {
   kind: msg`Kind of book`,
   language: msg`Language`,
   look: msg`How the pages look`,
-  pages: msg`Pages to import`,
+  pages: msg`Pages to convert`,
   activities: msg`Exercises and maps`,
   name: msg`Name and set up`,
 }

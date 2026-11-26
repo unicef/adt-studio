@@ -149,7 +149,7 @@ function FactWhy({ fact, file }: { fact: SetupFact; file: File | null | undefine
   return (
     <>
       {other ? (
-        <span className="block">{i18n._(msg`This is what I saw on the pages I looked at. But when I read the book a second time, I thought it could be “${i18n._(other)}”, so please check.`)}</span>
+        <span className="block">{i18n._(msg`My first reading of the pages picked this. When I read the book a second time, I thought it could be “${i18n._(other)}”, so please check.`)}</span>
       ) : (
         fact.reason && <span className="block">“{fact.reason}”</span>
       )}

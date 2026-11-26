@@ -77,7 +77,7 @@ export function RingCreate({ run }: { run: CreateRun }) {
           )}
         </button>
         <span key={morphed ? "ready" : run.status} className="fx-fade-in text-center font-mono text-[13px] text-muted-foreground">
-          {morphed ? <Trans>{run.name} is ready</Trans> : run.status === "extracting" ? <Trans>Starting on the first pages…</Trans> : done ? <Trans>Done</Trans> : <Trans>Saving your book…</Trans>}
+          {morphed ? <Trans>{run.name} is set up</Trans> : run.status === "extracting" ? <Trans>Starting on the first pages…</Trans> : done ? <Trans>Done</Trans> : <Trans>Saving your book…</Trans>}
         </span>
       </div>
       {morphed && run.warning && <ErrorDetails detail={run.warning} className="items-start [&>button]:-ml-2" />}
