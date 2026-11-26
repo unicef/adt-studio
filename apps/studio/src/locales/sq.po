@@ -2789,6 +2789,9 @@ msgstr "Qendër"
 msgid "Change"
 msgstr "Ndrysho"
 
+msgid "Change a reader file"
+msgstr "Ndrysho një skedar të lexuesit"
+
 msgid "Change and send"
 msgstr "Ndrysho dhe dërgo"
 
@@ -3242,6 +3245,9 @@ msgstr "Krahaso me versionin e paracaktuar"
 
 msgid "Compared with fallback prompt."
 msgstr "Krahasuar me prompt-in fallback."
+
+msgid "Compiled the reader"
+msgstr "Përpiloi lexuesin"
 
 msgid "Compiling Reader..."
 msgstr "Po përpilohet lexuesi..."
@@ -6780,6 +6786,9 @@ msgstr "U listuan imazhet e faqes"
 msgid "Listed the pages"
 msgstr "U listuan faqet"
 
+msgid "Listed the reader files"
+msgstr "U listuan skedarët e lexuesit"
+
 msgid "Listed under Features"
 msgstr "Të listuara te Veçoritë"
 
@@ -9769,6 +9778,9 @@ msgstr "Lexo"
 msgid "Read a page"
 msgstr "Lexoi një faqe"
 
+msgid "Read a reader file"
+msgstr "Lexoi një skedar të lexuesit"
+
 msgid "Read a section"
 msgstr "Lexoi një seksion"
 
@@ -10453,6 +10465,9 @@ msgstr "Kthejeni te koordinatori"
 msgid "Return to publishing"
 msgstr "Kthehu te publikimi"
 
+msgid "Revert a reader file"
+msgstr "Rikthe një skedar të lexuesit"
+
 msgid "Revert language change"
 msgstr "Kthe ndryshimin e gjuhës"
 
@@ -10993,6 +11008,9 @@ msgstr "Kërko..."
 
 msgid "Search…"
 msgstr "Kërko…"
+
+msgid "Searched the reader source"
+msgstr "Kërkoi në kodin e lexuesit"
 
 msgid "Second voice"
 msgstr "Zëri i dytë"

@@ -2787,6 +2787,9 @@ msgstr "Center"
 msgid "Change"
 msgstr "Change"
 
+msgid "Change a reader file"
+msgstr "Change a reader file"
+
 msgid "Change and send"
 msgstr "Change and send"
 
@@ -3240,6 +3243,9 @@ msgstr "Compare with the default version"
 
 msgid "Compared with fallback prompt."
 msgstr "Compared with fallback prompt."
+
+msgid "Compiled the reader"
+msgstr "Compiled the reader"
 
 msgid "Compiling Reader..."
 msgstr "Compiling Reader..."
@@ -6778,6 +6784,9 @@ msgstr "Listed page images"
 msgid "Listed the pages"
 msgstr "Listed the pages"
 
+msgid "Listed the reader files"
+msgstr "Listed the reader files"
+
 msgid "Listed under Features"
 msgstr "Listed under Features"
 
@@ -9767,6 +9776,9 @@ msgstr "Read"
 msgid "Read a page"
 msgstr "Read a page"
 
+msgid "Read a reader file"
+msgstr "Read a reader file"
+
 msgid "Read a section"
 msgstr "Read a section"
 
@@ -10451,6 +10463,9 @@ msgstr "Return to coordinator"
 msgid "Return to publishing"
 msgstr "Return to publishing"
 
+msgid "Revert a reader file"
+msgstr "Revert a reader file"
+
 msgid "Revert language change"
 msgstr "Revert language change"
 
@@ -10991,6 +11006,9 @@ msgstr "Search..."
 
 msgid "Search…"
 msgstr "Search…"
+
+msgid "Searched the reader source"
+msgstr "Searched the reader source"
 
 msgid "Second voice"
 msgstr "Second voice"

@@ -8,7 +8,10 @@ import { ChatApprovalCard } from "./ChatApprovalCard"
 
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children: ReactNode }) => <>{children}</>,
-  useLingui: () => ({ t: (parts: TemplateStringsArray) => parts.join("") }),
+  useLingui: () => ({ t: (parts: TemplateStringsArray) => parts.join(""), i18n: { _: (message: { id: string }) => message.id } }),
+}))
+vi.mock("@lingui/core/macro", () => ({
+  msg: (parts: TemplateStringsArray) => ({ id: parts.join("") }),
 }))
 afterEach(() => {
   cleanup()
