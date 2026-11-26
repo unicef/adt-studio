@@ -70,7 +70,7 @@ describe("runChatTurn", () => {
 
   function run(
     threadId: string,
-    input: { text: string } | { decisions: Record<string, boolean> },
+    input: { text: string; images?: string[] } | { decisions: Record<string, boolean> },
     responses: AgentTurnResponse[],
     mode?: ChatMode,
   ) {
@@ -103,6 +103,18 @@ describe("runChatTurn", () => {
       { role: "user", content: "What is this book about?" },
       { role: "assistant", text: "It is about rivers.", toolCalls: [] },
     ])
+  })
+
+  it("sends attached images to the model and keeps them in the conversation", async () => {
+    const store = createChatThreadStore(booksDir, label)
+    const { id } = store.create()
+    const image = "data:image/png;base64,iVBORw0KGgo="
+
+    const { result, requests } = run(id, { text: "What is in this picture?", images: [image] }, [text("A volcano.")])
+    await result
+
+    expect(requests[0]?.messages.at(-1)).toEqual({ role: "user", content: "What is in this picture?", images: [image] })
+    expect(store.read(id).messages[0]).toEqual({ role: "user", content: "What is in this picture?", images: [image] })
   })
 
   it("runs read tools without asking", async () => {

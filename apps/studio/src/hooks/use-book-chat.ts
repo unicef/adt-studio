@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import type { ChatMessage, ChatMode, ChatThread } from "@adt/types"
 import { api } from "@/api/client"
 
-type ChatInput = { text: string } | { decisions: Record<string, boolean> }
+type ChatInput = { text: string; images: string[] } | { decisions: Record<string, boolean> }
 
 const threadsKey = (label: string) => ["books", label, "chat", "threads"]
 const threadKey = (label: string, id: string | null) => ["books", label, "chat", "thread", id]
@@ -40,7 +40,7 @@ export function useBookChat(label: string) {
       abortRef.current = controller
       setBusy(true)
       setError(null)
-      setLive("text" in input ? [{ role: "user", content: input.text }] : [])
+      setLive("text" in input ? [{ role: "user", content: input.text, images: input.images }] : [])
       try {
         await api.streamChatTurn(
           label,
@@ -92,7 +92,7 @@ export function useBookChat(label: string) {
     error,
     mode,
     setMode,
-    send: (text: string) => run({ text }),
+    send: (text: string, images: string[] = []) => run({ text, images }),
     decide: (decisions: Record<string, boolean>) => run({ decisions }),
     stop: () => abortRef.current?.abort(),
     selectThread,

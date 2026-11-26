@@ -13,6 +13,7 @@ import {
   TraceLine,
   TraceTitle,
 } from "@/components/ui/trace"
+import { ChatImageThumbnails } from "./ChatImageThumbnails"
 import { formatToolPayload, toolLabel, toolStatus, type ToolStatus } from "./tool-calls"
 
 const STATUS_ICON: Record<ToolStatus, typeof Wrench> = {
@@ -70,10 +71,13 @@ export function ChatMessageItem({ message, results, awaitingIds, busy }: ChatMes
   if (message.role === "user") {
     return (
       <Message align="end">
-        <MessageContent>
-          <Bubble align="end">
-            <BubbleContent className="whitespace-pre-wrap">{message.content}</BubbleContent>
-          </Bubble>
+        <MessageContent className="items-end">
+          {message.images?.length ? <ChatImageThumbnails images={message.images} className="justify-end" /> : null}
+          {message.content && (
+            <Bubble align="end">
+              <BubbleContent className="whitespace-pre-wrap">{message.content}</BubbleContent>
+            </Bubble>
+          )}
         </MessageContent>
       </Message>
     )

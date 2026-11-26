@@ -1758,7 +1758,7 @@ export const api = {
   streamChatTurn: async (
     label: string,
     threadId: string,
-    input: ({ text: string } | { decisions: Record<string, boolean> }) & { mode: ChatMode },
+    input: ({ text: string; images?: string[] } | { decisions: Record<string, boolean> }) & { mode: ChatMode },
     onEvent: (event: ChatStreamEvent) => void,
     signal?: AbortSignal,
   ) =>

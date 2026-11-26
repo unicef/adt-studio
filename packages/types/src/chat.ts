@@ -1,6 +1,14 @@
 import { z } from "zod"
 
 export const CHAT_MESSAGE_MAX_LENGTH = 8000
+export const CHAT_MAX_IMAGES = 4
+export const CHAT_IMAGE_MAX_LENGTH = 7_000_000
+export const CHAT_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"] as const
+
+export const ChatImage = z
+  .string()
+  .max(CHAT_IMAGE_MAX_LENGTH)
+  .regex(/^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/, "Images must be PNG, JPEG, WebP or GIF data URLs")
 
 export interface ChatToolCall {
   id: string
@@ -27,7 +35,7 @@ export const ChatToolResult = z.object({
 }) as z.ZodType<ChatToolResult>
 
 export const ChatMessage = z.discriminatedUnion("role", [
-  z.object({ role: z.literal("user"), content: z.string() }),
+  z.object({ role: z.literal("user"), content: z.string(), images: z.array(ChatImage).optional() }),
   z.object({ role: z.literal("assistant"), text: z.string(), toolCalls: z.array(ChatToolCall) }),
   z.object({ role: z.literal("tool"), results: z.array(ChatToolResult) }),
 ])
@@ -50,10 +58,13 @@ export type ChatThread = z.infer<typeof ChatThread>
 export const ChatMode = z.enum(["manual", "acceptEdits", "auto", "plan"])
 export type ChatMode = z.infer<typeof ChatMode>
 
-export const ChatSendRequest = z.object({
-  text: z.string().trim().min(1).max(CHAT_MESSAGE_MAX_LENGTH),
-  mode: ChatMode.default("manual"),
-})
+export const ChatSendRequest = z
+  .object({
+    text: z.string().trim().max(CHAT_MESSAGE_MAX_LENGTH),
+    images: z.array(ChatImage).max(CHAT_MAX_IMAGES).default([]),
+    mode: ChatMode.default("manual"),
+  })
+  .refine((request) => request.text.length > 0 || request.images.length > 0, { message: "Write a message or attach an image" })
 export type ChatSendRequest = z.infer<typeof ChatSendRequest>
 
 export const ChatApprovalRequest = z.object({

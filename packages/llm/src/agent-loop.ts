@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto"
 import { computeCacheHash, readCache, writeCache } from "./cache.js"
 import { formatProviderError } from "./error-format.js"
 import { createLogger, type LogLevel } from "./logger.js"
-import type { LlmLogEntry, LlmLogMessage } from "./log.js"
+import { imagePlaceholder, type LlmLogEntry, type LlmLogMessage } from "./log.js"
+import { stripDataUrl } from "./providers/shared/image-media-type.js"
 import type { ResolvedCredentials } from "./credentials.js"
 import { getDefaultProviderRegistry } from "./providers/index.js"
 import { toJsonSchema } from "./providers/shared/json-schema.js"
@@ -369,7 +370,11 @@ function buildTurnLog(system: string, input: TurnLogInput): LlmLogMessage[] {
   ]
 
   for (const message of input.messages.slice(0, input.turnStart)) {
-    entries.push({ role: message.role, content: [{ type: "text", text: describe(message) }] })
+    const images = message.role === "user" ? (message.images ?? []) : []
+    entries.push({
+      role: message.role,
+      content: [{ type: "text", text: describe(message) }, ...images.map((image) => imagePlaceholder(stripDataUrl(image)))],
+    })
   }
 
   if (input.response) {

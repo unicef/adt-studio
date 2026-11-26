@@ -37,7 +37,7 @@ export interface ChatToolkit {
   instructions?: string
 }
 
-export type ChatTurnInput = { text: string } | { decisions: Record<string, boolean> }
+export type ChatTurnInput = { text: string; images?: string[] } | { decisions: Record<string, boolean> }
 
 export interface RunChatTurnOptions {
   label: string
@@ -112,7 +112,7 @@ async function runLocked(options: RunChatTurnOptions): Promise<ChatThread> {
     const mode = options.mode ?? "manual"
     const active = applyMode(toolkit, mode, bookDir)
 
-    let prompt: string | undefined
+    let prompt: ChatMessage | undefined
     if ("decisions" in input) {
       if (thread.pendingToolCalls.length === 0) throw new ChatStateError("Nothing is waiting for approval")
       const results: ChatToolResult[] = []
@@ -132,15 +132,16 @@ async function runLocked(options: RunChatTurnOptions): Promise<ChatThread> {
       if (thread.pendingToolCalls.length > 0) {
         throw new ChatStateError("Approve or decline the pending action first")
       }
-      prompt = input.text
+      prompt = input.images?.length
+        ? { role: "user", content: input.text, images: input.images }
+        : { role: "user", content: input.text }
     }
 
     const metadata = storage.getLatestNodeData("metadata", "book")?.data as { title?: string | null } | undefined
     const result = await runAgentLoop({
       modelId: resolveAgentModelId(label, booksDir, options.configPath),
       system: systemPrompt(metadata?.title ?? label, toolkit, mode),
-      messages: thread.messages,
-      prompt,
+      messages: prompt ? [...thread.messages, prompt] : thread.messages,
       tools: active.tools,
       requiresApproval: (call) => active.asks(call.toolName),
       maxSteps: MAX_CHAT_STEPS,
@@ -162,7 +163,7 @@ async function runLocked(options: RunChatTurnOptions): Promise<ChatThread> {
 
     return store.write({
       ...thread,
-      title: thread.title || (prompt ?? "").slice(0, 60),
+      title: thread.title || (prompt?.role === "user" ? prompt.content.slice(0, 60) : ""),
       messages: result.messages,
       pendingToolCalls: result.pendingToolCalls ?? [],
     })

@@ -2183,8 +2183,14 @@ msgstr "Joindre une variable d'image"
 msgid "Attach font files or pick Google Fonts for this book. The AI assigns where each font is used (headings, body text, captions…) and the fonts are embedded in the final bundle so it works offline. Google Fonts are downloaded when extraction runs. Make sure you have the right to embed any uploaded font."
 msgstr "Joignez des fichiers de polices ou choisissez des Google Fonts pour ce livre. L'IA détermine où chaque police est utilisée (titres, corps du texte, légendes…) et les polices sont intégrées au paquet final pour fonctionner hors ligne. Les Google Fonts sont téléchargées lors de l'extraction. Assurez-vous d'avoir le droit d'intégrer toute police importée."
 
+msgid "Attach images"
+msgstr "Joindre des images"
+
 msgid "Attached fonts"
 msgstr "Polices jointes"
+
+msgid "Attached image {position}"
+msgstr "Image jointe {position}"
 
 msgid "Audience or reading level"
 msgstr "Public ou niveau de lecture"
@@ -10044,6 +10050,9 @@ msgstr "Retirer du groupe"
 msgid "Remove image"
 msgstr "Retirer l'image"
 
+msgid "Remove image {position}"
+msgstr "Retirer l'image {position}"
+
 msgid "Remove manual glossary term"
 msgstr "Supprimer le terme manuel du glossaire"
 
@@ -13065,6 +13074,9 @@ msgstr "La licence de cette police n'est pas open source et restreint l'intégra
 msgid "This font's license restricts embedding — distributing it inside the book bundle may be illegal."
 msgstr "La licence de cette police restreint l'incorporation — la distribuer dans le paquet du livre peut être illégal."
 
+msgid "This image could not be read."
+msgstr "Impossible de lire cette image."
+
 msgid "This image is decorative. Screen readers will skip it and no caption is needed."
 msgstr "Cette image est décorative. Les lecteurs d'écran l'ignoreront et aucune légende n'est nécessaire."
 
@@ -14474,6 +14486,9 @@ msgstr "hier"
 #. placeholder {0}: formatVersion(release.version)
 msgid "You are about to install {0}. Books or settings edited with a newer version may not work as expected. Back up your books before continuing."
 msgstr "Vous êtes sur le point d’installer {0}. Les livres ou paramètres modifiés avec une version plus récente risquent de ne pas fonctionner comme prévu. Sauvegardez vos livres avant de continuer."
+
+msgid "You can attach up to {CHAT_MAX_IMAGES} images"
+msgstr "Vous pouvez joindre jusqu'à {CHAT_MAX_IMAGES} images"
 
 msgid "You can export at this stage"
 msgstr "Vous pouvez exporter à cette étape"

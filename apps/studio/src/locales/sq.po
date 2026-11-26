@@ -2183,8 +2183,14 @@ msgstr "Bashkëngjit një variabël imazhi"
 msgid "Attach font files or pick Google Fonts for this book. The AI assigns where each font is used (headings, body text, captions…) and the fonts are embedded in the final bundle so it works offline. Google Fonts are downloaded when extraction runs. Make sure you have the right to embed any uploaded font."
 msgstr "Bashkëngjitni skedarë fontesh ose zgjidhni Google Fonts për këtë libër. IA cakton se ku përdoret çdo font (tituj, teksti kryesor, diçitura…) dhe fontet futen në paketën përfundimtare që të funksionojë offline. Google Fonts shkarkohen kur ekzekutohet nxjerrja. Sigurohuni që keni të drejtën të përfshini çdo font të ngarkuar."
 
+msgid "Attach images"
+msgstr "Bashkëngjit imazhe"
+
 msgid "Attached fonts"
 msgstr "Fontet e bashkëngjitura"
+
+msgid "Attached image {position}"
+msgstr "Imazhi i bashkëngjitur {position}"
 
 msgid "Audience or reading level"
 msgstr "Audienca ose niveli i leximit"
@@ -10044,6 +10050,9 @@ msgstr "Hiq nga grupi"
 msgid "Remove image"
 msgstr "Hiq imazhin"
 
+msgid "Remove image {position}"
+msgstr "Hiq imazhin {position}"
+
 msgid "Remove manual glossary term"
 msgstr "Hiq termin manual të glosariumit"
 
@@ -13065,6 +13074,9 @@ msgstr "Licenca e këtij fonti nuk është open-source dhe kufizon përfshirjen 
 msgid "This font's license restricts embedding — distributing it inside the book bundle may be illegal."
 msgstr "Licenca e kësaj fonti kufizon ngulitjen — shpërndarja e saj brenda paketës së librit mund të jetë e paligjshme."
 
+msgid "This image could not be read."
+msgstr "Ky imazh nuk mund të lexohej."
+
 msgid "This image is decorative. Screen readers will skip it and no caption is needed."
 msgstr "Ky imazh është dekorativ. Lexuesit e ekranit do ta anashkalojnë dhe nuk nevojitet titull."
 
@@ -14474,6 +14486,9 @@ msgstr "dje"
 #. placeholder {0}: formatVersion(release.version)
 msgid "You are about to install {0}. Books or settings edited with a newer version may not work as expected. Back up your books before continuing."
 msgstr "Jeni gati të instaloni {0}. Librat ose cilësimet e redaktuara me një version më të ri mund të mos funksionojnë siç pritet. Bëni kopje rezervë të librave para se të vazhdoni."
+
+msgid "You can attach up to {CHAT_MAX_IMAGES} images"
+msgstr "Mund të bashkëngjitni deri në {CHAT_MAX_IMAGES} imazhe"
 
 msgid "You can export at this stage"
 msgstr "Mund të eksportosh në këtë fazë"

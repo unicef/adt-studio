@@ -2181,8 +2181,14 @@ msgstr "Attach an image variable"
 msgid "Attach font files or pick Google Fonts for this book. The AI assigns where each font is used (headings, body text, captions…) and the fonts are embedded in the final bundle so it works offline. Google Fonts are downloaded when extraction runs. Make sure you have the right to embed any uploaded font."
 msgstr "Attach font files or pick Google Fonts for this book. The AI assigns where each font is used (headings, body text, captions…) and the fonts are embedded in the final bundle so it works offline. Google Fonts are downloaded when extraction runs. Make sure you have the right to embed any uploaded font."
 
+msgid "Attach images"
+msgstr "Attach images"
+
 msgid "Attached fonts"
 msgstr "Attached fonts"
+
+msgid "Attached image {position}"
+msgstr "Attached image {position}"
 
 msgid "Audience or reading level"
 msgstr "Audience or reading level"
@@ -10042,6 +10048,9 @@ msgstr "Remove from group"
 msgid "Remove image"
 msgstr "Remove image"
 
+msgid "Remove image {position}"
+msgstr "Remove image {position}"
+
 msgid "Remove manual glossary term"
 msgstr "Remove manual glossary term"
 
@@ -13063,6 +13072,9 @@ msgstr "This font's license is not open-source and restricts embedding — distr
 msgid "This font's license restricts embedding — distributing it inside the book bundle may be illegal."
 msgstr "This font's license restricts embedding — distributing it inside the book bundle may be illegal."
 
+msgid "This image could not be read."
+msgstr "This image could not be read."
+
 msgid "This image is decorative. Screen readers will skip it and no caption is needed."
 msgstr "This image is decorative. Screen readers will skip it and no caption is needed."
 
@@ -14472,6 +14484,9 @@ msgstr "yesterday"
 #. placeholder {0}: formatVersion(release.version)
 msgid "You are about to install {0}. Books or settings edited with a newer version may not work as expected. Back up your books before continuing."
 msgstr "You are about to install {0}. Books or settings edited with a newer version may not work as expected. Back up your books before continuing."
+
+msgid "You can attach up to {CHAT_MAX_IMAGES} images"
+msgstr "You can attach up to {CHAT_MAX_IMAGES} images"
 
 msgid "You can export at this stage"
 msgstr "You can export at this stage"

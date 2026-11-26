@@ -6,6 +6,7 @@ import type {
   AgentTurnRequest,
   AgentTurnResponse,
 } from "../../../ports/index.js"
+import { detectImageMediaType, stripDataUrl } from "../image-media-type.js"
 
 const DEFAULT_TIMEOUT_MS = 5 * 60_000
 
@@ -59,7 +60,18 @@ function toCoreTools(tools: AgentToolDefinition[]): Record<string, CoreTool> {
 function toCoreMessages(messages: AgentMessage[]): CoreMessage[] {
   return messages.map((message): CoreMessage => {
     if (message.role === "user") {
-      return { role: "user", content: message.content }
+      if (!message.images?.length) return { role: "user", content: message.content }
+      return {
+        role: "user",
+        content: [
+          ...(message.content ? [{ type: "text" as const, text: message.content }] : []),
+          ...message.images.map((image) => ({
+            type: "image" as const,
+            image: stripDataUrl(image),
+            mimeType: detectImageMediaType(image),
+          })),
+        ],
+      }
     }
     if (message.role === "assistant") {
       return {

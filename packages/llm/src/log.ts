@@ -71,18 +71,18 @@ export function sanitizeMessages(messages: Message[]): LlmLogMessage[] {
     if (typeof m.content === "string") {
       return { role: m.role, content: [{ type: "text" as const, text: m.content }] }
     }
-    const parts = m.content.map((part) => {
-      if (part.type === "image") {
-        const base64 = part.image
-        const hash = createHash("sha256").update(base64).digest("hex").slice(0, 16)
-        const byteLength = Math.round((base64.length * 3) / 4)
-        const { width, height } = imageDimensions(base64)
-        return { type: "image" as const, hash, byteLength, width, height }
-      }
-      return { type: "text" as const, text: part.text }
-    })
+    const parts = m.content.map((part) =>
+      part.type === "image" ? imagePlaceholder(part.image) : { type: "text" as const, text: part.text },
+    )
     return { role: m.role, content: parts }
   })
+}
+
+export function imagePlaceholder(base64: string): LlmLogImagePlaceholder {
+  const hash = createHash("sha256").update(base64).digest("hex").slice(0, 16)
+  const byteLength = Math.round((base64.length * 3) / 4)
+  const { width, height } = imageDimensions(base64)
+  return { type: "image", hash, byteLength, width, height }
 }
 
 /**

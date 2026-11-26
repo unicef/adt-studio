@@ -39,7 +39,7 @@ export interface AgentToolResult {
 }
 
 export type AgentMessage =
-  | { role: "user"; content: string }
+  | { role: "user"; content: string; images?: string[] }
   | { role: "assistant"; text: string; toolCalls: AgentToolCall[] }
   | { role: "tool"; results: AgentToolResult[] }
 

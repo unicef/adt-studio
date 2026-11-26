@@ -94,7 +94,7 @@ export function createChatRoutes(booksDir: string, promptsDir: string, configPat
   app.post("/books/:label/chat/threads/:id/messages", async (c) => {
     const body = ChatSendRequest.safeParse(await readJson(c))
     if (!body.success) throw new HTTPException(400, { message: body.error.message })
-    return streamTurn(c, { text: body.data.text }, body.data.mode)
+    return streamTurn(c, { text: body.data.text, images: body.data.images }, body.data.mode)
   })
 
   app.post("/books/:label/chat/threads/:id/approval", async (c) => {
