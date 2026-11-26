@@ -2,8 +2,9 @@ import type { ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import type { SetupDecided, SetupFact, SetupRecommendation, SetupSettingId } from "@adt/types"
 import { cn } from "@/lib/utils"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { settingsFor, settingsTouchedBy, type FactAnswers } from "../../engine/answers"
-import { FACT_SHORT } from "../../engine/words"
+import { FACT_LONG, FACT_SHORT } from "../../engine/words"
 import { FACT_HINT, plainTitle } from "./words"
 import { SCREEN, ScreenContent, type Shown } from "./screens/layouts"
 import { screenPages, useDescribe, useScreenImages } from "./screens/pages"
@@ -35,7 +36,7 @@ const NARROW = 520
  * when the user's pages wouldn't tell the options apart. With "Wizard names" on, `settings` shows
  * what the option applies, `changed` marking what differs between the options.
  */
-export type LookOption = { value: string; label: string; line: string; look: Look; guess: boolean; art?: ReactNode; settings?: SetupDecided; only?: SetupSettingId[]; changed?: SetupSettingId[] }
+export type LookOption = { value: string; label: string; line: string; look: Look; guess: boolean; art?: ReactNode; more?: string; settings?: SetupDecided; only?: SetupSettingId[]; changed?: SetupSettingId[] }
 
 function LookCard({ rec, option, page, narrow, chosen, first, onPick, file }: { rec: SetupRecommendation; option: LookOption; page: number; narrow: boolean; chosen: boolean; first: boolean; onPick: (card: HTMLElement) => void; file: File | null | undefined }) {
   const describe = useDescribe()
@@ -44,7 +45,7 @@ function LookCard({ rec, option, page, narrow, chosen, first, onPick, file }: { 
   const width = Math.max(80, Math.min(box.w - 28, ((box.h - 24) * SCREEN.desktop.w) / SCREEN.desktop.h))
   const pages = screenPages(rec, option.look.pageGrouping, page)
   const srcs = useScreenImages(file, pages)
-  return (
+  const card = (
     <button
       type="button"
       aria-pressed={chosen}
@@ -80,6 +81,16 @@ function LookCard({ rec, option, page, narrow, chosen, first, onPick, file }: { 
         {names && option.settings && <WizardSettings settings={option.settings} only={option.only} changed={option.changed} className="mt-2" />}
       </span>
     </button>
+  )
+  if (!option.more) return card
+  // On hover or focus: what this answer means, in a sentence or two more than the card says.
+  return (
+    <Tooltip delayDuration={350}>
+      <TooltipTrigger asChild>{card}</TooltipTrigger>
+      <TooltipContent side="bottom" variant="light" className="max-w-[300px] text-[13px] leading-snug">
+        {option.more}
+      </TooltipContent>
+    </Tooltip>
   )
 }
 
@@ -123,6 +134,7 @@ export function PreviewChoices({ rec, fact, order, answers, chosen, onAnswer, fi
     look: lookOf(decided[i]!),
     guess: value === fact.value,
     art: factArt(fact.id, value) ?? undefined,
+    more: FACT_LONG[fact.id][value] ? i18n._(FACT_LONG[fact.id][value]!) : undefined,
     settings: decided[i],
     only: touched.length ? touched : undefined,
     changed,

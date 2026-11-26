@@ -94,16 +94,6 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
   else if (at === "activities") body = <ActivitiesScreen rec={rec} chat={chat} file={file} />
   else body = <NameScreen screens={screens} values={values} settings={derived.effective} onEdit={(s) => check.go(s, true)} />
 
-  const meta = (
-    <span className="flex shrink-0 items-center gap-4">
-      <span className="text-[13px] tabular-nums text-muted-foreground lg:text-[14.5px]">
-        <Trans>
-          {index + 1} of {screens.length}
-        </Trans>
-      </span>
-    </span>
-  )
-
   return (
     <section aria-labelledby={HEADING} inert={locked} className="flex flex-col">
       <EarlierPicks screens={screens} at={at} done={check.done} values={values} onGo={(s) => check.go(s)} />
@@ -115,43 +105,54 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
         {body}
       </Morph>
       {/* The bar stays at the bottom of the window, so the button never moves; the space above keeps it off the content. */}
-      <div aria-hidden className="h-[150px]" />
+      <div aria-hidden className="h-[120px]" />
       <div className="gd-bar fixed inset-x-0 bottom-0 z-20 border-t border-border bg-[var(--lc-bg)]/95 backdrop-blur-sm">
-       <div className="mx-auto flex w-full max-w-[720px] flex-col gap-1 px-4 pb-4 pt-4 sm:px-6">
-        <div className="flex items-center justify-between gap-3">
-          <span className="flex items-center gap-4">
-            {index > 0 ? (
-              <button type="button" onClick={check.back} className="lc-link -ml-2 inline-flex min-h-11 items-center gap-1.5 px-3 text-[14.5px] font-medium">
+        <div className="mx-auto flex w-full max-w-[720px] flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-4 sm:px-6">
+          {/* Where you are: this screen, the steps of Check as segments, and the count. */}
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <span className="flex items-baseline gap-2 text-[14px]">
+              <span className="font-semibold">{i18n._(SCREEN_TITLE[at])}</span>
+              <span className="tabular-nums text-muted-foreground">
+                <Trans>
+                  {index + 1} of {screens.length}
+                </Trans>
+              </span>
+            </span>
+            <span aria-hidden className="flex gap-1">
+              {screens.map((s, i) => (
+                <span key={s} className={cn("h-1 w-7 rounded-full transition-colors duration-300", i < index || check.done.includes(s) ? "bg-[var(--gd-step)]" : s === at ? "bg-[var(--gd-step)]/45" : "bg-border")} />
+              ))}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {last ? (
+              <button type="button" onClick={onManual} className="lc-link inline-flex min-h-11 items-center gap-1.5 px-3 text-[13.5px] font-medium">
+                <Wrench className="size-4" />
+                <Trans>Set it up myself</Trans>
+              </button>
+            ) : (
+              !check.returning && (
+                <button type="button" onClick={check.end} className="hidden min-h-11 items-center rounded-full px-3 text-[13.5px] text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground sm:inline-flex">
+                  <Trans>Skip to the end</Trans>
+                </button>
+              )
+            )}
+            {index > 0 && (
+              <button type="button" onClick={check.back} className="inline-flex min-h-11 items-center gap-1.5 rounded-[12px] px-3.5 text-[14.5px] font-medium ring-1 ring-border transition-colors hover:bg-[var(--lc-bubble)]">
                 <ArrowLeft className="size-4" />
                 <Trans>Back</Trans>
               </button>
-            ) : null}
-            {meta}
-          </span>
-          <PrimaryButton
-            onClick={primary}
-            disabled={locked}
-            icon={last ? <Sparkles className="size-4" /> : sure ? <CheckIcon className="size-4" /> : undefined}
-            className={cn(LC_PRIMARY, "min-w-[148px] lg:h-12 lg:min-w-[176px] lg:px-7 lg:text-[15.5px]")}
-          >
-            {last ? <Trans>Set up book</Trans> : check.returning ? <Trans>Back to the summary</Trans> : sure ? <Trans>Looks right</Trans> : <Trans>Continue</Trans>}
-          </PrimaryButton>
+            )}
+            <PrimaryButton
+              onClick={primary}
+              disabled={locked}
+              icon={last ? <Sparkles className="size-4" /> : sure ? <CheckIcon className="size-4" /> : undefined}
+              className={cn(LC_PRIMARY, "min-w-[148px] lg:h-12 lg:min-w-[168px] lg:px-7 lg:text-[15.5px]")}
+            >
+              {last ? <Trans>Set up book</Trans> : check.returning ? <Trans>Back to the summary</Trans> : sure ? <Trans>Looks right</Trans> : <Trans>Continue</Trans>}
+            </PrimaryButton>
+          </div>
         </div>
-        <div className="flex justify-end">
-          {last ? (
-            <button type="button" onClick={onManual} className="lc-link -mr-2 inline-flex min-h-10 items-center gap-1.5 px-3 text-[13.5px] font-medium">
-              <Wrench className="size-4" />
-              <Trans>Set it up myself</Trans>
-            </button>
-          ) : (
-            !check.returning && (
-              <button type="button" onClick={check.end} className="-mr-2 inline-flex min-h-10 items-center rounded-full px-3 text-[13.5px] text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground">
-                <Trans>Skip to the end with my picks</Trans>
-              </button>
-            )
-          )}
-        </div>
-       </div>
       </div>
     </section>
   )

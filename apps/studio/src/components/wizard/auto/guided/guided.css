@@ -189,3 +189,9 @@
 .gd-expand { transition: grid-template-rows 0.32s var(--lc-out, ease-out), opacity 0.24s ease, margin 0.32s var(--lc-out, ease-out); }
 @media (prefers-reduced-motion: reduce) { .gd-expand { transition: none; } }
 .reduce-effects .gd-expand { transition: none; }
+
+/* A new pick: its picture and words fade in where the old ones were. */
+@keyframes gd-pick-in { from { opacity: 0; transform: scale(0.985); } }
+.gd-pick-in > * { animation: gd-pick-in 0.35s var(--lc-out, ease-out) both; }
+@media (prefers-reduced-motion: reduce) { .gd-pick-in > * { animation: none; } }
+.reduce-effects .gd-pick-in > * { animation: none; }

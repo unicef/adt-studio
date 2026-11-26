@@ -4,7 +4,6 @@ import type { SetupFact, SetupRecommendation } from "@adt/types"
 import { FACT_OPTIONS, settingsTouchedBy } from "../../engine/answers"
 import { FACT_SHORT, SETTING_NAME } from "../../engine/words"
 import { Citation } from "../shared/Citation"
-import { morphFrom } from "../shared/motion"
 import { PreviewChoices } from "../shared/PreviewChoices"
 import { lookOf } from "../shared/screens/look"
 import type { Answers } from "../shared/useAnswers"
@@ -12,7 +11,7 @@ import { factArt } from "../shared/art/ConceptArt"
 import { FACT_HINT, plainTitle, QUESTION_SHORT } from "../shared/words"
 import { WizardSettings } from "../shared/WizardSettings"
 import { useWizardNames } from "../shared/wizardNames"
-import { Picture, PICTURE, SurePick } from "./SurePick"
+import { Picture, PICTURE, showPick, SurePick } from "./SurePick"
 
 /**
  * One fact on a Check screen. Sure (the engine didn't ask): its pick highlighted, the others under
@@ -81,12 +80,10 @@ export function FactPick({ rec, fact, chat, file, sets }: { rec: SetupRecommenda
         order={order}
         answers={derived.current}
         chosen={value}
-        onAnswer={(v, card) =>
-          morphFrom(card, `pick-${labelId}`, () => {
-            setOpen(false)
-            chat.answer(fact.id, v)
-          })
-        }
+        onAnswer={(v) => {
+          chat.answer(fact.id, v)
+          showPick(labelId, () => setOpen(false))
+        }}
         file={file}
         labelId={labelId}
       />

@@ -11,7 +11,8 @@ import { lookOf } from "../../shared/screens/look"
 import type { Answers } from "../../shared/useAnswers"
 import { plainTitle, SETTING_OPTIONS } from "../../shared/words"
 import { FactPick } from "../FactPick"
-import { morphFrom } from "../../shared/motion"
+import { RENDER_STRATEGIES } from "../../../../core/constants"
+import { showPick } from "../SurePick"
 import { WizardSettings } from "../../shared/WizardSettings"
 import { useWizardNames, WIZARD_SETTING, wizardValue } from "../../shared/wizardNames"
 import { screenFacts } from "../screens"
@@ -44,6 +45,10 @@ function LayoutPick({ rec, chat, file }: Props) {
       value: v,
       label: name(v),
       line: SETTING_VALUE.renderStrategy[v] ? i18n._(SETTING_VALUE.renderStrategy[v]!.means) : "",
+      more: (() => {
+        const d = RENDER_STRATEGIES.find((r) => r.id === v)?.description
+        return d ? i18n._(d) : undefined
+      })(),
       look: lookOf({ ...derived.effective, renderStrategy: { value: v, rule: "user" } }),
       guess: v === derived.fromAnswers.renderStrategy?.value,
       settings: { ...derived.effective, renderStrategy: { value: v, rule: "user" } },
@@ -70,12 +75,10 @@ function LayoutPick({ rec, chat, file }: Props) {
         options={options}
         page={rec.previewPage}
         chosen={value}
-        onPick={(v, card) =>
-          morphFrom(card, `pick-${labelId}`, () => {
-            setOpen(false)
-            chat.override("renderStrategy", v)
-          })
-        }
+        onPick={(v) => {
+          chat.override("renderStrategy", v)
+          showPick(labelId, () => setOpen(false))
+        }}
         file={file}
         labelId={labelId}
       />
