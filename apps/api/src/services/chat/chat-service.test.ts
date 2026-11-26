@@ -11,7 +11,7 @@ import {
   type AnyProviderModule,
   type ProviderModule,
 } from "@adt/llm"
-import type { ChatMessage } from "@adt/types"
+import type { ChatMessage, ChatMode } from "@adt/types"
 import { ChatStateError, runChatTurn } from "./chat-service.js"
 import { createChatThreadStore } from "./thread-store.js"
 
@@ -68,7 +68,12 @@ describe("runChatTurn", () => {
     fs.rmSync(booksDir, { recursive: true, force: true })
   })
 
-  function run(threadId: string, input: { text: string } | { decisions: Record<string, boolean> }, responses: AgentTurnResponse[]) {
+  function run(
+    threadId: string,
+    input: { text: string } | { decisions: Record<string, boolean> },
+    responses: AgentTurnResponse[],
+    mode?: ChatMode,
+  ) {
     const { registry, requests } = fakeRegistry(responses)
     const streamed: ChatMessage[] = []
     const result = runChatTurn({
@@ -77,6 +82,7 @@ describe("runChatTurn", () => {
       promptsDir: path.join(booksDir, "prompts"),
       threadId,
       input,
+      mode,
       credentials: {},
       registry,
       onMessage: (message) => streamed.push(message),
@@ -137,6 +143,42 @@ describe("runChatTurn", () => {
 
     const toolMessage = resumed.messages.find((message) => message.role === "tool")
     expect(toolMessage).toMatchObject({ results: [{ id: "call-updateSection", result: { ok: false } }] })
+  })
+
+  it("runs writes without asking in auto mode", async () => {
+    const { id } = createChatThreadStore(booksDir, label).create()
+    const write = call("createCustomSection", { pageId: "missing", html: "<section></section>" })
+
+    const thread = await run(id, { text: "Add a section" }, [write, text("Done.")], "auto").result
+
+    expect(thread.pendingToolCalls).toEqual([])
+    expect(thread.messages.find((message) => message.role === "tool")).toMatchObject({
+      results: [{ id: "call-createCustomSection" }],
+    })
+  })
+
+  it("accepts edits without asking but still asks before creating content", async () => {
+    const store = createChatThreadStore(booksDir, label)
+    const edit = call("updateSection", { pageId: "missing", sectionIndex: 0, html: "<section></section>" })
+    const create = call("createCustomSection", { pageId: "missing", html: "<section></section>" })
+
+    const edited = await run(store.create().id, { text: "Fix it" }, [edit, text("Done.")], "acceptEdits").result
+    expect(edited.pendingToolCalls).toEqual([])
+
+    const created = await run(store.create().id, { text: "Add one" }, [create], "acceptEdits").result
+    expect(created.pendingToolCalls).toEqual(create.toolCalls)
+  })
+
+  it("hides write tools in plan mode", async () => {
+    const { id } = createChatThreadStore(booksDir, label).create()
+
+    const { result, requests } = run(id, { text: "Plan a change" }, [text("1. Rewrite the title.")], "plan")
+    await result
+
+    const toolNames = (requests[0]?.tools ?? []).map((tool) => tool.name)
+    expect(toolNames).toContain("listPages")
+    expect(toolNames).not.toContain("updateSection")
+    expect(requests[0]?.system).toContain("Plan mode")
   })
 
   it("refuses an approval when nothing is pending", async () => {

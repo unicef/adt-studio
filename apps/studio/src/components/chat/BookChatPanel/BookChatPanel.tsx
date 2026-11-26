@@ -129,7 +129,7 @@ export function BookChatPanel({ label, onClose }: BookChatPanelProps) {
         </MessageScrollerProvider>
       )}
 
-      <ChatComposer busy={chat.busy} disabled={chat.pendingToolCalls.length > 0} onSend={chat.send} onStop={chat.stop} />
+      <ChatComposer busy={chat.busy} disabled={chat.pendingToolCalls.length > 0} mode={chat.mode} onModeChange={chat.setMode} onSend={chat.send} onStop={chat.stop} />
     </aside>
   )
 }

@@ -1166,6 +1166,9 @@ msgstr "Prompt Akcenti"
 msgid "Accept anyway"
 msgstr "Prano gjithsesi"
 
+msgid "Accept edits"
+msgstr "Prano redaktimet"
+
 msgid "Accept reasonable web redesigns. Reject only for functional defects (visible placeholder tokens, missing content, overlap, overflow). Fewest rejections."
 msgstr "Pranoni ridesenimet e arsyeshme të faqes. Refuzoni vetëm për defekte funksionale (shenja të dukshme të vendmbajtësve, përmbajtje mungon, mbivendosje, tejkalim). Sa më pak refuzime."
 
@@ -2047,6 +2050,12 @@ msgstr "Zbatohet për çdo gjuhë të drejtuar në Gemini."
 msgid "Apply"
 msgstr "Apliko"
 
+msgid "Apply edits to existing content, ask for the rest"
+msgstr "Zbato redaktimet në përmbajtjen ekzistuese, pyet për të tjerat"
+
+msgid "Apply every change without asking"
+msgstr "Zbato çdo ndryshim pa pyetur"
+
 msgid "Apply filters"
 msgstr "Zbato filtrat"
 
@@ -2067,6 +2076,9 @@ msgstr "Zbato për të gjitha gabimet e këtij ekzekutimi"
 
 msgid "Applying changes…"
 msgstr "Duke zbatuar ndryshimet…"
+
+msgid "Approval mode"
+msgstr "Mënyra e miratimit"
 
 msgid "Approve"
 msgstr "Mirato"
@@ -2131,6 +2143,9 @@ msgstr "Pyet për këtë libër…"
 
 msgid "Ask AI to edit..."
 msgstr "Kërko nga AI të redaktojë..."
+
+msgid "Ask before every change"
+msgstr "Pyet para çdo ndryshimi"
 
 msgid "Ask questions about this book or request a change. Changes wait for your approval."
 msgstr "Bëj pyetje për këtë libër ose kërko një ndryshim. Ndryshimet presin miratimin tënd."
@@ -6992,6 +7007,9 @@ msgstr "manifest.json nuk ka kontratë redaktimi, ndaj ADT Studio nuk mund t’i
 msgid "manifest.json uses an editing contract version this ADT Studio doesn’t support."
 msgstr "manifest.json përdor një version të kontratës së redaktimit që ky ADT Studio nuk e mbështet."
 
+msgid "Manual"
+msgstr "Manual"
+
 msgid "Manual edit"
 msgstr "Ndryshim manual"
 
@@ -8328,6 +8346,9 @@ msgstr "Vetëm njerëzit që kanë shkruar një emër janë të listuar — diku
 msgid "Only people who typed a name are listed. Someone who opened the link and never wrote is not counted."
 msgstr "Listohen vetëm personat që shkruan një emër. Kush e hapi lidhjen dhe nuk shkroi kurrë nuk numërohet."
 
+msgid "Only read and propose a plan"
+msgstr "Vetëm lexo dhe propozo një plan"
+
 msgid "Only suggest replacements when the correction is high confidence"
 msgstr "Sugjero zëvendësime vetëm kur korrigjimi është me besim të lartë"
 
@@ -9153,6 +9174,9 @@ msgstr "Pixel Art"
 
 msgid "Placing the pins…"
 msgstr "Po vendosen pinet…"
+
+msgid "Plan"
+msgstr "Planifiko"
 
 msgid "Platform"
 msgstr "Platforma"

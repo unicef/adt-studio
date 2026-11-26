@@ -1,17 +1,20 @@
 import { useState } from "react"
 import { useLingui } from "@lingui/react/macro"
 import { ArrowUp, Square } from "lucide-react"
-import { CHAT_MESSAGE_MAX_LENGTH } from "@adt/types"
+import { CHAT_MESSAGE_MAX_LENGTH, type ChatMode } from "@adt/types"
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "@/components/ui/input-group"
+import { ChatModeSelect } from "./ChatModeSelect"
 
 interface ChatComposerProps {
   busy: boolean
   disabled: boolean
+  mode: ChatMode
+  onModeChange: (mode: ChatMode) => void
   onSend: (text: string) => void
   onStop: () => void
 }
 
-export function ChatComposer({ busy, disabled, onSend, onStop }: ChatComposerProps) {
+export function ChatComposer({ busy, disabled, mode, onModeChange, onSend, onStop }: ChatComposerProps) {
   const { t } = useLingui()
   const [text, setText] = useState("")
 
@@ -24,13 +27,13 @@ export function ChatComposer({ busy, disabled, onSend, onStop }: ChatComposerPro
 
   return (
     <form
-      className="shrink-0 p-3"
+      className="shrink-0 border-t border-border bg-background p-3"
       onSubmit={(event) => {
         event.preventDefault()
         submit()
       }}
     >
-      <InputGroup className="rounded-xl bg-background">
+      <InputGroup className="rounded-xl bg-background shadow-xs">
         <InputGroupTextarea
           value={text}
           maxLength={CHAT_MESSAGE_MAX_LENGTH}
@@ -38,7 +41,7 @@ export function ChatComposer({ busy, disabled, onSend, onStop }: ChatComposerPro
           rows={2}
           aria-label={t`Message`}
           placeholder={disabled ? t`Approve or decline the change first` : t`Ask about this book…`}
-          className="max-h-40 min-h-[52px] px-3"
+          className="max-h-40 min-h-[52px] px-3 pt-3 text-sm"
           onChange={(event) => setText(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === "Enter" && !event.shiftKey) {
@@ -47,7 +50,8 @@ export function ChatComposer({ busy, disabled, onSend, onStop }: ChatComposerPro
             }
           }}
         />
-        <InputGroupAddon align="block-end" className="justify-end">
+        <InputGroupAddon align="block-end" className="justify-between">
+          <ChatModeSelect value={mode} onChange={onModeChange} />
           {busy ? (
             <InputGroupButton size="icon-sm" variant="outline" className="rounded-full" onClick={onStop} aria-label={t`Stop`}>
               <Square className="size-3.5 fill-current" />

@@ -47,13 +47,18 @@ export const ChatThread = ChatThreadSummary.extend({
 })
 export type ChatThread = z.infer<typeof ChatThread>
 
+export const ChatMode = z.enum(["manual", "acceptEdits", "auto", "plan"])
+export type ChatMode = z.infer<typeof ChatMode>
+
 export const ChatSendRequest = z.object({
   text: z.string().trim().min(1).max(CHAT_MESSAGE_MAX_LENGTH),
+  mode: ChatMode.default("manual"),
 })
 export type ChatSendRequest = z.infer<typeof ChatSendRequest>
 
 export const ChatApprovalRequest = z.object({
   decisions: z.record(z.string(), z.boolean()),
+  mode: ChatMode.default("manual"),
 })
 export type ChatApprovalRequest = z.infer<typeof ChatApprovalRequest>
 

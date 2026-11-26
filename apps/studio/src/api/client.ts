@@ -18,6 +18,7 @@ import type {
   AdtBundleImportPreview,
   AdtImportUnreadableDetails,
   BookDetail,
+  ChatMode,
   ChatStreamEvent,
   ChatThread,
   ChatThreadSummary,
@@ -1757,7 +1758,7 @@ export const api = {
   streamChatTurn: async (
     label: string,
     threadId: string,
-    input: { text: string } | { decisions: Record<string, boolean> },
+    input: ({ text: string } | { decisions: Record<string, boolean> }) & { mode: ChatMode },
     onEvent: (event: ChatStreamEvent) => void,
     signal?: AbortSignal,
   ) =>

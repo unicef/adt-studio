@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import type { ChatMessage, ChatThread } from "@adt/types"
+import type { ChatMessage, ChatMode, ChatThread } from "@adt/types"
 import { api } from "@/api/client"
 
 type ChatInput = { text: string } | { decisions: Record<string, boolean> }
@@ -14,6 +14,7 @@ export function useBookChat(label: string) {
   const [live, setLive] = useState<ChatMessage[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [mode, setMode] = useState<ChatMode>("manual")
   const abortRef = useRef<AbortController | null>(null)
 
   const threads = useQuery({
@@ -44,7 +45,7 @@ export function useBookChat(label: string) {
         await api.streamChatTurn(
           label,
           id,
-          input,
+          { ...input, mode },
           (event) => {
             if (event.type === "message") setLive((previous) => [...previous, event.message])
             else if (event.type === "done") {
@@ -62,7 +63,7 @@ export function useBookChat(label: string) {
         void queryClient.invalidateQueries({ queryKey: ["books", label] })
       }
     },
-    [label, queryClient, threadId],
+    [label, mode, queryClient, threadId],
   )
 
   const selectThread = useCallback((id: string | null) => {
@@ -89,6 +90,8 @@ export function useBookChat(label: string) {
     pendingToolCalls: busy ? [] : (thread.data?.pendingToolCalls ?? []),
     busy,
     error,
+    mode,
+    setMode,
     send: (text: string) => run({ text }),
     decide: (decisions: Record<string, boolean>) => run({ decisions }),
     stop: () => abortRef.current?.abort(),

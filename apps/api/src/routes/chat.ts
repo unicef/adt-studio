@@ -1,7 +1,7 @@
 import { Hono, type Context } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { streamSSE } from "hono/streaming"
-import { ChatApprovalRequest, ChatSendRequest, parseBookLabel, type ChatStreamEvent } from "@adt/types"
+import { ChatApprovalRequest, ChatSendRequest, parseBookLabel, type ChatMode, type ChatStreamEvent } from "@adt/types"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
 import { requireExistingBook } from "../utils/book-exists.js"
 import { ChatStateError, runChatTurn, type ChatTurnInput } from "../services/chat/chat-service.js"
@@ -53,7 +53,7 @@ export function createChatRoutes(booksDir: string, promptsDir: string, configPat
     return c.json({ ok: true })
   })
 
-  function streamTurn(c: Context, input: ChatTurnInput) {
+  function streamTurn(c: Context, input: ChatTurnInput, mode: ChatMode) {
     const { label, store } = storeFor(c)
     const threadId = c.req.param("id") ?? ""
     try {
@@ -79,6 +79,7 @@ export function createChatRoutes(booksDir: string, promptsDir: string, configPat
           configPath,
           threadId,
           input,
+          mode,
           credentials,
           signal: controller.signal,
           onMessage: (message) => void emit({ type: "message", message }),
@@ -93,13 +94,13 @@ export function createChatRoutes(booksDir: string, promptsDir: string, configPat
   app.post("/books/:label/chat/threads/:id/messages", async (c) => {
     const body = ChatSendRequest.safeParse(await readJson(c))
     if (!body.success) throw new HTTPException(400, { message: body.error.message })
-    return streamTurn(c, { text: body.data.text })
+    return streamTurn(c, { text: body.data.text }, body.data.mode)
   })
 
   app.post("/books/:label/chat/threads/:id/approval", async (c) => {
     const body = ChatApprovalRequest.safeParse(await readJson(c))
     if (!body.success) throw new HTTPException(400, { message: body.error.message })
-    return streamTurn(c, { decisions: body.data.decisions })
+    return streamTurn(c, { decisions: body.data.decisions }, body.data.mode)
   })
 
   return app

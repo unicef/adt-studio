@@ -1164,6 +1164,9 @@ msgstr "Accent Prompt"
 msgid "Accept anyway"
 msgstr "Accept anyway"
 
+msgid "Accept edits"
+msgstr "Accept edits"
+
 msgid "Accept reasonable web redesigns. Reject only for functional defects (visible placeholder tokens, missing content, overlap, overflow). Fewest rejections."
 msgstr "Accept reasonable web redesigns. Reject only for functional defects (visible placeholder tokens, missing content, overlap, overflow). Fewest rejections."
 
@@ -2045,6 +2048,12 @@ msgstr "Applies to every language routed to Gemini."
 msgid "Apply"
 msgstr "Apply"
 
+msgid "Apply edits to existing content, ask for the rest"
+msgstr "Apply edits to existing content, ask for the rest"
+
+msgid "Apply every change without asking"
+msgstr "Apply every change without asking"
+
 msgid "Apply filters"
 msgstr "Apply filters"
 
@@ -2065,6 +2074,9 @@ msgstr "Apply to all errors in this run"
 
 msgid "Applying changes…"
 msgstr "Applying changes…"
+
+msgid "Approval mode"
+msgstr "Approval mode"
 
 msgid "Approve"
 msgstr "Approve"
@@ -2129,6 +2141,9 @@ msgstr "Ask about this book…"
 
 msgid "Ask AI to edit..."
 msgstr "Ask AI to edit..."
+
+msgid "Ask before every change"
+msgstr "Ask before every change"
 
 msgid "Ask questions about this book or request a change. Changes wait for your approval."
 msgstr "Ask questions about this book or request a change. Changes wait for your approval."
@@ -6990,6 +7005,9 @@ msgstr "manifest.json has no editing contract, so ADT Studio can’t match pages
 msgid "manifest.json uses an editing contract version this ADT Studio doesn’t support."
 msgstr "manifest.json uses an editing contract version this ADT Studio doesn’t support."
 
+msgid "Manual"
+msgstr "Manual"
+
 msgid "Manual edit"
 msgstr "Manual edit"
 
@@ -8326,6 +8344,9 @@ msgstr "Only people who typed a name are listed — somebody can read the book w
 msgid "Only people who typed a name are listed. Someone who opened the link and never wrote is not counted."
 msgstr "Only people who typed a name are listed. Someone who opened the link and never wrote is not counted."
 
+msgid "Only read and propose a plan"
+msgstr "Only read and propose a plan"
+
 msgid "Only suggest replacements when the correction is high confidence"
 msgstr "Only suggest replacements when the correction is high confidence"
 
@@ -9151,6 +9172,9 @@ msgstr "Pixel Art"
 
 msgid "Placing the pins…"
 msgstr "Placing the pins…"
+
+msgid "Plan"
+msgstr "Plan"
 
 msgid "Platform"
 msgstr "Platform"

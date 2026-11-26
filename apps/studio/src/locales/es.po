@@ -1164,6 +1164,9 @@ msgstr "Prompt de acento"
 msgid "Accept anyway"
 msgstr "Aceptar de todos modos"
 
+msgid "Accept edits"
+msgstr "Aceptar ediciones"
+
 msgid "Accept reasonable web redesigns. Reject only for functional defects (visible placeholder tokens, missing content, overlap, overflow). Fewest rejections."
 msgstr "Aceptar rediseños web razonables. Rechazar solo por defectos funcionales (tokens de marcador de posición visibles, contenido faltante, superposición, desbordamiento). Menos rechazos."
 
@@ -2045,6 +2048,12 @@ msgstr "Se aplica a todos los idiomas dirigidos a Gemini."
 msgid "Apply"
 msgstr "Aplicar"
 
+msgid "Apply edits to existing content, ask for the rest"
+msgstr "Aplicar ediciones al contenido existente y preguntar por lo demás"
+
+msgid "Apply every change without asking"
+msgstr "Aplicar todos los cambios sin preguntar"
+
 msgid "Apply filters"
 msgstr "Aplicar filtros"
 
@@ -2065,6 +2074,9 @@ msgstr "Aplicar a todos los errores de esta ejecución"
 
 msgid "Applying changes…"
 msgstr "Aplicando cambios…"
+
+msgid "Approval mode"
+msgstr "Modo de aprobación"
 
 msgid "Approve"
 msgstr "Aprobar"
@@ -2129,6 +2141,9 @@ msgstr "Pregunta sobre este libro…"
 
 msgid "Ask AI to edit..."
 msgstr "Pide a la IA que edite..."
+
+msgid "Ask before every change"
+msgstr "Preguntar antes de cada cambio"
 
 msgid "Ask questions about this book or request a change. Changes wait for your approval."
 msgstr "Haz preguntas sobre este libro o pide un cambio. Los cambios esperan tu aprobación."
@@ -6990,6 +7005,9 @@ msgstr "manifest.json no tiene contrato de edición, así que ADT Studio no pued
 msgid "manifest.json uses an editing contract version this ADT Studio doesn’t support."
 msgstr "manifest.json usa una versión del contrato de edición que esta versión de ADT Studio no admite."
 
+msgid "Manual"
+msgstr "Manual"
+
 msgid "Manual edit"
 msgstr "Edición manual"
 
@@ -8326,6 +8344,9 @@ msgstr "Solo las personas que escribieron un nombre están listadas — alguien 
 msgid "Only people who typed a name are listed. Someone who opened the link and never wrote is not counted."
 msgstr "Solo aparecen las personas que escribieron un nombre. Quien abrió el enlace y nunca escribió no se cuenta."
 
+msgid "Only read and propose a plan"
+msgstr "Solo leer y proponer un plan"
+
 msgid "Only suggest replacements when the correction is high confidence"
 msgstr "Sugerir reemplazos solo cuando la corrección tenga alta confianza"
 
@@ -9151,6 +9172,9 @@ msgstr "Pixel Art"
 
 msgid "Placing the pins…"
 msgstr "Colocando los pines…"
+
+msgid "Plan"
+msgstr "Planificar"
 
 msgid "Platform"
 msgstr "Plataforma"
