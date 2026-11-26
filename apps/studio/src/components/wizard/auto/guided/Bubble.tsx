@@ -27,7 +27,7 @@ export function Bubble({ swap, busy, away, children }: { swap: string; busy?: bo
           {name}:
         </span>
         <Morph swap={swap} name="gd-bubble" className="gd-bubble lc-bubble rounded-tl-[8px]" inner="px-5 py-4 text-[15.5px] leading-[1.55] lg:px-6 lg:py-5 lg:text-[17px]">
-          <div ref={words} className="gd-say">
+          <div ref={words}>
             {children}
           </div>
         </Morph>

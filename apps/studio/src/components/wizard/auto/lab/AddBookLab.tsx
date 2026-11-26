@@ -15,7 +15,6 @@ import { LabDriveContext, type FlowStep } from "../guided/shared/labDrive"
 import { activitiesApply } from "../guided/check/screens"
 import { GuidedFlow } from "../guided"
 import { setAssistantStyle, type AssistantLookId } from "../guided/shared/assistantLook"
-import { setTextMotion, type TextMotion } from "../guided/shared/useTalk"
 
 /** The flow in order; Error branches off Reading. Check is its screens; Activities shows only when the book answer has it. */
 const FLOW: StepItem[] = [
@@ -44,18 +43,6 @@ const SETTINGS: LabControl[] = [
       { value: "wizard", label: "Wizard" },
       { value: "buddy", label: "Buddy (book)" },
       { value: "bot", label: "Bot" },
-    ],
-  },
-  {
-    key: "text",
-    label: "Text",
-    default: "type",
-    options: [
-      { value: "type", label: "Type (letters)" },
-      { value: "words", label: "Words" },
-      { value: "stream", label: "Stream (fading words)" },
-      { value: "fade", label: "Fade in" },
-      { value: "none", label: "Instant" },
     ],
   },
   {
@@ -141,9 +128,6 @@ export default function AddBookLab() {
   useEffect(() => {
     if (values.agent) setAssistantStyle({ look: values.agent as AssistantLookId })
   }, [values.agent])
-  useEffect(() => {
-    if (values.text) setTextMotion(values.text as TextMotion)
-  }, [values.text])
 
   const keepFile = useCallback((f: File) => {
     setFile(f)
@@ -187,7 +171,7 @@ export default function AddBookLab() {
     set(key, value)
     // A new engine answer replays the flow to the step you were at, so entrances
     // and loaders play again with the new pick.
-    if (key !== "speed" && key !== "error" && key !== "agent" && key !== "text") setJump((j) => ({ step: j.step === "play" ? "play" : actual, n: j.n + 1 }))
+    if (key !== "speed" && key !== "error" && key !== "agent") setJump((j) => ({ step: j.step === "play" ? "play" : actual, n: j.n + 1 }))
   }
 
   return (

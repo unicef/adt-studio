@@ -164,9 +164,6 @@ export function LabBar({
             <Row label="Assistant" hint="Its look and name; the colour is picked by clicking it.">
               <Field settings={settings} id="agent" values={values} onChange={onChange} />
             </Row>
-            <Row label="Text" hint="How the assistant's words come in.">
-              <Field settings={settings} id="text" values={values} onChange={onChange} />
-            </Row>
             <Row label="Library" hint="Empty plays a first-time user: Pages asks if they're just trying it out.">
               <Field settings={settings} id="library" values={values} onChange={onChange} />
             </Row>

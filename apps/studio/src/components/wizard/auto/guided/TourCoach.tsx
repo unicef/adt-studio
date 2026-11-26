@@ -109,7 +109,7 @@ export function TourCoach({ stops, at, onNext, onDone }: { stops: CoachStop[]; a
         </span>
         <div key={at} className={cn("gd-speech relative rounded-[22px] bg-[var(--lc-bubble)] px-5 py-4 text-[15.5px] leading-[1.5] lg:text-[16.5px]", big && "text-center")} data-side={side} style={{ width: big ? BUBBLE + 80 : BUBBLE }}>
           <span aria-hidden className="gd-speech-tail" />
-          <div ref={words} className="gd-say">
+          <div ref={words}>
             <p>{stop.says}</p>
             <div className={cn("mt-3.5 flex flex-wrap items-center gap-2", big && "justify-center")}>
               <Chip primary onClick={last ? onDone : onNext} icon={last ? undefined : <ArrowRight className="size-4" />} className="h-10 flex-row-reverse px-4 text-[14px]">

@@ -68,19 +68,6 @@ body:has([data-lab-toolbar]) .gd-foot { bottom: 84px; }
 .gd-sure .qd18-pg { transform: rotate(-1.5deg); }
 @media (min-width: 1024px) { .gd-aside .gd-foot { background: none; } }
 
-/* The assistant talking: the part of its message not said yet is hidden (useTalk), and anything to press waits for the end. */
-::highlight(gd-say) { color: transparent; }
-/* "stream": the newest words fade in (faintest at the edge). */
-::highlight(gd-say-near) { color: color-mix(in oklab, var(--lc-ink, currentColor) 25%, transparent); }
-::highlight(gd-say-far) { color: color-mix(in oklab, var(--lc-ink, currentColor) 60%, transparent); }
-/* "fade": the whole message rises in with a short blur. */
-@keyframes gd-say-fade { from { opacity: 0; transform: translateY(5px); filter: blur(5px); } }
-.gd-say[data-fade] { animation: gd-say-fade 0.55s var(--lc-out, ease-out) both; }
-@media (prefers-reduced-motion: reduce) { .gd-say[data-fade] { animation: none; } }
-.reduce-effects .gd-say[data-fade] { animation: none; }
-.gd-say[data-talking] :is(button, a, img, [role="img"]) { opacity: 0; }
-.gd-say :is(button, a, img, [role="img"]) { transition: opacity 0.3s ease; }
-
 /* Morphs between steps, screens and picks (shared/motion.ts): named places move and resize, the rest crossfades. */
 ::view-transition-group(*) { animation-duration: 0.45s; animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1); }
 ::view-transition-image-pair(*) { overflow: clip; }
