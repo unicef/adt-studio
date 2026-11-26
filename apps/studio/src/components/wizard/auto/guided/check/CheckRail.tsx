@@ -33,7 +33,7 @@ export function CheckRail({ screens, at, done, values, onGo }: Props & { values:
           const current = s === at
           const passed = done.includes(s) && !current
           return (
-            <li key={s} className="gd-rise" style={{ animationDelay: `${120 + i * 60}ms` }}>
+            <li key={s}>
               <button
                 type="button"
                 onClick={() => onGo(s)}

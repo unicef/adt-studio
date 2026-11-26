@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react"
+import { useContext, useEffect, useRef, useState, type ReactNode } from "react"
 import { flushSync } from "react-dom"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { FileDropOverlay } from "@/components/ui/file-drop-overlay"
@@ -13,7 +13,7 @@ import "../../core/flow.css"
 import { FinishContext } from "./shared/finish"
 import { NAME_INPUT } from "./shared/Create"
 import { EngineError } from "./shared/EngineError"
-import { useLabDrive } from "./shared/labDrive"
+import { LabDriveContext, useLabDrive } from "./shared/labDrive"
 import { ReadingCard, ReadingMessage } from "./shared/Reading"
 import { useAnswers } from "./shared/useAnswers"
 import { useCreateRun } from "./shared/useCreateRun"
@@ -33,6 +33,8 @@ import "./guided.css"
 
 /** How long the Check bubble stands alone before the first screen comes in under it. */
 const REVEAL_MS = 650
+/** How long the drop zone shows that the PDF is fine before the flow moves on. */
+const READY_MS = 1100
 
 /**
  * Guided: Add Book as four steps (Upload · Reading · Check · Create) with the ADT Assistant's one
@@ -82,13 +84,23 @@ export function Guided({ onManual }: { onManual: () => void }) {
   }, [rec])
 
   // The step the flow is at; what's on screen follows it through a morph, so every step change animates.
-  const atNow: StepId = !validFile ? "upload" : !rec ? "reading" : lastRun ? "create" : "check"
+  // The drop zone shows that the PDF is fine for a moment before the flow moves on (reading has
+  // already started underneath). Lab jumps past Start don't wait.
+  const labTarget = useContext(LabDriveContext)?.target
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    if (!validFile) return setReady(false)
+    if (labTarget && labTarget !== "start") return setReady(true)
+    const id = window.setTimeout(() => setReady(true), READY_MS)
+    return () => window.clearTimeout(id)
+  }, [validFile, flow.fileKey])
+  const atNow: StepId = !validFile || !ready ? "upload" : !rec ? "reading" : lastRun ? "create" : "check"
   const [at, setAt] = useState<StepId>(atNow)
   useEffect(() => {
     if (at !== atNow) morph(() => setAt(atNow))
   }, [atNow])
 
-  // A first run starts with the tour of the three steps, one at a time.
+  // A first run starts with a tour of the page: the assistant, each card, then the drop zone.
   const firstRun = useFirstRun()
   const [tour, setTour] = useState<number | null>(null)
   const toured = useRef(false)
@@ -147,9 +159,10 @@ export function Guided({ onManual }: { onManual: () => void }) {
   let aside: ReactNode = null
   let bars: ReactNode = null
   if (shown === "upload") {
-    says = <UploadSays flow={flow} rejected={!!rejectedAt && !validFile} tour={flow.file ? null : tour} />
-    swap = `upload-${rejectedAt}-${flow.error ?? ""}-${validFile}-${!!flow.file}-${tour}`
-    panel = <UploadPanel flow={flow} onContinue={view === "upload" && validFile ? () => morph(() => setView(null)) : null} tour={tour} onTour={setTour} onTourDone={endTour} />
+    const shownTour = flow.file ? null : tour
+    says = <UploadSays flow={flow} rejected={!!rejectedAt && !validFile} tour={shownTour} onTour={setTour} onTourDone={endTour} />
+    swap = `upload-${rejectedAt}-${flow.error ?? ""}-${validFile}-${!!flow.file}-${shownTour}`
+    panel = <UploadPanel flow={flow} rejected={!!rejectedAt && !validFile} onContinue={view === "upload" && validFile ? () => morph(() => setView(null)) : null} tour={shownTour} />
   } else if (shown === "reading") {
     if (failure) {
       swap = `failed-${attempt}`

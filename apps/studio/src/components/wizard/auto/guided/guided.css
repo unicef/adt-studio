@@ -131,3 +131,17 @@ body:has([data-lab-toolbar]) .gd-foot { bottom: 84px; }
   .gd-reading-bar > span, .gd-rise { animation: none; }
 }
 .reduce-effects :is(.gd-reading-bar > span, .gd-rise) { animation: none; }
+
+/* First-run tour: a spotlight on the page as it is. What the assistant talks about is outlined; the rest steps back. Nothing moves. */
+.gd-spot { transition: opacity 0.35s ease, filter 0.35s ease, box-shadow 0.35s ease; }
+.gd-spot-off { opacity: 0.35; filter: saturate(0.6); }
+.gd-spot-rest { opacity: 0.6; }
+.gd-spot-on { box-shadow: 0 0 0 3px var(--gd-step), 0 18px 40px -18px color-mix(in oklab, var(--brand-600) 45%, transparent); }
+/* The drop zone checking a PDF: the badge breathes; when it's fine, the check pops once. */
+@keyframes gd-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+.gd-breathe { animation: gd-breathe 1.4s ease-in-out infinite; }
+@keyframes gd-pop { 0% { transform: scale(0.6); } 60% { transform: scale(1.12); } 100% { transform: none; } }
+.gd-pop { animation: gd-pop 0.45s var(--lc-pop, cubic-bezier(0.34, 1.56, 0.64, 1)) both; }
+@media (prefers-reduced-motion: reduce) { .gd-breathe, .gd-pop { animation: none; } .gd-spot { transition: none; } }
+.reduce-effects :is(.gd-breathe, .gd-pop) { animation: none; }
+.reduce-effects .gd-spot { transition: none; }

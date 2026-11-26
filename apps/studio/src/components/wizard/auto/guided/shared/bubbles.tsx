@@ -17,7 +17,7 @@ export function Chip({ onClick, children, icon, primary, pressed, disabled, clas
       className={cn(
         "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full font-semibold transition-[transform,background-color,box-shadow,color] duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50",
         "h-11 px-4 text-[14.5px] font-medium",
-        primary ? "lc-btn rounded-full" : "bg-[var(--lc-bubble)] text-foreground ring-1 ring-border hover:bg-[var(--lc-stage)]",
+        primary ? "rounded-full bg-[var(--lc-accent)] font-semibold text-[var(--lc-accent-ink)] hover:bg-[var(--lc-accent-hover)]" : "bg-[var(--lc-bubble)] text-foreground ring-1 ring-border hover:bg-[var(--lc-stage)]",
         className,
       )}
     >
