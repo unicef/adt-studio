@@ -164,9 +164,6 @@ export function LabBar({
             <Row label="Assistant" hint="Its look and name; the colour is picked by clicking it.">
               <Field settings={settings} id="agent" values={values} onChange={onChange} />
             </Row>
-            <Row label="Other options" hint="How a sure pick shows its other options on Check: accordion, segmented switch, thumbnail strip or bottom sheet.">
-              <Field settings={settings} id="details" values={values} onChange={onChange} />
-            </Row>
             <Row label="Wizard names" hint="Internal check: each choice shows the settings it applies, named as in the step-by-step wizard.">
               <Field settings={settings} id="names" values={values} onChange={onChange} />
             </Row>
