@@ -27,7 +27,7 @@ const state = vi.hoisted(() => ({
   convert: vi.fn(),
   headerSlot: null as HTMLElement | null,
   pickers: {} as Record<string, {onRestoringChange: (busy: boolean) => void; onRestored: () => void}>,
-  frame: {} as {editable: boolean; onTextChanged?: (dataId: string, text: string) => void},
+  frame: {} as {editable: boolean; onTextChanged?: (dataId: string, text: string) => void; onSelectElement?: (dataId: string, rect: DOMRect, tagName?: string) => void},
   panel: null as unknown as ComponentProps<typeof SectionEditPanel>,
   style: null as unknown as ComponentProps<typeof StyleEditorPanel>,
   save: vi.fn().mockResolvedValue({}),
@@ -115,6 +115,15 @@ vi.mock("./BookPreviewFrame", async () => {
       useImperativeHandle(
         ref,
         () => ({
+          getIframeRect() {
+            return new DOMRect()
+          },
+          getComputedTypographyStyles() {
+            return null
+          },
+          getElementClasses() {
+            return []
+          },
           setElementClasses(id: string, classes: string[]) {
             const doc = new DOMParser().parseFromString(html, "text/html")
             doc
@@ -260,6 +269,30 @@ it("AC-8: tells the author that a cloned section keeps its images' authored audi
       "Section duplicated. Its images keep their authored element audio.",
     ),
   )
+})
+
+it("AC-8: marks a selected image in a pruned section as pruned", async () => {
+  const page = fixture()
+  page.sectioningTree!.sections[0].isPruned = true
+  page.sectioningTree!.sections[0].nodes.push({
+    nodeId: "pg001_im001",
+    role: "image",
+    isPruned: false,
+  } as never)
+  page.rendering!.sections[0].html =
+    '<section data-section-id="pg001_sec001"><img data-id="pg001_im001" /></section>'
+
+  render(
+    <FloatingSaveProvider>
+      <StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={page} />
+    </FloatingSaveProvider>,
+  )
+
+  await waitFor(() => expect(state.frame.onSelectElement).toBeTypeOf("function"))
+  act(() => state.frame.onSelectElement!("pg001_im001", new DOMRect(), "img"))
+  await waitFor(() => {
+    expect((state.style as { elementProps?: { isPruned?: boolean } }).elementProps?.isPruned).toBe(true)
+  })
 })
 
 it.each([false, true])("Save & leave waits for Storyboard persistence and retains a rejected draft; source=%s", async (sourceDraft) => {
