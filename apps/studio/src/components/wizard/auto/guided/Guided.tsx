@@ -18,6 +18,7 @@ import { useCreateRun } from "./shared/useCreateRun"
 import { useFirstBook } from "./shared/useFirstBook"
 import { Bubble } from "./Bubble"
 import { CheckFlow } from "./check/CheckFlow"
+import { CheckIntro, IntroSays } from "./check/CheckIntro"
 import { CheckBars, CheckRail } from "./check/CheckRail"
 import { CheckSays } from "./check/CheckSays"
 import { useCheck } from "./check/useCheck"
@@ -88,7 +89,7 @@ export function Guided({ onManual }: { onManual: () => void }) {
     rec,
     chat,
     create,
-    screen: rec ? check.at : null,
+    screen: rec ? (check.intro ? "intro" : check.at) : null,
     jump: check.jump,
     flush: () => setRevealed(true),
   })
@@ -133,11 +134,21 @@ export function Guided({ onManual }: { onManual: () => void }) {
       says = <ReadingMessage file={flow.file!} pageCount={flow.pageCount} run={run} rec={rec} onManual={manual} />
     }
   } else if (shown === "check" && rec && chat.derived && values) {
-    swap = `check-${check.at}-${check.trying}`
-    says = <CheckSays rec={rec} derived={chat.derived} screen={check.at} file={flow.file} pageCount={flow.pageCount} firstBook={firstBook} trying={check.trying} onTrying={check.setTrying} />
-    panel = revealed && <CheckFlow rec={rec} chat={chat} check={check} values={values} file={flow.file} pageCount={flow.pageCount} locked={create.locked} onCreate={onCreate} onManual={manual} />
-    aside = <CheckRail screens={check.screens} at={check.at} done={check.done} values={values} onGo={(s) => check.go(s)} />
-    bars = <CheckBars screens={check.screens} at={check.at} done={check.done} />
+    swap = check.intro ? "check-intro" : `check-${check.at}-${check.trying}`
+    says = check.intro ? (
+      <IntroSays rec={rec} chat={chat} check={check} />
+    ) : (
+      <CheckSays rec={rec} derived={chat.derived} screen={check.at} file={flow.file} pageCount={flow.pageCount} firstBook={firstBook} trying={check.trying} onTrying={check.setTrying} />
+    )
+    panel =
+      revealed &&
+      (check.intro ? (
+        <CheckIntro rec={rec} chat={chat} check={check} values={values} file={flow.file} pageCount={flow.pageCount} locked={create.locked} />
+      ) : (
+        <CheckFlow rec={rec} chat={chat} check={check} values={values} file={flow.file} pageCount={flow.pageCount} locked={create.locked} onCreate={onCreate} onManual={manual} />
+      ))
+    aside = <CheckRail screens={check.screens} at={check.intro ? null : check.at} done={check.done} values={values} onGo={(s) => check.go(s)} />
+    bars = <CheckBars screens={check.screens} at={check.intro ? null : check.at} done={check.done} />
   } else if (shown === "create" && lastRun) {
     swap = `create-${lastRun.n}-${lastRun.status === "failed" ? "failed" : lastRun.status === "done" ? "done" : "busy"}`
     says = <CreateSays run={lastRun} onRetry={onCreate} onRename={onRename} />
@@ -171,7 +182,7 @@ export function Guided({ onManual }: { onManual: () => void }) {
                 <Bubble swap={swap} busy={busy}>
                   {says}
                 </Bubble>
-                <Morph swap={`${shown}-${!!panel}`} className="-mx-2 mt-4" inner="px-2 pb-3 pt-1">
+                <Morph swap={`${shown}-${!!panel}-${shown === "check" && check.intro}`} className="-mx-2 mt-4" inner="px-2 pb-3 pt-1">
                   {panel}
                 </Morph>
               </div>

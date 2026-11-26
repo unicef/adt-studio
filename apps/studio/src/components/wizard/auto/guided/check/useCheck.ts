@@ -6,20 +6,25 @@ import { CHECK_START, checkScreens, moveCheck, shownScreen, type CheckAction, ty
 /**
  * Check's screens for one engine answer: which ones show, the one on view and the ones passed.
  * The pages to import are the user's to pick (all of them until they choose), so nothing goes
- * into the form here. `trying` is the first-time user's answer on Pages: just trying it out (true),
+ * into the form here. Check opens on an overview (`intro`) before its first screen. `trying` is the first-time user's answer on Pages: just trying it out (true),
  * the whole book (false), or not answered.
  */
 export function useCheck(rec: SetupRecommendation | null, chat: Answers) {
   const [state, setState] = useState<CheckState>(CHECK_START)
   const [trying, setTrying] = useState<boolean | null>(null)
+  const [intro, setIntro] = useState(true)
 
   useEffect(() => {
     setState(CHECK_START)
     setTrying(null)
+    setIntro(true)
   }, [rec?.id])
   const screens: ScreenId[] = rec && chat.derived ? checkScreens(rec, chat.derived.current) : []
   const at = screens.length ? shownScreen(state, screens) : "kind"
-  const move = (action: CheckAction) => setState((s) => moveCheck(s, action, screens))
+  const move = (action: CheckAction) => {
+    setIntro(false)
+    setState((s) => moveCheck(s, action, screens))
+  }
   return {
     screens,
     at,
@@ -38,6 +43,9 @@ export function useCheck(rec: SetupRecommendation | null, chat: Answers) {
     jump: (to: ScreenId) => move({ type: "jump", to }),
     trying,
     setTrying,
+    /** The overview before the first screen: what was found, what needs the user. */
+    intro,
+    begin: () => setIntro(false),
   }
 }
 

@@ -1,5 +1,8 @@
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Pencil } from "lucide-react"
+import type { SetupDecided } from "@adt/types"
+import { WizardSettings } from "../../shared/WizardSettings"
+import { useWizardNames } from "../../shared/wizardNames"
 import { NameField } from "../nameField"
 import type { ScreenId } from "../screens"
 import { SCREEN_TITLE } from "../words"
@@ -8,8 +11,9 @@ import { SCREEN_TITLE } from "../words"
  * Screen 5 · Name and create: the choices in short (each with Edit, which opens its screen and
  * comes back here), then the book's name. Create and "Set it up myself" are the screen's buttons.
  */
-export function NameScreen({ screens, values, onEdit }: { screens: ScreenId[]; values: Record<ScreenId, string>; onEdit: (screen: ScreenId) => void }) {
+export function NameScreen({ screens, values, settings, onEdit }: { screens: ScreenId[]; values: Record<ScreenId, string>; settings: SetupDecided; onEdit: (screen: ScreenId) => void }) {
   const { i18n, t } = useLingui()
+  const names = useWizardNames()
   return (
     <div className="flex flex-col gap-4">
       <ul className="lc-surface flex flex-col divide-y divide-border/70 px-4 py-1 sm:px-5">
@@ -31,6 +35,14 @@ export function NameScreen({ screens, values, onEdit }: { screens: ScreenId[]; v
             )
           })}
       </ul>
+      {names && (
+        <div className="lc-surface flex flex-col gap-2 p-4 sm:px-5">
+          <span className="text-[13px] text-muted-foreground">
+            <Trans>The settings the book is created with</Trans>
+          </span>
+          <WizardSettings settings={settings} className="gap-1.5" />
+        </div>
+      )}
       <div className="lc-surface p-4 sm:px-5">
         <NameField />
       </div>

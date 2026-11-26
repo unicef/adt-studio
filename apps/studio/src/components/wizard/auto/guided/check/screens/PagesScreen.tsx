@@ -21,7 +21,7 @@ export function PagesScreen({ pageCount }: { pageCount: number }) {
   return (
     <div className="lc-surface flex flex-col gap-4 p-4 sm:p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
-        <span className="qd18-pv flex h-[150px] w-full shrink-0 items-center justify-center gap-3 rounded-[12px] sm:h-[160px] sm:w-[260px] lg:h-[200px] lg:w-[320px]">
+        <span className="qd18-pv flex h-[150px] w-full shrink-0 items-center justify-center gap-3 rounded-[12px] sm:h-[170px] sm:w-[270px] lg:h-[clamp(220px,32vh,360px)] lg:w-[clamp(340px,50vh,560px)]">
           <PageThumb file={file} page={first} />
           <ArrowRight aria-hidden className="size-4 text-muted-foreground" />
           <PageThumb file={file} page={last} />

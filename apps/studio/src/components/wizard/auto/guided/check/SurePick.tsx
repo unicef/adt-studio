@@ -5,6 +5,8 @@ import type { SetupRecommendation } from "@adt/types"
 import { cn } from "@/lib/utils"
 import { Screen } from "../shared/PreviewChoices"
 import { screenPages, useDescribe, useScreenImages } from "../shared/screens/pages"
+import { SCREEN } from "../shared/screens/layouts"
+import { useBox } from "../shared/screens/useBox"
 import type { Look } from "../shared/screens/look"
 import { Morph } from "../Morph"
 
@@ -13,11 +15,17 @@ export function Picture({ rec, look, page, file, className }: { rec: SetupRecomm
   const pages = screenPages(rec, look.pageGrouping, page)
   const srcs = useScreenImages(file, pages)
   const describe = useDescribe()
+  const { ref, box } = useBox<HTMLSpanElement>()
   return (
-    <span role="img" aria-label={describe(look, "desktop", pages)} className={cn("qd18-pv relative grid shrink-0 place-items-center overflow-hidden rounded-[12px]", className)}>
-      <Screen shown={look} srcs={srcs} width={200} />
+    <span ref={ref} role="img" aria-label={describe(look, "desktop", pages)} className={cn("qd18-pv relative grid shrink-0 place-items-center overflow-hidden rounded-[12px]", className)}>
+      {box.w > 0 && <Screen shown={look} srcs={srcs} width={fitWidth(box)} />}
     </span>
   )
+}
+
+/** The widest book screen (16:10) that fits a box with room around it. */
+export function fitWidth(box: { w: number; h: number }): number {
+  return Math.max(80, Math.min(box.w - 28, ((box.h - 28) * SCREEN.desktop.w) / SCREEN.desktop.h))
 }
 
 /** "I'm sure" on the engine's own pick, "Your pick" once the user changed it. */
@@ -68,4 +76,4 @@ export function SurePick({ picture, label, title, hint, result, changed, badge =
 }
 
 /** The pick's picture area, sized for a screen: full width on a phone, beside the words from sm up. */
-export const PICTURE = "h-[150px] w-full sm:h-[150px] sm:w-[240px] lg:h-[200px] lg:w-[320px]"
+export const PICTURE = "h-[160px] w-full sm:h-[170px] sm:w-[270px] lg:h-[clamp(220px,32vh,360px)] lg:w-[clamp(340px,50vh,560px)]"

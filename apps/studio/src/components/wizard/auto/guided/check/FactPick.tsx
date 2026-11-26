@@ -7,7 +7,10 @@ import { Citation } from "../shared/Citation"
 import { PreviewChoices } from "../shared/PreviewChoices"
 import { lookOf } from "../shared/screens/look"
 import type { Answers } from "../shared/useAnswers"
+import { factArt } from "../shared/art/ConceptArt"
 import { FACT_HINT, plainTitle, QUESTION_SHORT } from "../shared/words"
+import { WizardSettings } from "../shared/WizardSettings"
+import { useWizardNames } from "../shared/wizardNames"
 import { Picture, PICTURE, SurePick } from "./SurePick"
 
 /**
@@ -17,6 +20,7 @@ import { Picture, PICTURE, SurePick } from "./SurePick"
  */
 export function FactPick({ rec, fact, chat, file, sets }: { rec: SetupRecommendation; fact: SetupFact; chat: Answers; file: File | null | undefined; sets?: boolean }) {
   const { i18n } = useLingui()
+  const names = useWizardNames()
   const derived = chat.derived!
   const [open, setOpen] = useState(false)
   const value = derived.current[fact.id]
@@ -43,7 +47,8 @@ export function FactPick({ rec, fact, chat, file, sets }: { rec: SetupRecommenda
   }
 
   const order = [value, ...FACT_OPTIONS[fact.id].filter((v) => v !== value)]
-  const touched = sets ? settingsTouchedBy(rec, derived.current, fact.id) : []
+  const applies = settingsTouchedBy(rec, derived.current, fact.id)
+  const touched = sets ? applies : []
   const result = touched
     .map((id) => {
       const words = plainTitle(id, derived.effective[id]?.value)
@@ -52,11 +57,17 @@ export function FactPick({ rec, fact, chat, file, sets }: { rec: SetupRecommenda
     .join(" · ")
   return (
     <SurePick
-      picture={<Picture rec={rec} look={lookOf(derived.effective)} page={page} file={file} className={PICTURE} />}
+      picture={
+        factArt(fact.id, value) ? (
+          <span className={`qd18-pv grid shrink-0 place-items-center rounded-[12px] p-3 ${PICTURE}`}>{factArt(fact.id, value)}</span>
+        ) : (
+          <Picture rec={rec} look={lookOf(derived.effective)} page={page} file={file} className={PICTURE} />
+        )
+      }
       label={question}
       title={i18n._(FACT_SHORT[fact.id][value]!)}
       hint={i18n._(FACT_HINT[fact.id]![value]!)}
-      result={result || undefined}
+      result={names ? <WizardSettings settings={derived.effective} only={applies.length ? applies : undefined} /> : result || undefined}
       changed={value !== fact.value}
       labelId={labelId}
       open={open}

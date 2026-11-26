@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 import type { ScreenId } from "./screens"
 import { SCREEN_TITLE } from "./words"
 
-type Props = { screens: ScreenId[]; at: ScreenId; done: ScreenId[] }
+type Props = { screens: ScreenId[]; at: ScreenId | null; done: ScreenId[] }
 
 /**
  * Where you are in Check, under the stepper's Check: one small bar per screen (passed, on view,

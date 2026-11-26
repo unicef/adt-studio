@@ -5,9 +5,9 @@ import type { Answers } from "./useAnswers"
 import type { useCreateRun } from "./useCreateRun"
 
 /** Where the flow is, in order, for the lab's stepper: Check is its screens. */
-export type FlowStep = "start" | "reading" | ScreenId | "creating" | "done" | "error"
+export type FlowStep = "start" | "reading" | "intro" | ScreenId | "creating" | "done" | "error"
 
-const ORDER: FlowStep[] = ["start", "reading", "kind", "language", "look", "pages", "activities", "name", "creating", "done", "error"]
+const ORDER: FlowStep[] = ["start", "reading", "intro", "kind", "language", "look", "pages", "activities", "name", "creating", "done", "error"]
 
 const SCREENS: string[] = ["kind", "language", "look", "pages", "activities", "name"]
 const isScreen = (step: string): step is ScreenId => SCREENS.includes(step)
@@ -28,7 +28,7 @@ type DriveInput = {
   chat: Answers
   create: ReturnType<typeof useCreateRun>
   /** The Check screen on view. */
-  screen: ScreenId | null
+  screen: ScreenId | "intro" | null
   /** Opens a Check screen, the ones before it passed. */
   jump: (screen: ScreenId) => void
   flush: () => void
@@ -67,7 +67,7 @@ export function useLabDrive(input: DriveInput) {
 
   useEffect(() => {
     if (!drive || !target || !rec || !chat.derived || answered.current) return
-    if (target === "start" || target === "reading" || target === "error") return
+    if (target === "start" || target === "reading" || target === "intro" || target === "error") return
     answered.current = true
     if (isScreen(target)) jump(target)
     else for (const f of chat.derived.asked) chat.answer(f.id, f.value)

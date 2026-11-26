@@ -608,6 +608,12 @@ const VALUE_LABELS: Record<string, MessageDescriptor> = {
   off: msg`Off`,
 };
 
+/** A setting's value as the step-by-step wizard names it ("Dynamic Overlay", "Per Page", "Off"). */
+export function wizardValueLabel(value: unknown): MessageDescriptor | string {
+  if (typeof value === "boolean") return value ? msg`On` : msg`Off`;
+  return VALUE_LABELS[String(value)] ?? String(value);
+}
+
 function formatDefaultValue(
   key: keyof WizardFormValues,
   value: unknown,

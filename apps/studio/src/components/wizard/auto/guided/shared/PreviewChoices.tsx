@@ -1,5 +1,6 @@
+import type { ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import type { SetupFact, SetupRecommendation, SetupSettingId } from "@adt/types"
+import type { SetupDecided, SetupFact, SetupRecommendation, SetupSettingId } from "@adt/types"
 import { cn } from "@/lib/utils"
 import { settingsFor, settingsTouchedBy, type FactAnswers } from "../../engine/answers"
 import { FACT_SHORT } from "../../engine/words"
@@ -8,6 +9,9 @@ import { SCREEN, ScreenContent, type Shown } from "./screens/layouts"
 import { screenPages, useDescribe, useScreenImages } from "./screens/pages"
 import { useBox } from "./screens/useBox"
 import { lookOf, type Look } from "./screens/look"
+import { factArt } from "./art/ConceptArt"
+import { WizardSettings } from "./WizardSettings"
+import { useWizardNames } from "./wizardNames"
 import "./question.css"
 
 /** One screen of the book as it would come out, drawn like a page on the board: no device frame. */
@@ -26,10 +30,18 @@ export function Screen({ shown, srcs, width }: { shown: Shown; srcs: (string | u
 /** Below this width the cards stack as rows (picture beside the words), so the previews stay readable on a phone. */
 const NARROW = 520
 
-export type LookOption = { value: string; label: string; line: string; look: Look; guess: boolean }
+/**
+ * One card: a label and a line, with the book as it would come out (`look`) or a drawing (`art`)
+ * when the user's pages wouldn't tell the options apart. With "Wizard names" on, `settings` shows
+ * what the option applies, `changed` marking what differs between the options.
+ */
+export type LookOption = { value: string; label: string; line: string; look: Look; guess: boolean; art?: ReactNode; settings?: SetupDecided; only?: SetupSettingId[]; changed?: SetupSettingId[] }
 
-function LookCard({ rec, option, page, width, narrow, chosen, first, onPick, file }: { rec: SetupRecommendation; option: LookOption; page: number; width: number; narrow: boolean; chosen: boolean; first: boolean; onPick: () => void; file: File | null | undefined }) {
+function LookCard({ rec, option, page, narrow, chosen, first, onPick, file }: { rec: SetupRecommendation; option: LookOption; page: number; narrow: boolean; chosen: boolean; first: boolean; onPick: () => void; file: File | null | undefined }) {
   const describe = useDescribe()
+  const names = useWizardNames()
+  const { ref, box } = useBox<HTMLSpanElement>()
+  const width = Math.max(80, Math.min(box.w - 28, ((box.h - 24) * SCREEN.desktop.w) / SCREEN.desktop.h))
   const pages = screenPages(rec, option.look.pageGrouping, page)
   const srcs = useScreenImages(file, pages)
   return (
@@ -38,13 +50,19 @@ function LookCard({ rec, option, page, width, narrow, chosen, first, onPick, fil
       aria-pressed={chosen}
       data-q-first={first ? "" : undefined}
       onClick={onPick}
-      aria-label={`${option.label}. ${option.line}. ${describe(option.look, "desktop", pages)}`}
+      aria-label={`${option.label}. ${option.line}.${option.art ? "" : ` ${describe(option.look, "desktop", pages)}`}`}
       className={cn("qd18-o group relative flex min-w-0 p-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500", narrow ? "flex-row items-center gap-3" : "flex-col", chosen && "is-sel")}
     >
-      <span className={cn("qd18-pv relative grid shrink-0 place-items-center overflow-hidden rounded-[12px]", narrow ? "h-[96px] w-[132px]" : "h-[150px] lg:h-[200px]")}>
-        <span className="qd18-dev">
-          <Screen shown={option.look} srcs={srcs} width={width} />
-        </span>
+      <span ref={ref} className={cn("qd18-pv relative grid shrink-0 place-items-center overflow-hidden rounded-[12px]", narrow ? "h-[96px] w-[132px]" : "h-[160px] lg:h-[clamp(200px,30vh,340px)]")}>
+        {option.art ? (
+          <span className="qd18-dev block h-full w-full p-2">{option.art}</span>
+        ) : (
+          box.w > 0 && (
+            <span className="qd18-dev">
+              <Screen shown={option.look} srcs={srcs} width={width} />
+            </span>
+          )
+        )}
         {option.guess && !narrow && (
           <span className="absolute left-2 top-2 whitespace-nowrap rounded-full bg-[var(--lc-bubble)] px-2 py-0.5 text-[11px] font-medium text-brand-700 shadow-sm">
             <Trans>My guess</Trans>
@@ -59,6 +77,7 @@ function LookCard({ rec, option, page, width, narrow, chosen, first, onPick, fil
         )}
         <span className="text-[15px] font-medium leading-tight lg:text-[17px]">{option.label}</span>
         <span className="mt-0.5 text-[13px] leading-snug text-muted-foreground lg:text-[14.5px]">{option.line}</span>
+        {names && option.settings && <WizardSettings settings={option.settings} only={option.only} changed={option.changed} className="mt-2" />}
       </span>
     </button>
   )
@@ -73,12 +92,9 @@ export function LookChoices({ rec, options, page, chosen, onPick, file, labelId 
   const { ref, box } = useBox()
   const cols = options.length
   const narrow = box.w > 0 && box.w < NARROW
-  const card = (box.w - 12 * (cols - 1)) / cols
-  // The screen fits the picture area (150px tall, 16:10; 96px in a row) with room around it.
-  const width = narrow ? 116 : Math.max(110, Math.min(card - 30, (134 * SCREEN.desktop.w) / SCREEN.desktop.h))
   return (
     <div ref={ref} role="group" aria-labelledby={labelId} className="grid gap-3 pt-1" style={{ gridTemplateColumns: narrow ? "minmax(0, 1fr)" : `repeat(${cols}, minmax(0, 1fr))` }}>
-      {box.w > 0 && options.map((o, i) => <LookCard key={o.value} rec={rec} option={o} page={page} width={width} narrow={narrow} chosen={chosen === o.value} first={i === 0} onPick={() => onPick(o.value)} file={file} />)}
+      {box.w > 0 && options.map((o, i) => <LookCard key={o.value} rec={rec} option={o} page={page} narrow={narrow} chosen={chosen === o.value} first={i === 0} onPick={() => onPick(o.value)} file={file} />)}
     </div>
   )
 }
@@ -98,12 +114,18 @@ export function PreviewChoices({ rec, fact, order, answers, chosen, onAnswer, fi
   const plain = decided.map((d) => (brings ? plainTitle(brings, d[brings]?.value) : undefined))
   // When the answers share that line ("Rebuilt to fit the screen" twice), each says its own hint instead.
   const distinct = plain.every((p) => p) && new Set(plain.map((p) => p!.id)).size === plain.length
+  // The settings that differ between the answers, for "Wizard names".
+  const changed = touched.filter((id) => new Set(decided.map((d) => String(d[id]?.value))).size > 1)
   const options = order.map((value, i): LookOption => ({
     value,
     label: i18n._(FACT_SHORT[fact.id][value]!),
-    line: i18n._(distinct ? plain[i]! : FACT_HINT[fact.id]![value]!),
+    line: i18n._(distinct && !factArt(fact.id, value) ? plain[i]! : FACT_HINT[fact.id]![value]!),
     look: lookOf(decided[i]!),
     guess: value === fact.value,
+    art: factArt(fact.id, value) ?? undefined,
+    settings: decided[i],
+    only: touched.length ? touched : undefined,
+    changed,
   }))
   return <LookChoices rec={rec} options={options} page={fact.evidencePages[0] ?? rec.previewPage} chosen={chosen} onPick={onAnswer} file={file} labelId={labelId} />
 }

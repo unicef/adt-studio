@@ -17,12 +17,32 @@ import { PagesScreen } from "./screens/PagesScreen"
 import { screenFacts, screenSure } from "./screens"
 import type { Check } from "./useCheck"
 import { SCREEN_TITLE } from "./words"
+import { setWizardNames, useWizardNames } from "../shared/wizardNames"
 
 const HEADING = "gd-check-title"
 
 /** Enter moves on unless focus is in a field or on something Enter already presses. */
 // eslint-disable-next-line lingui/no-unlocalized-strings -- a CSS selector
 const OWN_ENTER = "input, textarea, select, button, a[href], [role='slider'], [role='switch'], [contenteditable='true'], [data-lab-toolbar]"
+
+/** "Wizard names": shows each choice's settings as the step-by-step wizard names them. */
+function NamesSwitch() {
+  const on = useWizardNames()
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      onClick={() => setWizardNames(!on)}
+      className="inline-flex min-h-9 items-center gap-2 rounded-full px-2 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+    >
+      <span className={cn("relative inline-flex h-[18px] w-8 shrink-0 items-center rounded-full transition-colors duration-200", on ? "bg-[var(--lc-accent)]" : "bg-muted-foreground/30")}>
+        <span className={cn("absolute left-0.5 size-3.5 rounded-full bg-white shadow transition-transform duration-200 motion-reduce:transition-none", on && "translate-x-3.5")} />
+      </span>
+      <Trans>Wizard names</Trans>
+    </button>
+  )
+}
 
 type Props = {
   rec: SetupRecommendation
@@ -92,7 +112,7 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
   else if (at === "look") body = <LookScreen rec={rec} chat={chat} file={file} />
   else if (at === "pages") body = <PagesScreen pageCount={pageCount} />
   else if (at === "activities") body = <ActivitiesScreen rec={rec} chat={chat} file={file} />
-  else body = <NameScreen screens={screens} values={values} onEdit={(s) => check.go(s, true)} />
+  else body = <NameScreen screens={screens} values={values} settings={derived.effective} onEdit={(s) => check.go(s, true)} />
 
   return (
     <section aria-labelledby={HEADING} inert={locked} className="flex flex-col">
@@ -101,10 +121,13 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
           <h2 id={HEADING} ref={heading} tabIndex={-1} className="rounded-md text-[19px] font-semibold lg:text-[24px] tracking-[-0.015em] outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60">
             {i18n._(SCREEN_TITLE[at])}
           </h2>
-          <span className="shrink-0 text-[13px] tabular-nums text-muted-foreground lg:text-[14.5px]">
-            <Trans>
-              {index + 1} of {screens.length}
-            </Trans>
+          <span className="flex shrink-0 items-center gap-4">
+            <NamesSwitch />
+            <span className="text-[13px] tabular-nums text-muted-foreground lg:text-[14.5px]">
+              <Trans>
+                {index + 1} of {screens.length}
+              </Trans>
+            </span>
           </span>
         </div>
         {body}
