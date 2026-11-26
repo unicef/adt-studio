@@ -1,7 +1,7 @@
 import { useRef, type ReactNode } from "react"
-import { Trans } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
-import { Assistant } from "./shared/Assistant"
+import { Assistant, useAssistantName } from "./shared/Assistant"
+import { AssistantPicker } from "./shared/AssistantPicker"
 import { useTalk } from "./shared/useTalk"
 import { Morph } from "./Morph"
 
@@ -14,14 +14,17 @@ import { Morph } from "./Morph"
 export function Bubble({ swap, busy, away, children }: { swap: string; busy?: boolean; away?: boolean; children: ReactNode }) {
   const words = useRef<HTMLDivElement>(null)
   const talking = useTalk(words, swap)
+  const name = useAssistantName()
   return (
     <div className={cn("flex items-start gap-3 transition-opacity duration-300", away && "invisible opacity-0")} aria-hidden={away || undefined}>
       <span className="lc-avatar mt-0.5 flex" style={away ? undefined : { viewTransitionName: "gd-orb" }}>
-        <Assistant mood={talking ? "talking" : busy ? "thinking" : "idle"} size={40} />
+        <AssistantPicker>
+          <Assistant mood={talking ? "talking" : busy ? "thinking" : "idle"} size={44} />
+        </AssistantPicker>
       </span>
       <div className="min-w-0 flex-1">
         <span className="sr-only">
-          <Trans>ADT Assistant:</Trans>
+          {name}:
         </span>
         <Morph swap={swap} name="gd-bubble" className="gd-bubble lc-bubble rounded-tl-[8px]" inner="px-5 py-4 text-[15.5px] leading-[1.55] lg:px-6 lg:py-5 lg:text-[17px]">
           <div ref={words} className="gd-say">

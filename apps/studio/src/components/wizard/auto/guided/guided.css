@@ -90,34 +90,45 @@ body:has([data-lab-toolbar]) .gd-foot { bottom: 84px; }
 :root.reduce-effects::view-transition-old(*),
 :root.reduce-effects::view-transition-new(*) { animation: none !important; }
 
-/* The assistant (shared/Assistant.tsx): an orb with a face that breathes, blinks, talks and reads. */
+/* The assistant (shared/Assistant.tsx): a character in the picked look and colour that breathes, blinks, talks and reads. */
 .gd-ai { width: var(--ai); height: var(--ai); }
-.gd-ai-body { --lc-orb: var(--ai); position: relative; display: grid; place-items: center; animation: gd-ai-breathe 3.6s ease-in-out infinite; }
-.gd-ai-face { width: 100%; height: 100%; }
-.gd-ai-eyes { fill: #fff; transform-origin: 20px 18px; animation: gd-ai-blink 4.8s infinite; }
-.gd-ai-mouth { fill: #fff; transform-origin: 20px 26.5px; opacity: 0; }
-.gd-ai-smile { fill: none; stroke: #fff; stroke-width: 2.2; stroke-linecap: round; transition: opacity 0.15s ease; }
-.gd-ai[data-mood="talking"] .gd-ai-mouth { opacity: 1; }
+.gd-ai[data-color="blue"] { --ai-300: var(--brand-300); --ai-500: var(--brand-500); --ai-700: var(--brand-700); --ai-800: var(--brand-800); --ai-900: var(--brand-900); }
+.gd-ai[data-color="violet"] { --ai-300: var(--color-violet-300); --ai-500: var(--color-violet-500); --ai-700: var(--color-violet-700); --ai-800: var(--color-violet-800); --ai-900: var(--color-violet-900); }
+.gd-ai[data-color="teal"] { --ai-300: var(--color-teal-300); --ai-500: var(--color-teal-500); --ai-700: var(--color-teal-700); --ai-800: var(--color-teal-800); --ai-900: var(--color-teal-900); }
+.gd-ai[data-color="amber"] { --ai-300: var(--color-amber-300); --ai-500: var(--color-amber-500); --ai-700: var(--color-amber-700); --ai-800: var(--color-amber-800); --ai-900: var(--color-amber-900); }
+.gd-ai[data-color="rose"] { --ai-300: var(--color-rose-300); --ai-500: var(--color-rose-500); --ai-700: var(--color-rose-700); --ai-800: var(--color-rose-800); --ai-900: var(--color-rose-900); }
+.gd-ai-svg { filter: drop-shadow(0 2px 4px rgb(15 23 42 / 0.18)); }
+.gd-ai-body { transform-box: fill-box; transform-origin: center bottom; animation: gd-ai-breathe 3.6s ease-in-out infinite; }
+.gd-ai-eyes { fill: #fff; transform-box: fill-box; transform-origin: center; animation: gd-ai-blink 4.8s infinite; }
+.gd-ai-ink .gd-ai-eyes, .gd-ai-ink .gd-ai-mouth { fill: var(--ai-800); }
+.gd-ai-ink .gd-ai-smile { stroke: var(--ai-800); }
+.gd-ai-mouth { fill: #fff; transform-box: fill-box; transform-origin: center; opacity: 0; }
+.gd-ai-smile { fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; transition: opacity 0.15s ease; }
+.gd-ai[data-mood="talking"] .gd-ai-mouth { opacity: 1; animation: gd-ai-talk 0.62s ease-in-out infinite; }
 .gd-ai[data-mood="talking"] .gd-ai-smile { opacity: 0; }
-.gd-ai-ring { position: absolute; inset: 0; border-radius: 9999px; opacity: 0; box-shadow: 0 0 0 2px color-mix(in oklab, var(--brand-500) 55%, transparent); }
+.gd-ai-ring { position: absolute; inset: 6%; border-radius: 9999px; opacity: 0; box-shadow: 0 0 0 2px color-mix(in oklab, var(--ai-500) 55%, transparent); }
+.gd-ai[data-mood="talking"] .gd-ai-ring { animation: gd-ai-ripple 1.3s ease-out infinite; }
+.gd-ai[data-mood="thinking"] .gd-ai-eyes { animation: gd-ai-read 1.6s ease-in-out infinite; }
+.gd-ai[data-mood="thinking"] .gd-ai-ring { animation: gd-ai-ripple 2.2s ease-out infinite; }
+/* Each look's own touch while it talks: the wand sparkles, the pages flap, the antenna glows. */
+.gd-ai-spark { transform-box: fill-box; transform-origin: center; opacity: 0.55; }
+.gd-ai[data-mood="talking"] .gd-ai-spark { animation: gd-ai-spark 0.9s ease-in-out infinite; }
+.gd-ai-page-r { transform-box: fill-box; transform-origin: left center; }
+.gd-ai[data-mood="talking"] .gd-ai-page-r { animation: gd-ai-flap 0.9s ease-in-out infinite; }
+.gd-ai-light { fill: color-mix(in oklab, #F5B83D 55%, var(--ai-300)); }
+.gd-ai[data-mood="talking"] .gd-ai-light { animation: gd-ai-glow 0.62s ease-in-out infinite; }
 @keyframes gd-ai-breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-0.75px); } }
 @keyframes gd-ai-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
-/* Talking: the mouth opens and closes at a speech-like, uneven pace; the body nods; a ring ripples out. */
-.gd-ai[data-mood="talking"] .gd-ai-mouth { animation: gd-ai-talk 0.62s ease-in-out infinite; }
-.gd-ai[data-mood="talking"] .gd-ai-body { animation: gd-ai-nod 0.62s ease-in-out infinite; }
-.gd-ai[data-mood="talking"] .gd-ai-ring { animation: gd-ai-ripple 1.3s ease-out infinite; }
 @keyframes gd-ai-talk { 0% { transform: scaleY(0.5); } 25% { transform: scaleY(1.35); } 50% { transform: scaleY(0.7); } 75% { transform: scaleY(1.15); } 100% { transform: scaleY(0.5); } }
-@keyframes gd-ai-nod { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-0.5px); } }
 @keyframes gd-ai-ripple { 0% { transform: scale(1); opacity: 0.35; } 100% { transform: scale(1.25); opacity: 0; } }
-/* Thinking: the eyes read from side to side, the ring breathes. */
-.gd-ai[data-mood="thinking"] .gd-ai-eyes { animation: gd-ai-read 1.6s ease-in-out infinite; }
-
-.gd-ai[data-mood="thinking"] .gd-ai-ring { animation: gd-ai-ripple 2.2s ease-out infinite; }
-@keyframes gd-ai-read { 0%, 100% { transform: translateX(-2.2px); } 45% { transform: translateX(2.2px); } 55% { transform: translateX(2.2px); } }
+@keyframes gd-ai-read { 0%, 100% { transform: translateX(-2px); } 45%, 55% { transform: translateX(2px); } }
+@keyframes gd-ai-spark { 0%, 100% { opacity: 0.55; transform: scale(0.85) rotate(0); } 50% { opacity: 1; transform: scale(1.15) rotate(20deg); } }
+@keyframes gd-ai-flap { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.92); } }
+@keyframes gd-ai-glow { 0%, 100% { fill: color-mix(in oklab, #F5B83D 55%, var(--ai-300)); } 50% { fill: #FDE047; } }
 @media (prefers-reduced-motion: reduce) {
-  .gd-ai *, .gd-ai-body { animation: none !important; }
+  .gd-ai * { animation: none !important; }
 }
-.reduce-effects :is(.gd-ai *, .gd-ai-body) { animation: none !important; }
+.reduce-effects .gd-ai * { animation: none !important; }
 
 /* The PDF being read, where it was dropped: an indeterminate bar slides under the pages. */
 .gd-reading-bar > span { display: block; height: 100%; width: 35%; border-radius: inherit; background: var(--gd-step); animation: gd-bar 1.4s ease-in-out infinite; }

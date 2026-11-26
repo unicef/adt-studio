@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import { applySettings } from "../engine/answers"
 import { useEngineRun } from "../engine/useEngineRun"
 import { morph } from "./shared/motion"
+import { useAssistantName } from "./shared/Assistant"
 import { useWizardForm } from "../../core/wizardForm"
 import { useUploadFlow } from "../../start/upload/useUploadFlow"
 import "../../core/flow.css"
@@ -58,6 +59,7 @@ export function Guided({ onManual }: { onManual: () => void }) {
   const chat = useAnswers(rec)
   const check = useCheck(rec, chat)
   const firstBook = useFirstBook()
+  const assistant = useAssistantName()
   const create = useCreateRun()
   const lastRun = create.runs[create.runs.length - 1]
   const values = useScreenValues(rec, chat.derived, flow.pageCount)
@@ -219,7 +221,7 @@ export function Guided({ onManual }: { onManual: () => void }) {
           </div>
         </div>
         <span role="status" className="sr-only">
-          {busy && shown === "reading" ? <Trans>The ADT Assistant is reading your book…</Trans> : null}
+          {busy && shown === "reading" ? <Trans>The {assistant} is reading your book…</Trans> : null}
         </span>
       </div>
     </FinishContext.Provider>

@@ -6,6 +6,7 @@ import { PrimaryButton } from "../../core/ui"
 import type { UploadFlow } from "../../start/upload/useUploadFlow"
 import { Attachment } from "./shared/Attachment"
 import { LC_PRIMARY } from "./shared/Create"
+import { useAssistantName } from "./shared/Assistant"
 import { Illustration } from "./shared/Illustration"
 import { TourCoach, type CoachStop, type Side } from "./TourCoach"
 
@@ -208,13 +209,14 @@ function Again() {
 export function UploadPanel({ flow, rejected, onContinue, tour, onTour, onTourDone }: { flow: UploadFlow; rejected: boolean; onContinue: (() => void) | null; tour: number | null; onTour: (i: number) => void; onTourDone: () => void }) {
   const cards = [useRef<HTMLLIElement>(null), useRef<HTMLLIElement>(null), useRef<HTMLLIElement>(null)]
   const drop = useRef<HTMLDivElement>(null)
+  const name = useAssistantName()
   const stops: CoachStop[] = [
     {
       target: null,
       side: "center",
       says: (
         <Trans>
-          <strong className="font-semibold">Hi! I&apos;m the ADT Assistant.</strong> I&apos;m here to help you pick the best settings for your book. For now I help only here, when you add a book; later I&apos;ll help in other parts of ADT Studio too. Let me show you how it goes.
+          <strong className="font-semibold">Hi! I&apos;m the {name}.</strong> I&apos;m here to help you pick the best settings for your book. For now I help only here, when you add a book; later I&apos;ll help in other parts of ADT Studio too. Let me show you how it goes.
         </Trans>
       ),
     },

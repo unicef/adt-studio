@@ -1,9 +1,9 @@
 import { useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react"
 import { createPortal } from "react-dom"
-import { Trans, useLingui } from "@lingui/react/macro"
+import { Trans } from "@lingui/react/macro"
 import { ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Assistant } from "./shared/Assistant"
+import { Assistant, useAssistantName } from "./shared/Assistant"
 import { Chip } from "./shared/bubbles"
 import { useTalk } from "./shared/useTalk"
 
@@ -55,7 +55,7 @@ function layout(stop: CoachStop, w: number, h: number): Layout {
  * Rendered over the whole window (a portal), so it follows the items as the page scrolls.
  */
 export function TourCoach({ stops, at, onNext, onDone }: { stops: CoachStop[]; at: number; onNext: () => void; onDone: () => void }) {
-  const { t } = useLingui()
+  const name = useAssistantName()
   const stop = stops[at]!
   const last = at === stops.length - 1
   const box = useRef<HTMLDivElement>(null)
@@ -97,7 +97,7 @@ export function TourCoach({ stops, at, onNext, onDone }: { stops: CoachStop[]; a
         ref={box}
         role="dialog"
         aria-modal="false"
-        aria-label={t`ADT Assistant`}
+        aria-label={name}
         data-side={side}
         className={cn("gd-tour-coach fixed z-[61] flex", !pos && "invisible", side === "right" && "flex-row items-center", side === "left" && "flex-row-reverse items-center", side === "below" && "flex-col items-start", side === "above" && "flex-col-reverse items-start", big && "flex-col items-center")}
         style={{ left: pos?.left ?? 0, top: pos?.top ?? 0, gap: big ? 14 : 10 }}

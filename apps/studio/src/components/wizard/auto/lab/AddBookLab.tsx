@@ -14,6 +14,7 @@ import { forgetSavedPdf, loadSavedPdf, savePdf } from "./savedPdf"
 import { LabDriveContext, type FlowStep } from "../guided/shared/labDrive"
 import { activitiesApply } from "../guided/check/screens"
 import { GuidedFlow } from "../guided"
+import { setAssistantStyle, type AssistantLookId } from "../guided/shared/assistantLook"
 
 /** The flow in order; Error branches off Reading. Check is its screens; Activities shows only when the book answer has it. */
 const FLOW: StepItem[] = [
@@ -33,6 +34,17 @@ const FLOW: StepItem[] = [
 const SETTINGS: LabControl[] = [
   { key: "book", label: "Book answer", default: "two-questions", options: SCENARIOS.map((s) => ({ value: s.id, label: s.label })) },
   { key: "speed", label: "Speed", default: "normal", options: [{ value: "fast", label: "Fast" }, { value: "normal", label: "Normal" }, { value: "slow", label: "Slow" }, { value: "hold", label: "Never" }] },
+  {
+    key: "agent",
+    label: "Assistant",
+    default: "orb",
+    options: [
+      { value: "orb", label: "Assistant (orb)" },
+      { value: "wizard", label: "Wizard" },
+      { value: "buddy", label: "Buddy (book)" },
+      { value: "bot", label: "Bot" },
+    ],
+  },
   {
     key: "library",
     label: "Library",
@@ -112,6 +124,11 @@ export default function AddBookLab() {
     }
   }, [values.book])
 
+  // The Assistant setting picks the assistant's look (the user can still change it by clicking it).
+  useEffect(() => {
+    if (values.agent) setAssistantStyle({ look: values.agent as AssistantLookId })
+  }, [values.agent])
+
   const keepFile = useCallback((f: File) => {
     setFile(f)
     void savePdf(f)
@@ -154,7 +171,7 @@ export default function AddBookLab() {
     set(key, value)
     // A new engine answer replays the flow to the step you were at, so entrances
     // and loaders play again with the new pick.
-    if (key !== "speed" && key !== "error") setJump((j) => ({ step: j.step === "play" ? "play" : actual, n: j.n + 1 }))
+    if (key !== "speed" && key !== "error" && key !== "agent") setJump((j) => ({ step: j.step === "play" ? "play" : actual, n: j.n + 1 }))
   }
 
   return (
