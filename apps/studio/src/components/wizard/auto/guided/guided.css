@@ -102,8 +102,6 @@ body:has([data-lab-toolbar]) .gd-foot { bottom: 84px; }
 .gd-ai-eyes { fill: #fff; transform-box: fill-box; transform-origin: center; animation: gd-ai-blink 4.8s infinite; }
 .gd-ai-ink .gd-ai-eyes, .gd-ai-ink .gd-ai-mouth { fill: var(--ai-800); }
 .gd-ai-ink .gd-ai-smile { stroke: var(--ai-800); }
-.gd-ai-ink-dark .gd-ai-eyes, .gd-ai-ink-dark .gd-ai-mouth { fill: #3B2A20; }
-.gd-ai-ink-dark .gd-ai-smile { stroke: #3B2A20; }
 /* The book wizard in full size (pictures): a gentle bob while it talks. */
 @keyframes gd-pose-talk { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-3px) rotate(-1deg); } }
 .gd-pose[data-talking] { animation: gd-pose-talk 0.9s ease-in-out infinite; }

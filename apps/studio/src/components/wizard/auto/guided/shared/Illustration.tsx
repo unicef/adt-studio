@@ -18,7 +18,7 @@ export function Illustration({ name, fallback, className }: { name: string; fall
           draggable={false}
           onLoad={() => setState("ok")}
           onError={() => setState("missing")}
-          className={cn("max-h-full max-w-full object-contain", state === "loading" && "absolute opacity-0")}
+          className={cn("absolute inset-0 h-full w-full object-contain", state === "loading" && "opacity-0")}
         />
       )}
     </span>

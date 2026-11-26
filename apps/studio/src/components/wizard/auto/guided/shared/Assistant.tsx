@@ -42,33 +42,6 @@ function Orb({ fill }: { fill: string }) {
   )
 }
 
-/**
- * The book wizard, small: an open book with a face, in a wizard hat. The full character (arms,
- * wand, sparkles) is in the illustrations, where there's room; at avatar size only what still
- * reads stays: the pages, the face and the hat.
- */
-function Wizard({ fill }: { fill: string }) {
-  return (
-    <g className="gd-ai-body">
-      {/* The book: blue cover, cream pages, a big face across them. */}
-      <path d="M5 25 Q32 18 59 25 L59 61 Q32 55 5 61 Z" fill={fill} />
-      <path d="M8 26 Q20 22 31 26 L31 58 Q20 54 8 58 Z" fill="#FBF3E4" />
-      <path className="gd-ai-page-r" d="M33 26 Q44 22 56 26 L56 58 Q44 54 33 58 Z" fill="#F7EBD5" />
-      <g className="gd-ai-ink gd-ai-ink-dark">
-        <Face x={32} y={42} scale={1.05} />
-      </g>
-      <circle cx="16.5" cy="48" r="3" fill="#F4A39A" opacity="0.6" />
-      <circle cx="47.5" cy="48" r="3" fill="#F4A39A" opacity="0.6" />
-      {/* The hat, a little tilted, with its star. */}
-      <g transform="rotate(-10 30 22)">
-        <ellipse cx="31" cy="24" rx="22" ry="4.6" style={{ fill: "var(--ai-700)" }} />
-        <path d="M15 24 C19 15 24 4 33 -1 C31 7 37 16 47 24 Z" style={{ fill: "var(--ai-500)" }} />
-        <path d="M33 12 l1.7 3.4 3.8 .5 -2.8 2.6 .8 3.7 -3.5 -1.9 -3.5 1.9 .8 -3.7 -2.8 -2.6 3.8 -.5z" fill="#F5B83D" />
-      </g>
-    </g>
-  )
-}
-
 function Buddy({ fill }: { fill: string }) {
   return (
     <g className="gd-ai-body">
@@ -101,7 +74,7 @@ function Bot({ fill }: { fill: string }) {
   )
 }
 
-const DRAW: Record<AssistantLookId, (p: { fill: string }) => React.ReactNode> = { orb: Orb, wizard: Wizard, buddy: Buddy, bot: Bot }
+const DRAW: Record<Exclude<AssistantLookId, "wizard">, (p: { fill: string }) => React.ReactNode> = { orb: Orb, buddy: Buddy, bot: Bot }
 
 /**
  * The assistant, in the look and colour the user picked (`look` / `color` override that, for
@@ -112,7 +85,16 @@ const DRAW: Record<AssistantLookId, (p: { fill: string }) => React.ReactNode> = 
 export function Assistant({ mood = "idle", size = 36, look, color, className }: { mood?: AssistantMood; size?: number; look?: AssistantLookId; color?: AssistantColor; className?: string }) {
   const style = useAssistantStyle()
   const id = `ai${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`
-  const Draw = DRAW[look ?? style.look]
+  const which = look ?? style.look
+  // The book wizard is a picture (its full character is too detailed to draw small); it bobs while it talks.
+  if (which === "wizard")
+    return (
+      <span aria-hidden data-mood={mood} className={cn("gd-ai relative inline-grid shrink-0 place-items-center", className)} style={{ "--ai": `${size}px` } as CSSProperties}>
+        <span className="gd-ai-ring" style={{ "--ai-500": "var(--brand-500)" } as CSSProperties} />
+        <img src="/add-book/wizard-avatar.png" alt="" draggable={false} className="gd-pose relative h-full w-full object-contain" data-talking={mood === "talking" || undefined} />
+      </span>
+    )
+  const Draw = DRAW[which]
   return (
     <span aria-hidden data-mood={mood} data-color={color ?? style.color} className={cn("gd-ai relative inline-grid shrink-0 place-items-center", className)} style={{ "--ai": `${size}px` } as CSSProperties}>
       <span className="gd-ai-ring" />

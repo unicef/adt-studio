@@ -6,6 +6,7 @@ Character: The character from the reference image: a friendly open book with a c
 
 Style: Soft 3D flat illustration, the same style as the reference. Palette: brand blue #2B7FFF, warm amber #F5B83D, white paper. Transparent background: no app-icon tile, no rounded square, no backdrop, no floor shadow plate. Subject centred with generous margins. No text, letters or numbers anywhere.
 
+- `wizard-avatar.png`: An avatar icon of only the character's head: the open book face (big dark eyes, small happy smile, rosy cheeks) wearing the blue wizard hat with its yellow star, seen from the front, centred and filling most of the frame. Simplified for very small sizes: bold, clean shapes, thick outlines, no arms, no wand, no sparkles, no small details. Reads clearly at 40 pixels.
 - `wizard-hello.png`: The character waving hello with one arm, the wand raised in the other with a few small sparkles, happy open-mouthed smile.
 - `wizard-reading.png`: The character looking down attentively, reading: a soft blue scanning light passes over its own pages; wand lowered; focused small smile.
 - `wizard-thinking.png`: The character thinking: one arm touching its chin, eyes looking up to the side, a small question-mark-shaped wisp of sparkle (no text) above.

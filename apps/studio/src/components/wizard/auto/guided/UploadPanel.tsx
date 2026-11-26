@@ -22,21 +22,21 @@ const STEPS: { image: string; icon: ReactNode; title: ReactNode; text: ReactNode
     image: "step-read",
     icon: <ScanSearch className="size-5" />,
     title: <Trans>I read your PDF</Trans>,
-    text: <Trans>A few seconds. I look at the pages to understand what kind of book it is.</Trans>,
+    text: <Trans>A few seconds. I look at some pages to understand what kind of book it is. Nothing is converted yet.</Trans>,
     says: (
       <Trans>
-        <strong className="font-semibold">First, I read your PDF.</strong> It takes a few seconds: I look at the pages to understand what kind of book it is.
+        <strong className="font-semibold">First, I read your PDF.</strong> Just some pages, to understand what kind of book it is. Nothing is converted yet.
       </Trans>
     ),
   },
   {
     image: "step-check",
     icon: <ListChecks className="size-5" />,
-    title: <Trans>We check it together</Trans>,
-    text: <Trans>A few quick choices, one at a time. I mark the ones I&apos;m sure of; you confirm or change them.</Trans>,
+    title: <Trans>We pick the settings together</Trans>,
+    text: <Trans>A few quick choices, one at a time: the kind of book, its language, how the pages look. I mark the ones I&apos;m sure of; you confirm or change them.</Trans>,
     says: (
       <Trans>
-        <strong className="font-semibold">Then we check it together.</strong> A few quick choices, one at a time. I mark the ones I&apos;m sure of, and you confirm or change them.
+        <strong className="font-semibold">Then we pick the settings together.</strong> A few quick choices, one at a time: the kind of book, its language, how the pages look. I mark the ones I&apos;m sure of, and you confirm or change them.
       </Trans>
     ),
   },
@@ -44,10 +44,10 @@ const STEPS: { image: string; icon: ReactNode; title: ReactNode; text: ReactNode
     image: "step-create",
     icon: <BookOpenCheck className="size-5" />,
     title: <Trans>I create the book</Trans>,
-    text: <Trans>It opens in the editor, where you can review and change everything.</Trans>,
+    text: <Trans>With those settings. That&apos;s when the conversion starts, and you follow and review it in the editor.</Trans>,
     says: (
       <Trans>
-        <strong className="font-semibold">Last, I create the book.</strong> It opens in the editor, where you can review and change everything.
+        <strong className="font-semibold">Last, I create the book with those settings.</strong> That&apos;s when the conversion starts: you follow it and review everything in the editor.
       </Trans>
     ),
   },
@@ -82,13 +82,13 @@ export function UploadSays({ flow, rejected }: { flow: UploadFlow; rejected: boo
   if (flow.file && flow.pageCount > 0)
     return (
       <Trans>
-        <strong className="font-semibold">Got it.</strong> The PDF opens fine, so let&apos;s start.
+        <strong className="font-semibold">Got it.</strong> The PDF opens fine, so let&apos;s set it up.
       </Trans>
     )
   if (flow.file) return <Trans>Let me check that this PDF opens…</Trans>
   return (
     <Trans>
-      <strong className="font-semibold">Drop a PDF and I&apos;ll read it.</strong> Then we check a few things together, and I create the book.
+      <strong className="font-semibold">Drop a PDF and I&apos;ll read it.</strong> Together we pick the best settings for this book; the conversion starts only after you create it.
     </Trans>
   )
 }
@@ -221,7 +221,7 @@ export function UploadPanel({ flow, rejected, onContinue, tour, onTour, onTourDo
       pose: "hello",
       says: (
         <Trans>
-          <strong className="font-semibold">Hi! I&apos;m the {name}.</strong> I&apos;m here to help you pick the best settings for your book. For now I help only here, when you add a book; later I&apos;ll help in other parts of ADT Studio too. Let me show you how it goes.
+          <strong className="font-semibold">Hi! I&apos;m the {name}.</strong> Before a book is converted, I help you set it up: I read your PDF and we pick the best settings for it together. For now I help only here, when you add a book; later I&apos;ll help in other parts of ADT Studio too.
         </Trans>
       ),
     },
@@ -232,7 +232,7 @@ export function UploadPanel({ flow, rejected, onContinue, tour, onTour, onTourDo
       pose: "hello",
       says: (
         <Trans>
-          <strong className="font-semibold">That&apos;s it.</strong> When you&apos;re ready, drop your PDF here.
+          <strong className="font-semibold">That&apos;s the setup.</strong> When you&apos;re ready, drop your PDF here.
         </Trans>
       ),
     },

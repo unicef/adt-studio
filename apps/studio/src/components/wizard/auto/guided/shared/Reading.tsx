@@ -11,7 +11,7 @@ export function ReadingMessage({ run, rec, onManual }: { run: EngineRun; rec: Se
   const slow = run.status === "running" && run.slow
   return (
     <div className="flex flex-col gap-2.5">
-      <p>{rec ? <Trans>Done reading.</Trans> : slow ? <Trans>This is taking longer than usual. I&apos;ll keep at it.</Trans> : <Trans>I&apos;m reading your book. This takes a few seconds.</Trans>}</p>
+      <p>{rec ? <Trans>Done reading.</Trans> : slow ? <Trans>This is taking longer than usual. I&apos;ll keep at it.</Trans> : <Trans>I&apos;m reading some pages to suggest the best settings. This takes a few seconds.</Trans>}</p>
       {slow && (
         <div>
           <Chip onClick={onManual}>

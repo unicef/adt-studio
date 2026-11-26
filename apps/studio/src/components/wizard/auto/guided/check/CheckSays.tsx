@@ -135,7 +135,7 @@ function Says({ rec, derived, screen, file, pageCount, firstBook, trying, onTryi
   return (
     <p>
       <Trans>
-        <strong className="font-semibold">That&apos;s everything.</strong> Give the book a name and I&apos;ll create it.
+        <strong className="font-semibold">That&apos;s the setup.</strong> Give the book a name and I&apos;ll create it; the conversion starts after that.
       </Trans>
     </p>
   )
