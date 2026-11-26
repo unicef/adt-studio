@@ -7063,6 +7063,9 @@ msgstr "Made outside ADT Studio and kept as it is."
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Make sure you're uploading a .zip file exported from ADT Studio."
 
+msgid "Make the navigation buttons larger"
+msgstr "Make the navigation buttons larger"
+
 msgid "Making a copy of the book"
 msgstr "Making a copy of the book"
 
@@ -14067,6 +14070,9 @@ msgstr "Use Spread for printed books with facing-page layouts (covers stay solo,
 msgid "Use the + between pages to place the quiz"
 msgstr "Use the + between pages to place the quiz"
 
+msgid "Use the book's colors in the reader"
+msgstr "Use the book's colors in the reader"
+
 msgid "Use the entire latest saved activity instead of this draft."
 msgstr "Use the entire latest saved activity instead of this draft."
 
@@ -14483,6 +14489,9 @@ msgstr "When you’re done"
 
 msgid "Where book projects live on this machine."
 msgstr "Where book projects live on this machine."
+
+msgid "Where is the bottom bar defined?"
+msgstr "Where is the bottom bar defined?"
 
 msgid "Where it all begins"
 msgstr "Where it all begins"

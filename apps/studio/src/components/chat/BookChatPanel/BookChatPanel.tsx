@@ -24,9 +24,12 @@ interface BookChatPanelProps {
   onClose: () => void
 }
 
-function ChatSuggestions({ onPick }: { onPick: (text: string) => void }) {
+function ChatSuggestions({ scope, onPick }: { scope: ChatScope; onPick: (text: string) => void }) {
   const { t } = useLingui()
-  const suggestions = [t`What is this book about?`, t`Which pages have activities?`, t`Suggest improvements for the first page`]
+  const suggestions =
+    scope === "reader"
+      ? [t`Make the navigation buttons larger`, t`Use the book's colors in the reader`, t`Where is the bottom bar defined?`]
+      : [t`What is this book about?`, t`Which pages have activities?`, t`Suggest improvements for the first page`]
   return (
     <div className="m-auto flex max-w-[300px] flex-col items-center gap-3 text-center">
       <span className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -93,7 +96,7 @@ export function BookChatPanel({ label, scope, onClose }: BookChatPanelProps) {
 
       {empty ? (
         <div className="flex min-h-0 flex-1 overflow-y-auto p-4">
-          <ChatSuggestions onPick={chat.send} />
+          <ChatSuggestions scope={scope} onPick={chat.send} />
         </div>
       ) : (
         <MessageScrollerProvider autoScroll defaultScrollPosition="end">

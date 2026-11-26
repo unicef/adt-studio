@@ -7065,6 +7065,9 @@ msgstr "E bërë jashtë ADT Studio dhe e mbajtur siç është."
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Sigurohuni që po ngarkoni një skedar .zip të eksportuar nga ADT Studio."
 
+msgid "Make the navigation buttons larger"
+msgstr "Zmadho butonat e navigimit"
+
 msgid "Making a copy of the book"
 msgstr "Duke bërë një kopje të librit"
 
@@ -14069,6 +14072,9 @@ msgstr "Përdor Spread për libra të shtypur me paraqitje faqesh ballë për ba
 msgid "Use the + between pages to place the quiz"
 msgstr "Përdor + ndërmjet faqeve për të vendosur kuizin"
 
+msgid "Use the book's colors in the reader"
+msgstr "Përdor ngjyrat e librit në lexues"
+
 msgid "Use the entire latest saved activity instead of this draft."
 msgstr "Përdorni të gjithë aktivitetin e fundit të ruajtur në vend të këtij drafti."
 
@@ -14485,6 +14491,9 @@ msgstr "Kur të mbaroni"
 
 msgid "Where book projects live on this machine."
 msgstr "Ku jetojnë projektet e librave në këtë makinë."
+
+msgid "Where is the bottom bar defined?"
+msgstr "Ku përcaktohet shiriti i poshtëm?"
 
 msgid "Where it all begins"
 msgstr "Ku fillon gjithçka"

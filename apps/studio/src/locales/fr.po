@@ -7065,6 +7065,9 @@ msgstr "Créée en dehors d’ADT Studio et conservée telle quelle."
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Assurez-vous de télécharger un fichier .zip exporté depuis ADT Studio."
 
+msgid "Make the navigation buttons larger"
+msgstr "Agrandis les boutons de navigation"
+
 msgid "Making a copy of the book"
 msgstr "Faire une copie du livre"
 
@@ -14069,6 +14072,9 @@ msgstr "Utilisez l'étalement pour les livres imprimés avec des mises en page e
 msgid "Use the + between pages to place the quiz"
 msgstr "Utilisez le + entre les pages pour placer le quiz"
 
+msgid "Use the book's colors in the reader"
+msgstr "Utilise les couleurs du livre dans le lecteur"
+
 msgid "Use the entire latest saved activity instead of this draft."
 msgstr "Utilisez la dernière activité enregistrée complète à la place de ce brouillon."
 
@@ -14485,6 +14491,9 @@ msgstr "Une fois terminé"
 
 msgid "Where book projects live on this machine."
 msgstr "Où les projets de livres résident sur cette machine."
+
+msgid "Where is the bottom bar defined?"
+msgstr "Où la barre du bas est-elle définie ?"
 
 msgid "Where it all begins"
 msgstr "Où tout commence"
