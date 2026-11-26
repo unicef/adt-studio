@@ -1,8 +1,9 @@
-import type { ReactNode } from "react"
+import { useRef, useState, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import type { SetupDecided, SetupFact, SetupRecommendation, SetupSettingId } from "@adt/types"
 import { cn } from "@/lib/utils"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Assistant } from "./Assistant"
+import { useTalk } from "./useTalk"
 import { settingsFor, settingsTouchedBy, type FactAnswers } from "../../engine/answers"
 import { FACT_LONG, FACT_SHORT } from "../../engine/words"
 import { FACT_HINT, plainTitle } from "./words"
@@ -38,7 +39,7 @@ const NARROW = 520
  */
 export type LookOption = { value: string; label: string; line: string; look: Look; guess: boolean; art?: ReactNode; more?: string; settings?: SetupDecided; only?: SetupSettingId[]; changed?: SetupSettingId[] }
 
-function LookCard({ rec, option, page, narrow, chosen, first, onPick, file }: { rec: SetupRecommendation; option: LookOption; page: number; narrow: boolean; chosen: boolean; first: boolean; onPick: (card: HTMLElement) => void; file: File | null | undefined }) {
+function LookCard({ rec, option, page, narrow, chosen, first, onPick, onPoint, file }: { rec: SetupRecommendation; option: LookOption; page: number; narrow: boolean; chosen: boolean; first: boolean; onPick: (card: HTMLElement) => void; onPoint: (on: boolean) => void; file: File | null | undefined }) {
   const describe = useDescribe()
   const names = useWizardNames()
   const { ref, box } = useBox<HTMLSpanElement>()
@@ -51,6 +52,10 @@ function LookCard({ rec, option, page, narrow, chosen, first, onPick, file }: { 
       aria-pressed={chosen}
       data-q-first={first ? "" : undefined}
       onClick={(e) => onPick(e.currentTarget)}
+      onPointerEnter={() => onPoint(true)}
+      onPointerLeave={() => onPoint(false)}
+      onFocus={() => onPoint(true)}
+      onBlur={() => onPoint(false)}
       aria-label={`${option.label}. ${option.line}.${option.art ? "" : ` ${describe(option.look, "desktop", pages)}`}`}
       className={cn("qd18-o group relative flex min-w-0 p-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500", narrow ? "flex-row items-center gap-3" : "flex-col", chosen && "is-sel")}
     >
@@ -82,16 +87,7 @@ function LookCard({ rec, option, page, narrow, chosen, first, onPick, file }: { 
       </span>
     </button>
   )
-  if (!option.more) return card
-  // On hover or focus: what this answer means, in a sentence or two more than the card says.
-  return (
-    <Tooltip delayDuration={350}>
-      <TooltipTrigger asChild>{card}</TooltipTrigger>
-      <TooltipContent side="bottom" variant="light" className="max-w-[300px] text-[13px] leading-snug">
-        {option.more}
-      </TooltipContent>
-    </Tooltip>
-  )
+  return card
 }
 
 /**
@@ -103,9 +99,48 @@ export function LookChoices({ rec, options, page, chosen, onPick, file, labelId 
   const { ref, box } = useBox()
   const cols = options.length
   const narrow = box.w > 0 && box.w < NARROW
+  // The card under the pointer (or keyboard focus); the assistant explains it.
+  const [pointed, setPointed] = useState<number | null>(null)
+  const leave = useRef(0)
+  const point = (i: number, on: boolean) => {
+    window.clearTimeout(leave.current)
+    // Leaving a card waits a beat, so moving between cards doesn't flash back to the picked one.
+    if (on) setPointed(i)
+    else leave.current = window.setTimeout(() => setPointed((p) => (p === i ? null : p)), 160)
+  }
+  const explains = options.some((o) => o.more)
+  const picked = Math.max(0, options.findIndex((o) => o.value === chosen))
   return (
-    <div ref={ref} role="group" aria-labelledby={labelId} className="grid gap-3 pt-1" style={{ gridTemplateColumns: narrow ? "minmax(0, 1fr)" : `repeat(${cols}, minmax(0, 1fr))` }}>
-      {box.w > 0 && options.map((o, i) => <LookCard key={o.value} rec={rec} option={o} page={page} narrow={narrow} chosen={chosen === o.value} first={i === 0} onPick={(card) => onPick(o.value, card)} file={file} />)}
+    <div className="flex flex-col gap-3 pt-1">
+      {explains && <OptionCoach options={options} at={pointed ?? picked} cols={narrow ? 1 : cols} />}
+      <div ref={ref} role="group" aria-labelledby={labelId} className="grid gap-3" style={{ gridTemplateColumns: narrow ? "minmax(0, 1fr)" : `repeat(${cols}, minmax(0, 1fr))` }}>
+        {box.w > 0 && options.map((o, i) => <LookCard key={o.value} rec={rec} option={o} page={page} narrow={narrow} chosen={chosen === o.value} first={i === 0} onPick={(card) => onPick(o.value, card)} onPoint={(on) => point(i, on)} file={file} />)}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Over the cards, the assistant explains the option the pointer is on (the picked one otherwise),
+ * its speech bubble's tail sliding to point down at that card. Decoration for the explanation
+ * only: each card's own label and line already say what it is.
+ */
+function OptionCoach({ options, at, cols }: { options: LookOption[]; at: number; cols: number }) {
+  const o = options[at]!
+  const talking = useTalk({ current: null }, `${at}`)
+  const tail = cols > 1 ? `${((at + 0.5) / cols) * 100}%` : "72px"
+  return (
+    <div className="gd-oc relative flex items-end gap-3">
+      <Assistant mood={talking ? "talking" : "idle"} size={44} className="mb-1" />
+      <div className="relative min-w-0 flex-1">
+        <div aria-live="polite" className="gd-oc-bubble min-h-[88px] rounded-[18px] bg-[var(--lc-bubble)] px-4 py-3 text-[14.5px] leading-snug shadow-[0_1px_2px_rgb(0_0_0/0.06),0_4px_16px_-6px_rgb(0_0_0/0.12)]">
+          <p key={at} className="gd-oc-words">
+            <strong className="font-semibold">{o.label}</strong>
+            <span className="block text-muted-foreground">{o.more ?? o.line}</span>
+          </p>
+        </div>
+      </div>
+      <span aria-hidden className="gd-oc-tail" style={{ left: tail }} />
     </div>
   )
 }
