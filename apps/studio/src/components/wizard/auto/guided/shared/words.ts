@@ -46,13 +46,6 @@ export function valueTitle(id: SetupSettingId, value: string | boolean | undefin
   return SETTING_OPTIONS[id].find((o) => o.value === value)?.title
 }
 
-/** "It's a story." — the kind of book, said once the readings agree on it. */
-export const KIND_SAYS: Record<string, MessageDescriptor> = {
-  story: msg`It's a story.`,
-  textbook: msg`It's a school book.`,
-  reference: msg`It's an information book.`,
-}
-
 /** Why a question is put to the user, in the assistant's voice. */
 export const ASK_WHY: Record<string, MessageDescriptor> = {
   "readings-disagree": msg`My two readings disagree on this one, so I'd rather ask you.`,

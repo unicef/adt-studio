@@ -67,9 +67,6 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
       result={
         <span className="flex flex-col gap-1.5">
           <span>
-            <Trans>You edit the book in this language. Pick another one only if you want the text translated into it.</Trans>
-          </span>
-          <span>
             {outputs.length ? (
               <Trans>
                 It will also come out in: <strong className="font-semibold">{outputNames}</strong>.

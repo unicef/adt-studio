@@ -5,7 +5,7 @@ import { RULE_WHY } from "../../engine/words"
 import { Citation } from "../shared/Citation"
 import type { Derived } from "../shared/useAnswers"
 import { Chip } from "../shared/bubbles"
-import { ASK_WHY, KIND_SAYS } from "../shared/words"
+import { ASK_WHY } from "../shared/words"
 import { LARGE_BOOK, screenFacts, type ScreenId } from "./screens"
 import { useBookLanguage } from "./screens/LanguageScreen"
 
@@ -34,14 +34,13 @@ function LanguageSays({ rec }: { rec: SetupRecommendation }) {
   if (!found)
     return (
       <p>
-        <Trans>I couldn&apos;t tell the book&apos;s language from the PDF, so I&apos;ll keep whatever language it&apos;s in.</Trans>
+        <Trans>The PDF doesn&apos;t say, and that&apos;s fine: I keep the language the book is written in.</Trans>
       </p>
     )
-  const name = getDisplayName(found)
   return (
     <p>
       <Trans>
-        <strong className="font-semibold">Your book is in {name}.</strong> I&apos;ll keep it in {name}.
+        <strong className="font-semibold">Usually there&apos;s nothing to do here.</strong> Change it only if you want the text translated into another language.
       </Trans>
     </p>
   )
@@ -66,8 +65,11 @@ function Says({ rec, derived, screen, file, pageCount, firstBook, trying, onTryi
           </>
         ) : (
           <>
-            <strong className="font-semibold">{i18n._(KIND_SAYS[derived.proposed.genre]!)}</strong>
-            <Citation file={file} pages={genre?.evidencePages ?? []} /> {why(rec.settings.preset?.rule)}
+            <strong className="font-semibold">
+              <Trans>I&apos;ve read your book.</Trans>
+            </strong>{" "}
+            {why(rec.settings.preset?.rule)}
+            <Citation file={file} pages={genre?.evidencePages ?? []} />
           </>
         )}{" "}
         {!rec.secondOpinion && (
@@ -123,7 +125,7 @@ function Says({ rec, derived, screen, file, pageCount, firstBook, trying, onTryi
       )
     return (
       <p>
-        <Trans>Pick the pages to convert. All {pageCount} are selected.</Trans>
+        <Trans>You don&apos;t have to convert the whole PDF: leave out covers or pages you don&apos;t need.</Trans>
       </p>
     )
   }

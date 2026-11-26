@@ -25,7 +25,7 @@ const STEPS: { image: string; icon: ReactNode; title: ReactNode; text: ReactNode
     text: <Trans>A few seconds. I look at some pages to understand what kind of book it is. Nothing is converted yet.</Trans>,
     says: (
       <Trans>
-        <strong className="font-semibold">First, I read your PDF.</strong> Just some pages, to understand what kind of book it is. Nothing is converted yet.
+        <strong className="font-semibold">I start by reading.</strong> Even a long book stays quick, because I only look at a sample of its pages.
       </Trans>
     ),
   },
@@ -33,10 +33,10 @@ const STEPS: { image: string; icon: ReactNode; title: ReactNode; text: ReactNode
     image: "step-check",
     icon: <ListChecks className="size-5" />,
     title: <Trans>We pick the settings together</Trans>,
-    text: <Trans>A few quick choices, one at a time: the kind of book, its language, how the pages look. I mark the ones I&apos;m sure of; you confirm or change them.</Trans>,
+    text: <Trans>A few quick choices, one at a time: the kind of book, its language, how the pages look, which pages to convert.</Trans>,
     says: (
       <Trans>
-        <strong className="font-semibold">Then we pick the settings together.</strong> A few quick choices, one at a time: the kind of book, its language, how the pages look. I mark the ones I&apos;m sure of, and you confirm or change them.
+        <strong className="font-semibold">You stay in charge.</strong> I read your book in two different ways: when both agree I&apos;m sure and you just confirm; when they don&apos;t, I ask you instead of guessing.
       </Trans>
     ),
   },
@@ -47,7 +47,7 @@ const STEPS: { image: string; icon: ReactNode; title: ReactNode; text: ReactNode
     text: <Trans>With those settings. That&apos;s when the conversion starts, and you follow and review it in the editor.</Trans>,
     says: (
       <Trans>
-        <strong className="font-semibold">Last, I create the book with those settings.</strong> That&apos;s when the conversion starts: you follow it and review everything in the editor.
+        <strong className="font-semibold">Nothing here is final.</strong> You can change the settings later in the editor, except the few I mark as fixed once the book is created.
       </Trans>
     ),
   },
@@ -64,19 +64,19 @@ export function UploadSays({ flow, rejected }: { flow: UploadFlow; rejected: boo
   if (flow.file && flow.error === "password")
     return (
       <Trans>
-        <strong className="font-semibold">This PDF is password-protected.</strong> Remove the password, or choose another file.
+        <strong className="font-semibold">I can&apos;t open it with its password.</strong> Save a copy without the password from your PDF reader, and drop that copy here.
       </Trans>
     )
   if (flow.file && flow.error)
     return (
       <Trans>
-        <strong className="font-semibold">I couldn&apos;t open this PDF.</strong> It may be damaged. Export it again, or choose another file.
+        <strong className="font-semibold">Something is wrong with this file.</strong> Try exporting the PDF again from the program that made it.
       </Trans>
     )
   if (rejected)
     return (
       <Trans>
-        <strong className="font-semibold">That file isn&apos;t a PDF.</strong> Choose a PDF and I&apos;ll read it.
+        <strong className="font-semibold">I can only read PDFs.</strong> If it&apos;s a Word document or images, save or export it as a PDF first.
       </Trans>
     )
   if (flow.file && flow.pageCount > 0)
@@ -85,10 +85,10 @@ export function UploadSays({ flow, rejected }: { flow: UploadFlow; rejected: boo
         <strong className="font-semibold">Got it.</strong> The PDF opens fine, so let&apos;s set it up.
       </Trans>
     )
-  if (flow.file) return <Trans>Let me check that this PDF opens…</Trans>
+  if (flow.file) return <Trans>One moment, I&apos;m making sure I can read it.</Trans>
   return (
     <Trans>
-      <strong className="font-semibold">Drop a PDF and I&apos;ll read it.</strong> Together we pick the best settings for this book; the conversion starts only after you create it.
+      <strong className="font-semibold">Drop a PDF and I&apos;ll read it.</strong> Here are the three steps ahead.
     </Trans>
   )
 }
@@ -232,7 +232,7 @@ export function UploadPanel({ flow, rejected, onContinue, tour, onTour, onTourDo
       pose: "hello",
       says: (
         <Trans>
-          <strong className="font-semibold">That&apos;s the setup.</strong> When you&apos;re ready, drop your PDF here.
+          <strong className="font-semibold">Ready when you are.</strong> I check the PDF opens before we start, so a damaged or locked file is caught right away.
         </Trans>
       ),
     },
