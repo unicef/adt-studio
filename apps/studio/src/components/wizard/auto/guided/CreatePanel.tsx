@@ -13,18 +13,18 @@ export function CreateSays({ run, onRetry, onRename }: { run: CreateRun; onRetry
       <p>
         {run.extract && !run.warning ? (
           <Trans>
-            <strong className="font-semibold">Done.</strong> “{name}” is saved, and its first pages are on their way.
+            <strong className="font-semibold">Done.</strong> “{name}” is set up, and the conversion of its first pages has started.
           </Trans>
         ) : (
           <Trans>
-            <strong className="font-semibold">Done.</strong> “{name}” is saved with its setup.
+            <strong className="font-semibold">Done.</strong> “{name}” is set up. Start the conversion from the book page.
           </Trans>
         )}
       </p>
     )
   return (
     <p>
-      {run.status === "saving" ? <Trans>Creating “{name}”. This takes a moment.</Trans> : <Trans>Saved. Now I&apos;m starting on the first pages.</Trans>}
+      {run.status === "saving" ? <Trans>Setting up “{name}”. This takes a moment.</Trans> : <Trans>Saved. Now I&apos;m starting on the first pages.</Trans>}
     </p>
   )
 }

@@ -20,11 +20,11 @@ export function CreateFailed({ run, current, onRetry, onRename }: { run: CreateR
       <p>
         {taken ? (
           <Trans>
-            <strong className="font-semibold">Another book is already called {run.name}.</strong> <span className="text-muted-foreground">Choose a new name above and create it again.</span>
+            <strong className="font-semibold">Another book is already called {run.name}.</strong> <span className="text-muted-foreground">Choose a new name above and set it up again.</span>
           </Trans>
         ) : (
           <Trans>
-            <strong className="font-semibold">I couldn&apos;t create the book.</strong> <span className="text-muted-foreground">Nothing was saved and your setup is kept.</span>
+            <strong className="font-semibold">I couldn&apos;t set up the book.</strong> <span className="text-muted-foreground">Nothing was saved and your choices are kept.</span>
           </Trans>
         )}
       </p>

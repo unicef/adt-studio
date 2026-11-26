@@ -9,5 +9,5 @@ export const SCREEN_TITLE: Record<ScreenId, MessageDescriptor> = {
   look: msg`How the pages look`,
   pages: msg`Pages to import`,
   activities: msg`Activities`,
-  name: msg`Name and create`,
+  name: msg`Name and set up`,
 }

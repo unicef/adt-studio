@@ -38,7 +38,7 @@ export function NameScreen({ screens, values, settings, onEdit }: { screens: Scr
       {names && (
         <div className="lc-surface flex flex-col gap-2 p-4 sm:px-5">
           <span className="text-[13px] text-muted-foreground">
-            <Trans>The settings the book is created with</Trans>
+            <Trans>The settings the book is set up with</Trans>
           </span>
           <WizardSettings settings={settings} className="gap-1.5" />
         </div>

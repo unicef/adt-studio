@@ -8,7 +8,7 @@ const LABEL: Record<StepId, ReactNode> = {
   upload: <Trans>Upload</Trans>,
   reading: <Trans>Reading</Trans>,
   check: <Trans>Check</Trans>,
-  create: <Trans>Create</Trans>,
+  create: <Trans>Set up</Trans>,
 }
 
 /**

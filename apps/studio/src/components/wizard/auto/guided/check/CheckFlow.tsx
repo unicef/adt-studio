@@ -148,7 +148,7 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
             icon={last ? <Sparkles className="size-4" /> : sure ? <CheckIcon className="size-4" /> : undefined}
             className={cn(LC_PRIMARY, "min-w-[148px] lg:h-12 lg:min-w-[176px] lg:px-7 lg:text-[15.5px]")}
           >
-            {last ? <Trans>Create book</Trans> : check.returning ? <Trans>Back to the summary</Trans> : sure ? <Trans>Looks right</Trans> : <Trans>Continue</Trans>}
+            {last ? <Trans>Set up book</Trans> : check.returning ? <Trans>Back to the summary</Trans> : sure ? <Trans>Looks right</Trans> : <Trans>Continue</Trans>}
           </PrimaryButton>
         </div>
         <div className="flex justify-end">

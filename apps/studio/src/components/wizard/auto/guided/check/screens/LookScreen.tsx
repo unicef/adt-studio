@@ -106,7 +106,7 @@ function GroupingLine({ rec, chat }: Omit<Props, "file">) {
         <span className="text-[13.5px] leading-snug text-muted-foreground">
           {words && i18n._(words)}
           {". "}
-          {changed ? <Trans>Changed by you.</Trans> : why && i18n._(why)} <Trans>Fixed once the book is created.</Trans>
+          {changed ? <Trans>Changed by you.</Trans> : why && i18n._(why)} <Trans>Fixed once the book is set up.</Trans>
         </span>
       </div>
       <button

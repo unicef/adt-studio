@@ -43,11 +43,11 @@ const STEPS: { image: string; icon: ReactNode; title: ReactNode; text: ReactNode
   {
     image: "step-create",
     icon: <BookOpenCheck className="size-5" />,
-    title: <Trans>I create the book</Trans>,
+    title: <Trans>I set up the book</Trans>,
     text: <Trans>With those settings. That&apos;s when the conversion starts, and you follow and review it in the editor.</Trans>,
     says: (
       <Trans>
-        <strong className="font-semibold">Nothing here is final.</strong> You can change the settings later in the editor, except the few I mark as fixed once the book is created.
+        <strong className="font-semibold">Nothing here is final.</strong> You can change the settings later in the editor, except the few I mark as fixed once the book is set up.
       </Trans>
     ),
   },
@@ -88,7 +88,7 @@ export function UploadSays({ flow, rejected }: { flow: UploadFlow; rejected: boo
   if (flow.file) return <Trans>Let me check that this PDF opens…</Trans>
   return (
     <Trans>
-      <strong className="font-semibold">Drop a PDF and I&apos;ll read it.</strong> Together we pick the best settings for this book; the conversion starts only after you create it.
+      <strong className="font-semibold">Drop a PDF and I&apos;ll read it.</strong> Together we pick the best settings for this book; the conversion starts only after you set it up.
     </Trans>
   )
 }
