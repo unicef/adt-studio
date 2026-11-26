@@ -4,12 +4,13 @@ import { Trans } from "@lingui/react/macro"
 import { ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Assistant, useAssistantName } from "./shared/Assistant"
+import { useIsWizard, WizardPose, type Pose } from "./shared/WizardPose"
 import { Chip } from "./shared/bubbles"
 import { useTalk } from "./shared/useTalk"
 
 /** Where the assistant sits around the item: beside it, under it, over it, or in the middle of the page (no item). */
 export type Side = "right" | "left" | "below" | "above" | "center"
-export type CoachStop = { target: RefObject<HTMLElement | null> | null; side: Side; says: ReactNode }
+export type CoachStop = { target: RefObject<HTMLElement | null> | null; side: Side; says: ReactNode; pose?: Pose }
 
 const BUBBLE = 340
 const ORB = 56
@@ -56,6 +57,7 @@ function layout(stop: CoachStop, w: number, h: number): Layout {
  */
 export function TourCoach({ stops, at, onNext, onDone }: { stops: CoachStop[]; at: number; onNext: () => void; onDone: () => void }) {
   const name = useAssistantName()
+  const wizard = useIsWizard()
   const stop = stops[at]!
   const last = at === stops.length - 1
   const box = useRef<HTMLDivElement>(null)
@@ -103,7 +105,7 @@ export function TourCoach({ stops, at, onNext, onDone }: { stops: CoachStop[]; a
         style={{ left: pos?.left ?? 0, top: pos?.top ?? 0, gap: big ? 14 : 10 }}
       >
         <span className="gd-tour-orb flex" style={{ viewTransitionName: "gd-orb" }}>
-          <Assistant mood={talking ? "talking" : "idle"} size={big ? 76 : ORB} />
+          {wizard ? <WizardPose pose={stop.pose ?? "hello"} size={big ? 170 : 104} talking={talking} /> : <Assistant mood={talking ? "talking" : "idle"} size={big ? 76 : ORB} />}
         </span>
         <div key={at} className={cn("gd-speech relative rounded-[22px] bg-[var(--lc-bubble)] px-5 py-4 text-[15.5px] leading-[1.5] lg:text-[16.5px]", big && "text-center")} data-side={side} style={{ width: big ? BUBBLE + 80 : BUBBLE }}>
           <span aria-hidden className="gd-speech-tail" />

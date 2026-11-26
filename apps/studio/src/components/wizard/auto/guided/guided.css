@@ -102,6 +102,13 @@ body:has([data-lab-toolbar]) .gd-foot { bottom: 84px; }
 .gd-ai-eyes { fill: #fff; transform-box: fill-box; transform-origin: center; animation: gd-ai-blink 4.8s infinite; }
 .gd-ai-ink .gd-ai-eyes, .gd-ai-ink .gd-ai-mouth { fill: var(--ai-800); }
 .gd-ai-ink .gd-ai-smile { stroke: var(--ai-800); }
+.gd-ai-ink-dark .gd-ai-eyes, .gd-ai-ink-dark .gd-ai-mouth { fill: #3B2A20; }
+.gd-ai-ink-dark .gd-ai-smile { stroke: #3B2A20; }
+/* The book wizard in full size (pictures): a gentle bob while it talks. */
+@keyframes gd-pose-talk { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-3px) rotate(-1deg); } }
+.gd-pose[data-talking] { animation: gd-pose-talk 0.9s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .gd-pose { animation: none !important; } }
+.reduce-effects .gd-pose { animation: none !important; }
 .gd-ai-mouth { fill: #fff; transform-box: fill-box; transform-origin: center; opacity: 0; }
 .gd-ai-smile { fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; transition: opacity 0.15s ease; }
 .gd-ai[data-mood="talking"] .gd-ai-mouth { opacity: 1; animation: gd-ai-talk 0.62s ease-in-out infinite; }

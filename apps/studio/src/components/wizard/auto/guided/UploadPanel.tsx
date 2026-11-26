@@ -7,11 +7,14 @@ import type { UploadFlow } from "../../start/upload/useUploadFlow"
 import { Attachment } from "./shared/Attachment"
 import { LC_PRIMARY } from "./shared/Create"
 import { useAssistantName } from "./shared/Assistant"
+import { useIsWizard, type Pose } from "./shared/WizardPose"
 import { Illustration } from "./shared/Illustration"
 import { TourCoach, type CoachStop, type Side } from "./TourCoach"
 
 /** Where the assistant stands for each card, so the tour moves around instead of down a line. */
 const SIDES: Side[] = ["right", "below", "left"]
+/** The book wizard's pose at each card (when it's the look). */
+const POSES: Pose[] = ["reading", "thinking", "celebrate"]
 
 /** The three steps ahead, shown above the drop zone (and walked through on a first run). */
 const STEPS: { image: string; icon: ReactNode; title: ReactNode; text: ReactNode; says: ReactNode }[] = [
@@ -210,20 +213,23 @@ export function UploadPanel({ flow, rejected, onContinue, tour, onTour, onTourDo
   const cards = [useRef<HTMLLIElement>(null), useRef<HTMLLIElement>(null), useRef<HTMLLIElement>(null)]
   const drop = useRef<HTMLDivElement>(null)
   const name = useAssistantName()
+  const wizard = useIsWizard()
   const stops: CoachStop[] = [
     {
       target: null,
       side: "center",
+      pose: "hello",
       says: (
         <Trans>
           <strong className="font-semibold">Hi! I&apos;m the {name}.</strong> I&apos;m here to help you pick the best settings for your book. For now I help only here, when you add a book; later I&apos;ll help in other parts of ADT Studio too. Let me show you how it goes.
         </Trans>
       ),
     },
-    ...STEPS.map((s, i): CoachStop => ({ target: cards[i]!, side: SIDES[i]!, says: s.says })),
+    ...STEPS.map((s, i): CoachStop => ({ target: cards[i]!, side: SIDES[i]!, says: s.says, pose: POSES[i] })),
     {
       target: drop,
       side: "above",
+      pose: "hello",
       says: (
         <Trans>
           <strong className="font-semibold">That&apos;s it.</strong> When you&apos;re ready, drop your PDF here.
@@ -246,7 +252,7 @@ export function UploadPanel({ flow, rejected, onContinue, tour, onTour, onTourDo
         {STEPS.map((s, i) => (
           <li key={s.image} ref={cards[i]} className={cn("lc-surface flex flex-row items-center gap-4 p-3 sm:flex-col sm:items-stretch sm:gap-3 lg:p-4")}>
             <span className="qd18-pv grid h-[84px] w-[112px] shrink-0 place-items-center overflow-hidden rounded-[14px] p-1.5 sm:h-[clamp(120px,17vh,210px)] sm:w-auto sm:p-3">
-              <Illustration name={s.image} fallback={<span className="grid size-12 place-items-center rounded-full bg-[var(--lc-accent-soft)] text-[var(--lc-accent-text)]">{s.icon}</span>} />
+              <Illustration key={`${s.image}-${wizard}`} name={wizard ? `${s.image}-wizard` : s.image} fallback={<span className="grid size-12 place-items-center rounded-full bg-[var(--lc-accent-soft)] text-[var(--lc-accent-text)]">{s.icon}</span>} />
             </span>
             <span className="flex min-w-0 flex-col gap-1 sm:px-1 sm:pb-1">
               <span className="flex items-center gap-2 text-[15.5px] font-semibold leading-tight lg:text-[17px]">

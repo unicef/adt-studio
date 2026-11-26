@@ -42,27 +42,30 @@ function Orb({ fill }: { fill: string }) {
   )
 }
 
+/**
+ * The book wizard, small: an open book with a face, in a wizard hat. The full character (arms,
+ * wand, sparkles) is in the illustrations, where there's room; at avatar size only what still
+ * reads stays: the pages, the face and the hat.
+ */
 function Wizard({ fill }: { fill: string }) {
   return (
-    <>
-      <g className="gd-ai-body">
-        <circle cx="30" cy="40" r="18" fill={fill} />
-        <ellipse cx="23" cy="32" rx="5.5" ry="3.5" fill="white" opacity="0.3" transform="rotate(-25 23 32)" />
-        <Face x={30} y={42} scale={0.85} />
-        {/* A starry hat, a little tilted. */}
-        <g transform="rotate(-8 30 22)">
-          <ellipse cx="30" cy="25" rx="19" ry="4" style={{ fill: "var(--ai-800)" }} />
-          <path d="M16 25 C20 18 26 6 34 2 C33 10 38 18 44 25 Z" style={{ fill: "var(--ai-700)" }} />
-          <path d="M17.5 22.5 C25 24 36 24 42.5 22.5 L44 25 C36 26.5 25 26.5 16 25 Z" fill="#F5B83D" />
-          <path d="M29 11 l1.2 2.6 2.8 .3 -2.1 1.9 .6 2.8 -2.5 -1.4 -2.5 1.4 .6 -2.8 -2.1 -1.9 2.8 -.3z" fill="#FDE68A" />
-        </g>
+    <g className="gd-ai-body">
+      {/* The book: blue cover, cream pages, a big face across them. */}
+      <path d="M5 25 Q32 18 59 25 L59 61 Q32 55 5 61 Z" fill={fill} />
+      <path d="M8 26 Q20 22 31 26 L31 58 Q20 54 8 58 Z" fill="#FBF3E4" />
+      <path className="gd-ai-page-r" d="M33 26 Q44 22 56 26 L56 58 Q44 54 33 58 Z" fill="#F7EBD5" />
+      <g className="gd-ai-ink gd-ai-ink-dark">
+        <Face x={32} y={42} scale={1.05} />
       </g>
-      {/* The wand: its tip sparkles while it talks. */}
-      <g className="gd-ai-wand">
-        <path d="M48 56 L58 42" stroke="#5B4636" strokeWidth="2.6" strokeLinecap="round" />
-        <path className="gd-ai-spark" d="M58 37 l1.4 3 3.2 .4 -2.4 2.2 .7 3.2 -2.9 -1.6 -2.9 1.6 .7 -3.2 -2.4 -2.2 3.2 -.4z" fill="#F5B83D" />
+      <circle cx="16.5" cy="48" r="3" fill="#F4A39A" opacity="0.6" />
+      <circle cx="47.5" cy="48" r="3" fill="#F4A39A" opacity="0.6" />
+      {/* The hat, a little tilted, with its star. */}
+      <g transform="rotate(-10 30 22)">
+        <ellipse cx="31" cy="24" rx="22" ry="4.6" style={{ fill: "var(--ai-700)" }} />
+        <path d="M15 24 C19 15 24 4 33 -1 C31 7 37 16 47 24 Z" style={{ fill: "var(--ai-500)" }} />
+        <path d="M33 12 l1.7 3.4 3.8 .5 -2.8 2.6 .8 3.7 -3.5 -1.9 -3.5 1.9 .8 -3.7 -2.8 -2.6 3.8 -.5z" fill="#F5B83D" />
       </g>
-    </>
+    </g>
   )
 }
 

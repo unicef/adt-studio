@@ -4,6 +4,7 @@ import type { SetupRecommendation } from "@adt/types"
 import type { EngineRun } from "../../engine/useEngineRun"
 import { Chip } from "./bubbles"
 import { ScanPages } from "./ScanPages"
+import { useIsWizard, WizardPose } from "./WizardPose"
 
 /** The assistant's line while the engine reads, and a way out when it's slow. */
 export function ReadingMessage({ run, rec, onManual }: { run: EngineRun; rec: SetupRecommendation | null; onManual: () => void }) {
@@ -28,9 +29,15 @@ export function ReadingMessage({ run, rec, onManual }: { run: EngineRun; rec: Se
  * Before the page count is known it says it's opening the file.
  */
 export function ReadingCard({ file, pageCount }: { file: File | null; pageCount: number }) {
+  const wizard = useIsWizard()
   return (
     <div className="gd-reading flex w-full flex-col items-center gap-5 rounded-[22px] border-2 border-[var(--gd-step)] bg-[var(--lc-bubble)] px-6 py-10 text-center lg:py-[clamp(40px,7vh,84px)]" style={{ viewTransitionName: "gd-drop" }}>
-      {file && pageCount > 0 ? <ScanPages file={file} pageCount={pageCount} /> : <span className="grid size-16 place-items-center rounded-full bg-[var(--lc-accent-soft)] text-[var(--lc-accent-text)]"><FileText className="size-7" /></span>}
+      {file && pageCount > 0 ? (
+        <span className="flex items-center gap-6">
+          {wizard && <WizardPose pose="reading" size={140} talking />}
+          <ScanPages file={file} pageCount={pageCount} />
+        </span>
+      ) : <span className="grid size-16 place-items-center rounded-full bg-[var(--lc-accent-soft)] text-[var(--lc-accent-text)]"><FileText className="size-7" /></span>}
       <span className="flex max-w-full flex-col items-center gap-1">
         <span className="max-w-full truncate text-[17px] font-semibold lg:text-[19px]">{file?.name}</span>
         <span className="text-[14px] text-muted-foreground lg:text-[15px]">{pageCount > 0 ? <Trans>{pageCount} pages · reading</Trans> : <Trans>Opening the PDF…</Trans>}</span>
