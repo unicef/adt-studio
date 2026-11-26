@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { ArrowLeft, Check as CheckIcon, Sparkles, Wrench } from "lucide-react"
+import { ArrowLeft, Check as CheckIcon, Pencil, Sparkles, Wrench } from "lucide-react"
 import type { SetupRecommendation } from "@adt/types"
 import { cn } from "@/lib/utils"
 import { useCreate } from "./nameField"
@@ -14,10 +14,9 @@ import { LanguageScreen } from "./screens/LanguageScreen"
 import { LookScreen } from "./screens/LookScreen"
 import { NameScreen } from "./screens/NameScreen"
 import { PagesScreen } from "./screens/PagesScreen"
-import { screenFacts, screenSure } from "./screens"
+import { screenFacts, screenSure, type ScreenId } from "./screens"
 import type { Check } from "./useCheck"
 import { SCREEN_TITLE } from "./words"
-import { useCheckLayout } from "../shared/checkLayout"
 import { setWizardNames, useWizardNames } from "../shared/wizardNames"
 
 const HEADING = "gd-check-title"
@@ -67,8 +66,6 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
   const { i18n } = useLingui()
   const derived = chat.derived!
   const { at, screens } = check
-  const layout = useCheckLayout()
-  const lean = layout === "split" || layout === "focus"
   const index = screens.indexOf(at)
   const last = at === "name"
   // Pages is the user's own pick, so it just continues; the others are sure unless the engine asked.
@@ -130,17 +127,18 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
 
   return (
     <section aria-labelledby={HEADING} inert={locked} className="flex flex-col">
+      <EarlierPicks screens={screens} at={at} done={check.done} values={values} onGo={(s) => check.go(s)} />
       <Morph swap={at} name="gd-screen" className="-mx-2" inner="flex flex-col gap-3 px-2 pb-2 pt-1 lg:gap-4">
-        {/* Split and focus let the decision lead: the screen's name is only for screen readers, and the count and switch move to the bottom bar. */}
-        <div className={cn("flex items-baseline justify-between gap-3 px-1", lean && "sr-only")}>
-          <h2 id={HEADING} ref={heading} tabIndex={-1} className="rounded-md text-[19px] font-semibold lg:text-[24px] tracking-[-0.015em] outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60">
-            {i18n._(SCREEN_TITLE[at])}
-          </h2>
-          {!lean && meta}
-        </div>
+        {/* The decision leads: the screen's name is for screen readers, and the count and switch live in the bottom bar. */}
+        <h2 id={HEADING} ref={heading} tabIndex={-1} className="sr-only">
+          {i18n._(SCREEN_TITLE[at])}
+        </h2>
         {body}
       </Morph>
-      <div className={cn("gd-foot sticky bottom-0 z-10 -mx-2 flex flex-col gap-1 px-2 pb-4 pt-5", layout === "focus" && "mt-4 border-t border-border pt-4")}>
+      {/* The bar stays at the bottom of the window, so the button never moves; the space above keeps it off the content. */}
+      <div aria-hidden className="h-[150px]" />
+      <div className="gd-bar fixed inset-x-0 bottom-0 z-20 border-t border-border bg-[var(--lc-bg)]/95 backdrop-blur-sm">
+       <div className="mx-auto flex w-full max-w-[720px] flex-col gap-1 px-4 pb-4 pt-4 sm:px-6">
         <div className="flex items-center justify-between gap-3">
           <span className="flex items-center gap-4">
             {index > 0 ? (
@@ -148,10 +146,8 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
                 <ArrowLeft className="size-4" />
                 <Trans>Back</Trans>
               </button>
-            ) : (
-              !lean && <span />
-            )}
-            {lean && meta}
+            ) : null}
+            {meta}
           </span>
           <PrimaryButton
             onClick={primary}
@@ -176,7 +172,32 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
             )
           )}
         </div>
+       </div>
       </div>
     </section>
+  )
+}
+
+/**
+ * The picks made so far, in order, as a row above the screen: each opens its screen again in one
+ * tap ("Kind of book: Story"), so going back never takes several Backs.
+ */
+function EarlierPicks({ screens, at, done, values, onGo }: { screens: ScreenId[]; at: ScreenId; done: ScreenId[]; values: Record<ScreenId, string>; onGo: (screen: ScreenId) => void }) {
+  const { t, i18n } = useLingui()
+  const shown = screens.filter((s) => s !== at && s !== "name" && done.includes(s))
+  if (!shown.length) return null
+  return (
+    <nav aria-label={t`Your picks so far`} className="mb-4 flex flex-wrap gap-2">
+      {shown.map((s) => {
+        const title = i18n._(SCREEN_TITLE[s])
+        return (
+          <button key={s} type="button" onClick={() => onGo(s)} aria-label={t`Change ${title}: ${values[s]}`} className="group inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-[var(--lc-bubble)] px-3 text-[13.5px] transition-colors hover:border-[var(--gd-step)]">
+            <span className="text-muted-foreground">{title}</span>
+            <span className="font-medium">{values[s]}</span>
+            <Pencil aria-hidden className="size-3 text-muted-foreground transition-colors group-hover:text-[var(--gd-step-ink)]" />
+          </button>
+        )
+      })}
+    </nav>
   )
 }

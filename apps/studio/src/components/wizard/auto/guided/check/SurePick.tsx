@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import { useEffect, useRef, type ReactNode } from "react"
 import { Trans } from "@lingui/react/macro"
 import { Check, ChevronDown } from "lucide-react"
 import type { SetupRecommendation } from "@adt/types"
@@ -8,9 +8,7 @@ import { screenPages, useDescribe, useScreenImages } from "../shared/screens/pag
 import { SCREEN } from "../shared/screens/layouts"
 import { useBox } from "../shared/screens/useBox"
 import type { Look } from "../shared/screens/look"
-import { Morph } from "../Morph"
 import { morph } from "../shared/motion"
-import { useCheckLayout } from "../shared/checkLayout"
 
 /** The book as it would come out with the current picks, on one of the user's pages. */
 export function Picture({ rec, look, page, file, className }: { rec: SetupRecommendation; look: Look; page: number; file: File | null | undefined; className?: string }) {
@@ -41,73 +39,46 @@ export function PickBadge({ changed }: { changed: boolean }) {
 }
 
 /**
- * A pick the engine is sure of, highlighted (accent edge, the book as it would come out, a badge),
- * with its other options a tap away under "See the other options". Picking one of them closes the
- * options and shows it here as "Your pick"; the screen's button then moves on.
+ * A pick the engine is sure of, in one column: the picture across it, the question, the pick in
+ * large type with its badge and line, and its other options a tap away. Opening them scrolls them
+ * into view above the bottom bar; picking one closes them and shows it here as "Your pick".
  */
-export function SurePick({ picture, label, title, hint, result, changed, badge = true, labelId, open, onToggle, others, othersLabel, children }: { picture: ReactNode; label?: ReactNode; title: ReactNode; hint?: ReactNode; result?: ReactNode; changed: boolean; badge?: boolean; labelId: string; open: boolean; onToggle: () => void; others: boolean; othersLabel?: ReactNode; children?: ReactNode }) {
-  const layout = useCheckLayout()
-  const big = layout === "split" || layout === "focus"
-  const text = (
-    <div className={cn("flex min-w-0 flex-1 flex-col items-start gap-1", layout === "current" && "px-1.5 pb-1 sm:px-0 sm:pb-0 sm:pr-2", big && "gap-2")}>
-      {label && (
-        <span id={labelId} className={cn("text-muted-foreground", big ? "text-[15px] lg:text-[16px]" : "text-[13px] lg:text-[14.5px]")}>
-          {label}
-        </span>
-      )}
-      <span className="flex flex-wrap items-center gap-2">
-        <span className={cn("font-semibold leading-tight", big ? "text-[26px] tracking-[-0.02em] lg:text-[34px]" : "text-[18px] tracking-[-0.01em] lg:text-[22px]")}>{title}</span>
-        {(badge || changed) && <PickBadge changed={changed} />}
-      </span>
-      {hint && <span className={cn("leading-snug text-muted-foreground", big ? "text-[15.5px] lg:text-[17px]" : "text-[14px] lg:text-[15.5px]")}>{hint}</span>}
-      {result && <span className="text-[13.5px] leading-snug text-foreground/85 lg:text-[15px]">{result}</span>}
-      {others && (
-        <button type="button" aria-expanded={open} onClick={() => morph(onToggle)} className="lc-link -ml-1.5 mt-1 inline-flex min-h-9 items-center gap-1 px-1.5 text-[13.5px] font-medium">
-          {open ? <Trans>Hide the other options</Trans> : (othersLabel ?? <Trans>See the other options</Trans>)}
-          <ChevronDown className={cn("size-3.5 transition-transform motion-reduce:transition-none", open && "rotate-180")} />
-        </button>
-      )}
-    </div>
-  )
-  const pic = (
-    <div
-      data-vt-pick={`pick-${labelId}`}
-      className={cn("shrink-0", layout === "split" && "w-full [&>*]:!h-[clamp(300px,50vh,540px)] [&>*]:!w-full", layout === "focus" && "w-full [&>*]:!h-[clamp(220px,34vh,360px)] [&>*]:!w-full")}
-      style={{ viewTransitionName: `pick-${labelId}` }}
-    >
-      {picture}
-    </div>
-  )
-  const more = (
-    <Morph swap={String(open)} inner="">
-      {open && <div className="px-0.5 pb-1">{children}</div>}
-    </Morph>
-  )
-  if (layout === "split")
-    return (
-      <div className="flex flex-col gap-6">
-        <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-12">
-          {pic}
-          {text}
-        </div>
-        {more}
-      </div>
-    )
-  if (layout === "focus")
-    return (
-      <div className="flex flex-col gap-5">
-        {pic}
-        {text}
-        {more}
-      </div>
-    )
+export function SurePick({ picture, label, title, hint, result, changed, badge = true, labelId, open, onToggle, others, othersLabel, hideLabel, children }: { picture: ReactNode; label?: ReactNode; title: ReactNode; hint?: ReactNode; result?: ReactNode; changed: boolean; badge?: boolean; labelId: string; open: boolean; onToggle: () => void; others: boolean; othersLabel?: ReactNode; hideLabel?: ReactNode; children?: ReactNode }) {
+  const more = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const id = window.setTimeout(() => more.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 80)
+    return () => window.clearTimeout(id)
+  }, [open])
   return (
-    <div className={cn("flex flex-col gap-3 rounded-[18px]", layout === "current" && "gd-sure p-2.5 lg:p-3.5")}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5 lg:gap-7">
-        {pic}
-        {text}
+    <div className="flex flex-col gap-5">
+      <div data-vt-pick={`pick-${labelId}`} className="w-full shrink-0 [&>*]:!h-[clamp(220px,34vh,360px)] [&>*]:!w-full" style={{ viewTransitionName: `pick-${labelId}` }}>
+        {picture}
       </div>
-      {more}
+      <div className="flex min-w-0 flex-col items-start gap-2">
+        {label && (
+          <span id={labelId} className="text-[15px] text-muted-foreground lg:text-[16px]">
+            {label}
+          </span>
+        )}
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="text-[26px] font-semibold leading-tight tracking-[-0.02em] lg:text-[34px]">{title}</span>
+          {(badge || changed) && <PickBadge changed={changed} />}
+        </span>
+        {hint && <span className="text-[15.5px] leading-snug text-muted-foreground lg:text-[17px]">{hint}</span>}
+        {result && <span className="text-[13.5px] leading-snug text-foreground/85 lg:text-[15px]">{result}</span>}
+        {others && (
+          <button type="button" aria-expanded={open} onClick={() => morph(onToggle)} className="lc-link -ml-1.5 mt-1 inline-flex min-h-9 items-center gap-1 px-1.5 text-[13.5px] font-medium">
+            {open ? (hideLabel ?? <Trans>Hide the other options</Trans>) : (othersLabel ?? <Trans>See the other options</Trans>)}
+            <ChevronDown className={cn("size-3.5 transition-transform motion-reduce:transition-none", open && "rotate-180")} />
+          </button>
+        )}
+      </div>
+      {open && (
+        <div ref={more} className="scroll-mb-[150px] px-0.5 pb-1">
+          {children}
+        </div>
+      )}
     </div>
   )
 }

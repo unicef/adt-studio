@@ -87,6 +87,7 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
       onToggle={() => setOpen((o) => !o)}
       others
       othersLabel={<Trans>Change the languages</Trans>}
+      hideLabel={<Trans>Hide the languages</Trans>}
     >
       <div className="grid gap-3 rounded-[14px] bg-[var(--lc-bubble)] p-3 lg:grid-cols-2">
         <div className="flex flex-col gap-2">
