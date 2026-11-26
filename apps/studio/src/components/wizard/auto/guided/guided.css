@@ -201,7 +201,6 @@
 @keyframes gd-help-in { from { opacity: 0; transform: translateY(4px); } }
 @media (prefers-reduced-motion: reduce) { .gd-help-in { animation: none; } }
 
-/* The chat variant of the options dialog: the assistant's bubbles come in one after another. */
-.gd-chat-in { animation: gd-chat-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-@keyframes gd-chat-in { from { opacity: 0; transform: translateY(6px) scale(0.98); } }
-@media (prefers-reduced-motion: reduce) { .gd-chat-in { animation: none; } }
+/* The bottom bar is fixed to the window: in a step morph it is snapshotted on its own, so it never
+   rides along inside the page's snapshot (where it would sit at the wrong place). */
+.gd-bar { view-transition-name: gd-bar; }

@@ -16,7 +16,6 @@ import { activitiesApply } from "../guided/check/screens"
 import { GuidedFlow } from "../guided"
 import { setAssistantStyle, type AssistantLookId } from "../guided/shared/assistantLook"
 import { setWizardNames } from "../guided/shared/wizardNames"
-import { setHelpLook } from "../guided/shared/helpLook"
 
 /** The flow in order; Error branches off Reading. Check is its screens; Activities shows only when the book answer has it. */
 const FLOW: StepItem[] = [
@@ -54,15 +53,6 @@ const SETTINGS: LabControl[] = [
     options: [
       { value: "off", label: "Off" },
       { value: "on", label: "On" },
-    ],
-  },
-  {
-    key: "help",
-    label: "Options dialog",
-    default: "card",
-    options: [
-      { value: "card", label: "Sections" },
-      { value: "chat", label: "Assistant talks" },
     ],
   },
   {
@@ -152,10 +142,6 @@ export default function AddBookLab() {
   useEffect(() => {
     setWizardNames(values.names === "on")
   }, [values.names])
-  // How the options dialog explains an option.
-  useEffect(() => {
-    setHelpLook(values.help === "chat" ? "chat" : "card")
-  }, [values.help])
 
   const keepFile = useCallback((f: File) => {
     setFile(f)
@@ -199,7 +185,7 @@ export default function AddBookLab() {
     set(key, value)
     // A new engine answer replays the flow to the step you were at, so entrances
     // and loaders play again with the new pick.
-    if (key !== "speed" && key !== "error" && key !== "agent" && key !== "names" && key !== "help") setJump((j) => ({ step: j.step === "play" ? "play" : actual, n: j.n + 1 }))
+    if (key !== "speed" && key !== "error" && key !== "agent" && key !== "names") setJump((j) => ({ step: j.step === "play" ? "play" : actual, n: j.n + 1 }))
   }
 
   return (

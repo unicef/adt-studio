@@ -79,9 +79,12 @@ export function Guided({ onManual }: { onManual: () => void }) {
     if (validFile) setRejectedAt(0)
   }, [validFile])
 
+  const labTarget = useContext(LabDriveContext)?.target
   // Check: the bubble first, then the first screen under it.
   useEffect(() => {
     if (!rec) return setRevealed(false)
+    // A lab jump straight to a Check screen shows it at once.
+    if (labTarget && labTarget !== "start" && labTarget !== "reading") return setRevealed(true)
     const id = window.setTimeout(() => morph(() => setRevealed(true)), REVEAL_MS)
     return () => window.clearTimeout(id)
   }, [rec])
@@ -89,7 +92,6 @@ export function Guided({ onManual }: { onManual: () => void }) {
   // The step the flow is at; what's on screen follows it through a morph, so every step change animates.
   // The drop zone shows that the PDF is fine for a moment before the flow moves on (reading has
   // already started underneath). Lab jumps past Start don't wait.
-  const labTarget = useContext(LabDriveContext)?.target
   const [ready, setReady] = useState(false)
   useEffect(() => {
     if (!validFile) return setReady(false)
@@ -99,8 +101,15 @@ export function Guided({ onManual }: { onManual: () => void }) {
   }, [validFile, flow.fileKey])
   const atNow: StepId = !validFile || !ready ? "upload" : !rec ? "reading" : lastRun ? "create" : "check"
   const [at, setAt] = useState<StepId>(atNow)
+  // A lab jump (or a reload on one) passes through the earlier steps on its way to the target:
+  // those changes happen at once, and only the steps after it morph.
+  const landed = useRef(false)
   useEffect(() => {
-    if (at !== atNow) morph(() => setAt(atNow))
+    if (at === atNow) return
+    const jumping = !!labTarget && labTarget !== "start" && !landed.current
+    if (atNow === "check" || atNow === "create") landed.current = true
+    if (jumping) setAt(atNow)
+    else morph(() => setAt(atNow))
   }, [atNow])
 
   // A first run starts with a tour of the page: the assistant, each card, then the drop zone.
