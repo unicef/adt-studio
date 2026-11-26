@@ -47,8 +47,7 @@
 .gd-tick { animation: gd-tick-in 0.35s var(--lc-out) both; }
 
 /* Check's footer (Create) sticks to the bottom of the view over a fade into the page; above the lab toolbar when there is one. */
-.gd-foot { background: linear-gradient(to bottom, transparent, var(--lc-bg, var(--background)) 22px); }
-body:has([data-lab-toolbar]) :is(.gd-foot, .gd-bar) { bottom: 84px; }
+
 
 /* The drop zone breathes in the step colour while a file is dragged over the page. */
 .gd-drop:focus-visible { outline: 2px solid var(--gd-step); outline-offset: 3px; }
@@ -66,7 +65,6 @@ body:has([data-lab-toolbar]) :is(.gd-foot, .gd-bar) { bottom: 84px; }
   box-shadow: 0 0 0 1.5px var(--lc-accent, var(--brand-600)), 0 10px 22px -10px color-mix(in oklab, var(--brand-600) 28%, transparent);
 }
 .gd-sure .qd18-pg { transform: rotate(-1.5deg); }
-@media (min-width: 1024px) { .gd-aside .gd-foot { background: none; } }
 
 /* Morphs between steps, screens and picks (shared/motion.ts): named places move and resize, the rest crossfades. */
 ::view-transition-group(*) { animation-duration: 0.45s; animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1); }
@@ -186,3 +184,8 @@ body:has([data-lab-toolbar]) :is(.gd-foot, .gd-bar) { bottom: 84px; }
 @media (prefers-reduced-motion: reduce) { .gd-tour-hole, .gd-tour-glide { transition: none; } .gd-speech { animation: none; } }
 .reduce-effects :is(.gd-tour-hole, .gd-tour-glide) { transition: none; }
 .reduce-effects .gd-speech { animation: none; }
+
+/* Accordions (the other options, the languages): height and opacity ease together. */
+.gd-expand { transition: grid-template-rows 0.32s var(--lc-out, ease-out), opacity 0.24s ease, margin 0.32s var(--lc-out, ease-out); }
+@media (prefers-reduced-motion: reduce) { .gd-expand { transition: none; } }
+.reduce-effects .gd-expand { transition: none; }

@@ -42,7 +42,7 @@ function Field({ settings, id, values, onChange }: { settings: LabControl[]; id:
 
 function Panel({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   return (
-    <div className={`pointer-events-auto mb-2 max-h-[min(560px,70vh)] overflow-y-auto rounded-2xl bg-zinc-900/95 p-4 text-white shadow-[0_18px_48px_rgba(0,0,0,0.35)] ring-1 ring-white/10 backdrop-blur-md w-[min(440px,calc(100vw-32px))]`}>
+    <div className={`pointer-events-auto mt-2 max-h-[min(560px,70vh)] overflow-y-auto rounded-2xl bg-zinc-900/95 p-4 text-white shadow-[0_18px_48px_rgba(0,0,0,0.35)] ring-1 ring-white/10 backdrop-blur-md w-[min(440px,calc(100vw-32px))]`}>
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-[13px] font-bold">{title}</h2>
         <button type="button" onClick={onClose} aria-label="Close" className="grid size-7 place-items-center rounded-full text-white/60 hover:bg-white/10 hover:text-white">
@@ -138,7 +138,7 @@ export function LabBar({
 
   if (hidden)
     return (
-      <div data-lab-toolbar="" className="pointer-events-none fixed inset-x-0 bottom-6 z-[2147483000] flex justify-center">
+      <div data-lab-toolbar="" className="pointer-events-none fixed inset-x-0 top-1 z-[2147483000] flex justify-center">
         <button type="button" onClick={() => setHidden(false)} className="pointer-events-auto h-8 rounded-full bg-zinc-900/90 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/70 shadow-lg ring-1 ring-white/10 hover:text-white">
           Lab
         </button>
@@ -146,7 +146,7 @@ export function LabBar({
     )
 
   return (
-    <div ref={root} data-lab-toolbar="" className="pointer-events-none fixed inset-x-0 bottom-6 z-[2147483000] flex flex-col items-center px-4">
+    <div ref={root} data-lab-toolbar="" className="pointer-events-none fixed inset-x-0 top-1 z-[2147483000] flex flex-col-reverse items-center justify-end px-4">
       {open && (
         <Panel title="Lab settings" onClose={() => setOpen(false)}>
           <div className="flex flex-col gap-4">
@@ -163,6 +163,9 @@ export function LabBar({
             </div>
             <Row label="Assistant" hint="Its look and name; the colour is picked by clicking it.">
               <Field settings={settings} id="agent" values={values} onChange={onChange} />
+            </Row>
+            <Row label="Wizard names" hint="Internal check: each choice shows the settings it applies, named as in the step-by-step wizard.">
+              <Field settings={settings} id="names" values={values} onChange={onChange} />
             </Row>
             <Row label="Library" hint="Empty plays a first-time user: Pages asks if they're just trying it out.">
               <Field settings={settings} id="library" values={values} onChange={onChange} />
@@ -184,7 +187,7 @@ export function LabBar({
         </Panel>
       )}
 
-      <div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-zinc-900/90 p-1.5 text-white shadow-[0_12px_32px_rgba(0,0,0,0.28)] ring-1 ring-white/10 backdrop-blur-md [scrollbar-width:none]">
+      <div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-zinc-900/90 p-1 text-white shadow-[0_12px_32px_rgba(0,0,0,0.28)] ring-1 ring-white/10 backdrop-blur-md [scrollbar-width:none]">
         {steps.length > 0 && (
           <nav aria-label="Flow steps" className="flex shrink-0 items-center gap-0.5 rounded-full bg-white/5 p-0.5">
             <button type="button" onClick={() => move(-1)} disabled={at === 0} aria-label="Previous step" title="Previous step (←)" className={`${ICON} size-7 text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-30`}>

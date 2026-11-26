@@ -8,7 +8,6 @@ import { screenPages, useDescribe, useScreenImages } from "../shared/screens/pag
 import { SCREEN } from "../shared/screens/layouts"
 import { useBox } from "../shared/screens/useBox"
 import type { Look } from "../shared/screens/look"
-import { morph } from "../shared/motion"
 
 /** The book as it would come out with the current picks, on one of the user's pages. */
 export function Picture({ rec, look, page, file, className }: { rec: SetupRecommendation; look: Look; page: number; file: File | null | undefined; className?: string }) {
@@ -45,9 +44,10 @@ export function PickBadge({ changed }: { changed: boolean }) {
  */
 export function SurePick({ picture, label, title, hint, result, changed, badge = true, labelId, open, onToggle, others, othersLabel, hideLabel, children }: { picture: ReactNode; label?: ReactNode; title: ReactNode; hint?: ReactNode; result?: ReactNode; changed: boolean; badge?: boolean; labelId: string; open: boolean; onToggle: () => void; others: boolean; othersLabel?: ReactNode; hideLabel?: ReactNode; children?: ReactNode }) {
   const more = useRef<HTMLDivElement>(null)
+  // Once the options have grown in, bring them into view (gently, above the bottom bar).
   useEffect(() => {
     if (!open) return
-    const id = window.setTimeout(() => more.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 80)
+    const id = window.setTimeout(() => more.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 320)
     return () => window.clearTimeout(id)
   }, [open])
   return (
@@ -68,17 +68,20 @@ export function SurePick({ picture, label, title, hint, result, changed, badge =
         {hint && <span className="text-[15.5px] leading-snug text-muted-foreground lg:text-[17px]">{hint}</span>}
         {result && <span className="text-[13.5px] leading-snug text-foreground/85 lg:text-[15px]">{result}</span>}
         {others && (
-          <button type="button" aria-expanded={open} onClick={() => morph(onToggle)} className="lc-link -ml-1.5 mt-1 inline-flex min-h-9 items-center gap-1 px-1.5 text-[13.5px] font-medium">
+          <button type="button" aria-expanded={open} onClick={onToggle} className="lc-link -ml-1.5 mt-1 inline-flex min-h-9 items-center gap-1 px-1.5 text-[13.5px] font-medium">
             {open ? (hideLabel ?? <Trans>Hide the other options</Trans>) : (othersLabel ?? <Trans>See the other options</Trans>)}
             <ChevronDown className={cn("size-3.5 transition-transform motion-reduce:transition-none", open && "rotate-180")} />
           </button>
         )}
       </div>
-      {open && (
-        <div ref={more} className="scroll-mb-[150px] px-0.5 pb-1">
-          {children}
+      {/* The options grow in (height and fade), and shrink away when hidden; nothing else on the page moves. */}
+      <div className={cn("gd-expand grid", open ? "grid-rows-[1fr] opacity-100" : "-mt-5 grid-rows-[0fr] opacity-0")} inert={!open}>
+        <div className="min-h-0 overflow-hidden">
+          <div ref={more} className="scroll-mb-[150px] px-1 pb-2 pt-1">
+            {children}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }
