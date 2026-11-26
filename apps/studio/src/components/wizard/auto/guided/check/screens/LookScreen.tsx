@@ -1,7 +1,7 @@
 /* eslint-disable lingui/no-unlocalized-strings -- setting ids and values, never shown */
 import { useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { Lock } from "lucide-react"
+import { Lock, Smartphone, ThumbsUp } from "lucide-react"
 import type { SetupRecommendation } from "@adt/types"
 import { cn } from "@/lib/utils"
 import { strategiesFor } from "../../../engine/answers"
@@ -10,7 +10,7 @@ import { LookChoices, type LookOption } from "../../shared/PreviewChoices"
 import { lookOf } from "../../shared/screens/look"
 import { layoutArt } from "../../shared/art/ConceptArt"
 import { MethodTag, usesAI } from "../../shared/MethodTag"
-import { LAYOUT_GUIDE } from "../../shared/optionGuide"
+import { LAYOUT_AT_A_GLANCE, LAYOUT_GUIDE } from "../../shared/optionGuide"
 import { Citation } from "../../shared/Citation"
 import type { Answers } from "../../shared/useAnswers"
 import { plainTitle, SETTING_OPTIONS } from "../../shared/words"
@@ -52,8 +52,8 @@ function LayoutPick({ rec, chat, file, asked }: Props & { asked: boolean }) {
     (v): LookOption => ({
       value: v,
       label: name(v),
-      // The card says only its name and how it's made; what it means is in "What do these options mean?".
-      line: "",
+      // The card: its name, one line on what you get, and how it's made.
+      line: LAYOUT_AT_A_GLANCE[v] ? i18n._(LAYOUT_AT_A_GLANCE[v]!.line) : "",
       more: (() => {
         const d = RENDER_STRATEGIES.find((r) => r.id === v)?.description
         return d ? i18n._(d) : undefined
@@ -86,7 +86,7 @@ function LayoutPick({ rec, chat, file, asked }: Props & { asked: boolean }) {
       label={<Trans>How the pages look on screen</Trans>}
       title={name(value)}
       hint={means ? i18n._(means) : undefined}
-      result={names ? <WizardSettings settings={derived.effective} only={["preset", "renderStrategy", "pageGrouping"]} /> : <MethodTag strategy={value} long className="mt-1" />}
+      result={names ? <WizardSettings settings={derived.effective} only={["preset", "renderStrategy", "pageGrouping"]} /> : <AtAGlance strategy={value} />}
       badge={!asked}
       changed={derived.source("renderStrategy") === "changed"}
       labelId={labelId}
@@ -104,6 +104,39 @@ function LayoutPick({ rec, chat, file, asked }: Props & { asked: boolean }) {
         labelId={labelId}
       />
     </SurePick>
+  )
+}
+
+/** Under the picked layout: the books it suits, how it reads on a phone, and how it's made. */
+function AtAGlance({ strategy }: { strategy: string }) {
+  const { i18n } = useLingui()
+  const at = LAYOUT_AT_A_GLANCE[strategy]
+  return (
+    <span className="mt-1 flex flex-col gap-1.5">
+      {at && (
+        <>
+          <span className="flex items-start gap-2">
+            <ThumbsUp aria-hidden className="mt-[3px] size-4 shrink-0 text-brand-500" />
+            <span>
+              <span className="font-medium">
+                <Trans>Best for:</Trans>
+              </span>{" "}
+              <span className="text-muted-foreground">{i18n._(at.best)}</span>
+            </span>
+          </span>
+          <span className="flex items-start gap-2">
+            <Smartphone aria-hidden className="mt-[3px] size-4 shrink-0 text-brand-500" />
+            <span>
+              <span className="font-medium">
+                <Trans>On a phone:</Trans>
+              </span>{" "}
+              <span className="text-muted-foreground">{i18n._(at.phone)}</span>
+            </span>
+          </span>
+        </>
+      )}
+      <MethodTag strategy={strategy} long className="mt-1" />
+    </span>
   )
 }
 
