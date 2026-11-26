@@ -1,6 +1,6 @@
 // Rewrites the `options:` list of every `type: dropdown` block with
 // `id: version` found under .github/ISSUE_TEMPLATE/*.yml so that it lists:
-//   - the 3 most recent beta / pre-release versions
+//   - the 3 most recent numbered beta versions
 //   - the 3 most recent official (stable) versions
 //   - any non-version entries from the existing dropdown (e.g. "Older / unsure"),
 //     in their original order
@@ -17,8 +17,8 @@
 import { readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import {
+  betaNumberOf,
   compareReleaseVersions,
-  isBetaVersion,
   listGitTags,
   parseReleaseTag,
 } from "./release-version.mjs";
@@ -54,7 +54,10 @@ function topVersions(candidates) {
     .filter((v) => v.prerelease === null)
     .sort(desc)
     .slice(0, KEEP_OFFICIAL);
-  const beta = versions.filter(isBetaVersion).sort(desc).slice(0, KEEP_BETA);
+  const beta = versions
+    .filter((v) => betaNumberOf(v) != null)
+    .sort(desc)
+    .slice(0, KEEP_BETA);
   return {
     topBeta: beta.map((v) => v.raw),
     topOfficial: official.map((v) => v.raw),
