@@ -1,10 +1,11 @@
 import { useNavigate } from "@tanstack/react-router"
 import { useRef } from "react"
 import type { StageName } from "@adt/types"
-import { useFloatingSave } from "@/components/pipeline/components/floating-save"
+import { SaveNotConfirmedError, useFloatingSave } from "@/components/pipeline/components/floating-save"
 import { useSettingsRemount } from "./use-settings-remount"
 import { useRegisterDirtyTabs } from "./use-settings-dirty-tabs"
 import { useBookRun } from "./use-book-run"
+import { usePages } from "./use-pages"
 import { useApiKey, useBookStructuredTextAvailability } from "./use-api-key"
 import { useLingui } from "@lingui/react/macro"
 import { useStageRunConfirmation } from "@/components/pipeline/components/use-stage-run-confirmation"
@@ -30,9 +31,18 @@ export function useStageSettingsBar({
 }) {
   const { t } = useLingui()
   const remount = useSettingsRemount()
-  const { queueRun, isRunning } = useBookRun()
+  const { queueRun, isRunning, stageState } = useBookRun()
   const { apiKey } = useApiKey()
   const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
+  // Every stage after Extract works on extracted pages. With none, and no
+  // Extract done or under way to produce them, a run of this stage alone
+  // completes over nothing (#1231). The stage's own Run button starts from
+  // Extract in that case; the settings bar offers a plain Save instead.
+  const { data: pages } = usePages(bookLabel)
+  const extractState = stageState("extract")
+  const extractCovered = extractState === "done" || extractState === "running" || extractState === "queued"
+  const missingPages = stage !== "extract" && pages?.length === 0 && !extractCovered
+  const missingPagesReason = missingPages ? t`Run Extract first. This book has no pages yet.` : undefined
   const saveRef = useRef(save)
   saveRef.current = save
   const navigate = useNavigate()
@@ -65,17 +75,19 @@ export function useStageSettingsBar({
     id: `settings:${stage}`,
     dirty,
     saving: saving || (protectedStage && confirmation.busy),
-    onSave: showSaveOnly ? save : undefined,
+    onSave: showSaveOnly || missingPages ? save : undefined,
     onSaveAndRerun: async () => {
       await saveAndRun(true)
     },
     onSaveStay: async () => {
-      if (!await saveAndRun(false)) throw new Error("Run not confirmed")
+      if (missingPages) return saveRef.current()
+      if (!await saveAndRun(false)) throw new SaveNotConfirmedError()
     },
+    leaveSavesOnly: missingPages,
     onDiscard: remount,
     saveDisabledReason: disabledReason,
     rerunDisabledReason:
-      disabledReason ?? (hasStructuredTextProvider ? protectedStage ? confirmation.disabledReason : undefined : t`Add an API key to re-run`),
+      disabledReason ?? missingPagesReason ?? (hasStructuredTextProvider ? protectedStage ? confirmation.disabledReason : undefined : t`Add an API key to re-run`),
   })
   return { content: <>{confirmation.notice}{confirmation.dialog}</>, busy: saving || confirmation.busy }
 }

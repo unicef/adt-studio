@@ -10478,6 +10478,9 @@ msgstr "Ejecutar Lectura Fácil"
 msgid "Run Extract"
 msgstr "Ejecutar Extracción"
 
+msgid "Run Extract first. This book has no pages yet."
+msgstr "Ejecuta primero Extracción. Este libro aún no tiene páginas."
+
 msgid "Run Glossary"
 msgstr "Ejecutar Glosario"
 
@@ -10618,6 +10621,9 @@ msgstr "Guardar lista de verificación"
 
 msgid "Save failed"
 msgstr "Error al guardar"
+
+msgid "Save failed: {error}"
+msgstr "Error al guardar: {error}"
 
 msgid "Save history checkpoint"
 msgstr "Guardar punto de recuperación del historial"

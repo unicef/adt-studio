@@ -19,6 +19,8 @@ interface FloatingSaveBarProps {
   saveDisabledReason?: string
   rerunDisabledReason?: string
   resetDisabledReason?: string
+  /** Why the last save was rejected. Shown above the bar until the next attempt. */
+  error?: string
   /** Status content next to the pulse dot. Defaults to "Unsaved changes". */
   label?: ReactNode
   /** Play the exit animation (the host keeps it mounted until it finishes). */
@@ -34,6 +36,7 @@ export function FloatingSaveBar({
   saveDisabledReason,
   rerunDisabledReason,
   resetDisabledReason,
+  error,
   label,
   closing = false,
 }: FloatingSaveBarProps) {
@@ -98,12 +101,20 @@ export function FloatingSaveBar({
   return createPortal(
     <div
       className={cn(
-        "fixed bottom-4 left-1/2 z-50 -translate-x-1/2",
+        "fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 flex-col items-center gap-1.5",
         closing
           ? "animate-out fill-mode-forwards slide-out-to-bottom-4 fade-out-0 zoom-out-95 duration-200 ease-in"
           : "animate-in slide-in-from-bottom-4 fade-in zoom-in-95 duration-300 ease-out",
       )}
     >
+      {error && (
+        <p
+          role="alert"
+          className="max-w-[min(36rem,calc(100vw-2rem))] rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-[11px] font-medium text-red-700 shadow-xl shadow-black/5 break-words"
+        >
+          {error}
+        </p>
+      )}
       <div className="flex items-center gap-3 rounded-md border border-border/60 bg-background/95 backdrop-blur px-2 py-1.5 shadow-xl shadow-black/5">
         {/* Status indicator */}
         <div className="flex items-center gap-2 pl-2">

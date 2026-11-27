@@ -15,6 +15,7 @@ import {
   useHasUnsavedChanges,
   useFloatingSaveLeaveAction,
   useFloatingSaveDirtyEntries,
+  saveErrorMessage,
 } from "./floating-save"
 import {
   useHasAnyDirtyTab,
@@ -40,6 +41,7 @@ export function UnsavedChangesGuard() {
   const ephemeralDirtyTabs = useEphemeralDirtyTabs()
   const { canSave, willRerun, resetStages, saveAndStay } = useFloatingSaveLeaveAction()
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const hasUnsavedRef = useRef(hasUnsaved)
   hasUnsavedRef.current = hasUnsaved
@@ -126,7 +128,13 @@ export function UnsavedChangesGuard() {
 
   const handleSaveAndContinue = async () => {
     setSaving(true)
-    const saved = await saveAndStay().then(() => true).catch(() => false)
+    setError(null)
+    // A failed save keeps the user on the page; say why instead of leaving
+    // the dialog looking as if nothing happened.
+    const saved = await saveAndStay().then(() => true).catch((cause: unknown) => {
+      setError(saveErrorMessage(cause))
+      return false
+    })
     setSaving(false)
     if (saved) proceed?.()
   }
@@ -135,7 +143,10 @@ export function UnsavedChangesGuard() {
     <AlertDialog
       open={status === "blocked"}
       onOpenChange={(open) => {
-        if (!open && !saving) reset?.()
+        if (!open && !saving) {
+          setError(null)
+          reset?.()
+        }
       }}
     >
       <AlertDialogContent className="max-w-lg gap-0 overflow-hidden p-0 [--tw-enter-translate-x:0]! [--tw-enter-translate-y:0]! [--tw-exit-translate-x:0]! [--tw-exit-translate-y:0]!">
@@ -225,13 +236,22 @@ export function UnsavedChangesGuard() {
               </div>
             </div>
           )}
+
+          {error && (
+            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700 break-words">
+              {t`Save failed: ${error}`}
+            </p>
+          )}
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t bg-muted/20 px-6 py-4">
           <Button
             variant="ghost"
             disabled={saving}
-            onClick={() => proceed?.()}
+            onClick={() => {
+              setError(null)
+              proceed?.()
+            }}
             className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
           >
             <Trans>Discard &amp; leave</Trans>

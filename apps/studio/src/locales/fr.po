@@ -10480,6 +10480,9 @@ msgstr "Lancer Lecture Facile"
 msgid "Run Extract"
 msgstr "Exécuter l'extraction"
 
+msgid "Run Extract first. This book has no pages yet."
+msgstr "Exécutez d'abord l'extraction. Ce livre ne contient pas encore de pages."
+
 msgid "Run Glossary"
 msgstr "Exécuter le glossaire"
 
@@ -10620,6 +10623,9 @@ msgstr "Enregistrer la liste de contrôle"
 
 msgid "Save failed"
 msgstr "L'enregistrement a échoué"
+
+msgid "Save failed: {error}"
+msgstr "L'enregistrement a échoué : {error}"
 
 msgid "Save history checkpoint"
 msgstr "Enregistrer un point de récupération de l’historique"

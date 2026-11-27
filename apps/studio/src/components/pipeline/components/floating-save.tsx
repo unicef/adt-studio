@@ -33,6 +33,19 @@ export function PendingChip({
 }
 
 /**
+ * Thrown by a save handler when the user declined the action (for example by
+ * cancelling a re-run confirmation). Nothing failed, so no error is shown; the
+ * rejection only keeps UnsavedChangesGuard from leaving the page.
+ */
+export class SaveNotConfirmedError extends Error {}
+
+/** The message to show for a rejected save, or null when nothing failed. */
+export function saveErrorMessage(cause: unknown): string | null {
+  if (cause instanceof SaveNotConfirmedError) return null
+  return cause instanceof Error ? cause.message : String(cause)
+}
+
+/**
  * A single pending-save surface (a stage header picker, a captions page, the
  * storyboard section editor, …). Each registers with the provider; the host
  * renders ONE shared FloatingSaveBar that either mirrors the lone dirty entry
@@ -49,7 +62,7 @@ export interface FloatingSaveEntry {
   /** Completed downstream stages that this save will invalidate. */
   resetStages?: StageName[]
   onSave?: () => void | Promise<void>
-  onSaveAndRerun?: () => void
+  onSaveAndRerun?: () => void | Promise<void>
   /**
    * Apply the pending changes without navigating. Awaited by
    * UnsavedChangesGuard's "Save & leave" — MUST reject when the save fails so
@@ -58,6 +71,11 @@ export interface FloatingSaveEntry {
    * dialog's re-run wording keys off `onSaveAndRerun`, not this.
    */
   onSaveStay?: () => void | Promise<void>
+  /**
+   * `onSaveStay` only saves: the re-run is unavailable, so UnsavedChangesGuard
+   * must not promise one even though `onSaveAndRerun` is registered.
+   */
+  leaveSavesOnly?: boolean
   onReset?: () => void
   onDiscard?: () => void
   saveDisabledReason?: string
@@ -79,6 +97,7 @@ function signature(e: FloatingSaveEntry): string {
     e.onSave ? "1" : "0",
     e.onSaveAndRerun ? "1" : "0",
     e.onSaveStay ? "1" : "0",
+    e.leaveSavesOnly ? "1" : "0",
     e.onReset ? "1" : "0",
     e.saveDisabledReason ?? "",
     e.rerunDisabledReason ?? "",
@@ -94,6 +113,7 @@ class FloatingSaveStore {
   private sigs = new Map<string, string>()
   private listeners = new Set<() => void>()
   private version = 0
+  private error: string | null = null
 
   subscribe = (fn: () => void) => {
     this.listeners.add(fn)
@@ -111,11 +131,23 @@ class FloatingSaveStore {
     return [...this.entries.values()].filter((e) => e.dirty)
   }
 
+  /** The last rejected save from the bar, until the next attempt or a clean bar. */
+  getError() {
+    return this.error
+  }
+
+  setError(error: string | null) {
+    if (this.error === error) return
+    this.error = error
+    this.bump()
+  }
+
   upsert(entry: FloatingSaveEntry) {
     this.entries.set(entry.id, entry)
     const sig = signature(entry)
     if (this.sigs.get(entry.id) !== sig) {
       this.sigs.set(entry.id, sig)
+      this.clearStaleError()
       this.bump()
     }
   }
@@ -123,7 +155,15 @@ class FloatingSaveStore {
   remove(id: string) {
     const existed = this.entries.delete(id)
     this.sigs.delete(id)
-    if (existed) this.bump()
+    if (existed) {
+      this.clearStaleError()
+      this.bump()
+    }
+  }
+
+  /** An error belongs to pending edits; drop it once nothing is unsaved. */
+  private clearStaleError() {
+    if (this.error !== null && this.active().length === 0) this.error = null
   }
 
   private bump() {
@@ -156,6 +196,7 @@ interface BarProps {
   saveDisabledReason?: string
   rerunDisabledReason?: string
   resetDisabledReason?: string
+  error?: string
 }
 
 const EXIT_MS = 200
@@ -166,6 +207,16 @@ function FloatingSaveHost({ store }: { store: FloatingSaveStore }) {
 
   const entries = store.active()
   const present = entries.length > 0
+  const error = store.getError()
+
+  // Run a save action and report its rejection in the bar. The action is
+  // called synchronously so its pending state shows in the same event.
+  const attempt = (action: () => unknown) => {
+    store.setError(null)
+    void new Promise((resolve) => resolve(action())).catch((cause: unknown) => {
+      store.setError(saveErrorMessage(cause))
+    })
+  }
 
   // Build the bar props while present. Callbacks indirect through the store so
   // they're never stale, even when the host hasn't re-rendered since a consumer
@@ -177,13 +228,18 @@ function FloatingSaveHost({ store }: { store: FloatingSaveStore }) {
       label: e.label,
       saving: e.saving,
       onSave: e.onSave
+        ? () => attempt(() => store.get(e.id)?.onSave?.())
+        : undefined,
+      onSaveAndRerun: e.onSaveAndRerun
+        ? () => attempt(() => store.get(e.id)?.onSaveAndRerun?.())
+        : undefined,
+      onReset: e.onReset ? () => store.get(e.id)?.onReset?.() : undefined,
+      onDiscard: e.onDiscard
         ? () => {
-            void Promise.resolve(store.get(e.id)?.onSave?.()).catch(() => {})
+            store.setError(null)
+            store.get(e.id)?.onDiscard?.()
           }
         : undefined,
-      onSaveAndRerun: e.onSaveAndRerun ? () => store.get(e.id)?.onSaveAndRerun?.() : undefined,
-      onReset: e.onReset ? () => store.get(e.id)?.onReset?.() : undefined,
-      onDiscard: e.onDiscard ? () => store.get(e.id)?.onDiscard?.() : undefined,
       saveDisabledReason: e.saveDisabledReason,
       rerunDisabledReason: e.rerunDisabledReason,
       resetDisabledReason: e.resetDisabledReason,
@@ -197,18 +253,22 @@ function FloatingSaveHost({ store }: { store: FloatingSaveStore }) {
       ),
       saving: entries.some((e) => e.saving),
       onSave: entries.some((e) => e.onSave)
-        ? () => {
-            void Promise.all(
-              store.active().map((e) => Promise.resolve(e.onSave?.())),
-            ).catch(() => {})
-          }
+        ? () =>
+            attempt(() =>
+              Promise.all(store.active().map((e) => Promise.resolve(e.onSave?.()))),
+            )
         : undefined,
       onDiscard: entries.some((e) => e.onDiscard)
-        ? () => store.active().forEach((e) => e.onDiscard?.())
+        ? () => {
+            store.setError(null)
+            store.active().forEach((e) => e.onDiscard?.())
+          }
         : undefined,
       saveDisabledReason: entries.find((e) => e.saveDisabledReason)?.saveDisabledReason,
     }
   }
+
+  if (barProps && error) barProps.error = t`Save failed: ${error}`
 
   // Presence: keep the bar mounted through its exit animation after it clears.
   const lastProps = useRef<BarProps | null>(null)
@@ -275,7 +335,7 @@ export function useFloatingSaveLeaveAction(): FloatingSaveLeaveAction {
   const canSave =
     entries.length > 0 &&
     entries.every((e) => !e.saveDisabledReason && (e.onSaveStay || e.onSave))
-  const willRerun = entries.some((e) => e.onSaveAndRerun)
+  const willRerun = entries.some((e) => e.onSaveAndRerun && !e.leaveSavesOnly)
   const resetStageSet = new Set(entries.flatMap((e) => e.resetStages ?? []))
   const resetStages = STAGE_ORDER.filter((stage) => resetStageSet.has(stage))
   const saveAndStay = async () => {
