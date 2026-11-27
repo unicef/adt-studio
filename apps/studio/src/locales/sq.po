@@ -12890,6 +12890,9 @@ msgstr "Libri nuk ka detyra për lexuesin."
 msgid "The book has only a few pages to go on, so I'd rather ask you."
 msgstr "Libri ka pak faqe për t'u mbështetur, ndaj më mirë po ju pyes."
 
+msgid "The book is being set up, so its PDF can't change now."
+msgstr "Libri po konfigurohet, ndaj PDF-ja e tij nuk mund të ndryshohet tani."
+
 msgid "The book is laid out in two-page openings: a page of text faces a page of picture."
 msgstr "Libri është faqosur në faqe të dyfishta: një faqe me tekst përballë një faqeje me figurë."
 
@@ -15198,6 +15201,9 @@ msgstr "Zgjedhja juaj. Teksti përkthehet në të."
 
 msgid "Your picks"
 msgstr "Zgjedhjet tuaja"
+
+msgid "Your picks so far"
+msgstr "Zgjedhjet tuaja deri tani"
 
 msgid "Your service isn't answering yet"
 msgstr "Shërbimi juaj ende nuk po përgjigjet"

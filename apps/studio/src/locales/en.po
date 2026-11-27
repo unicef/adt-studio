@@ -12888,6 +12888,9 @@ msgstr "The book has no tasks for the reader."
 msgid "The book has only a few pages to go on, so I'd rather ask you."
 msgstr "The book has only a few pages to go on, so I'd rather ask you."
 
+msgid "The book is being set up, so its PDF can't change now."
+msgstr "The book is being set up, so its PDF can't change now."
+
 msgid "The book is laid out in two-page openings: a page of text faces a page of picture."
 msgstr "The book is laid out in two-page openings: a page of text faces a page of picture."
 
@@ -15196,6 +15199,9 @@ msgstr "Your pick. The text is translated into it."
 
 msgid "Your picks"
 msgstr "Your picks"
+
+msgid "Your picks so far"
+msgstr "Your picks so far"
 
 msgid "Your service isn't answering yet"
 msgstr "Your service isn't answering yet"

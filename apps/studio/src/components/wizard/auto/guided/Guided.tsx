@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode, type RefObject } from "react"
+import { lazy, Suspense, useContext, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode, type RefObject } from "react"
 import { flushSync } from "react-dom"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { FileDropOverlay } from "@/components/ui/file-drop-overlay"
@@ -26,7 +26,13 @@ import { useScreenValues } from "./check/useScreenValues"
 import { CreatePanel, CreateSays } from "./CreatePanel"
 import { Morph } from "./Morph"
 import { FlowTopBar } from "@/components/FlowTopBar"
-import { Island, type IslandPick } from "./Island"
+import { Dock } from "./pdf/Dock"
+import { PdfOptionsContext } from "./pdf/options"
+import type { PdfPick } from "./pdf/parts"
+import { PdfRail } from "./pdf/PdfRail"
+import { PdfRow } from "./pdf/PdfRow"
+import { PdfTitle } from "./pdf/PdfTitle"
+import { PicksChips, PicksTrail } from "./pdf/PicksChips"
 import { activityFacts, type ScreenId } from "./check/screens"
 import { screenTitle } from "./check/words"
 import { Stepper } from "./Stepper"
@@ -61,11 +67,14 @@ function useHeldWhile<T>(active: boolean, value: T): T {
 }
 
 export function Guided({ onManual, active = true }: { onManual: () => void; active?: boolean }) {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const form = useWizardForm()
   const devMode = useDevMode()
   const devForm = useStore(form.store, (st) => ({ scope: st.values.scope, startPage: st.values.startPage, endPage: st.values.endPage, editingLanguage: st.values.editingLanguage, label: st.values.label }))
-  const flow = useUploadFlow({ active })
+  const create = useCreateRun()
+  // While the book is being saved or its extraction starts, the PDF can't change (no drop, no Change PDF).
+  const creating = create.runs.some((r) => r.status === "saving" || r.status === "extracting")
+  const flow = useUploadFlow({ active: active && !creating })
   const validFile = !!flow.file && flow.pageCount > 0 && !flow.error
   const [attempt, setAttempt] = useState(0)
   const [rejectedAt, setRejectedAt] = useState(0)
@@ -82,7 +91,6 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
   const check = useCheck(rec, chat)
   const firstBook = useFirstBook()
   const assistant = useAssistantName()
-  const create = useCreateRun()
   const lastRun = create.runs[create.runs.length - 1]
   const values = useScreenValues(rec, chat.derived, flow.pageCount)
 
@@ -203,14 +211,17 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
   const wide = useWide()
   const columnPx = wide ? 880 : 760
 
-  // The island: the picks made so far (all of them once the book is being set up), each opening its
+  // The picks made so far (all of them once the book is being set up), each opening its
   // Check screen again while Check is still open.
   const facts = rec && chat.derived ? activityFacts(rec, chat.derived.current) : []
-  const picks: IslandPick[] = values ? check.screens.filter((s) => s !== "name" && (check.done.includes(s) || !!lastRun)).map((s) => ({ screen: s, title: screenTitle(s, facts), value: values[s] })) : []
+  const picks: PdfPick[] = values ? check.screens.filter((s) => s !== "name" && (check.done.includes(s) || !!lastRun)).map((s) => ({ screen: s, title: screenTitle(s, facts), value: values[s] })) : []
   const onEditPick = at === "check" && !create.locked ? (s: ScreenId) => morph(() => {
     setView(null)
     check.go(s, true)
   }) : null
+  // Where the PDF and the picks show: the dock until a design is chosen (dev lab: ?pdf= &picks=).
+  const pdfAt = useContext(PdfOptionsContext)
+  const pdfProps = { flow, picks, onEdit: create.locked ? null : onEditPick, locked: creating }
   const scroller = useRef<HTMLDivElement>(null)
   const { scale, vh } = usePageScale(scroller)
   return (
@@ -219,7 +230,12 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
         {/* Its own view-transition layer with no animation (guided.css): step morphs never move or fade the bar. */}
         {/* Above the page (z-40), so the dock can open over it. */}
         <div className="relative z-40 shrink-0" style={{ viewTransitionName: "gd-topbar" }}>
-          <FlowTopBar title={t`Add Book`} contentWidth={columnPx * scale} center={<Island flow={flow} picks={picks} onEdit={onEditPick} />} />
+          <FlowTopBar
+            title={t`Add Book`}
+            contentWidth={columnPx * scale}
+            center={pdfAt.pdf === "dock" ? <Dock {...pdfProps} /> : undefined}
+            after={pdfAt.pdf === "title" ? <PdfTitle {...pdfProps} /> : undefined}
+          />
         </div>
         <FileDropOverlay overlay={flow.overlay} dropLabel={<Trans>Drop PDF here</Trans>} errorLabel={<Trans>Only PDF files are supported</Trans>} accent="blue" />
         <input ref={flow.inputRef} type="file" accept="application/pdf" className="hidden" onChange={flow.onInputChange} />
@@ -235,7 +251,19 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
               floating small in the middle; on short ones the spacing tightens. */}
           <div className="mx-auto flex w-full flex-col px-4 pb-24 pt-6 sm:px-6 sm:pt-8 [@media(max-height:800px)]:pt-4" style={{ zoom: scale, "--gd-vh": `${vh}px` } as CSSProperties}>
             <div className={cn("gd-col mx-auto w-full", column)}>
-              <Stepper at={at} shown={shown} failed={!!failure && at === "reading"} locked={create.locked} complete={lastRun?.status === "done"} onGo={(s) => morph(() => setView(s === at ? null : s))} checkBars={bars} />
+              {(pdfAt.pdf === "row" || pdfAt.pdf === "rail") && <PdfRow flow={flow} locked={creating} className={cn("mb-4", pdfAt.pdf === "rail" && "min-[1480px]:hidden")} />}
+              <Stepper
+                at={at}
+                shown={shown}
+                failed={!!failure && at === "reading"}
+                locked={create.locked}
+                complete={lastRun?.status === "done"}
+                onGo={(s) => morph(() => setView(s === at ? null : s))}
+                checkBars={bars}
+                trail={pdfAt.picks === "trail" && shown === "check" && check.at ? <PicksTrail picks={picks.filter((p) => p.screen !== check.at)} current={i18n._(screenTitle(check.at, facts))} onEdit={onEditPick} /> : undefined}
+              />
+              {pdfAt.picks === "chips" && <PicksChips picks={picks.filter((p) => p.screen !== check.at || shown !== "check")} onEdit={onEditPick} className="mt-3" />}
+              {pdfAt.pdf === "rail" && <PdfRail {...pdfProps} />}
             </div>
             <div className={cn("gd-col mx-auto mt-7 w-full lg:mt-9 [@media(max-height:800px)]:mt-4", column)}>
               <div className="min-w-0">

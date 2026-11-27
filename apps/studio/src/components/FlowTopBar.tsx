@@ -20,6 +20,8 @@ export type FlowTopBarProps = {
   onBack?: () => void
   /** Extra controls shown before the locale switcher. */
   actions?: ReactNode
+  /** Shown right after the title (what the flow is working on); the title hides on phones to make room. */
+  after?: ReactNode
   /** Shown in the middle of the bar (what the flow is working on); the title hides on phones to make room. */
   center?: ReactNode
   /** Lines the bar's contents up with a centred page column this wide (px); full width by default. */
@@ -32,7 +34,7 @@ export type FlowTopBarProps = {
  * hover — followed by the current page title. Owns the frameless-window drag
  * region, the macOS traffic-light spacing, and the Windows/Linux controls.
  */
-export function FlowTopBar({ title, onBack, actions, contentWidth, center }: FlowTopBarProps) {
+export function FlowTopBar({ title, onBack, actions, contentWidth, center, after }: FlowTopBarProps) {
   const { t } = useLingui()
   const navigate = useNavigate()
   const platform = usePlatform()
@@ -72,8 +74,9 @@ export function FlowTopBar({ title, onBack, actions, contentWidth, center }: Flo
         </button>
 
         {title != null && (
-          <span className={cn("truncate text-[13.5px] font-semibold", center && "max-sm:sr-only")}>{title}</span>
+          <span className={cn("truncate text-[13.5px] font-semibold", (center || after) && "max-sm:sr-only")}>{title}</span>
         )}
+        {after}
       </div>
 
       {center && (

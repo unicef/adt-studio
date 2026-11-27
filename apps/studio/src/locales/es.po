@@ -12888,6 +12888,9 @@ msgstr "El libro no tiene tareas para el lector."
 msgid "The book has only a few pages to go on, so I'd rather ask you."
 msgstr "El libro tiene muy pocas páginas para guiarme, así que prefiero preguntarte."
 
+msgid "The book is being set up, so its PDF can't change now."
+msgstr "El libro se está configurando, así que su PDF no puede cambiar ahora."
+
 msgid "The book is laid out in two-page openings: a page of text faces a page of picture."
 msgstr "El libro está compuesto en páginas dobles: una página de texto frente a una página de imagen."
 
@@ -15196,6 +15199,9 @@ msgstr "Tu elección. El texto se traduce a este idioma."
 
 msgid "Your picks"
 msgstr "Tus elecciones"
+
+msgid "Your picks so far"
+msgstr "Tus elecciones hasta ahora"
 
 msgid "Your service isn't answering yet"
 msgstr "Tu servicio aún no está respondiendo"
