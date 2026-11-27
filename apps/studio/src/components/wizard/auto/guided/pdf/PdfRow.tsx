@@ -19,7 +19,8 @@ const ICON = "size-3.5 text-brand-700 transition-transform duration-200 motion-r
 function Reveal({ shown, children }: { shown: boolean; children: ReactNode }) {
   return (
     <div className={cn("grid transition-[grid-template-rows,opacity,margin] duration-500 motion-reduce:transition-none", EASE, shown ? "mb-4 grid-rows-[1fr] opacity-100" : "mb-0 grid-rows-[0fr] opacity-0")} inert={!shown} aria-hidden={!shown || undefined}>
-      <div className="min-h-0 overflow-hidden">
+      {/* The clip has 6px of room on every side (padding, cancelled by a negative margin) so the buttons' border and shadow aren't cut. */}
+      <div className="-m-1.5 min-h-0 overflow-hidden p-1.5">
         <div className={cn("transition-transform duration-500 motion-reduce:transition-none", EASE, shown ? "translate-y-0" : "-translate-y-2")}>{children}</div>
       </div>
     </div>

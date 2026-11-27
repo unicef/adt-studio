@@ -1,21 +1,9 @@
-import { lazy, Suspense, useState, type ReactNode } from "react"
+import { useState } from "react"
 import { useWizard } from "@/components/wizard/core/WizardProvider"
 import { BookCreationWizard } from "@/components/wizard/manual/BookCreationWizard"
 import { cn } from "@/lib/utils"
 import { Guided } from "./Guided"
 import "./shared/look.css"
-
-// Dev builds only: the lab for where the PDF and the picks show (floating toolbar). Left out of production bundles.
-// eslint-disable-next-line lingui/no-unlocalized-strings -- module path
-const PdfLab = import.meta.env.DEV ? lazy(() => import("./pdf/PdfLab")) : null
-const Lab = ({ children }: { children: ReactNode }) =>
-  PdfLab ? (
-    <Suspense fallback={children}>
-      <PdfLab>{children}</PdfLab>
-    </Suspense>
-  ) : (
-    children
-  )
 
 /**
  * Guided, the Add Book auto mode design: a four-step stepper with one assistant bubble per step. It
@@ -26,7 +14,7 @@ export function GuidedFlow() {
   const { setPhase, setCurrentStep } = useWizard()
   const [manual, setManual] = useState(false)
   return (
-    <Lab>
+    <>
         <div className={cn("flex h-full min-h-0 flex-1 flex-col", manual && "hidden")}>
           <Guided
             active={!manual}
@@ -45,6 +33,6 @@ export function GuidedFlow() {
           }}
         />
       )}
-    </Lab>
+    </>
   )
 }

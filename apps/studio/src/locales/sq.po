@@ -2901,10 +2901,6 @@ msgstr "Qendër"
 msgid "Change"
 msgstr "Ndrysho"
 
-#. placeholder {0}: p.value
-msgid "Change {title}: {0}"
-msgstr "Ndrysho {title}: {0}"
-
 msgid "Change and send"
 msgstr "Ndrysho dhe dërgo"
 
@@ -15194,12 +15190,6 @@ msgstr "Zgjedhja juaj"
 
 msgid "Your pick. The text is translated into it."
 msgstr "Zgjedhja juaj. Teksti përkthehet në të."
-
-msgid "Your picks"
-msgstr "Zgjedhjet tuaja"
-
-msgid "Your picks so far"
-msgstr "Zgjedhjet tuaja deri tani"
 
 msgid "Your service isn't answering yet"
 msgstr "Shërbimi juaj ende nuk po përgjigjet"

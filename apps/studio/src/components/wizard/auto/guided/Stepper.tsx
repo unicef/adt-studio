@@ -16,27 +16,22 @@ const NAME: Record<StepId, MessageDescriptor> = {
  * Upload · Reading · Check · Set up, as one quiet line: "Step 3 of 4 · Check", with four dots on the
  * right. The steps already done open again from their dot (unless the book is being created).
  * `failed` marks the current step when something went wrong there, `complete` fills every dot once
- * the book is made, and on Check `checkBars` shows its screens next to the name. `trail` replaces
- * the line's left side (the picks as a trail, dev lab).
+ * the book is made, and on Check `checkBars` shows its screens next to the name.
  */
-export function Stepper({ at, shown, failed, locked, complete, onGo, checkBars, trail }: { at: StepId; shown: StepId; failed: boolean; locked: boolean; complete: boolean; onGo: (step: StepId) => void; checkBars?: ReactNode; trail?: ReactNode }) {
+export function Stepper({ at, shown, failed, locked, complete, onGo, checkBars }: { at: StepId; shown: StepId; failed: boolean; locked: boolean; complete: boolean; onGo: (step: StepId) => void; checkBars?: ReactNode }) {
   const { t, i18n } = useLingui()
   const atIndex = STEPS.indexOf(at)
   const n = STEPS.indexOf(shown) + 1
   const total = STEPS.length
   return (
     <nav aria-label={t`Add Book steps`} className="flex items-center gap-3">
-      {trail ?? (
-        <>
-          <span className="text-[13px] tabular-nums text-muted-foreground lg:text-[14px]">
-            <Trans>
-              Step {n} of {total}
-            </Trans>
-          </span>
-          <span className="text-[15px] font-semibold lg:text-[16.5px]">{i18n._(NAME[shown])}</span>
-          {shown === "check" && checkBars}
-        </>
-      )}
+      <span className="text-[13px] tabular-nums text-muted-foreground lg:text-[14px]">
+        <Trans>
+          Step {n} of {total}
+        </Trans>
+      </span>
+      <span className="text-[15px] font-semibold lg:text-[16.5px]">{i18n._(NAME[shown])}</span>
+      {shown === "check" && checkBars}
       <ol className="ml-auto flex items-center gap-1.5">
         {STEPS.map((step, i) => {
           const done = i < atIndex || complete

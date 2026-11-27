@@ -1,4 +1,4 @@
-import { lazy, Suspense, useContext, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode, type RefObject } from "react"
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode, type RefObject } from "react"
 import { flushSync } from "react-dom"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { FileDropOverlay } from "@/components/ui/file-drop-overlay"
@@ -26,12 +26,7 @@ import { useScreenValues } from "./check/useScreenValues"
 import { CreatePanel, CreateSays } from "./CreatePanel"
 import { Morph } from "./Morph"
 import { FlowTopBar } from "@/components/FlowTopBar"
-import { PdfOptionsContext } from "./pdf/options"
-import type { PdfPick } from "./pdf/parts"
 import { PdfRow } from "./pdf/PdfRow"
-import { PicksChips, PicksTrail } from "./pdf/PicksChips"
-import { activityFacts, type ScreenId } from "./check/screens"
-import { screenTitle } from "./check/words"
 import { Stepper } from "./Stepper"
 import { STEPS, type StepId } from "./steps"
 import { UploadPanel, UploadSays } from "./UploadPanel"
@@ -64,7 +59,7 @@ function useHeldWhile<T>(active: boolean, value: T): T {
 }
 
 export function Guided({ onManual, active = true }: { onManual: () => void; active?: boolean }) {
-  const { t, i18n } = useLingui()
+  const { t } = useLingui()
   const form = useWizardForm()
   const devMode = useDevMode()
   const devForm = useStore(form.store, (st) => ({ scope: st.values.scope, startPage: st.values.startPage, endPage: st.values.endPage, editingLanguage: st.values.editingLanguage, label: st.values.label }))
@@ -208,16 +203,6 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
   const wide = useWide()
   const columnPx = wide ? 880 : 760
 
-  // The picks made so far (all of them once the book is being set up), each opening its
-  // Check screen again while Check is still open.
-  const facts = rec && chat.derived ? activityFacts(rec, chat.derived.current) : []
-  const picks: PdfPick[] = values ? check.screens.filter((s) => s !== "name" && (check.done.includes(s) || !!lastRun)).map((s) => ({ screen: s, title: screenTitle(s, facts), value: values[s] })) : []
-  const onEditPick = at === "check" && !create.locked ? (s: ScreenId) => morph(() => {
-    setView(null)
-    check.go(s, true)
-  }) : null
-  // Where the picks show (dev lab: ?picks=).
-  const pdfAt = useContext(PdfOptionsContext)
   const scroller = useRef<HTMLDivElement>(null)
   const { scale, vh } = usePageScale(scroller)
   return (
@@ -249,9 +234,7 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
                 complete={lastRun?.status === "done"}
                 onGo={(s) => morph(() => setView(s === at ? null : s))}
                 checkBars={bars}
-                trail={pdfAt.picks === "trail" && shown === "check" && check.at ? <PicksTrail picks={picks.filter((p) => p.screen !== check.at)} current={i18n._(screenTitle(check.at, facts))} onEdit={create.locked ? null : onEditPick} /> : undefined}
               />
-              {pdfAt.picks === "chips" && <PicksChips picks={picks.filter((p) => p.screen !== check.at || shown !== "check")} onEdit={onEditPick} className="mt-3" />}
             </div>
             <div className={cn("gd-col mx-auto mt-7 w-full lg:mt-9 [@media(max-height:800px)]:mt-4", column)}>
               <div className="min-w-0">

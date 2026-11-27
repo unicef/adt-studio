@@ -2899,10 +2899,6 @@ msgstr "Centrar"
 msgid "Change"
 msgstr "Cambiar"
 
-#. placeholder {0}: p.value
-msgid "Change {title}: {0}"
-msgstr "Cambiar {title}: {0}"
-
 msgid "Change and send"
 msgstr "Cambiar y enviar"
 
@@ -15192,12 +15188,6 @@ msgstr "Tu elección"
 
 msgid "Your pick. The text is translated into it."
 msgstr "Tu elección. El texto se traduce a este idioma."
-
-msgid "Your picks"
-msgstr "Tus elecciones"
-
-msgid "Your picks so far"
-msgstr "Tus elecciones hasta ahora"
 
 msgid "Your service isn't answering yet"
 msgstr "Tu servicio aún no está respondiendo"
