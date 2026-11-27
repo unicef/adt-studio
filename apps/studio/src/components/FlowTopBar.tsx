@@ -20,6 +20,8 @@ export type FlowTopBarProps = {
   onBack?: () => void
   /** Extra controls shown before the locale switcher. */
   actions?: ReactNode
+  /** Lines the bar's contents up with a centred page column this wide (px); full width by default. */
+  contentWidth?: number
 }
 
 /**
@@ -28,7 +30,7 @@ export type FlowTopBarProps = {
  * hover — followed by the current page title. Owns the frameless-window drag
  * region, the macOS traffic-light spacing, and the Windows/Linux controls.
  */
-export function FlowTopBar({ title, onBack, actions }: FlowTopBarProps) {
+export function FlowTopBar({ title, onBack, actions, contentWidth }: FlowTopBarProps) {
   const { t } = useLingui()
   const navigate = useNavigate()
   const platform = usePlatform()
@@ -48,6 +50,8 @@ export function FlowTopBar({ title, onBack, actions }: FlowTopBarProps) {
     >
       <MacOSTrafficLightSpacer />
 
+      {/* With a column width, the padding matches a page column's 16px side margin on small windows. */}
+      <div className={cn("mx-auto flex min-w-0 flex-1 items-center gap-2 transition-[max-width] duration-300 motion-reduce:transition-none", contentWidth && "px-2")} style={contentWidth ? { maxWidth: contentWidth + 16 } : undefined}>
       <div className="flex min-w-0 items-center gap-2" style={NO_DRAG_REGION}>
         <button
           type="button"
@@ -72,6 +76,7 @@ export function FlowTopBar({ title, onBack, actions }: FlowTopBarProps) {
       <div className="ml-auto flex items-center gap-1.5" style={NO_DRAG_REGION}>
         {actions}
         <LocaleSwitcher variant="standalone" />
+      </div>
       </div>
 
       {showNonMacControls && <TitleBarControls className="self-stretch" />}

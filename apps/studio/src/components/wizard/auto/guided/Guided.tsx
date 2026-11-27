@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react"
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode, type RefObject } from "react"
 import { flushSync } from "react-dom"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { FileDropOverlay } from "@/components/ui/file-drop-overlay"
@@ -188,12 +188,15 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
 
   // The page column: Check is one focused column, Upload shows its three cards side by side.
   const column = shown === "check" ? "max-w-[760px]" : shown === "upload" ? "max-w-[760px] lg:max-w-[1080px]" : "max-w-[760px] lg:max-w-[880px]"
+  // The top bar lines up with the same column (its width in px, times the page's zoom).
+  const wide = useWide()
+  const columnPx = shown === "check" || !wide ? 760 : shown === "upload" ? 1080 : 880
   const scroller = useRef<HTMLDivElement>(null)
   const { scale, vh } = usePageScale(scroller)
   return (
     <FinishContext.Provider value={{ onOpen: create.open }}>
       <div className="lc-root gd-root relative flex h-full min-h-0 flex-1 flex-col overflow-clip" data-tone={tone}>
-        <FlowTopBar title={t`Add Book`} actions={<PdfChip flow={flow} />} />
+        <FlowTopBar title={t`Add Book`} actions={<PdfChip flow={flow} />} contentWidth={columnPx * scale} />
         <FileDropOverlay overlay={flow.overlay} dropLabel={<Trans>Drop PDF here</Trans>} errorLabel={<Trans>Only PDF files are supported</Trans>} accent="blue" />
         <input ref={flow.inputRef} type="file" accept="application/pdf" className="hidden" onChange={flow.onInputChange} />
         <div aria-hidden className="gd-tint pointer-events-none absolute inset-0">
@@ -235,6 +238,22 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
  * (1440x900), then with the window (width and height both), up to 1.5. A desktop window is never
  * smaller than 1280x720, where the page stays at 1 and its spacing tightens instead.
  */
+// eslint-disable-next-line lingui/no-unlocalized-strings -- CSS media query
+const WIDE = "(min-width: 1024px)"
+
+/** The window is at least Tailwind's \`lg\` wide (where the page column widens). */
+function useWide(): boolean {
+  return useSyncExternalStore(
+    (on) => {
+      const mq = window.matchMedia(WIDE)
+      mq.addEventListener("change", on)
+      return () => mq.removeEventListener("change", on)
+    },
+    () => window.matchMedia(WIDE).matches,
+    () => false,
+  )
+}
+
 function usePageScale(ref: RefObject<HTMLElement | null>): { scale: number; vh: number } {
   const [size, setSize] = useState({ scale: 1, vh: typeof window === "undefined" ? 9 : window.innerHeight / 100 })
   useLayoutEffect(() => {
