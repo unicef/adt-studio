@@ -37,6 +37,10 @@ export type ElementAudioOutput = z.infer<typeof ElementAudioOutput>
 /** `node_data` node name. Authored content: never add it to a clear list. */
 export const ELEMENT_AUDIO_NODE = "element-audio"
 
+/** Optional `element_audio.json` manifest: authored element ids with audio. */
+export const ElementAudioManifest = z.array(z.string())
+export type ElementAudioManifest = z.infer<typeof ElementAudioManifest>
+
 const ELEMENT_AUDIO_SUFFIX = "_audio"
 
 // v1 scope: only image leaves (SPEC-0014). Text and container ids are deferred

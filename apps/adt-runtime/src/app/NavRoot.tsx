@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/shared/ui/tooltip";
 import { ActivityDock } from "@/features/activity/components/ActivityDock";
 import { ActivityConfetti } from "@/features/activity/components/ActivityConfetti";
 import { Dock } from "@/features/dock/components/Dock";
+import { ElementAudioTargets } from "@/features/audio/components/ElementAudioTargets";
 
 /**
  * The React tree mounted into `<div id="nav-container">`. Holds the unified
@@ -19,6 +20,7 @@ export function NavRoot() {
   return (
     <TooltipProvider delay={300} closeDelay={120}>
       <Dock>
+        <ElementAudioTargets />
         <ActivityDock />
         <BottomDock />
       </Dock>

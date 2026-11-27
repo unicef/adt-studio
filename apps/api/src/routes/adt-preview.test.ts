@@ -502,9 +502,115 @@ describe("ADT preview routes", () => {
     const app = createAdtPreviewRoutes(tmpDir, webAssetsDir, path.resolve(process.cwd(), "config.yaml"))
     const speechRes = await app.request(`/books/${label}/adt-preview/content/i18n/en/speech_texts.json`)
     const audioRes = await app.request(`/books/${label}/adt-preview/content/i18n/en/audios.json`)
+    const manifestRes = await app.request(`/books/${label}/adt-preview/content/i18n/en/element_audio.json`)
 
     expect(await speechRes.json()).toMatchObject({ pg001_tx001: "x squared", pg001_tx002: "pg001_tx002" })
     expect(await audioRes.json()).toEqual({ pg001_tx001: "pg001_tx001.mp3", pg001_tx002: "pg001_tx002.mp3" })
+    // A book without authored audio still serves the optional manifest.
+    expect(await manifestRes.json()).toEqual([])
+  })
+
+  it("publishes authored element audio under the element id and lists it in element_audio.json", async () => {
+    fs.writeFileSync(
+      path.join(tmpDir, label, "config.yaml"),
+      "speech:\n  word_highlighting: true\n",
+    )
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      putReadyCoreTts(storage, "pg001_im001_audio", "pg001_im001_easy_read", "pg001_im001")
+      storage.putNodeData("element-audio", `${label}_p1`, {
+        entries: [{ nodeId: "pg001_im001", text: "Mago" }],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+      storage.putNodeData("tts", "en", {
+        entries: [
+          {
+            textId: "pg001_im001_audio",
+            language: "en",
+            fileName: "pg001_im001_audio.mp3",
+            voice: "alloy",
+            model: "gpt-4o-mini-tts",
+            cached: false,
+          },
+          {
+            textId: "pg001_im001_easy_read",
+            language: "en",
+            fileName: "pg001_im001_easy_read.mp3",
+            voice: "alloy",
+            model: "gpt-4o-mini-tts",
+            cached: false,
+          },
+          {
+            // The caption entry is written after the authored one: the
+            // post-pass, not the order, decides the winner (AC-18).
+            textId: "pg001_im001",
+            language: "en",
+            fileName: "pg001_im001.mp3",
+            voice: "alloy",
+            model: "gpt-4o-mini-tts",
+            cached: false,
+          },
+        ],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+      storage.putNodeData("tts-timestamps", "en", {
+        entries: {
+          pg001_im001_audio: {
+            textId: "pg001_im001_audio",
+            language: "en",
+            duration: 0.5,
+            words: [{ word: "Mago", start: 0, end: 0.5 }],
+          },
+        },
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+    } finally {
+      storage.close()
+    }
+
+    const app = createAdtPreviewRoutes(tmpDir, webAssetsDir, path.resolve(process.cwd(), "config.yaml"))
+    const speech = await app.request(`/books/${label}/adt-preview/content/i18n/en/speech_texts.json`)
+    const audios = await app.request(`/books/${label}/adt-preview/content/i18n/en/audios.json`)
+    const manifest = await app.request(`/books/${label}/adt-preview/content/i18n/en/element_audio.json`)
+    const timecodes = await app.request(`/books/${label}/adt-preview/content/i18n/en/timecode/timecode_output.json`)
+
+    const speechBody = await speech.json() as Record<string, string>
+    expect(speechBody).toMatchObject({ pg001_im001: "pg001_im001_audio" })
+    expect(speechBody.pg001_im001_easy_read).toBeUndefined()
+    expect(await audios.json()).toEqual({ pg001_im001: "pg001_im001_audio.mp3" })
+    expect(await manifest.json()).toEqual(["pg001_im001"])
+    // Authored scripts use block highlight: no word timecodes, like the bundle.
+    expect(await timecodes.json()).toEqual({})
+
+    // The authored ids are speech-only in the preview too (PR 3 parity).
+    const texts = await app.request(`/books/${label}/adt-preview/content/i18n/en/texts.json`)
+    const textsBody = await texts.json() as Record<string, string>
+    expect(textsBody.pg001_im001_audio).toBeUndefined()
+    // The element's own easy-read caption is not the authored script.
+    expect(textsBody.pg001_im001_easy_read).toBe("pg001_im001_easy_read")
+
+    // An explicit mute leaves no authored playable key and no trigger
+    // (AC-21); the element falls back to its caption audio and text.
+    fs.writeFileSync(
+      path.join(tmpDir, label, "config.yaml"),
+      "speech:\n  word_highlighting: true\n  excluded_text_ids:\n    - pg001_im001_audio\n",
+    )
+    expect(
+      await (await app.request(`/books/${label}/adt-preview/content/i18n/en/element_audio.json`)).json(),
+    ).toEqual([])
+    expect(
+      await (await app.request(`/books/${label}/adt-preview/content/i18n/en/audios.json`)).json(),
+    ).toEqual({
+      pg001_im001: "pg001_im001.mp3",
+      pg001_im001_easy_read: "pg001_im001_easy_read.mp3",
+    })
+    const mutedSpeech = await (await app.request(`/books/${label}/adt-preview/content/i18n/en/speech_texts.json`)).json() as Record<string, string>
+    expect(mutedSpeech).toMatchObject({
+      pg001_im001: "pg001_im001",
+      pg001_im001_easy_read: "pg001_im001_easy_read",
+    })
+    // The bundle omits the synthetic key when its audio is muted; mirror it.
+    expect(mutedSpeech.pg001_im001_audio).toBeUndefined()
   })
 
   // The preview manifest must resolve narrator names exactly the way the
