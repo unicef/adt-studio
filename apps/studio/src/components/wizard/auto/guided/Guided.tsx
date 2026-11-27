@@ -209,7 +209,8 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
     <FinishContext.Provider value={{ onOpen: create.open }}>
       <div className="lc-root gd-root relative flex h-full min-h-0 flex-1 flex-col overflow-clip" data-tone={tone}>
         {/* Its own view-transition layer with no animation (guided.css): step morphs never move or fade the bar. */}
-        <div className="shrink-0" style={{ viewTransitionName: "gd-topbar" }}>
+        {/* Above the page (z-40), so the dock can open over it. */}
+        <div className="relative z-40 shrink-0" style={{ viewTransitionName: "gd-topbar" }}>
           <FlowTopBar title={t`Add Book`} contentWidth={columnPx * scale} center={<Island flow={flow} picks={picks} onEdit={onEditPick} />} />
         </div>
         <FileDropOverlay overlay={flow.overlay} dropLabel={<Trans>Drop PDF here</Trans>} errorLabel={<Trans>Only PDF files are supported</Trans>} accent="blue" />

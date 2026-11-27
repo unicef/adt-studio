@@ -174,3 +174,9 @@
 @keyframes gd-words-in { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .gd-enter { animation: none; } }
 :root.reduce-effects .gd-enter { animation: none; }
+
+/* The top bar's dock (Island.tsx) slides down from the window's top edge when a PDF is chosen or changed. */
+@keyframes gd-dock-in {
+  from { transform: translateY(-100%); }
+  to { transform: none; }
+}

@@ -77,7 +77,7 @@ export function FlowTopBar({ title, onBack, actions, contentWidth, center }: Flo
       </div>
 
       {center && (
-        <div className="flex min-w-0 shrink justify-center" style={NO_DRAG_REGION}>
+        <div className="flex min-w-0 shrink justify-center self-stretch" style={NO_DRAG_REGION}>
           {center}
         </div>
       )}
