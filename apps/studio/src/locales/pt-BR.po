@@ -134,7 +134,7 @@ msgstr "{0, plural, one {# página substituída} other {# páginas substituídas
 
 #. placeholder {0}: Math.max(0, endPage - startPage + 1)
 #. placeholder {0}: book.pageCount
-#. placeholder {0}: list.length
+#. placeholder {0}: flow.pageCount
 msgid "{0, plural, one {# page} other {# pages}}"
 msgstr "{0, plural, one {# página} other {# páginas}}"
 
@@ -659,6 +659,12 @@ msgstr "{numPages} páginas"
 
 msgid "{numPages} pages, split into parts"
 msgstr "{numPages} páginas, divididas em partes"
+
+msgid "{page} of {pageCount}"
+msgstr "{page} de {pageCount}"
+
+msgid "{pageCount, plural, one {# page} other {# pages}}"
+msgstr "{pageCount, plural, one {# página} other {# páginas}}"
 
 msgid "{pageCount} {pageCount, plural, one {page} other {pages}}"
 msgstr "{pageCount} {pageCount, plural, one {página} other {páginas}}"
@@ -2908,6 +2914,9 @@ msgstr "Alterar nas Configurações"
 
 msgid "Change language"
 msgstr "Mudar idioma"
+
+msgid "Change PDF"
+msgstr "Trocar PDF"
 
 msgid "Change Preset"
 msgstr "Alterar predefinição"
@@ -11405,6 +11414,9 @@ msgstr "Ver o livro e escolher páginas"
 
 msgid "See the other options"
 msgstr "Ver as outras opções"
+
+msgid "See the pages"
+msgstr "Ver as páginas"
 
 msgid "Seed"
 msgstr "Semente"

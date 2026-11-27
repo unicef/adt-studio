@@ -136,7 +136,7 @@ msgstr "{0, plural, one {# faqe e zëvendësuar} other {# faqe të zëvendësuar
 
 #. placeholder {0}: Math.max(0, endPage - startPage + 1)
 #. placeholder {0}: book.pageCount
-#. placeholder {0}: list.length
+#. placeholder {0}: flow.pageCount
 msgid "{0, plural, one {# page} other {# pages}}"
 msgstr "{0, plural, one {# faqe} other {# faqe}}"
 
@@ -661,6 +661,12 @@ msgstr "{numPages} faqe"
 
 msgid "{numPages} pages, split into parts"
 msgstr "{numPages} faqe, të ndara në pjesë"
+
+msgid "{page} of {pageCount}"
+msgstr "{page} nga {pageCount}"
+
+msgid "{pageCount, plural, one {# page} other {# pages}}"
+msgstr "{pageCount, plural, one {# faqe} other {# faqe}}"
 
 msgid "{pageCount} {pageCount, plural, one {page} other {pages}}"
 msgstr "{pageCount} {pageCount, plural, one {faqe} other {faqe}}"
@@ -2910,6 +2916,9 @@ msgstr "Ndryshoje te Cilësimet"
 
 msgid "Change language"
 msgstr "Ndrysho gjuhën"
+
+msgid "Change PDF"
+msgstr "Ndryshoni PDF-in"
 
 msgid "Change Preset"
 msgstr "Ndrysho Presetin"
@@ -11407,6 +11416,9 @@ msgstr "Shihni librin dhe zgjidhni faqet"
 
 msgid "See the other options"
 msgstr "Shiko opsionet e tjera"
+
+msgid "See the pages"
+msgstr "Shihni faqet"
 
 msgid "Seed"
 msgstr "Fara"
