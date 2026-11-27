@@ -37,32 +37,32 @@
 {%- elsif node.structure == "group" or node.structure == "activity" -%}
 <div data-id="{{ node.node_id | escape }}">{% if node.children and node.children.size > 0 and depth < 8 %}{%- assign _child_depth = depth | plus: 1 -%}{% include "_render_node", nodes: node.children, depth: _child_depth %}{% endif %}</div>
 {%- elsif node.structure == "paragraph" -%}
-<p>{% if node.children and node.children.size > 0 and depth < 8 %}{% include "_render_inline", nodes: node.children %}{% endif %}</p>
+<p>{% if node.children and node.children.size > 0 and depth < 8 %}{% include "_render_inline", nodes: node.children, parent_structure: node.structure %}{% endif %}</p>
 {%- elsif node.structure == "heading" -%}
 {%- assign heading_child = node.children[0] -%}
-{%- if heading_child.role == "chapter_title" -%}<h1 class="adt-h1">{% include "_render_inline", nodes: node.children %}</h1>
-{%- elsif heading_child.role == "section_heading" -%}<h2 class="adt-h2">{% include "_render_inline", nodes: node.children %}</h2>
-{%- elsif heading_child.role == "subheading" -%}<h3 class="adt-h3">{% include "_render_inline", nodes: node.children %}</h3>
-{%- elsif heading_child.heading_level -%}<h{{ heading_child.heading_level }} class="adt-h{{ heading_child.heading_level }}">{% include "_render_inline", nodes: node.children %}</h{{ heading_child.heading_level }}>
-{%- else -%}<h2 class="adt-h2">{% include "_render_inline", nodes: node.children %}</h2>{%- endif -%}
+{%- if heading_child.role == "chapter_title" -%}<h1 class="adt-h1">{% include "_render_inline", nodes: node.children, parent_structure: node.structure %}</h1>
+{%- elsif heading_child.role == "section_heading" -%}<h2 class="adt-h2">{% include "_render_inline", nodes: node.children, parent_structure: node.structure %}</h2>
+{%- elsif heading_child.role == "subheading" -%}<h3 class="adt-h3">{% include "_render_inline", nodes: node.children, parent_structure: node.structure %}</h3>
+{%- elsif heading_child.heading_level -%}<h{{ heading_child.heading_level }} class="adt-h{{ heading_child.heading_level }}">{% include "_render_inline", nodes: node.children, parent_structure: node.structure %}</h{{ heading_child.heading_level }}>
+{%- else -%}<h2 class="adt-h2">{% include "_render_inline", nodes: node.children, parent_structure: node.structure %}</h2>{%- endif -%}
 {%- elsif node.structure == "list" -%}
 <ul class="list-disc list-inside space-y-1 pl-4">{% if node.children and node.children.size > 0 and depth < 8 %}{%- assign _child_depth = depth | plus: 1 -%}{% include "_render_node", nodes: node.children, depth: _child_depth %}{% endif %}</ul>
 {%- elsif node.structure == "list_item" -%}
-<li>{% if node.children and node.children.size > 0 and depth < 8 %}{% include "_render_inline", nodes: node.children %}{% endif %}</li>
+<li>{% if node.children and node.children.size > 0 and depth < 8 %}{% include "_render_inline", nodes: node.children, parent_structure: node.structure %}{% endif %}</li>
 {%- elsif node.structure == "activity_option" -%}
-<li>{% if node.children and node.children.size > 0 and depth < 8 %}{% include "_render_inline", nodes: node.children %}{% endif %}</li>
+<li>{% if node.children and node.children.size > 0 and depth < 8 %}{% include "_render_inline", nodes: node.children, parent_structure: node.structure %}{% endif %}</li>
 {%- elsif node.structure == "table" -%}
 <table class="w-full border-collapse"><tbody>{% if node.children and node.children.size > 0 and depth < 8 %}{%- assign _child_depth = depth | plus: 1 -%}{% include "_render_node", nodes: node.children, depth: _child_depth %}{% endif %}</tbody></table>
 {%- elsif node.structure == "table_row" -%}
 <tr>{% if node.children and node.children.size > 0 and depth < 8 %}{%- assign _child_depth = depth | plus: 1 -%}{% include "_render_node", nodes: node.children, depth: _child_depth %}{% endif %}</tr>
 {%- elsif node.structure == "table_cell" -%}
-<td class="border border-gray-300 px-3 py-2">{% if node.children and node.children.size > 0 and depth < 8 %}{% include "_render_inline", nodes: node.children %}{% endif %}</td>
+<td class="border border-gray-300 px-3 py-2">{% if node.children and node.children.size > 0 and depth < 8 %}{% include "_render_inline", nodes: node.children, parent_structure: node.structure %}{% endif %}</td>
 {%- elsif node.structure == "sidebar" -%}
 <aside class="border-l-4 border-gray-300 pl-4 my-4">{% if node.children and node.children.size > 0 and depth < 8 %}{%- assign _child_depth = depth | plus: 1 -%}{% include "_render_node", nodes: node.children, depth: _child_depth %}{% endif %}</aside>
 {%- elsif node.structure == "panel" -%}
 <div class="border rounded p-4 my-4">{% if node.children and node.children.size > 0 and depth < 8 %}{%- assign _child_depth = depth | plus: 1 -%}{% include "_render_node", nodes: node.children, depth: _child_depth %}{% endif %}</div>
 {%- elsif node.structure == "preformatted" -%}
-<pre class="whitespace-pre-wrap">{% if node.children and node.children.size > 0 and depth < 8 %}{% include "_render_inline", nodes: node.children %}{% endif %}</pre>
+<pre class="whitespace-pre-wrap">{% if node.children and node.children.size > 0 and depth < 8 %}{% include "_render_inline", nodes: node.children, parent_structure: node.structure %}{% endif %}</pre>
 {%- else -%}
 <div>{% if node.children and node.children.size > 0 and depth < 8 %}{%- assign _child_depth = depth | plus: 1 -%}{% include "_render_node", nodes: node.children, depth: _child_depth %}{% endif %}</div>
 {%- endif -%}
