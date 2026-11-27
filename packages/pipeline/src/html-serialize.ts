@@ -30,7 +30,7 @@ function decodeTextareaText(roots: AnyNode): Array<[TextLike, string]> {
     for (const child of textarea.children as unknown as TextLike[]) {
       if (child.type !== "text" || !child.data.includes("&")) continue
       const decoded = DomUtils.textContent(
-        parseDocument(`<span>${child.data}</span>`),
+        parseDocument(`<span>${child.data.replace(/</g, "&lt;")}</span>`),
       )
       if (decoded === child.data) continue
       changed.push([child, child.data])
