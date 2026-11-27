@@ -121,6 +121,8 @@ export const SetupReadings = z.object({
       language: z.string().nullable().optional(),
     })
     .nullable(),
+  /** Why a reading failed, when one did (its result above is then null). Optional: older runs don't have it. */
+  errors: z.object({ labels: z.string().optional(), questions: z.string().optional() }).optional(),
 })
 export type SetupReadings = z.infer<typeof SetupReadings>
 

@@ -227,30 +227,16 @@ export async function profileBookAsync(
   buffer: Uint8Array,
   opts: { range?: { start: number; end: number }; signal?: AbortSignal; pagesPerTurn?: number } = {},
 ): Promise<BookProfile> {
-  const steps = profileSteps(buffer, opts.range)
-  const every = opts.pagesPerTurn ?? 2
-  try {
-    for (let n = 1; ; n++) {
-      const r = steps.next()
-      if (r.done) return r.value
-      if (n % every === 0) {
-        await new Promise<void>((resolve) => setImmediate(resolve))
-        opts.signal?.throwIfAborted()
-      }
-    }
-  } finally {
-    // Closes the document when it stopped early (a no-op once it finished).
-    steps.return(undefined as never)
-  }
+  return runAsync(profileSteps(buffer, opts.range), opts.pagesPerTurn ?? 2, opts.signal)
 }
 
-/** Renders 1-indexed pages with the longest side about `size` px. JPEG at quality 70 by default (5x smaller than PNG on picture books). */
-export function renderBookPages(
+/** The rendering, one page per step (see profileSteps). */
+function* renderSteps(
   buffer: Uint8Array,
   pages: number[],
-  size = 512,
-  format: "png" | "jpeg" = "jpeg",
-): Map<number, Uint8Array> {
+  size: number,
+  format: "png" | "jpeg",
+): Generator<void, Map<number, Uint8Array>, void> {
   const doc = mupdf.Document.openDocument(buffer, "application/pdf")
   const out = new Map<number, Uint8Array>()
   try {
@@ -265,9 +251,51 @@ export function renderBookPages(
       } finally {
         page.destroy()
       }
+      yield
     }
   } finally {
     doc.destroy()
   }
   return out
+}
+
+/** Renders 1-indexed pages with the longest side about `size` px. JPEG at quality 70 by default (5x smaller than PNG on picture books). */
+export function renderBookPages(
+  buffer: Uint8Array,
+  pages: number[],
+  size = 512,
+  format: "png" | "jpeg" = "jpeg",
+): Map<number, Uint8Array> {
+  const steps = renderSteps(buffer, pages, size, format)
+  for (;;) {
+    const r = steps.next()
+    if (r.done) return r.value
+  }
+}
+
+/** renderBookPages for a server: one page per turn of the event loop, and it stops when `signal` aborts. */
+export async function renderBookPagesAsync(
+  buffer: Uint8Array,
+  pages: number[],
+  opts: { size?: number; format?: "png" | "jpeg"; signal?: AbortSignal } = {},
+): Promise<Map<number, Uint8Array>> {
+  return runAsync(renderSteps(buffer, pages, opts.size ?? 512, opts.format ?? "jpeg"), 1, opts.signal)
+}
+
+/** Runs a step generator, handing the event loop back every `every` steps and stopping on abort. */
+async function runAsync<T>(steps: Generator<void, T, void>, every: number, signal?: AbortSignal): Promise<T> {
+  try {
+    signal?.throwIfAborted()
+    for (let n = 1; ; n++) {
+      const r = steps.next()
+      if (r.done) return r.value
+      if (n % every === 0) {
+        await new Promise<void>((resolve) => setImmediate(resolve))
+        signal?.throwIfAborted()
+      }
+    }
+  } finally {
+    // Closes the document when it stopped early (a no-op once it finished).
+    steps.return(undefined as never)
+  }
 }

@@ -119,7 +119,6 @@ export function breakTies(labels: Pick<PageLabelsReading, "facts" | "ties">, que
   return facts
 }
 
-/** The parsed answers of both readings, kept with the recommendation (maximum transparency). */
 /**
  * The book's language: what the questions reading saw on the pages (works on scans too), else the
  * stop-word guess from the PDF's text, else the PDF's own language tag (often left at a default).
@@ -132,8 +131,10 @@ export function bookLanguage(fromAi: string | null, measured: { pdfTag: string |
   return { code: null, source: null }
 }
 
-function readingsRecord(labels: PageLabelsReading | null, questions: QuestionsReading | null): SetupReadings {
+/** The parsed answers of both readings, and why one failed, kept with the recommendation (maximum transparency). */
+function readingsRecord(labels: PageLabelsReading | null, questions: QuestionsReading | null, errors: SetupReadings["errors"]): SetupReadings {
   return {
+    ...(errors ? { errors } : {}),
     labels: labels
       ? {
           pages: labels.labels.map((l) => ({ page: l.page, type: l.type, textPlacement: l.textPlacement, meaningfulFigure: l.meaningfulFigure })),
@@ -230,6 +231,8 @@ export async function recommendSetup(opts: RecommendSetupOptions): Promise<Setup
   ])
   const labels: PageLabelsReading | null = labelsResult.status === "fulfilled" ? labelsResult.value : null
   const questions: QuestionsReading | null = questionsResult.status === "fulfilled" ? questionsResult.value : null
+  const why = (r: PromiseSettledResult<unknown>) => (r.status === "rejected" ? (r.reason instanceof Error ? r.reason.message : String(r.reason)) : undefined)
+  const errors = labels && questions ? undefined : { labels: why(labelsResult), questions: why(questionsResult) }
   if (!labels && !questions) {
     throw labelsResult.status === "rejected" ? labelsResult.reason : new Error("Both readings failed")
   }
@@ -284,7 +287,7 @@ export async function recommendSetup(opts: RecommendSetupOptions): Promise<Setup
     lockedSettings: LOCKED_SETTINGS,
     pageRange: labels?.range ?? null,
     pageLabels: pageLabels.map((l) => ({ page: l.page, type: l.type })),
-    readings: readingsRecord(labels, questions),
+    readings: readingsRecord(labels, questions, errors),
     secondOpinion: labels !== null && questions !== null,
     timings: {
       profileMs: profile.ms,

@@ -21,7 +21,8 @@ import type { BookProfile } from "@adt/pdf"
 import type { MeasuredFacts } from "./facts.js"
 import { BOOK_FACT_IDS, BOOK_FACT_OPTIONS, type BookFactId, type BookFacts } from "./rules.js"
 
-export type RenderPages = (pages: number[], size: number) => Map<number, Uint8Array>
+/** Renders 1-indexed pages at about `size` px; may be async (the server hands the event loop back between pages). */
+export type RenderPages = (pages: number[], size: number) => Map<number, Uint8Array> | Promise<Map<number, Uint8Array>>
 
 const toBase64 = (bytes: Uint8Array) => Buffer.from(bytes).toString("base64")
 const range = (a: number, b: number) => Array.from({ length: Math.max(0, b - a + 1) }, (_, i) => a + i)
@@ -185,7 +186,7 @@ export async function readQuestions(opts: {
 }): Promise<QuestionsReading> {
   const started = performance.now()
   const pages = questionPages(opts.profile, opts.facts)
-  const images = opts.renderPages(pages, 1000)
+  const images = await opts.renderPages(pages, 1000)
   const questions = BOOK_FACT_IDS.map(
     (id) =>
       `${id}: ${PLAIN_QUESTIONS[id].ask}\n${Object.entries(PLAIN_QUESTIONS[id].options)
@@ -423,7 +424,7 @@ export async function readPageLabels(opts: {
   // each image after its "Page n:" label.
   const texts = pages.map((n) => `Page ${n}: Text: ${byPage.get(n)?.text.slice(0, 300) || "(no text)"}`)
   const text = [intro, ...texts].join("\n\n")
-  const images = opts.renderPages(pages, 512)
+  const images = await opts.renderPages(pages, 512)
   const content: ContentPart[] = [{ type: "text", text }]
   let uploadBytes = text.length
   for (const n of pages) {

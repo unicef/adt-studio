@@ -4,6 +4,7 @@
  * explain it in plain words (and translate it). Ported from
  * experiments/setup-recommender/rules.ts.
  */
+import { SetupSettingId, type SetupSettings } from "@adt/types"
 import type { MeasuredFacts } from "./facts.js"
 
 /** Facts about the book's content that the AI readings answer. */
@@ -22,23 +23,10 @@ export const BOOK_FACT_OPTIONS: { [K in BookFactId]: BookFacts[K][] } = {
 }
 export const BOOK_FACT_IDS = Object.keys(BOOK_FACT_OPTIONS) as BookFactId[]
 
-export interface RecommendedSettings {
-  preset: "textbook" | "storybook" | "reference"
-  renderStrategy: "llm" | "llm-overlay" | "single_column" | "two_column_story" | "fixed_layout"
-  pageGrouping: "single" | "spread"
-  sectioningMode: "page" | "dynamic"
-  activitiesGenerator: boolean
-  figureExtraction: "off" | "auto"
-}
-export type SettingId = keyof RecommendedSettings
-export const SETTING_IDS: SettingId[] = [
-  "preset",
-  "renderStrategy",
-  "pageGrouping",
-  "sectioningMode",
-  "activitiesGenerator",
-  "figureExtraction",
-]
+/** The settings it picks: the wire schema's types (packages/types), so the two can't drift. */
+export type RecommendedSettings = SetupSettings
+export type SettingId = SetupSettingId
+export const SETTING_IDS: SettingId[] = [...SetupSettingId.options]
 /** Settings fixed when the book is created: Extract can't re-run once the book has pages. */
 export const LOCKED_SETTINGS: SettingId[] = ["pageGrouping", "figureExtraction"]
 

@@ -280,8 +280,10 @@ export function createBookRoutes(
       try {
         const attached = attachSetupRecommendation(setupRecommendationId, path.join(path.resolve(booksDir), book.label), {
           config: configOverrides,
+          pdf: pdfBuffer,
         })
-        if (!attached) setupRecommendationWarning = "The setup recommendation expired, so it was not saved with the book."
+        if (attached === "expired") setupRecommendationWarning = "The setup recommendation expired, so it was not saved with the book."
+        if (attached === "other-pdf") setupRecommendationWarning = "The setup recommendation was made for a different PDF, so it was not saved with the book."
       } catch (err) {
         setupRecommendationWarning = `The setup recommendation was not saved with the book: ${err instanceof Error ? err.message : String(err)}`
       }

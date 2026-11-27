@@ -57,6 +57,9 @@ const fixture = JSON.parse(
 
 function measuredFor(r: FixtureRun): MeasuredFacts {
   const book = fixture.books[r.book]
+  // The saved runs keep only the text layer's kind, not the scanned-page count, so a "mixed" book
+  // would replay as all scanned (hasTextLayer false). No saved run is "mixed", so nothing is off
+  // today; a mixed book in the fixture would need its real count saved with the run.
   const scanned = r.measured.textLayer === "digital" ? 0 : book.exerciseCues.interiorPages
   return {
     pageStorage: { value: r.measured.pageStorage, via: r.measured.via, evidence: [], seams: 0, pairs: 0, wideShare: 0 },
@@ -156,7 +159,7 @@ describe("setup recommender regression table (saved runs x the user's right sett
     expect(s.right).toBe(467)
   })
 
-  it("asks only about facts whose second opinion changes a setting, and every fixable miss is asked", () => {
+  it("asks only about facts whose second opinion changes a setting, and counts the misses nobody is asked about (none in r2)", () => {
     for (const round of ["r1", "r2"] as const) {
       let questions = 0
       let silentMisses = 0
