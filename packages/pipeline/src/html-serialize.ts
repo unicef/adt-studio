@@ -4,21 +4,45 @@ type SerializeOptions = Parameters<typeof DomUtils.getOuterHTML>[1]
 type AnyNode = Parameters<typeof DomUtils.getOuterHTML>[0]
 type TextLike = { type: string; data: string }
 
-/** Tokens htmlparser2 writes without entity encoding. */
-const TOKEN =
-  /<!--[\s\S]*?-->|<[!?][^>]*>|(<(script|style|xmp|iframe|noembed|noframes|noscript)(?=[\s/>])[^>]*(?<!\/)>)([\s\S]*?)(<\/\2\s*>)|(<plaintext(?=[\s/>])[^>]*(?<!\/)>)([\s\S]*)$|<[^>]*>/gi
+/** Elements whose contents dom-serializer leaves unencoded. */
+const RAW_TEXT_ELEMENTS = new Set([
+  "script", "style", "xmp", "iframe", "noembed", "noframes", "noscript", "plaintext",
+])
+const HTML_TOKEN = /<!--[\s\S]*?-->|<![^>]*>|<\?[^>]*>|<\/?([A-Za-z][\w:-]*)\b[^>]*>/gi
+
+function rawTextEnd(html: string, start: number, name: string): number {
+  if (name === "plaintext") return html.length
+  const tag = new RegExp(`<\\/?${name}\\b[^>]*>`, "gi")
+  tag.lastIndex = start
+  let depth = 1
+  for (let match; (match = tag.exec(html)) !== null;) {
+    if (match[0].startsWith("</")) {
+      if (--depth === 0) return tag.lastIndex
+    } else if (!/\/\s*>$/.test(match[0])) {
+      depth++
+    }
+  }
+  return html.length
+}
 
 function mapEncodedParts(html: string, fn: (part: string) => string): string {
   const attributeValues = (tag: string) => tag.replace(/="([^"]*)"/g, (_m, value: string) => `="${fn(value)}"`)
   let out = ""
   let last = 0
-  for (const m of html.matchAll(TOKEN)) {
+  for (let m; (m = HTML_TOKEN.exec(html)) !== null;) {
     out += fn(html.slice(last, m.index))
-    if (m[1] !== undefined) out += attributeValues(m[1]) + m[3] + m[4]
-    else if (m[5] !== undefined) out += attributeValues(m[5]) + m[6]
-    else if (m[0].startsWith("<!") || m[0].startsWith("<?")) out += m[0]
-    else out += attributeValues(m[0])
-    last = m.index + m[0].length
+    const token = m[0]
+    const name = m[1]?.toLowerCase()
+    const isOpeningTag = name !== undefined && !token.startsWith("</")
+    if (isOpeningTag && RAW_TEXT_ELEMENTS.has(name) && !/\/\s*>$/.test(token)) {
+      out += attributeValues(token)
+      last = rawTextEnd(html, HTML_TOKEN.lastIndex, name)
+      out += html.slice(HTML_TOKEN.lastIndex, last)
+      HTML_TOKEN.lastIndex = last
+    } else {
+      out += isOpeningTag ? attributeValues(token) : token
+      last = HTML_TOKEN.lastIndex
+    }
   }
   return out + fn(html.slice(last))
 }

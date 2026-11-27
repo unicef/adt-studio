@@ -80,6 +80,11 @@ describe("encodeLegacyEntities (#907)", () => {
     expect(encodeLegacyEntities(serializeHtml(doc))).toBe(DomUtils.getOuterHTML(doc))
   })
 
+  it("keeps nested raw-text content in its original encoding", () => {
+    const doc = parseDocument("<noscript><noscript>a</noscript>ñ</noscript>")
+    expect(encodeLegacyEntities(serializeHtml(doc))).toBe(DomUtils.getOuterHTML(doc))
+  })
+
   it("encodes every non-ASCII character, including literal invisible ones, as the old serializer did", () => {
     expect(encodeLegacyEntities('<p title="ó ">🫨‍ a b $</p>')).toBe(
       '<p title="&#xf3;&#xa0;">&#x1fae8;&#x200d; a&#xa0;b $</p>',
