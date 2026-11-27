@@ -5510,6 +5510,9 @@ msgstr "Frëngjisht"
 msgid "Freshness is unknown. Existing content has been kept."
 msgstr "Nuk dihet nëse është i përditësuar. Përmbajtja ekzistuese është ruajtur."
 
+msgid "From"
+msgstr "Nga"
+
 msgid "From a single PDF, every edition gains the ways different readers need to reach it."
 msgstr "Nga një PDF i vetëm, çdo botim fiton mënyrat që lexuesit e ndryshëm kanë nevojë për ta arritur atë."
 
@@ -13953,6 +13956,9 @@ msgstr "Titujt e gjeneruar nga modeli nga përmbajtja e seksionit."
 
 msgid "Titles taken verbatim from typed section headings."
 msgstr "Titujt marrë fjalë për fjalë nga titujt e seksioneve të shtypura."
+
+msgid "To"
+msgstr "Deri"
 
 msgid "To fix"
 msgstr "Për t’u rregulluar"

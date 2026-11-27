@@ -5508,6 +5508,9 @@ msgstr "Francés"
 msgid "Freshness is unknown. Existing content has been kept."
 msgstr "No se sabe si está actualizado. Se ha conservado el contenido existente."
 
+msgid "From"
+msgstr "Desde"
+
 msgid "From a single PDF, every edition gains the ways different readers need to reach it."
 msgstr "Desde un solo PDF, cada edición obtiene las formas que diferentes lectores necesitan para acceder a ella."
 
@@ -13951,6 +13954,9 @@ msgstr "Títulos generados por el modelo a partir del contenido de la sección."
 
 msgid "Titles taken verbatim from typed section headings."
 msgstr "Títulos tomados textualmente de los encabezados de sección escritos."
+
+msgid "To"
+msgstr "Hasta"
 
 msgid "To fix"
 msgstr "Por corregir"
