@@ -185,8 +185,8 @@ function profilePage(doc: MupdfDocument, index: number): { profile: BookPageProf
   }
 }
 
-/** Profiles every page (or a 1-indexed inclusive range). */
-export function profileBook(buffer: Uint8Array, range?: { start: number; end: number }): BookProfile {
+/** The profiling, one page per step, so the async version can hand the event loop back between pages. */
+function* profileSteps(buffer: Uint8Array, range?: { start: number; end: number }): Generator<void, BookProfile, void> {
   const started = performance.now()
   const doc = mupdf.Document.openDocument(buffer, "application/pdf")
   try {
@@ -199,6 +199,7 @@ export function profileBook(buffer: Uint8Array, range?: { start: number; end: nu
       const r = profilePage(doc, i)
       pages.push(r.profile)
       edges.push(r.edges)
+      yield
     }
     const pdf = doc.asPDF()
     const language = pdf ? pdf.getLanguage() || null : null
@@ -206,6 +207,40 @@ export function profileBook(buffer: Uint8Array, range?: { start: number; end: nu
     return { pageCount, language, producer, pages, edges, ms: performance.now() - started }
   } finally {
     doc.destroy()
+  }
+}
+
+/** Profiles every page (or a 1-indexed inclusive range). */
+export function profileBook(buffer: Uint8Array, range?: { start: number; end: number }): BookProfile {
+  const steps = profileSteps(buffer, range)
+  for (;;) {
+    const r = steps.next()
+    if (r.done) return r.value
+  }
+}
+
+/**
+ * profileBook for a server: it hands the event loop back every few pages (so one long book doesn't
+ * freeze every other request, or the desktop app's main process) and stops when `signal` aborts.
+ */
+export async function profileBookAsync(
+  buffer: Uint8Array,
+  opts: { range?: { start: number; end: number }; signal?: AbortSignal; pagesPerTurn?: number } = {},
+): Promise<BookProfile> {
+  const steps = profileSteps(buffer, opts.range)
+  const every = opts.pagesPerTurn ?? 2
+  try {
+    for (let n = 1; ; n++) {
+      const r = steps.next()
+      if (r.done) return r.value
+      if (n % every === 0) {
+        await new Promise<void>((resolve) => setImmediate(resolve))
+        opts.signal?.throwIfAborted()
+      }
+    }
+  } finally {
+    // Closes the document when it stopped early (a no-op once it finished).
+    steps.return(undefined as never)
   }
 }
 

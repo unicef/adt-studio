@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest"
 import type { BookProfile } from "@adt/pdf"
 import { measureFacts, type MeasuredFacts } from "../setup-recommender/facts.js"
 import { decide, factMatters, type BookFacts } from "../setup-recommender/rules.js"
-import { bookLanguage, breakTies, factQuestions } from "../setup-recommender/recommend.js"
-import { countLabels, languageCode, PLACEMENTS, PLAIN_QUESTIONS, samplePlan, suggestRange, type PageLabel } from "../setup-recommender/readings.js"
+import { bookLanguage, breakTies, factEvidence, factQuestions } from "../setup-recommender/recommend.js"
+import { countLabels, languageCode, PLACEMENTS, PLAIN_QUESTIONS, readPageLabels, samplePlan, suggestRange, type PageLabel } from "../setup-recommender/readings.js"
+import type { LLMModel } from "@adt/llm"
 
 const measured = (over: Partial<MeasuredFacts> = {}): MeasuredFacts => ({
   pageStorage: { value: "single-pages", via: null, evidence: [], seams: 0, pairs: 5, wideShare: 0 },
@@ -116,6 +117,40 @@ describe("ask policy", () => {
     expect(factMatters(measured(), proposal, "exercises")).toBe(false)
     expect(q.find((f) => f.id === "exercises")).toMatchObject({ matters: true, askReason: "readings-disagree" })
     expect(q.find((f) => f.id === "genre")?.askReason).toBe("readings-disagree")
+  })
+
+  it("asks every fact that matters when only one reading came back", () => {
+    const proposal: BookFacts = { genre: "textbook", exercises: "some", composition: "text-mostly", diagrams: "none" }
+    const one = factQuestions(measured(), proposal, null, false, true)
+    for (const f of one) expect(f.askReason).toBe(f.matters ? "one-reading" : null)
+    expect(one.some((f) => f.askReason === "one-reading")).toBe(true)
+    // Replaying a saved run without a second reading (oneReading not set) keeps the old policy.
+    expect(factQuestions(measured(), proposal, null, false).every((f) => f.askReason === null)).toBe(true)
+  })
+})
+
+describe("page labels reading", () => {
+  it("keeps one label per page, and only pages that were sent", async () => {
+    const profile = { pageCount: 4, pages: [1, 2, 3, 4].map((page) => ({ page, text: `page ${page}` })) } as unknown as BookProfile
+    const story = (page: number) => ({ page, type: "story", textPlacement: "beside-art", meaningfulFigure: false })
+    const model = {
+      generateObject: async () => ({
+        object: { pages: [story(1), story(2), { ...story(2), type: "exercise" }, story(3), story(4), story(9)], bookGenre: "story" },
+        usage: { inputTokens: 1, outputTokens: 1 },
+      }),
+    } as unknown as LLMModel
+    const reading = await readPageLabels({ model, profile, renderPages: () => new Map() })
+    expect(reading.labels.map((l) => [l.page, l.type])).toEqual([[1, "story"], [2, "story"], [3, "story"], [4, "story"]])
+    expect(reading.counts.body).toBe(4)
+  })
+})
+
+describe("evidence", () => {
+  it("shows measured diagram pages only when drawn diagrams were measured", () => {
+    const off = measured({ vectorDiagrams: { value: false, pagesWithDiagrams: 1, evidence: [7] } })
+    expect(factEvidence("diagrams", "some", [], null, off)).not.toContain(7)
+    const on = measured({ vectorDiagrams: { value: true, pagesWithDiagrams: 6, evidence: [7] } })
+    expect(factEvidence("diagrams", "some", [], null, on)).toContain(7)
   })
 })
 

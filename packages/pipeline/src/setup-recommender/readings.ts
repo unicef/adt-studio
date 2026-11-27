@@ -441,7 +441,9 @@ export async function readPageLabels(opts: {
     signal: opts.signal,
     log: { taskType: "setup-recommender", promptName: "setup-recommender-page-labels" },
   })
-  const labels = res.object.pages.filter((l) => pages.includes(l.page))
+  // One label per page (the first), only for pages that were sent: a repeated page would count twice.
+  const seen = new Set<number>()
+  const labels = res.object.pages.filter((l) => pages.includes(l.page) && !seen.has(l.page) && (seen.add(l.page), true))
   const counted = countLabels(labels, res.object.bookGenre)
   return {
     plan,

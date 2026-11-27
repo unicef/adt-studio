@@ -383,7 +383,7 @@ function AskOrNot({ rec }: { rec: SetupRecommendation }) {
               {f.affectsLocked && <div className="text-[12px] text-muted-foreground">Touches a setting fixed at import.</div>}
             </td>
             <td>{f.secondOpinion === null ? "—" : f.secondOpinion !== f.value ? "yes" : "no"}</td>
-            <td>{f.ask ? <Tag tone="warn">{f.askReason === "few-body-pages" ? "asked: few body pages" : "asked: readings disagree"}</Tag> : <span className="text-muted-foreground">no</span>}</td>
+            <td>{f.ask ? <Tag tone="warn">{f.askReason === "few-body-pages" ? "asked: few body pages" : f.askReason === "one-reading" ? "asked: one reading only" : "asked: readings disagree"}</Tag> : <span className="text-muted-foreground">no</span>}</td>
           </tr>
         ))}
       </Table>

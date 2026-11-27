@@ -56,7 +56,7 @@ export const SetupFact = z.object({
   affectsLocked: z.boolean(),
   /** Put to the user, and why. */
   ask: z.boolean(),
-  askReason: z.enum(["readings-disagree", "few-body-pages"]).nullable(),
+  askReason: z.enum(["readings-disagree", "few-body-pages", "one-reading"]).nullable(),
 })
 export type SetupFact = z.infer<typeof SetupFact>
 

@@ -6092,6 +6092,9 @@ msgstr "HTML5 + EPUB"
 msgid "I can't reach your AI provider. You seem to be offline."
 msgstr "Nuk po lidhem dot me ofruesin tuaj të AI. Duket se jeni offline."
 
+msgid "I could read the book only once this time, so I'd rather ask you."
+msgstr "Këtë herë munda ta lexoj librin vetëm një herë, ndaj më mirë po ju pyes."
+
 msgid "I couldn't tell from the PDF. It's found when the pages are read."
 msgstr "Nuk e dallova dot nga PDF-ja. Gjendet kur lexohen faqet."
 

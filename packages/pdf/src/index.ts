@@ -13,5 +13,5 @@ export type {
 export { renderSvgToPng } from "./svg-render.js";
 export { getPngMetadata, decodePng, cropPng, samplePageEdges } from "./png-utils.js";
 export type { PngMetadata } from "./png-utils.js";
-export { profileBook, renderBookPages } from "./book-profile.js";
+export { profileBook, profileBookAsync, renderBookPages } from "./book-profile.js";
 export type { BookProfile, BookPageProfile, BookPageEdges } from "./book-profile.js";

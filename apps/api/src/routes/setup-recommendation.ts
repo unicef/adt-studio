@@ -15,7 +15,7 @@ import { randomUUID } from "node:crypto"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { createLLMModel, formatProviderError, type LlmLogEntry } from "@adt/llm"
-import { profileBook, renderBookPages } from "@adt/pdf"
+import { profileBookAsync, renderBookPages } from "@adt/pdf"
 import { loadConfig, recommendSetup } from "@adt/pipeline"
 import type { SetupRecommendation } from "@adt/types"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
@@ -78,8 +78,10 @@ export function createSetupRecommendationRoutes(booksDir: string, configPath?: s
 
     let profile
     try {
-      profile = profileBook(buffer)
+      profile = await profileBookAsync(buffer, { signal: c.req.raw.signal })
     } catch (err) {
+      // The client went away (a new PDF, or the page closed): nothing to answer.
+      if (c.req.raw.signal.aborted) throw err
       throw new HTTPException(400, { message: `Could not read the PDF: ${err instanceof Error ? err.message : String(err)}` })
     }
 
@@ -96,6 +98,7 @@ export function createSetupRecommendationRoutes(booksDir: string, configPath?: s
       held.set(recommendation.id, { recommendation, llmLog, createdAt: Date.now() })
       return c.json(recommendation)
     } catch (err) {
+      if (c.req.raw.signal.aborted) throw err
       throw new HTTPException(502, { message: formatProviderError(err) })
     }
   })

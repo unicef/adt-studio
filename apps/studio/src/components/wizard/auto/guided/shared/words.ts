@@ -57,6 +57,7 @@ export const KIND_SAYS: Record<string, MessageDescriptor> = {
 export const ASK_WHY: Record<string, MessageDescriptor> = {
   "readings-disagree": msg`My two readings disagree on this one, so I'd rather ask you.`,
   "few-body-pages": msg`The book has only a few pages to go on, so I'd rather ask you.`,
+  "one-reading": msg`I could read the book only once this time, so I'd rather ask you.`,
 }
 
 /** The questions, short enough to read at a glance (the engine's long wording is behind "Why?"). */

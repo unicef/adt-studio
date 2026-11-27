@@ -6090,6 +6090,9 @@ msgstr "HTML5 + EPUB"
 msgid "I can't reach your AI provider. You seem to be offline."
 msgstr "No puedo conectarme con tu proveedor de IA. Parece que no tienes conexión."
 
+msgid "I could read the book only once this time, so I'd rather ask you."
+msgstr "Esta vez solo pude leer el libro una vez, así que prefiero preguntarte."
+
 msgid "I couldn't tell from the PDF. It's found when the pages are read."
 msgstr "No pude saberlo por el PDF. Se detecta al leer las páginas."
 

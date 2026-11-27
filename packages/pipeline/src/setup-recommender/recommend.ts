@@ -41,7 +41,7 @@ const PLACEMENT_FOR: Record<BookFacts["composition"], PageLabel["textPlacement"]
   "text-mostly": "text-only",
 }
 
-function factEvidence(
+export function factEvidence(
   fact: BookFactId,
   value: string,
   labels: PageLabel[],
@@ -63,7 +63,7 @@ function factEvidence(
           .filter((l) => l.textPlacement === PLACEMENT_FOR[value as BookFacts["composition"]] && l.type !== "cover")
           .map((l) => l.page)
       case "diagrams":
-        return value === "none" ? [] : [...labels.filter((l) => l.meaningfulFigure).map((l) => l.page), ...measured.vectorDiagrams.evidence]
+        return value === "none" ? [] : [...labels.filter((l) => l.meaningfulFigure).map((l) => l.page), ...(measured.vectorDiagrams.value ? measured.vectorDiagrams.evidence : [])]
     }
   })()
   const fromQuestions = questions && questions.answers[fact].answer === value ? questions.answers[fact].evidencePages : []
@@ -164,7 +164,7 @@ export interface FactQuestion {
   value: string
   matters: boolean
   affectsLocked: boolean
-  askReason: "readings-disagree" | "few-body-pages" | null
+  askReason: "readings-disagree" | "few-body-pages" | "one-reading" | null
 }
 
 /**
@@ -173,13 +173,15 @@ export interface FactQuestion {
  * proposal or under the second reading (a fact can matter only under the
  * other reading's kind of book). It is asked when the readings disagree AND
  * the second opinion leads to different settings (under either reading), or
- * when the labels saw too few pages of the book itself.
+ * when the labels saw too few pages of the book itself, or when only one reading came back (the
+ * other failed), so nothing checked it: then every fact that matters is asked.
  */
 export function factQuestions(
   measured: MeasuredFacts,
   proposal: BookFacts,
   second: BookFacts | null,
   fewBodyPages: boolean,
+  oneReading = false,
 ): FactQuestion[] {
   const bases = second ? [proposal, second] : [proposal]
   return BOOK_FACT_IDS.map((id) => {
@@ -193,7 +195,15 @@ export function factQuestions(
       second !== null &&
       other !== value &&
       (settingsChangedBy(measured, proposal, id, other!).length > 0 || settingsChangedBy(measured, second, id, value).length > 0)
-    const askReason = !matters ? null : disagree ? ("readings-disagree" as const) : fewBodyPages ? ("few-body-pages" as const) : null
+    const askReason = !matters
+      ? null
+      : disagree
+        ? ("readings-disagree" as const)
+        : fewBodyPages
+          ? ("few-body-pages" as const)
+          : oneReading
+            ? ("one-reading" as const)
+            : null
     return { id, value, matters, affectsLocked, askReason }
   })
 }
@@ -229,7 +239,7 @@ export async function recommendSetup(opts: RecommendSetupOptions): Promise<Setup
   const fewBodyPages = labels ? labels.counts.body < 2 : false
   const pageLabels = labels?.labels ?? []
 
-  const asks = factQuestions(measured, proposal, labels && questions ? questions.facts : null, fewBodyPages)
+  const asks = factQuestions(measured, proposal, labels && questions ? questions.facts : null, fewBodyPages, !(labels && questions))
   const facts: SetupFact[] = asks.map((a) => ({
     id: a.id,
     value: a.value,
