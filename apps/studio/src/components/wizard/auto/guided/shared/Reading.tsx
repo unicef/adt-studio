@@ -31,9 +31,16 @@ export function ReadingCard({ file, pageCount }: { file: File | null; pageCount:
   return (
     <div className="gd-reading flex w-full flex-col items-center gap-5 rounded-[22px] border-2 border-[var(--gd-step)] bg-[var(--lc-bubble)] px-6 py-10 text-center lg:py-[clamp(40px,calc(var(--gd-vh,1vh)*7),84px)]" style={{ viewTransitionName: "gd-drop" }}>
       {file && pageCount > 0 ? (
-        <span className="flex items-center">
-          {/* The wizard points its wand at the pages: its scan beam ends over the first one. */}
-          <img src="/add-book/wizard-scan.png" alt="" aria-hidden draggable={false} className="relative z-10 -mr-14 h-[150px] w-auto shrink-0 object-contain" />
+        <span className="flex max-w-full items-center">
+          {/* The wizard, cropped at its wand tip so the picture's own beam never reaches the pages. */}
+          <span aria-hidden className="relative z-10 h-[88px] w-[99px] shrink-0 overflow-hidden [mask-image:linear-gradient(to_right,#000_90%,transparent)] sm:h-[136px] sm:w-[153px]">
+            <img src="/add-book/wizard-scan.png" alt="" draggable={false} className="absolute left-0 top-0 h-full w-auto max-w-none" />
+          </span>
+          {/* The beam is drawn here: it widens from the wand to the pages' height and fades out before the first page. */}
+          <span aria-hidden className="lcl-beam relative -ml-1.5 mr-1.5 h-[76px] w-[26px] shrink-0 sm:mr-2 sm:h-[112px] sm:w-[64px]">
+            <span className="lcl-beam-cone" />
+            {[0, 1, 2].map((i) => <span key={i} className="lcl-beam-spark" style={{ animationDelay: `${i * 0.6}s`, top: `${44 + (i - 1) * 9}%` }} />)}
+          </span>
           <ScanPages file={file} pageCount={pageCount} />
         </span>
       ) : <span className="grid size-16 place-items-center rounded-full bg-[var(--lc-accent-soft)] text-[var(--lc-accent-text)]"><FileText className="size-7" /></span>}
