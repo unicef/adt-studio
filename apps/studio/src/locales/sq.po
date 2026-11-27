@@ -946,6 +946,9 @@ msgstr "<0>Vendimi mbetet te ju.</0> E lexoj librin tuaj dy herë, duke e parë 
 msgid "<0>Your book is in {name}.</0> I'll keep it in {name}."
 msgstr "<0>Libri juaj është në {name}.</0> Do ta mbaj në {name}."
 
+msgid "<0>Your book is in {name}.</0> I'll make it in {chosen}, without translating it."
+msgstr "<0>Libri juaj është në {name}.</0> Do ta bëj në {chosen}, pa e përkthyer."
+
 msgid "="
 msgstr "="
 
@@ -5476,6 +5479,9 @@ msgstr "Nga faqja"
 msgid "From reference image..."
 msgstr "Nga imazhi referues..."
 
+msgid "from the pages"
+msgstr "nga faqet"
+
 msgid "Front Cover"
 msgstr "Kapaku i Përparmë"
 
@@ -7626,6 +7632,9 @@ msgstr "I moderuar"
 
 msgid "Monospace"
 msgstr "Monospace"
+
+msgid "More"
+msgstr "Më shumë"
 
 #. placeholder {0}: publication.title
 msgid "More actions for {0}"
@@ -14890,6 +14899,9 @@ msgstr "Cilat faqe"
 msgid "Which process releases oxygen?"
 msgstr "Cili proces çliron oksigjen?"
 
+msgid "Which variety?"
+msgstr "Cili variant?"
+
 msgid "While editing"
 msgstr "Gjatë redaktimit"
 
@@ -15187,6 +15199,9 @@ msgstr "PDF-ja juaj është e skanuar (fjalët e saj nuk mund të zgjidhen), nda
 
 msgid "Your pick"
 msgstr "Zgjedhja juaj"
+
+msgid "Your pick of variety. The book isn't translated."
+msgstr "Varianti i zgjedhur nga ju. Libri nuk përkthehet."
 
 msgid "Your pick. The text is translated into it."
 msgstr "Zgjedhja juaj. Teksti përkthehet në të."

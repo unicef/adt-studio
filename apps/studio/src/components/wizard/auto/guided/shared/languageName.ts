@@ -9,12 +9,22 @@ import { getDisplayName, normalizeLocale } from "@/lib/languages"
 export function languageName(code: string, locale: string, start = false): string {
   let name = ""
   try {
-    name = new Intl.DisplayNames([locale], { type: "language" }).of(normalizeLocale(code)) ?? ""
+    // "standard": "Portuguese (Brazil)" rather than "Brazilian Portuguese", the same shape for every variety.
+    name = new Intl.DisplayNames([locale], { type: "language", languageDisplay: "standard" }).of(normalizeLocale(code)) ?? ""
   } catch {
     name = ""
   }
   if (!name || name.toLowerCase() === code.toLowerCase()) name = getDisplayName(code)
   return start ? name.charAt(0).toLocaleUpperCase(locale) + name.slice(1) : name
+}
+
+/** A country's name in the interface language ("Brasil" in Portuguese), from its two-letter code. */
+export function regionName(code: string, locale: string): string {
+  try {
+    return new Intl.DisplayNames([locale], { type: "region" }).of(code.toUpperCase()) ?? code.toUpperCase()
+  } catch {
+    return code.toUpperCase()
+  }
 }
 
 /** `languageName` in the current interface language. */

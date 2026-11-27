@@ -944,6 +944,9 @@ msgstr "<0>You stay in charge.</0> I read your book twice, looking at it a diffe
 msgid "<0>Your book is in {name}.</0> I'll keep it in {name}."
 msgstr "<0>Your book is in {name}.</0> I'll keep it in {name}."
 
+msgid "<0>Your book is in {name}.</0> I'll make it in {chosen}, without translating it."
+msgstr "<0>Your book is in {name}.</0> I'll make it in {chosen}, without translating it."
+
 msgid "="
 msgstr "="
 
@@ -5474,6 +5477,9 @@ msgstr "From page"
 msgid "From reference image..."
 msgstr "From reference image..."
 
+msgid "from the pages"
+msgstr "from the pages"
+
 msgid "Front Cover"
 msgstr "Front Cover"
 
@@ -7624,6 +7630,9 @@ msgstr "Moderate"
 
 msgid "Monospace"
 msgstr "Monospace"
+
+msgid "More"
+msgstr "More"
 
 #. placeholder {0}: publication.title
 msgid "More actions for {0}"
@@ -14888,6 +14897,9 @@ msgstr "Which pages"
 msgid "Which process releases oxygen?"
 msgstr "Which process releases oxygen?"
 
+msgid "Which variety?"
+msgstr "Which variety?"
+
 msgid "While editing"
 msgstr "While editing"
 
@@ -15185,6 +15197,9 @@ msgstr "Your PDF is a scan (its words can't be selected), so there are no labels
 
 msgid "Your pick"
 msgstr "Your pick"
+
+msgid "Your pick of variety. The book isn't translated."
+msgstr "Your pick of variety. The book isn't translated."
 
 msgid "Your pick. The text is translated into it."
 msgstr "Your pick. The text is translated into it."

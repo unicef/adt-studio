@@ -946,6 +946,9 @@ msgstr "<0>C'est vous qui décidez.</0> Je lis votre livre deux fois, d'une mani
 msgid "<0>Your book is in {name}.</0> I'll keep it in {name}."
 msgstr "<0>Votre livre est en {name}.</0> Je le garde en {name}."
 
+msgid "<0>Your book is in {name}.</0> I'll make it in {chosen}, without translating it."
+msgstr "<0>Votre livre est en {name}.</0> Je le ferai en {chosen}, sans le traduire."
+
 msgid "="
 msgstr "="
 
@@ -5476,6 +5479,9 @@ msgstr "De la page"
 msgid "From reference image..."
 msgstr "À partir de l'image de référence..."
 
+msgid "from the pages"
+msgstr "d'après les pages"
+
 msgid "Front Cover"
 msgstr "Première de couverture"
 
@@ -7626,6 +7632,9 @@ msgstr "Modéré"
 
 msgid "Monospace"
 msgstr "À chasse fixe"
+
+msgid "More"
+msgstr "Plus"
 
 #. placeholder {0}: publication.title
 msgid "More actions for {0}"
@@ -14890,6 +14899,9 @@ msgstr "Quelles pages"
 msgid "Which process releases oxygen?"
 msgstr "Quel processus libère de l'oxygène ?"
 
+msgid "Which variety?"
+msgstr "Quelle variante ?"
+
 msgid "While editing"
 msgstr "Pendant l'édition"
 
@@ -15187,6 +15199,9 @@ msgstr "Votre PDF est un scan (son texte ne peut pas être sélectionné), il n'
 
 msgid "Your pick"
 msgstr "Votre choix"
+
+msgid "Your pick of variety. The book isn't translated."
+msgstr "Variante choisie par vous. Le livre n'est pas traduit."
 
 msgid "Your pick. The text is translated into it."
 msgstr "Votre choix. Le texte y est traduit."

@@ -10,6 +10,7 @@ import type { BookProfile } from "@adt/pdf"
 import type { SetupDecided, SetupFact, SetupReadings, SetupRecommendation } from "@adt/types"
 import { measureFacts, type MeasuredFacts } from "./facts.js"
 import {
+  languageCode,
   readPageLabels,
   readQuestions,
   type PageLabel,
@@ -122,12 +123,17 @@ export function breakTies(labels: Pick<PageLabelsReading, "facts" | "ties">, que
 /**
  * The book's language: what the questions reading saw on the pages (works on scans too), else the
  * stop-word guess from the PDF's text, else the PDF's own language tag (often left at a default).
+ * The region ("pt-BR") comes from the reading when the pages showed the variety, else from the PDF's
+ * tag when that tag is the same language (a tag's region is only trusted then).
  */
 export function bookLanguage(fromAi: string | null, measured: { pdfTag: string | null; guess: string | null }): SetupRecommendation["language"] {
-  const tag = measured.pdfTag ? (measured.pdfTag.toLowerCase().split(/[-_]/)[0] ?? null) : null
-  if (fromAi) return { code: fromAi, source: "ai" }
-  if (measured.guess) return { code: measured.guess, source: "text" }
-  if (tag && /^[a-z]{2}$/.test(tag)) return { code: tag, source: "pdf-tag" }
+  const tag = languageCode(measured.pdfTag ?? undefined)
+  const base = (code: string) => code.split("-")[0]
+  const withTagRegion = (code: string) => (!code.includes("-") && tag?.includes("-") && base(tag) === code ? tag : code)
+  const ai = languageCode(fromAi ?? undefined)
+  if (ai) return { code: withTagRegion(ai), source: "ai" }
+  if (measured.guess) return { code: withTagRegion(measured.guess), source: "text" }
+  if (tag) return { code: tag, source: "pdf-tag" }
   return { code: null, source: null }
 }
 

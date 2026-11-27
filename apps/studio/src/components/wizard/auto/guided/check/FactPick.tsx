@@ -51,7 +51,7 @@ export function FactPick({ rec, fact, chat, file, sets }: { rec: SetupRecommenda
     <SurePick
       picture={
         factArt(fact.id, value) ? (
-          <span className={`qd18-pv grid shrink-0 place-items-center rounded-[12px] p-3 ${PICTURE}`}>{factArt(fact.id, value)}</span>
+          <span className={`grid shrink-0 place-items-center p-3 ${PICTURE}`}>{factArt(fact.id, value)}</span>
         ) : (
           <Picture rec={rec} look={lookOf(derived.effective)} page={page} file={file} className={PICTURE} />
         )

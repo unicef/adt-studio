@@ -44,7 +44,7 @@ function LookCard({ rec, option, page, narrow, chosen, first, onPick, file }: { 
       aria-label={`${option.label}. ${option.line}.${option.art ? "" : ` ${describe(option.look, "desktop", pages)}`}`}
       className={cn("qd18-o group relative flex min-w-0 p-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500", narrow ? "flex-row items-center gap-3" : "flex-col", chosen && "is-sel")}
     >
-      <span ref={ref} className={cn("qd18-pv relative grid shrink-0 place-items-center overflow-hidden rounded-[12px]", narrow ? "h-[96px] w-[132px]" : "h-[150px] lg:h-[170px]")}>
+      <span ref={ref} className={cn("relative grid shrink-0 place-items-center overflow-hidden rounded-[12px]", !option.art && "qd18-pv", narrow ? "h-[96px] w-[132px]" : "h-[150px] lg:h-[170px]")}>
         {option.art ? (
           <span className="qd18-dev block h-full w-full p-2">{option.art}</span>
         ) : (

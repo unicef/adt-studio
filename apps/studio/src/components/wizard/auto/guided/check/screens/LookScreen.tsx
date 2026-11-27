@@ -70,7 +70,7 @@ function LayoutPick({ rec, chat, file, asked }: Props & { asked: boolean }) {
   const means = SETTING_VALUE.renderStrategy[value]?.means
   return (
     <SurePick
-      picture={<span className={`qd18-pv grid shrink-0 place-items-center rounded-[12px] p-3 ${PICTURE}`}>{layoutArt(value)}</span>}
+      picture={<span className={`grid shrink-0 place-items-center p-3 ${PICTURE}`}>{layoutArt(value)}</span>}
       label={<Trans>How the pages look on screen</Trans>}
       title={name(value)}
       hint={means ? i18n._(means) : undefined}

@@ -41,7 +41,7 @@ function ExplainOffer() {
 }
 
 function LanguageSays({ rec }: { rec: SetupRecommendation }) {
-  const { found, picked, changed } = useBookLanguage(rec)
+  const { found, picked, changed, variety } = useBookLanguage(rec)
   const nameOf = useLanguageName()
   if (changed && picked) {
     const name = nameOf(picked)
@@ -58,6 +58,16 @@ function LanguageSays({ rec }: { rec: SetupRecommendation }) {
       </p>
     )
   const name = nameOf(found)
+  if (variety && picked) {
+    const chosen = nameOf(picked)
+    return (
+      <p>
+        <Trans>
+          <strong className="font-semibold">Your book is in {name}.</strong> I&apos;ll make it in {chosen}, without translating it.
+        </Trans>
+      </p>
+    )
+  }
   return (
     <p>
       <Trans>

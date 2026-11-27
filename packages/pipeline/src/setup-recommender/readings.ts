@@ -162,7 +162,9 @@ const QuestionsSchema = z.object({
   diagrams: answerSchema("diagrams"),
   language: z
     .string()
-    .describe('The language most of the book\'s words are written in, as a two-letter ISO 639-1 code (for example "en", "pt", "es", "fr", "sq"). "none" when the shown pages have no words.'),
+    .describe(
+      'The language most of the book\'s words are written in, as a BCP 47 tag: the two-letter ISO 639-1 language, plus the country when the pages show which variety it is (spelling, words, forms of address such as "vos" or "vosotros", currency, places, school-system terms). For example "pt-BR" or "pt-PT", "es-ES", "es-MX", "es-AR", "es-UY" or "es-419" (Latin America, no one country), "en-GB" or "en-US", "fr-FR" or "fr-CA". Only the language ("sq", "pt") when the pages don\'t tell the variety. "none" when the shown pages have no words.',
+    ),
 })
 
 function questionsContext(b: BookProfile, f: MeasuredFacts, pages: number[]): string {
@@ -231,9 +233,17 @@ export async function readQuestions(opts: {
 }
 
 /** A two-letter language code from the model's answer, or null ("none", or anything that isn't a code). */
+/**
+ * The language as a tag the app uses: "pt", or "pt-BR" / "es-419" when a region came with it.
+ * Anything else after the language (a script, a typo) is dropped; no two-letter language → null.
+ */
 export function languageCode(answer: string | undefined): string | null {
-  const code = (answer ?? "").trim().toLowerCase().split(/[-_]/)[0] ?? ""
-  return /^[a-z]{2}$/.test(code) ? code : null
+  const [lang = "", region = ""] = (answer ?? "").trim().split(/[-_]/)
+  const base = lang.toLowerCase()
+  if (!/^[a-z]{2}$/.test(base)) return null
+  if (/^[a-zA-Z]{2}$/.test(region)) return `${base}-${region.toUpperCase()}`
+  if (/^\d{3}$/.test(region)) return `${base}-${region}`
+  return base
 }
 
 // ---------------------------------------------------------------------------

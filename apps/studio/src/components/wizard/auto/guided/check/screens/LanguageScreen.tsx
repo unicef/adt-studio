@@ -5,8 +5,9 @@ import { msg } from "@lingui/core/macro"
 import { Trans, useLingui } from "@lingui/react/macro"
 import type { SetupRecommendation } from "@adt/types"
 import { LanguagePicker } from "@/components/LanguagePicker"
-import { getBaseLanguage } from "@/lib/languages"
-import { useLanguageName } from "../../shared/languageName"
+import { findLanguage, getBaseLanguage } from "@/lib/languages"
+import { cn } from "@/lib/utils"
+import { regionName, useLanguageName } from "../../shared/languageName"
 import { useWizardForm } from "../../../../core/wizardForm"
 import { bookLanguage } from "../screens"
 import { LanguagePicture } from "../../shared/art/ConceptArt"
@@ -16,13 +17,71 @@ import { useExplain } from "../../shared/explain"
 
 const PICKER_LABEL = msg`Translate the book into`
 
-/** The language the book will be made in: the user's pick, or the book's own (null when nothing tells). */
-export function useBookLanguage(rec: SetupRecommendation): { found: string | null; picked: string | null; changed: boolean } {
+/**
+ * The language the book will be made in: the user's pick, or the book's own (null when nothing
+ * tells), which may carry its variety ("pt-BR"). `changed`: another language, so the book is
+ * translated; `variety`: the same language in a variety the user picked (never translated: the
+ * pipeline translates only when the base language differs).
+ */
+export function useBookLanguage(rec: SetupRecommendation): { found: string | null; picked: string | null; changed: boolean; variety: boolean } {
   const form = useWizardForm()
   const editing = useStore(form.store, (s) => s.values.editingLanguage).trim()
   const found = bookLanguage(rec)
   const picked = editing || null
-  return { found, picked, changed: !!picked && getBaseLanguage(picked) !== found }
+  const same = !!picked && !!found && getBaseLanguage(picked) === getBaseLanguage(found)
+  return { found, picked, changed: !!picked && !same, variety: same }
+}
+
+const region = (code: string | null) => (code && code.includes("-") ? code.split("-")[1]!.toLowerCase() : null)
+
+/**
+ * Which variety of the language (Brazil or Portugal, Spain or Mexico…): the usual ones as chips,
+ * the found one marked, and More for the full list. Picking one only names the variety (voices,
+ * spelling the AI writes in); the book isn't translated.
+ */
+function VarietyChips({ code, found, onPick, onMore }: { code: string; found: string | null; onPick: (code: string) => void; onMore: () => void }) {
+  const { i18n, t } = useLingui()
+  const base = getBaseLanguage(code)
+  const countries = findLanguage(base)?.countries ?? []
+  if (countries.length < 2) return null
+  const now = region(code)
+  const fromBook = found && getBaseLanguage(found) === base ? region(found) : null
+  // A fixed order (the one found first, then the usual ones, then a pick from More), so nothing moves under the pointer.
+  const shown = [...new Set([fromBook, ...countries.slice(0, 5).map((c) => c.code), now].filter((c): c is string => !!c))]
+  return (
+    <div className="flex flex-col gap-1.5" role="group" aria-label={t`Which variety?`}>
+      <span className="text-[13px] text-muted-foreground">
+        <Trans>Which variety?</Trans>
+      </span>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {shown.map((c) => {
+          const on = c === now
+          return (
+            <button
+              key={c}
+              type="button"
+              aria-pressed={on}
+              onClick={() => onPick(`${base}-${c.toUpperCase()}`)}
+              className={cn(
+                "inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium ring-1 transition-[background-color,box-shadow,transform] duration-150 active:scale-[0.97] motion-reduce:transition-none",
+                on ? "bg-brand-50 text-brand-800 ring-brand-400" : "bg-card text-foreground ring-foreground/15 hover:bg-brand-50 hover:ring-brand-300",
+              )}
+            >
+              {regionName(c, i18n.locale)}
+              {c === fromBook && (
+                <span className="text-[11.5px] font-normal text-muted-foreground">
+                  <Trans>from the pages</Trans>
+                </span>
+              )}
+            </button>
+          )
+        })}
+        <button type="button" onClick={onMore} className="lc-link h-8 px-2 text-[13px] font-medium">
+          <Trans>More</Trans>
+        </button>
+      </div>
+    </div>
+  )
 }
 
 /**
@@ -38,16 +97,16 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
   const [help, setHelp] = useState(false)
   // The assistant's bubble offers this explanation ("Not sure? I can explain ...").
   useExplain("languages", () => setHelp(true))
-  const { found, picked, changed } = useBookLanguage(rec)
+  const { found, picked, changed, variety } = useBookLanguage(rec)
   const nameOf = useLanguageName()
   const foundName = found ? nameOf(found) : ""
   const outputs = useStore(form.store, (s) => s.values.outputLanguages)
-  const shown = changed ? picked : found
+  const shown = picked ?? found
   const source = rec.language?.source
   return (
     <SurePick
       picture={
-        <span className={`qd18-pv grid shrink-0 place-items-center rounded-[12px] p-3 ${PICTURE}`}>
+        <span className={`grid shrink-0 place-items-center p-3 ${PICTURE}`}>
           <LanguagePicture code={shown ? getBaseLanguage(shown) : null} outputs={outputs.map(getBaseLanguage)} />
         </span>
       }
@@ -56,6 +115,8 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
       hint={
         changed ? (
           <Trans>Your pick. The text is translated into it.</Trans>
+        ) : variety ? (
+          <Trans>Your pick of variety. The book isn&apos;t translated.</Trans>
         ) : !found ? (
           <Trans>I couldn&apos;t tell from the PDF. It&apos;s found when the pages are read.</Trans>
         ) : source === "ai" ? (
@@ -69,10 +130,11 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
           <span>
             <Trans>The book stays in this language.</Trans>
           </span>
+          {shown && !changed && <VarietyChips code={shown} found={found} onPick={(code) => form.setFieldValue("editingLanguage", code)} onMore={() => setOpen(true)} />}
           <LanguageHelp open={help} onOpenChange={setHelp} found={found ? nameOf(found) : null} />
         </span>
       }
-      changed={changed}
+      changed={changed || variety}
       badge={!!found}
       labelId="gd-language"
       open={open}

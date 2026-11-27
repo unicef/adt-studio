@@ -256,7 +256,10 @@ describe("book language", () => {
   it("reads a two-letter code from the model's answer", () => {
     expect(languageCode("pt")).toBe("pt")
     expect(languageCode(" ES ")).toBe("es")
-    expect(languageCode("pt-BR")).toBe("pt")
+    expect(languageCode("pt-BR")).toBe("pt-BR")
+    expect(languageCode("pt_br")).toBe("pt-BR")
+    expect(languageCode("es-419")).toBe("es-419")
+    expect(languageCode("zh-Hant-TW")).toBe("zh")
     expect(languageCode("none")).toBeNull()
     expect(languageCode("Portuguese")).toBeNull()
     expect(languageCode(undefined)).toBeNull()
@@ -265,7 +268,15 @@ describe("book language", () => {
   it("prefers the AI, then the text guess, then the PDF tag", () => {
     expect(bookLanguage("sq", { pdfTag: "en-US", guess: "en" })).toEqual({ code: "sq", source: "ai" })
     expect(bookLanguage(null, { pdfTag: "en-US", guess: "es" })).toEqual({ code: "es", source: "text" })
-    expect(bookLanguage(null, { pdfTag: "en-US", guess: null })).toEqual({ code: "en", source: "pdf-tag" })
+    expect(bookLanguage(null, { pdfTag: "en-US", guess: null })).toEqual({ code: "en-US", source: "pdf-tag" })
     expect(bookLanguage(null, { pdfTag: null, guess: null })).toEqual({ code: null, source: null })
+  })
+
+  it("keeps the variety: from the reading, else from a PDF tag of the same language", () => {
+    expect(bookLanguage("pt-BR", { pdfTag: "pt-PT", guess: "pt" })).toEqual({ code: "pt-BR", source: "ai" })
+    expect(bookLanguage("pt", { pdfTag: "pt-BR", guess: "pt" })).toEqual({ code: "pt-BR", source: "ai" })
+    // A tag in another language (often a leftover default) lends no region.
+    expect(bookLanguage("es", { pdfTag: "en-US", guess: "es" })).toEqual({ code: "es", source: "ai" })
+    expect(bookLanguage(null, { pdfTag: "es-UY", guess: "es" })).toEqual({ code: "es-UY", source: "text" })
   })
 })
