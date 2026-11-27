@@ -1158,6 +1158,9 @@ msgstr "A page of text faces a page of picture."
 msgid "A page range that was split off, finished, and exported to merge back."
 msgstr "A page range that was split off, finished, and exported to merge back."
 
+msgid "A picture carries on over the fold onto the facing page."
+msgstr "A picture carries on over the fold onto the facing page."
+
 msgid "A question worth asking"
 msgstr "A question worth asking"
 
@@ -4594,8 +4597,14 @@ msgstr "Each iteration is one LLM call. Lower values are faster and cheaper; hig
 msgid "Each kind of pipeline task uses a compatible model. Image generation and speech use their own task-specific defaults."
 msgstr "Each kind of pipeline task uses a compatible model. Image generation and speech use their own task-specific defaults."
 
+msgid "Each opening is made as one: a page of words faces a page of picture."
+msgstr "Each opening is made as one: a page of words faces a page of picture."
+
 msgid "Each page has a picture and some words next to it."
 msgstr "Each page has a picture and some words next to it."
+
+msgid "Each page has its own picture, or only words."
+msgstr "Each page has its own picture, or only words."
 
 msgid "Each page is kept as it is printed, without the AI, so it is quick and costs nothing extra."
 msgstr "Each page is kept as it is printed, without the AI, so it is quick and costs nothing extra."
@@ -4617,6 +4626,9 @@ msgstr "Each page shows the picture on one side and its words on the other."
 
 msgid "Each pair of facing pages becomes one wide screen, so pictures stay whole."
 msgstr "Each pair of facing pages becomes one wide screen, so pictures stay whole."
+
+msgid "Each pair of facing pages becomes one wide screen, the way the book lies open, so a picture drawn across both pages stays whole. Pages that don't belong together are joined too."
+msgstr "Each pair of facing pages becomes one wide screen, the way the book lies open, so a picture drawn across both pages stays whole. Pages that don't belong together are joined too."
 
 msgid "Each polyp secretes a hard calcium carbonate skeleton. Over hundreds of years, millions of these skeletons build up into the massive reef structures we see today."
 msgstr "Each polyp secretes a hard calcium carbonate skeleton. Over hundreds of years, millions of these skeletons build up into the massive reef structures we see today."
@@ -4944,6 +4956,9 @@ msgstr "Every page in this book has all sections pruned. There is no content ava
 
 msgid "Every page is pruned"
 msgstr "Every page is pruned"
+
+msgid "Every page of the PDF becomes its own screen. A picture drawn across two facing pages is cut in two, half on each screen."
+msgstr "Every page of the PDF becomes its own screen. A picture drawn across two facing pages is cut in two, half on each screen."
 
 msgid "Every page of the PDF becomes one screen."
 msgstr "Every page of the PDF becomes one screen."
@@ -7705,6 +7720,9 @@ msgstr "Most pages are part of one tale, even with a few colouring pages."
 msgid "Most pages ask the reader to write, match, circle or tick."
 msgstr "Most pages ask the reader to write, match, circle or tick."
 
+msgid "Most pages stand on their own, each with its own picture."
+msgstr "Most pages stand on their own, each with its own picture."
+
 msgid "Most used"
 msgstr "Most used"
 
@@ -8663,6 +8681,12 @@ msgstr "On the picture"
 msgid "On the picture: <0>{0}</0>"
 msgstr "On the picture: <0>{0}</0>"
 
+msgid "On these pages a page of words faces a page of picture, as one opening. Joined, each pair stays together on one screen, the way the book lies open."
+msgstr "On these pages a page of words faces a page of picture, as one opening. Joined, each pair stays together on one screen, the way the book lies open."
+
+msgid "On these pages a picture carries on over the fold onto the facing page. Joined, each pair becomes one wide screen and the picture stays whole; on its own, each half would be a separate screen."
+msgstr "On these pages a picture carries on over the fold onto the facing page. Joined, each pair becomes one wide screen and the picture stays whole; on its own, each half would be a separate screen."
+
 msgid "On v{currentVersion} · latest is v{latestVersion}"
 msgstr "On v{currentVersion} · latest is v{latestVersion}"
 
@@ -9175,6 +9199,9 @@ msgstr "Page {0} captions"
 msgid "Page {0} of {1}"
 msgstr "Page {0} of {1}"
 
+msgid "Page {a}"
+msgstr "Page {a}"
+
 msgid "Page {a} {on}, laid out as “{strategy}” and kept whole."
 msgstr "Page {a} {on}, laid out as “{strategy}” and kept whole."
 
@@ -9184,11 +9211,17 @@ msgstr "Page {a} {on}, laid out as “{strategy}” and split into parts."
 msgid "Page {a} as printed, {on}, while I read the book."
 msgstr "Page {a} as printed, {on}, while I read the book."
 
+msgid "Page {a}: two pages already side by side"
+msgstr "Page {a}: two pages already side by side"
+
 msgid "Page {firstPage}"
 msgstr "Page {firstPage}"
 
 msgid "Page {n}"
 msgstr "Page {n}"
+
+msgid "Page {names}"
+msgstr "Page {names}"
 
 msgid "Page {page}"
 msgstr "Page {page}"
@@ -9308,6 +9341,12 @@ msgstr "Pages {a} and {b} joined into one screen {on}, laid out as “{strategy}
 msgid "Pages {a} and {b} joined into one screen {on}, laid out as “{strategy}” and split into parts."
 msgstr "Pages {a} and {b} joined into one screen {on}, laid out as “{strategy}” and split into parts."
 
+msgid "Pages {a} and {b}, joined into one screen"
+msgstr "Pages {a} and {b}, joined into one screen"
+
+msgid "Pages {names}"
+msgstr "Pages {names}"
+
 msgid "Pages {pageNumber}–{lastPageNumber} · Section {sectionNumber}"
 msgstr "Pages {pageNumber}–{lastPageNumber} · Section {sectionNumber}"
 
@@ -9350,6 +9389,9 @@ msgstr "Pages per Quiz"
 
 msgid "Pages reviewed"
 msgstr "Pages reviewed"
+
+msgid "Pages that already hold two pages"
+msgstr "Pages that already hold two pages"
 
 msgid "Pages that show it"
 msgstr "Pages that show it"
@@ -9575,6 +9617,9 @@ msgstr "Picture books for young children, comic-like pages."
 msgid "Picture books where the words are part of the art."
 msgstr "Picture books where the words are part of the art."
 
+msgid "Picture books with double-page pictures, comics, atlases."
+msgstr "Picture books with double-page pictures, comics, atlases."
+
 msgid "Picture books with the words beside the art."
 msgstr "Picture books with the words beside the art."
 
@@ -9605,8 +9650,14 @@ msgstr "Pictures are kept together with their labels."
 msgid "Pictures don't run across facing pages."
 msgstr "Pictures don't run across facing pages."
 
+msgid "Pictures run across both facing pages, over the fold."
+msgstr "Pictures run across both facing pages, over the fold."
+
 msgid "Pictures run across two facing pages."
 msgstr "Pictures run across two facing pages."
+
+msgid "Pictures stop at the edge of the page, before the fold."
+msgstr "Pictures stop at the edge of the page, before the fold."
 
 msgid "Pin not on this version"
 msgstr "Pin not on this version"
@@ -11197,6 +11248,9 @@ msgstr "School book"
 
 msgid "School books are split into sections by the AI."
 msgstr "School books are split into sections by the AI."
+
+msgid "School books, novels, guides, and picture books with one picture per page."
+msgstr "School books, novels, guides, and picture books with one picture per page."
 
 msgid "School textbooks and workbooks"
 msgstr "School textbooks and workbooks"
@@ -13474,6 +13528,9 @@ msgstr "These pages have no embedded text layer, but the Sectioning step recover
 msgid "These pages were extracted one at a time. If an illustration runs across two facing pages, merge those pairs so they're kept together."
 msgstr "These pages were extracted one at a time. If an illustration runs across two facing pages, merge those pairs so they're kept together."
 
+msgid "These PDF pages already show two facing pages side by side, so each one stays one screen as it is. Nothing is joined."
+msgstr "These PDF pages already show two facing pages side by side, so each one stays one screen as it is. Nothing is joined."
+
 msgid "These stages are optional. They don't depend on each other — run any of them in any order once the core pipeline is complete."
 msgstr "These stages are optional. They don't depend on each other — run any of them in any order once the core pipeline is complete."
 
@@ -14921,6 +14978,9 @@ msgstr "Where I saw it:"
 
 msgid "Where it all begins"
 msgstr "Where it all begins"
+
+msgid "Where pages go together"
+msgstr "Where pages go together"
 
 msgid "Where toasts appear on screen."
 msgstr "Where toasts appear on screen."

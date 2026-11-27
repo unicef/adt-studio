@@ -3,11 +3,12 @@ import { useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Lock } from "lucide-react"
 import type { SetupRecommendation } from "@adt/types"
-import { SETTING_VALUE } from "../../../engine/words"
-import { Citation } from "../../shared/Citation"
+import { RULE_WHY, SETTING_VALUE } from "../../../engine/words"
 import { Illustration } from "../../shared/Illustration"
 import { LookChoices, type LookOption } from "../../shared/PreviewChoices"
 import { lookOf } from "../../shared/screens/look"
+import { GROUPING_GUIDE, GROUPING_MORE } from "../../shared/optionGuide"
+import { SpreadEvidence } from "./SpreadEvidence"
 import type { Answers } from "../../shared/useAnswers"
 import { PICTURE, SurePick } from "../SurePick"
 
@@ -32,6 +33,7 @@ export function SpreadsScreen({ rec, chat, file }: Props) {
   const value = derived.effective.pageGrouping?.value === "spread" ? "spread" : "single"
   const guess = derived.fromAnswers.pageGrouping?.value === "spread" ? "spread" : "single"
   const changed = derived.source("pageGrouping") === "changed"
+  const rule = derived.fromAnswers.pageGrouping?.rule
   const evidence = spreadPages(rec)
   // The page to show them on: one the measure pointed at, else the book's preview page.
   const page = evidence[0] ?? rec.previewPage
@@ -44,6 +46,10 @@ export function SpreadsScreen({ rec, chat, file }: Props) {
       // The user's own pages, as one screen each or joined.
       look: lookOf({ ...derived.effective, pageGrouping: { value: v, rule: "user" } }),
       guess: v === guess,
+      // The explanation dialog ("Explain the options"): what it does, when it fits, and why it was guessed.
+      more: i18n._(GROUPING_MORE[v]!),
+      guide: GROUPING_GUIDE[v],
+      why: v === guess && rule && RULE_WHY[rule] ? i18n._(RULE_WHY[rule]!) : undefined,
     }),
   )
   return (
@@ -60,7 +66,7 @@ export function SpreadsScreen({ rec, chat, file }: Props) {
         <span className="mt-1 flex flex-col gap-1.5">
           {evidence.length > 0 && (
             <span className="flex flex-wrap items-center gap-1.5">
-              <Trans>Where I saw it:</Trans> <Citation file={file} pages={evidence} />
+              <Trans>Where I saw it:</Trans> <SpreadEvidence file={file} pages={evidence} rule={rule} />
             </span>
           )}
           <span className="flex items-start gap-2 text-muted-foreground">

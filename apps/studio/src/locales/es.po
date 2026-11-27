@@ -1158,6 +1158,9 @@ msgstr "Una página de texto frente a una página de ilustración."
 msgid "A page range that was split off, finished, and exported to merge back."
 msgstr "Un rango de páginas que se separó, se terminó y se exportó para volver a fusionarlo."
 
+msgid "A picture carries on over the fold onto the facing page."
+msgstr "Una imagen continúa sobre el pliegue hasta la página de enfrente."
+
 msgid "A question worth asking"
 msgstr "Una pregunta que vale la pena hacer"
 
@@ -4594,8 +4597,14 @@ msgstr "Cada iteración es una llamada LLM. Valores más bajos son más rápidos
 msgid "Each kind of pipeline task uses a compatible model. Image generation and speech use their own task-specific defaults."
 msgstr "Cada tipo de tarea del flujo de trabajo utiliza un modelo compatible. La generación de imágenes y de voz utiliza sus propios valores predeterminados específicos para cada tarea."
 
+msgid "Each opening is made as one: a page of words faces a page of picture."
+msgstr "Cada doble página está hecha como una: una página de texto frente a una página de imagen."
+
 msgid "Each page has a picture and some words next to it."
 msgstr "Cada página tiene una ilustración y algo de texto al lado."
+
+msgid "Each page has its own picture, or only words."
+msgstr "Cada página tiene su propia imagen, o solo texto."
 
 msgid "Each page is kept as it is printed, without the AI, so it is quick and costs nothing extra."
 msgstr "Cada página se mantiene tal como está impresa, sin la IA, así que es rápido y no cuesta nada extra."
@@ -4617,6 +4626,9 @@ msgstr "Cada página muestra la ilustración a un lado y su texto al otro."
 
 msgid "Each pair of facing pages becomes one wide screen, so pictures stay whole."
 msgstr "Cada par de páginas enfrentadas se convierte en una pantalla ancha, para que las ilustraciones queden enteras."
+
+msgid "Each pair of facing pages becomes one wide screen, the way the book lies open, so a picture drawn across both pages stays whole. Pages that don't belong together are joined too."
+msgstr "Cada par de páginas enfrentadas será una pantalla ancha, como el libro abierto, así que una imagen dibujada sobre las dos páginas queda entera. También se unen las páginas que no van juntas."
 
 msgid "Each polyp secretes a hard calcium carbonate skeleton. Over hundreds of years, millions of these skeletons build up into the massive reef structures we see today."
 msgstr "Cada pólipo secreta un esqueleto duro de carbonato de calcio. Durante cientos de años, millones de estos esqueletos se acumulan en las estructuras masivas de arrecifes que vemos hoy."
@@ -4944,6 +4956,9 @@ msgstr "Cada página de este libro tiene todas las secciones podadas. No hay con
 
 msgid "Every page is pruned"
 msgstr "Cada página está podada"
+
+msgid "Every page of the PDF becomes its own screen. A picture drawn across two facing pages is cut in two, half on each screen."
+msgstr "Cada página del PDF será su propia pantalla. Una imagen dibujada sobre dos páginas enfrentadas queda cortada en dos, una mitad en cada pantalla."
 
 msgid "Every page of the PDF becomes one screen."
 msgstr "Cada página del PDF se convierte en una pantalla."
@@ -7705,6 +7720,9 @@ msgstr "La mayoría de las páginas forman parte de un solo relato, aunque haya 
 msgid "Most pages ask the reader to write, match, circle or tick."
 msgstr "La mayoría de las páginas piden al lector escribir, unir, rodear o marcar."
 
+msgid "Most pages stand on their own, each with its own picture."
+msgstr "La mayoría de las páginas van por separado, cada una con su propia imagen."
+
 msgid "Most used"
 msgstr "Más usado"
 
@@ -8663,6 +8681,12 @@ msgstr "Sobre la ilustración"
 msgid "On the picture: <0>{0}</0>"
 msgstr "En la imagen: <0>{0}</0>"
 
+msgid "On these pages a page of words faces a page of picture, as one opening. Joined, each pair stays together on one screen, the way the book lies open."
+msgstr "En estas páginas, una página de texto está frente a una página de imagen, como una sola doble página. Al unirlas, cada par queda junto en una pantalla, como el libro abierto."
+
+msgid "On these pages a picture carries on over the fold onto the facing page. Joined, each pair becomes one wide screen and the picture stays whole; on its own, each half would be a separate screen."
+msgstr "En estas páginas, una imagen continúa sobre el pliegue hasta la página de enfrente. Al unirlas, cada par será una pantalla ancha y la imagen queda entera; por separado, cada mitad sería otra pantalla."
+
 msgid "On v{currentVersion} · latest is v{latestVersion}"
 msgstr "En v{currentVersion} · la última es v{latestVersion}"
 
@@ -9175,6 +9199,9 @@ msgstr "Subtítulos de la página {0}"
 msgid "Page {0} of {1}"
 msgstr "Página {0} de {1}"
 
+msgid "Page {a}"
+msgstr "Página {a}"
+
 msgid "Page {a} {on}, laid out as “{strategy}” and kept whole."
 msgstr "Página {a} {on}, con el diseño «{strategy}», sin dividir."
 
@@ -9184,11 +9211,17 @@ msgstr "Página {a} {on}, con el diseño «{strategy}» y dividida en partes."
 msgid "Page {a} as printed, {on}, while I read the book."
 msgstr "Página {a} tal como está impresa, {on}, mientras leo el libro."
 
+msgid "Page {a}: two pages already side by side"
+msgstr "Página {a}: ya tiene dos páginas una al lado de la otra"
+
 msgid "Page {firstPage}"
 msgstr "Página {firstPage}"
 
 msgid "Page {n}"
 msgstr "Página {n}"
+
+msgid "Page {names}"
+msgstr "Página {names}"
 
 msgid "Page {page}"
 msgstr "Página {page}"
@@ -9308,6 +9341,12 @@ msgstr "Páginas {a} y {b} unidas en una pantalla {on}, con el diseño «{strate
 msgid "Pages {a} and {b} joined into one screen {on}, laid out as “{strategy}” and split into parts."
 msgstr "Páginas {a} y {b} unidas en una pantalla {on}, con el diseño «{strategy}» y divididas en partes."
 
+msgid "Pages {a} and {b}, joined into one screen"
+msgstr "Páginas {a} y {b}, unidas en una pantalla"
+
+msgid "Pages {names}"
+msgstr "Páginas {names}"
+
 msgid "Pages {pageNumber}–{lastPageNumber} · Section {sectionNumber}"
 msgstr "Páginas {pageNumber}–{lastPageNumber} · Sección {sectionNumber}"
 
@@ -9350,6 +9389,9 @@ msgstr "Páginas por quiz"
 
 msgid "Pages reviewed"
 msgstr "Páginas revisadas"
+
+msgid "Pages that already hold two pages"
+msgstr "Páginas que ya contienen dos páginas"
 
 msgid "Pages that show it"
 msgstr "Páginas que lo muestran"
@@ -9575,6 +9617,9 @@ msgstr "Libros ilustrados para niños pequeños, páginas tipo cómic."
 msgid "Picture books where the words are part of the art."
 msgstr "Libros ilustrados donde el texto forma parte del dibujo."
 
+msgid "Picture books with double-page pictures, comics, atlases."
+msgstr "Libros ilustrados con imágenes a doble página, cómics, atlas."
+
 msgid "Picture books with the words beside the art."
 msgstr "Libros ilustrados con el texto al lado del dibujo."
 
@@ -9605,8 +9650,14 @@ msgstr "Las imágenes se mantienen junto con sus rótulos."
 msgid "Pictures don't run across facing pages."
 msgstr "Las ilustraciones no pasan de una página a la de enfrente."
 
+msgid "Pictures run across both facing pages, over the fold."
+msgstr "Las imágenes ocupan las dos páginas enfrentadas, sobre el pliegue."
+
 msgid "Pictures run across two facing pages."
 msgstr "Las ilustraciones pasan de una página a la de enfrente."
+
+msgid "Pictures stop at the edge of the page, before the fold."
+msgstr "Las imágenes terminan en el borde de la página, antes del pliegue."
 
 msgid "Pin not on this version"
 msgstr "Pin no en esta versión"
@@ -11197,6 +11248,9 @@ msgstr "Libro escolar"
 
 msgid "School books are split into sections by the AI."
 msgstr "La IA divide los libros escolares en secciones."
+
+msgid "School books, novels, guides, and picture books with one picture per page."
+msgstr "Libros escolares, novelas, guías y libros ilustrados con una imagen por página."
 
 msgid "School textbooks and workbooks"
 msgstr "Libros de texto y cuadernos escolares"
@@ -13474,6 +13528,9 @@ msgstr "Estas páginas no tienen capa de texto incrustado, pero el paso de Secci
 msgid "These pages were extracted one at a time. If an illustration runs across two facing pages, merge those pairs so they're kept together."
 msgstr "Estas páginas fueron extraídas una a la vez. Si una ilustración abarca dos páginas enfrentadas, fusiona esos pares para que se mantengan juntos."
 
+msgid "These PDF pages already show two facing pages side by side, so each one stays one screen as it is. Nothing is joined."
+msgstr "Estas páginas del PDF ya muestran dos páginas enfrentadas una al lado de la otra, así que cada una queda como una pantalla. No se une nada."
+
 msgid "These stages are optional. They don't depend on each other — run any of them in any order once the core pipeline is complete."
 msgstr "Estas etapas son opcionales. No dependen unas de otras: ejecuta cualquiera en cualquier orden una vez completado el flujo principal."
 
@@ -14921,6 +14978,9 @@ msgstr "Dónde lo vi:"
 
 msgid "Where it all begins"
 msgstr "Donde todo comienza"
+
+msgid "Where pages go together"
+msgstr "Dónde van juntas las páginas"
 
 msgid "Where toasts appear on screen."
 msgstr "Dónde aparecen las notificaciones en la pantalla."

@@ -179,3 +179,23 @@ export const LAYOUT_AT_A_GLANCE: Record<string, { line: MessageDescriptor; best:
     phone: msg`The whole page shrinks to fit, like the printed page.`,
   },
 }
+
+/** Facing pages (Page Grouping): one PDF page per screen, or two facing pages joined. */
+export const GROUPING_GUIDE: Record<string, OptionGuide> = {
+  single: {
+    fits: [msg`Each page has its own picture, or only words.`, msg`Pictures stop at the edge of the page, before the fold.`],
+    better: [{ when: msg`A picture carries on over the fold onto the facing page.`, go: "spread" }],
+    examples: msg`School books, novels, guides, and picture books with one picture per page.`,
+  },
+  spread: {
+    fits: [msg`Pictures run across both facing pages, over the fold.`, msg`Each opening is made as one: a page of words faces a page of picture.`],
+    better: [{ when: msg`Most pages stand on their own, each with its own picture.`, go: "single" }],
+    examples: msg`Picture books with double-page pictures, comics, atlases.`,
+  },
+}
+
+/** What each way does to the book, said in full for the explanation dialog. */
+export const GROUPING_MORE: Record<string, MessageDescriptor> = {
+  single: msg`Every page of the PDF becomes its own screen. A picture drawn across two facing pages is cut in two, half on each screen.`,
+  spread: msg`Each pair of facing pages becomes one wide screen, the way the book lies open, so a picture drawn across both pages stays whole. Pages that don't belong together are joined too.`,
+}

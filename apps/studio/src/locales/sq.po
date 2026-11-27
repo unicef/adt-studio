@@ -1160,6 +1160,9 @@ msgstr "Një faqe me tekst përballë një faqeje me figurë."
 msgid "A page range that was split off, finished, and exported to merge back."
 msgstr "Një interval faqesh që u nda, u përfundua dhe u eksportua për t’u bashkuar përsëri."
 
+msgid "A picture carries on over the fold onto the facing page."
+msgstr "Një figurë vazhdon përtej palosjes në faqen përballë."
+
 msgid "A question worth asking"
 msgstr "Një pyetje që vlen të bëhet"
 
@@ -4596,8 +4599,14 @@ msgstr "Çdo iteracion është një thirrje LLM. Vlerat e ulëta janë më të s
 msgid "Each kind of pipeline task uses a compatible model. Image generation and speech use their own task-specific defaults."
 msgstr "Çdo lloj detyre në rrjedhën e punës përdor një model të përshtatshëm. Gjenerimi i imazheve dhe i të folurit përdorin modelet e veta të parazgjedhura sipas detyrës."
 
+msgid "Each opening is made as one: a page of words faces a page of picture."
+msgstr "Çdo hapje është bërë si një: një faqe me tekst përballë një faqeje me figurë."
+
 msgid "Each page has a picture and some words next to it."
 msgstr "Çdo faqe ka një figurë dhe pak tekst pranë saj."
+
+msgid "Each page has its own picture, or only words."
+msgstr "Çdo faqe ka figurën e vet, ose vetëm tekst."
 
 msgid "Each page is kept as it is printed, without the AI, so it is quick and costs nothing extra."
 msgstr "Çdo faqe mbahet siç është shtypur, pa AI, ndaj është e shpejtë dhe nuk kushton asgjë shtesë."
@@ -4619,6 +4628,9 @@ msgstr "Çdo faqe tregon figurën në njërën anë dhe tekstin e saj në anën 
 
 msgid "Each pair of facing pages becomes one wide screen, so pictures stay whole."
 msgstr "Çdo palë faqesh përballë bëhet një ekran i gjerë, që figurat të mbeten të plota."
+
+msgid "Each pair of facing pages becomes one wide screen, the way the book lies open, so a picture drawn across both pages stays whole. Pages that don't belong together are joined too."
+msgstr "Çdo çift faqesh përballë bëhet një ekran i gjerë, siç rri libri i hapur, prandaj një figurë e vizatuar në të dyja faqet mbetet e plotë. Bashkohen edhe faqet që nuk shkojnë bashkë."
 
 msgid "Each polyp secretes a hard calcium carbonate skeleton. Over hundreds of years, millions of these skeletons build up into the massive reef structures we see today."
 msgstr "Çdo polip sekreton një skelet të fortë karbonati kalciumi. Gjatë qindra viteve, miliona prej këtyre skeletve grumbullohen duke formuar strukturat masive të rifeve që shohim sot."
@@ -4946,6 +4958,9 @@ msgstr "Çdo faqe në këtë libër ka të gjitha seksionet të shkurtuara. Nuk 
 
 msgid "Every page is pruned"
 msgstr "Çdo faqe është shkurtuar"
+
+msgid "Every page of the PDF becomes its own screen. A picture drawn across two facing pages is cut in two, half on each screen."
+msgstr "Çdo faqe e PDF-së bëhet ekrani i vet. Një figurë e vizatuar në dy faqe përballë pritet më dysh, gjysma në secilin ekran."
 
 msgid "Every page of the PDF becomes one screen."
 msgstr "Çdo faqe e PDF-së bëhet një ekran."
@@ -7707,6 +7722,9 @@ msgstr "Shumica e faqeve janë pjesë e një historie, edhe me disa faqe për ng
 msgid "Most pages ask the reader to write, match, circle or tick."
 msgstr "Shumica e faqeve i kërkojnë lexuesit të shkruajë, të lidhë, të rrethojë ose të shënojë."
 
+msgid "Most pages stand on their own, each with its own picture."
+msgstr "Shumica e faqeve qëndrojnë më vete, secila me figurën e vet."
+
 msgid "Most used"
 msgstr "Më i përdorur"
 
@@ -8665,6 +8683,12 @@ msgstr "Mbi figurë"
 msgid "On the picture: <0>{0}</0>"
 msgstr "Te figura: <0>{0}</0>"
 
+msgid "On these pages a page of words faces a page of picture, as one opening. Joined, each pair stays together on one screen, the way the book lies open."
+msgstr "Në këto faqe, një faqe me tekst qëndron përballë një faqeje me figurë, si një hapje e vetme. Të bashkuara, çdo çift mbetet bashkë në një ekran, siç rri libri i hapur."
+
+msgid "On these pages a picture carries on over the fold onto the facing page. Joined, each pair becomes one wide screen and the picture stays whole; on its own, each half would be a separate screen."
+msgstr "Në këto faqe, një figurë vazhdon përtej palosjes në faqen përballë. Të bashkuara, çdo çift bëhet një ekran i gjerë dhe figura mbetet e plotë; veçmas, çdo gjysmë do të ishte një ekran tjetër."
+
 msgid "On v{currentVersion} · latest is v{latestVersion}"
 msgstr "Në v{currentVersion} · më i fundit është v{latestVersion}"
 
@@ -9177,6 +9201,9 @@ msgstr "Titujt e faqes {0}"
 msgid "Page {0} of {1}"
 msgstr "Faqja {0} nga {1}"
 
+msgid "Page {a}"
+msgstr "Faqja {a}"
+
 msgid "Page {a} {on}, laid out as “{strategy}” and kept whole."
 msgstr "Faqja {a} {on}, e paraqitur si “{strategy}” dhe e mbajtur e plotë."
 
@@ -9186,11 +9213,17 @@ msgstr "Faqja {a} {on}, e paraqitur si “{strategy}” dhe e ndarë në pjesë.
 msgid "Page {a} as printed, {on}, while I read the book."
 msgstr "Faqja {a} siç është shtypur, {on}, ndërsa e lexoj librin."
 
+msgid "Page {a}: two pages already side by side"
+msgstr "Faqja {a}: tashmë dy faqe krah për krah"
+
 msgid "Page {firstPage}"
 msgstr "Faqja {firstPage}"
 
 msgid "Page {n}"
 msgstr "Faqja {n}"
+
+msgid "Page {names}"
+msgstr "Faqja {names}"
 
 msgid "Page {page}"
 msgstr "Faqe {page}"
@@ -9310,6 +9343,12 @@ msgstr "Faqet {a} dhe {b} të bashkuara në një ekran {on}, të paraqitura si �
 msgid "Pages {a} and {b} joined into one screen {on}, laid out as “{strategy}” and split into parts."
 msgstr "Faqet {a} dhe {b} të bashkuara në një ekran {on}, të paraqitura si “{strategy}” dhe të ndara në pjesë."
 
+msgid "Pages {a} and {b}, joined into one screen"
+msgstr "Faqet {a} dhe {b}, të bashkuara në një ekran"
+
+msgid "Pages {names}"
+msgstr "Faqet {names}"
+
 msgid "Pages {pageNumber}–{lastPageNumber} · Section {sectionNumber}"
 msgstr "Faqet {pageNumber}–{lastPageNumber} · Seksioni {sectionNumber}"
 
@@ -9352,6 +9391,9 @@ msgstr "Faqe për Kuiz"
 
 msgid "Pages reviewed"
 msgstr "Faqe të rishikuara"
+
+msgid "Pages that already hold two pages"
+msgstr "Faqe që mbajnë tashmë dy faqe"
 
 msgid "Pages that show it"
 msgstr "Faqet që e tregojnë"
@@ -9577,6 +9619,9 @@ msgstr "Libra me figura për fëmijë të vegjël, faqe si komike."
 msgid "Picture books where the words are part of the art."
 msgstr "Libra me figura ku teksti është pjesë e vizatimit."
 
+msgid "Picture books with double-page pictures, comics, atlases."
+msgstr "Libra me figura me faqe të dyfishta, komike, atlase."
+
 msgid "Picture books with the words beside the art."
 msgstr "Libra me figura me tekstin pranë vizatimit."
 
@@ -9607,8 +9652,14 @@ msgstr "Figurat mbahen bashkë me etiketat e tyre."
 msgid "Pictures don't run across facing pages."
 msgstr "Figurat nuk shtrihen në dy faqe përballë."
 
+msgid "Pictures run across both facing pages, over the fold."
+msgstr "Figurat shtrihen në të dyja faqet përballë, përtej palosjes."
+
 msgid "Pictures run across two facing pages."
 msgstr "Figurat shtrihen në dy faqe përballë njëra-tjetrës."
+
+msgid "Pictures stop at the edge of the page, before the fold."
+msgstr "Figurat mbarojnë në skaj të faqes, para palosjes."
 
 msgid "Pin not on this version"
 msgstr "Pin nuk është në këtë version"
@@ -11199,6 +11250,9 @@ msgstr "Libër shkollor"
 
 msgid "School books are split into sections by the AI."
 msgstr "Librat shkollorë ndahen në seksione nga AI."
+
+msgid "School books, novels, guides, and picture books with one picture per page."
+msgstr "Libra shkollorë, romane, udhëzues dhe libra me figura me një figurë për faqe."
 
 msgid "School textbooks and workbooks"
 msgstr "Tekste shkollore dhe fletore pune"
@@ -13476,6 +13530,9 @@ msgstr "Këto faqe nuk kanë shtresë teksti të integruar, por hapi i Seksionim
 msgid "These pages were extracted one at a time. If an illustration runs across two facing pages, merge those pairs so they're kept together."
 msgstr "Këto faqe u ekstraktuan një nga një. Nëse një ilustrim shtrihet në dy faqe përballë, bashkoni ato çifte që të mbahen së bashku."
 
+msgid "These PDF pages already show two facing pages side by side, so each one stays one screen as it is. Nothing is joined."
+msgstr "Këto faqe të PDF-së tregojnë tashmë dy faqe përballë krah për krah, prandaj secila mbetet një ekran siç është. Nuk bashkohet asgjë."
+
 msgid "These stages are optional. They don't depend on each other — run any of them in any order once the core pipeline is complete."
 msgstr "Këto faza janë opsionale. Ato nuk varen nga njëra-tjetra — ekzekuto cilëndo prej tyre në çfarëdo rendi pasi të jetë plotësuar tubi kryesor."
 
@@ -14923,6 +14980,9 @@ msgstr "Ku e pashë:"
 
 msgid "Where it all begins"
 msgstr "Ku fillon gjithçka"
+
+msgid "Where pages go together"
+msgstr "Ku shkojnë faqet bashkë"
 
 msgid "Where toasts appear on screen."
 msgstr "Ku shfaqen njoftimet në ekran."
