@@ -103,6 +103,12 @@ and `openai:gpt-6.1-sol` at `medium` effort for book outline (`book_outline.mode
 task-model override shown in Settings > Models. Base prompt provenance remains `openai:gpt-5.4`;
 selecting GPT-5.4 still resolves the legacy base prompts.
 
+Web pages (`render_strategies.llm`) render on the default model, Luna, with
+`openai:gpt-6.1-sol` at `medium` as `config.fallback`: after two failed Luna
+attempts, Sol takes the remaining four from the original prompt and resolves its
+own `web_generation_html` variant (#1259). Settings > Models does not show the
+fallback yet; it is set in `config.yaml`.
+
 Visual review runs at `medium` effort (`visual_review.reasoning_effort`). The
 activity strategies also set `reasoning_effort: medium`, which applies to
 activity HTML generation and answers only: review reads

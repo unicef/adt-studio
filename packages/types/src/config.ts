@@ -203,6 +203,19 @@ export const VisualRefinementStrategyConfig = z.object({
 })
 export type VisualRefinementStrategyConfig = z.infer<typeof VisualRefinementStrategyConfig>
 
+/**
+ * A second model for an llm/activity render strategy. When the strategy's own
+ * model fails `after_attempts` times (validation or transport), the remaining
+ * attempts go to this model, starting again from the original prompt. The
+ * total number of attempts stays `max_retries + 1`.
+ */
+export const RenderFallbackConfig = z.object({
+  model: z.string(),
+  reasoning_effort: ReasoningEffort.optional(),
+  after_attempts: z.number().int().min(1).optional(),
+})
+export type RenderFallbackConfig = z.infer<typeof RenderFallbackConfig>
+
 export const RenderStrategyConfig = z
   .object({
     render_type: RenderType,
@@ -215,6 +228,7 @@ export const RenderStrategyConfig = z
         timeout: z.number().int().min(1).optional(),
         temperature: z.number().min(0).max(2).optional(),
         reasoning_effort: ReasoningEffort.optional(),
+        fallback: RenderFallbackConfig.optional(),
         // activity render type — answer generation prompt
         answer_prompt: z.string().optional(),
         // template render type
