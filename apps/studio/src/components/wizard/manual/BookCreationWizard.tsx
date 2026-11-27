@@ -250,7 +250,6 @@ export function BookCreationWizard({ onBackFromPresets }: { onBackFromPresets?: 
     const el = document.getElementById(fieldId)
     if (!el) return
     el.scrollIntoView({ behavior: "smooth", block: "center" })
-    // eslint-disable-next-line lingui/no-unlocalized-strings
     const focusable = el.matches("input,button,select,textarea,[tabindex]")
       ? el
       : el.querySelector<HTMLElement>("input,button,select,textarea,[tabindex]")

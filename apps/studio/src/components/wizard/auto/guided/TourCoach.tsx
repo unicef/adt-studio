@@ -76,9 +76,31 @@ export function TourCoach({ stops, at, onNext, onBack, onDone }: { stops: CoachS
   const go = useRef(advance)
   go.current = advance
 
-  // Keys: Enter, Space or → for next, ← for back, Esc to end the tour.
+  // Focus comes into the coach for the tour (its main button, at every stop) and goes back to where
+  // it was when the tour ends, so keyboard and screen-reader users land on the tour, not behind it.
+  useEffect(() => {
+    const before = document.activeElement as HTMLElement | null
+    return () => {
+      if (before?.isConnected) before.focus({ preventScroll: true })
+    }
+  }, [])
+  // (Once it is placed: until then the coach is invisible, and can't take focus.)
+  const shown = !!pos
+  useEffect(() => {
+    if (shown) box.current?.querySelector<HTMLElement>("button")?.focus({ preventScroll: true })
+  }, [at, shown])
+
+  // Keys: Enter, Space or → for next, ← for back, Esc to end the tour; Tab stays on the coach's buttons.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Tab") {
+        const buttons = [...(box.current?.querySelectorAll<HTMLElement>("button") ?? [])]
+        if (!buttons.length) return
+        const i = buttons.indexOf(document.activeElement as HTMLElement)
+        e.preventDefault()
+        buttons[(i + (e.shiftKey ? -1 : 1) + buttons.length) % buttons.length]!.focus()
+        return
+      }
       if (e.metaKey || e.ctrlKey || e.altKey) return
       const t = e.target as HTMLElement | null
       const onControl = !!t?.closest("button, a, input, textarea, select, [contenteditable='true']")
@@ -129,7 +151,7 @@ export function TourCoach({ stops, at, onNext, onBack, onDone }: { stops: CoachS
       <div
         ref={box}
         role="dialog"
-        aria-modal="false"
+        aria-modal="true"
         aria-label={name}
         data-side={side}
         className={cn("gd-tour-coach fixed z-[41] flex", !pos && "invisible", placed && "gd-tour-glide", side === "right" && "flex-row items-center", side === "left" && "flex-row-reverse items-center", side === "below" && "flex-col items-start", side === "above" && "flex-col-reverse items-start", big && "flex-col items-center")}

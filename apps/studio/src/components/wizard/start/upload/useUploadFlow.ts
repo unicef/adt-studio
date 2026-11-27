@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react"
-import { useNavigate } from "@tanstack/react-router"
 import { useStore } from "@tanstack/react-form"
 import { useFileDropZone } from "@/components/ui/file-drop-overlay"
-import { useWizard } from "@/components/wizard/core/WizardProvider"
 import { useWizardForm } from "@/components/wizard/core/wizardForm"
 import { suggestLabel, suggestUniqueLabel } from "@/components/wizard/core/fields/PdfField"
 import { getCachedPdfPageCount, getPdfPageCount } from "@/components/wizard/core/pdf/pdfMetadata"
@@ -17,12 +15,11 @@ function isPdfFile(f: File) {
 }
 
 /**
- * The upload step's behaviour: drop / pick → "accepted" beat → book card, page count, cover, and why
- * a file can't be used (password-protected, damaged, not a PDF).
+ * The PDF the guided flow works on: drop / pick, page count, cover, and why a file can't be used
+ * (password-protected, damaged, not a PDF). `active` is false while the manual wizard is open over
+ * the guided flow, so its window-wide drop zone stays off and only the manual wizard takes a drop.
  */
-export function useUploadFlow() {
-  const navigate = useNavigate()
-  const { setPhase } = useWizard()
+export function useUploadFlow({ active = true }: { active?: boolean } = {}) {
   const form = useWizardForm()
   const { data: books } = useBooks()
   const file = useStore(form.store, (s) => s.values.file)
@@ -31,19 +28,11 @@ export function useUploadFlow() {
   // old one the new file never shows the old count (the engine would start once with it).
   const [counted, setCounted] = useState<{ file: File | null; count: number }>({ file: null, count: 0 })
   const pageCount = !file ? 0 : counted.file === file ? counted.count : (getCachedPdfPageCount(file) ?? 0)
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<UploadError | null>(null)
-  const [replacing, setReplacing] = useState(false)
   const [rejected, setRejected] = useState(0)
-  const replaceStartedAt = useRef(0)
-  const showCardRef = useRef(false)
 
   const accept = useCallback(
     (f: File) => {
-      if (showCardRef.current) {
-        replaceStartedAt.current = Date.now()
-        setReplacing(true)
-      }
       const existing = books?.map((b: { label: string }) => b.label) ?? []
       form.setFieldValue("file", f)
       form.setFieldValue("label", suggestUniqueLabel(f, existing))
@@ -70,13 +59,11 @@ export function useUploadFlow() {
     setCounted({ file: null, count: 0 })
     setError(null)
     setRejected(0)
-    setReplacing(false)
   }, [form])
 
   useEffect(() => {
     if (!file) {
       setCounted({ file: null, count: 0 })
-      setLoading(false)
       setError(null)
       return
     }
@@ -87,7 +74,6 @@ export function useUploadFlow() {
     }
     let cancelled = false
     setCounted({ file, count: 0 })
-    setLoading(true)
     setError(null)
     getPdfPageCount(file)
       .then((count) => {
@@ -99,10 +85,6 @@ export function useUploadFlow() {
       .catch((e: unknown) => {
         if (cancelled) return
         setError(e instanceof Error && e.name === "PasswordException" ? "password" : "damaged")
-        setReplacing(false)
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
       })
     return () => {
       cancelled = true
@@ -115,45 +97,17 @@ export function useUploadFlow() {
     return () => window.clearTimeout(id)
   }, [rejected])
 
-  const { overlay } = useFileDropZone({ accept: isPdfFile, onAccept: accept })
-
-  const hasPreview = !!(file && (pageCount > 0 || replacing) && !error)
-  const [accepted, setAccepted] = useState(hasPreview)
-  const [showCard, setShowCard] = useState(hasPreview)
-  useEffect(() => {
-    if (!hasPreview) {
-      setAccepted(false)
-      setShowCard(false)
-      return
-    }
-    setAccepted(true)
-    const id = window.setTimeout(() => setShowCard(true), 1000)
-    return () => window.clearTimeout(id)
-  }, [hasPreview])
-  showCardRef.current = showCard
+  const { overlay } = useFileDropZone({ accept: isPdfFile, onAccept: accept, enabled: active })
 
   const { pages } = usePdfPreviewPages({ file, mode: "first", width: 960, height: 1280 })
-  const newCoverReady = !!pages[0]
-  useEffect(() => {
-    if (!replacing || pageCount === 0 || !newCoverReady) return
-    const wait = Math.max(0, 650 - (Date.now() - replaceStartedAt.current))
-    const id = window.setTimeout(() => setReplacing(false), wait)
-    return () => window.clearTimeout(id)
-  }, [replacing, pageCount, newCoverReady])
-
   return {
     file,
     fileKey: file ? `${file.name}:${file.size}:${file.lastModified}` : "",
-    replacing,
     title: file ? suggestLabel(file) || file.name : "",
     pageCount,
     cover: pages[0] as string | undefined,
-    loading,
     error,
-    rejected: rejected > 0,
     rejectedAt: rejected,
-    accepted,
-    showCard,
     overlay,
     inputRef,
     openPicker: () => inputRef.current?.click(),
@@ -162,10 +116,7 @@ export function useUploadFlow() {
       if (picked) pick(picked)
       e.target.value = ""
     },
-    pick,
     clear,
-    onBack: () => navigate({ to: "/" }),
-    onContinue: () => hasPreview && setPhase("wizard"),
   }
 }
 

@@ -45,16 +45,27 @@ const READY_MS = 1100
  * stepper and, on wide screens, the list of screens beside it), then the progress and the end. The
  * steps already done (in the stepper) open again.
  */
-export function Guided({ onManual }: { onManual: () => void }) {
+/** `value` while `active`; while not, the last value it had when it was. */
+function useHeldWhile<T>(active: boolean, value: T): T {
+  const [held, setHeld] = useState(value)
+  if (active && held !== value) setHeld(value)
+  return active ? value : held
+}
+
+export function Guided({ onManual, active = true }: { onManual: () => void; active?: boolean }) {
   const { t } = useLingui()
   const form = useWizardForm()
-  const flow = useUploadFlow()
+  const flow = useUploadFlow({ active })
   const validFile = !!flow.file && flow.pageCount > 0 && !flow.error
   const [attempt, setAttempt] = useState(0)
   const [rejectedAt, setRejectedAt] = useState(0)
   const [view, setView] = useState<StepId | null>(null)
   const [revealed, setRevealed] = useState(false)
-  const run = useEngineRun(validFile ? flow.file : null, attempt)
+  // While the manual wizard is open over this flow, a PDF picked there must not start (and pay for)
+  // a reading here; the flow catches up when the user comes back.
+  const engineFile = useHeldWhile(active, validFile ? flow.file : null)
+  const fileKey = useHeldWhile(active, flow.fileKey)
+  const run = useEngineRun(engineFile, attempt)
   const rec = run.status === "done" ? run.rec : null
   const failure = run.status === "failed" ? run.failure : null
   const chat = useAnswers(rec)
@@ -71,7 +82,7 @@ export function Guided({ onManual }: { onManual: () => void }) {
     setView(null)
     chat.reset()
     create.reset()
-  }, [flow.fileKey])
+  }, [fileKey])
   useEffect(() => {
     if (flow.rejectedAt) setRejectedAt(flow.rejectedAt)
   }, [flow.rejectedAt])

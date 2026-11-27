@@ -17,6 +17,7 @@ export function GuidedFlow() {
     <>
         <div className={cn("flex h-full min-h-0 flex-1 flex-col", manual && "hidden")}>
           <Guided
+            active={!manual}
             onManual={() => {
               setPhase("wizard")
               setCurrentStep(0)
