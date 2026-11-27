@@ -2190,8 +2190,10 @@ export function rewriteImageUrls(
     }
   }
 
-  const normalizedHtml = serializeHtml(doc).replace(/(<img\b[^>]*?)\salt(?=[\s>])/g, "$1 alt=\"\"")
-  return { html: normalizedHtml, referencedImages }
+  // `emptyAttrs` writes an empty value as `alt=""` rather than a bare `alt`.
+  // Patching the serialized string instead cannot tell an attribute name from
+  // the same word inside another attribute's value or a script (#1109).
+  return { html: serializeHtml(doc, { emptyAttrs: true }), referencedImages }
 }
 
 /**
