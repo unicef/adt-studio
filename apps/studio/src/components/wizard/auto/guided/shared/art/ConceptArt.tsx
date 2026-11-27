@@ -236,12 +236,12 @@ export function factArt(fact: SetupBookFactId, value: string): ReactNode | null 
 }
 
 /** The language picture: the illustration with the book's language on it (the drawing until it loads). */
-export function LanguagePicture({ code, outputs }: { code: string | null; outputs: string[] }) {
+export function LanguagePicture({ code, outputs, codeBadge = true }: { code: string | null; outputs: string[]; codeBadge?: boolean }) {
   return (
     <span className="relative grid h-full w-full place-items-center">
       <Illustration name="language" fallback={<LanguageArt code={code} outputs={outputs} />} />
       <span className="absolute bottom-[6%] left-[6%] flex flex-wrap gap-1">
-        <span className="rounded-full bg-white px-2.5 py-0.5 text-[13px] font-bold uppercase text-brand-700 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-800 dark:text-brand-300 dark:ring-zinc-700">{code ?? "?"}</span>
+        {codeBadge && <span className="rounded-full bg-white px-2.5 py-0.5 text-[13px] font-bold uppercase text-brand-700 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-800 dark:text-brand-300 dark:ring-zinc-700">{code ?? "?"}</span>}
         {outputs.slice(0, 3).map((o) => (
           <span key={o} className="rounded-full bg-white/90 px-2 py-0.5 text-[12px] font-semibold uppercase text-muted-foreground shadow-sm ring-1 ring-slate-200 dark:bg-zinc-800/90 dark:ring-zinc-700">
             + {o}

@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from "react"
+import { useContext, useEffect, useRef, useState, type ReactNode } from "react"
+import { LanguageLookContext } from "./languageLook"
 import { Check, Languages, Search } from "lucide-react"
 import { useStore } from "@tanstack/react-form"
 import { msg } from "@lingui/core/macro"
@@ -168,6 +169,43 @@ function VarietyChips({ code, found, source, onPick }: { code: string; found: st
   )
 }
 
+/** The language's name in itself ("English", "Português (Brasil)"), the way a speaker would know it. */
+function endonym(code: string): string {
+  try {
+    const name = new Intl.DisplayNames([code], { type: "language", languageDisplay: "standard" }).of(code) ?? code
+    return name.charAt(0).toLocaleUpperCase(code) + name.slice(1)
+  } catch {
+    return code
+  }
+}
+
+/** The language as a big mark: its code ("EN"), the variety's country code under it ("US"). */
+function CodeMark({ code, size }: { code: string | null; size: "stamp" | "tile" }) {
+  const base = code ? getBaseLanguage(code).toUpperCase() : "?"
+  const country = region(code)?.toUpperCase()
+  return (
+    <span className={cn("flex shrink-0 flex-col items-center justify-center bg-brand-50 text-brand-700 ring-1 ring-brand-200", size === "tile" ? "size-[72px] rounded-[20px] lg:size-[84px]" : "size-[64px] rounded-[18px]")}>
+      <span className={cn("font-extrabold leading-none tracking-[0.02em]", size === "tile" ? "text-[28px] lg:text-[32px]" : "text-[24px]")}>{base}</span>
+      {country && <span className="mt-1 rounded-full bg-brand-600 px-1.5 text-[10.5px] font-bold leading-[16px] text-white">{country}</span>}
+    </span>
+  )
+}
+
+/** The stamp over the illustration: the code mark beside the language's own name. */
+function LanguageStamp({ code }: { code: string | null }) {
+  return (
+    <span className="relative z-10 -mt-3 flex shrink-0 items-center gap-3 rounded-[22px] bg-card py-2 pl-2 pr-5 shadow-[0_14px_34px_-16px_rgba(15,23,42,0.45)] ring-1 ring-border animate-in fade-in slide-in-from-bottom-2 duration-500 motion-reduce:animate-none">
+      <CodeMark code={code} size="stamp" />
+      <span className="text-left text-[17px] font-semibold leading-tight">{code ? endonym(code) : "?"}</span>
+    </span>
+  )
+}
+
+/** The variety choice in its own card, so it reads as part of the answer. */
+function VarietyCard({ children }: { children: ReactNode }) {
+  return <div className="rounded-[18px] bg-[var(--lc-bubble)] p-4 shadow-[var(--lc-shadow)] lg:p-5">{children}</div>
+}
+
 /**
  * Screen 2 · Language: the language found in the book, as a sure pick, which the user can change.
  * The editing language is left empty unless the user picks another one, so a wrong guess can never
@@ -187,15 +225,45 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
   const outputs = useStore(form.store, (s) => s.values.outputLanguages)
   const shown = picked ?? found
   const source = rec.language?.source
+  const look = useContext(LanguageLookContext)
+  const name = shown ? nameOf(shown, true) : <Trans>The book&apos;s own language</Trans>
+  const varieties = shown && !changed ? <VarietyChips code={shown} found={found} source={source} onPick={(code) => form.setFieldValue("editingLanguage", code)} /> : null
   return (
     <SurePick
       picture={
-        <span className={`grid shrink-0 place-items-center p-3 ${PICTURE}`}>
-          <LanguagePicture code={shown ? getBaseLanguage(shown) : null} outputs={outputs.map(getBaseLanguage)} />
-        </span>
+        look === "tile" ? null : (
+          look === "stamp" ? (
+            // The illustration, smaller, with the stamp under it (overlapping its foot), both in view.
+            <span className={`flex shrink-0 flex-col items-center justify-center p-2 ${PICTURE}`}>
+              <span className="grid min-h-0 w-full flex-1 place-items-center [&_img]:max-h-full">
+                <LanguagePicture code={shown ? getBaseLanguage(shown) : null} outputs={outputs.map(getBaseLanguage)} codeBadge={false} />
+              </span>
+              <LanguageStamp code={shown} />
+            </span>
+          ) : (
+            <span className={`relative grid shrink-0 place-items-center p-3 ${PICTURE}`}>
+              <LanguagePicture code={shown ? getBaseLanguage(shown) : null} outputs={outputs.map(getBaseLanguage)} />
+            </span>
+          )
+        )
       }
+      pictureSize={look === "stamp" ? "compact" : "full"}
       label={<Trans>Language of the book</Trans>}
-      title={shown ? nameOf(shown, true) : <Trans>The book&apos;s own language</Trans>}
+      title={
+        look === "tile" ? (
+          <span className="flex items-center gap-4">
+            <CodeMark code={shown} size="tile" />
+            <span className="flex flex-col">
+              {name}
+              {/* Its own name, when that reads differently from the interface's ("Português (Brasil)" under "Portuguese (Brazil)"). */}
+              {shown && endonym(shown).toLocaleLowerCase() !== String(nameOf(shown, true)).toLocaleLowerCase() && <span className="text-[15px] font-normal tracking-normal text-muted-foreground lg:text-[16px]">{endonym(shown)}</span>}
+            </span>
+          </span>
+        ) : (
+          name
+        )
+      }
+      after={look !== "now" && varieties ? <VarietyCard>{varieties}</VarietyCard> : undefined}
       hint={
         changed ? (
           <Trans>Your pick. The text is translated into it.</Trans>
@@ -211,10 +279,12 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
       }
       result={
         <span className="flex flex-col items-start gap-1">
-          <span>
-            <Trans>The book stays in this language.</Trans>
-          </span>
-          {shown && !changed && <VarietyChips code={shown} found={found} source={source} onPick={(code) => form.setFieldValue("editingLanguage", code)} />}
+          {look === "now" && (
+            <span>
+              <Trans>The book stays in this language.</Trans>
+            </span>
+          )}
+          {look === "now" && varieties}
           <LanguageHelp open={help} onOpenChange={setHelp} found={found ? nameOf(found) : null} />
         </span>
       }
