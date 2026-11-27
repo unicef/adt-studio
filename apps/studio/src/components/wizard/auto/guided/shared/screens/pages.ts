@@ -29,14 +29,23 @@ export function useScreenImages(file: File | null | undefined, pages: number[]):
 export function useDescribe() {
   const { t, i18n } = useLingui()
   return (shown: Shown, device: Device, pages: number[]) => {
+    // Whole sentences per case (not "your {where}" fragments), so every language can make the words agree.
     const on = device === "desktop" ? t`on a computer` : t`on a phone`
-    const where = pages.length === 2 ? t`pages ${pages[0]} and ${pages[1]} joined into one screen` : t`page ${pages[0]}`
-    if (shown.renderStrategy === "raw") return t`Your ${where} as printed, ${on}, while we read the book.`
+    const [a, b] = pages
+    const two = pages.length === 2
+    if (shown.renderStrategy === "raw") return two ? t`Pages ${a} and ${b} as printed, joined into one screen ${on}, while I read the book.` : t`Page ${a} as printed, ${on}, while I read the book.`
     const choice = RENDER_STRATEGIES.find((s) => s.id === shown.renderStrategy)
     const strategy = choice ? i18n._(choice.title) : shown.renderStrategy
-    const sections = shown.sectioningMode === "dynamic" ? t`split into parts` : t`kept whole`
+    const split = shown.sectioningMode === "dynamic"
+    const picture = two
+      ? split
+        ? t`Pages ${a} and ${b} joined into one screen ${on}, laid out as “${strategy}” and split into parts.`
+        : t`Pages ${a} and ${b} joined into one screen ${on}, laid out as “${strategy}” and kept whole.`
+      : split
+        ? t`Page ${a} ${on}, laid out as “${strategy}” and split into parts.`
+        : t`Page ${a} ${on}, laid out as “${strategy}” and kept whole.`
     const sentences = [
-      t`Illustration of your ${where} ${on}, laid out with ${strategy}, ${sections}.`,
+      picture,
       shown.activitiesGenerator ? t`It has an interactive activity.` : null,
       shown.figureExtraction === "auto" ? t`Pictures are kept together with their labels.` : null,
     ]

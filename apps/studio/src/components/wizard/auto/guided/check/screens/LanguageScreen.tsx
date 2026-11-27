@@ -5,7 +5,8 @@ import { msg } from "@lingui/core/macro"
 import { Trans, useLingui } from "@lingui/react/macro"
 import type { SetupRecommendation } from "@adt/types"
 import { LanguagePicker } from "@/components/LanguagePicker"
-import { getBaseLanguage, getDisplayName } from "@/lib/languages"
+import { getBaseLanguage } from "@/lib/languages"
+import { useLanguageName } from "../../shared/languageName"
 import { useWizardForm } from "../../../../core/wizardForm"
 import { bookLanguage } from "../screens"
 import { LanguagePicture } from "../../shared/art/ConceptArt"
@@ -38,6 +39,8 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
   // The assistant's bubble offers this explanation ("Not sure? I can explain ...").
   useExplain("languages", () => setHelp(true))
   const { found, picked, changed } = useBookLanguage(rec)
+  const nameOf = useLanguageName()
+  const foundName = found ? nameOf(found) : ""
   const outputs = useStore(form.store, (s) => s.values.outputLanguages)
   const shown = changed ? picked : found
   const source = rec.language?.source
@@ -49,7 +52,7 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
         </span>
       }
       label={<Trans>Language of the book</Trans>}
-      title={shown ? getDisplayName(shown) : <Trans>The book&apos;s own language</Trans>}
+      title={shown ? nameOf(shown, true) : <Trans>The book&apos;s own language</Trans>}
       hint={
         changed ? (
           <Trans>Your pick. The text is translated into it.</Trans>
@@ -66,7 +69,7 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
           <span>
             <Trans>The book stays in this language.</Trans>
           </span>
-          <LanguageHelp open={help} onOpenChange={setHelp} found={found ? getDisplayName(found) : null} />
+          <LanguageHelp open={help} onOpenChange={setHelp} found={found ? nameOf(found) : null} />
         </span>
       }
       changed={changed}
@@ -83,7 +86,7 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
           <LanguagePicker label={i18n._(PICKER_LABEL)} selected={picked ?? ""} onSelect={(code) => form.setFieldValue("editingLanguage", code)} size="default" />
           {picked && (
             <button type="button" onClick={() => form.setFieldValue("editingLanguage", "")} className="lc-link self-start px-1 text-[13.5px] font-medium">
-              {found ? <Trans>Keep {getDisplayName(found)}</Trans> : <Trans>Keep the book&apos;s own language</Trans>}
+              {found ? <Trans>Keep {foundName}</Trans> : <Trans>Keep the book&apos;s own language</Trans>}
             </button>
           )}
         </LangPart>

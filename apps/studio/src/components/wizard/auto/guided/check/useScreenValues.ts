@@ -1,7 +1,7 @@
 import { useStore } from "@tanstack/react-form"
 import { useLingui } from "@lingui/react/macro"
 import type { SetupRecommendation } from "@adt/types"
-import { getDisplayName } from "@/lib/languages"
+import { languageName } from "../shared/languageName"
 import { useWizardForm } from "../../../core/wizardForm"
 import type { Derived } from "../shared/useAnswers"
 import { plainTitle } from "../shared/words"
@@ -38,7 +38,7 @@ export function useScreenValues(rec: SetupRecommendation | null, derived: Derive
     .filter(Boolean)
     .join(" · ")
   const found = bookLanguage(rec)
-  const language = editing ? getDisplayName(editing) : found ? getDisplayName(found) : t`The book's own`
+  const language = editing ? languageName(editing, i18n.locale, true) : found ? languageName(found, i18n.locale, true) : t`The book's own`
   // eslint-disable-next-line lingui/no-unlocalized-strings -- setting ids
   return { kind: plain("preset"), language, look: plain("renderStrategy"), pages, activities, name: "" }
 }

@@ -1,7 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro"
 import { CircleHelp } from "lucide-react"
 import { askExplain, useExplainable } from "../shared/explain"
-import { getDisplayName } from "@/lib/languages"
+import { useLanguageName } from "../shared/languageName"
 import type { SetupRecommendation } from "@adt/types"
 import { RULE_WHY } from "../../engine/words"
 import type { Derived } from "../shared/useAnswers"
@@ -42,8 +42,9 @@ function ExplainOffer() {
 
 function LanguageSays({ rec }: { rec: SetupRecommendation }) {
   const { found, picked, changed } = useBookLanguage(rec)
+  const nameOf = useLanguageName()
   if (changed && picked) {
-    const name = getDisplayName(picked)
+    const name = nameOf(picked)
     return (
       <p>
         <Trans>I&apos;ll translate the text into {name}.</Trans>
@@ -56,7 +57,7 @@ function LanguageSays({ rec }: { rec: SetupRecommendation }) {
         <Trans>I couldn&apos;t tell the book&apos;s language from the PDF, so I&apos;ll keep whatever language it&apos;s in.</Trans>
       </p>
     )
-  const name = getDisplayName(found)
+  const name = nameOf(found)
   return (
     <p>
       <Trans>
