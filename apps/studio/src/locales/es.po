@@ -5266,7 +5266,7 @@ msgid "Figure 5.1 - The water cycle: evaporation from oceans, condensation into 
 msgstr "Figura 5.1 - El ciclo del agua: evaporación de los océanos, condensación en nubes, precipitación como lluvia y escorrentía de vuelta al mar."
 
 msgid "Figure Extraction"
-msgstr "Extracción de figuras"
+msgstr "Extracción de Figuras"
 
 msgid "File actions"
 msgstr "Acciones del archivo"
@@ -9206,7 +9206,7 @@ msgid "Page coverage"
 msgstr "Cobertura de páginas"
 
 msgid "Page Grouping"
-msgstr "Agrupación de páginas"
+msgstr "Agrupación de Páginas"
 
 msgid "Page Grouping Mode"
 msgstr "Modo de Agrupación de Páginas"
@@ -9468,7 +9468,7 @@ msgid "People read it to find information: a report, an article, a manual or a g
 msgstr "Se lee para buscar información: un informe, un artículo, un manual o una guía. Sin tareas para el lector."
 
 msgid "Per Page"
-msgstr "Por página"
+msgstr "Por Página"
 
 msgid "Per-Sentence"
 msgstr "Por-Oración"
@@ -11386,7 +11386,7 @@ msgid "Section label"
 msgstr "Etiqueta de la sección"
 
 msgid "Section Mode"
-msgstr "Modo de sección"
+msgstr "Modo de Sección"
 
 msgid "Section not found."
 msgstr "Sección no encontrada."
@@ -12004,7 +12004,7 @@ msgid "Single Mode"
 msgstr "Modo Único"
 
 msgid "Single Page"
-msgstr "Página única"
+msgstr "Página Única"
 
 msgid "Single quiz"
 msgstr "Cuestionario único"
@@ -12297,7 +12297,7 @@ msgid "Spot gone"
 msgstr "El punto ya no está"
 
 msgid "Spread"
-msgstr "Doble página"
+msgstr "Extensión"
 
 msgid "Spread {left}–{right}"
 msgstr "Doble página {left}–{right}"

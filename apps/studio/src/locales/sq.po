@@ -1529,7 +1529,7 @@ msgid "Add book"
 msgstr "Shto libër"
 
 msgid "Add Book"
-msgstr "Shto libër"
+msgstr "Shto Libër"
 
 msgid "Add Book steps"
 msgstr "Hapat e shtimit të librit"
@@ -4495,7 +4495,7 @@ msgid "Drop in a textbook PDF and we'll extract pages, generate accessible capti
 msgstr "Ngarko një PDF të një teksti shkollor dhe ne do të nxjerrim faqet, do të gjenerojmë përshkrime të arritshme, do të ndërtojmë storyboard-e dhe do të montojmë kuize — çdo hap i inspektueshëm, çdo rezultat i versionuar."
 
 msgid "Drop PDF here"
-msgstr "Lësho PDF-në këtu"
+msgstr "Hidh PDF-in këtu"
 
 msgid "Drop the bundle on any static host to serve the book as a website."
 msgstr "Hidh paketat në çdo host statik për të shërbyer librin si faqe interneti."
@@ -9470,7 +9470,7 @@ msgid "People read it to find information: a report, an article, a manual or a g
 msgstr "Njerëzit e lexojnë për të gjetur informacion: një raport, një artikull, një manual ose një udhëzues. Pa detyra për lexuesin."
 
 msgid "Per Page"
-msgstr "Për faqe"
+msgstr "Për Faqe"
 
 msgid "Per-Sentence"
 msgstr "Për-Fjali"
@@ -9733,7 +9733,7 @@ msgid "Preserves the source PDF's exact page layout — images and positioned te
 msgstr "Ruan paraqitjen e saktë të faqes nga PDF-ja burimore — imazhet dhe teksti i vendosur renderuhen në vend."
 
 msgid "Preset"
-msgstr "Paracaktim"
+msgstr "Konfigurim paraprak"
 
 msgid "Presets add recommendations and specific settings for your use case. You still choose each option step by step, and you can go back to select a different preset at any time."
 msgstr "Konfigurimet paraprake shtojnë rekomandime dhe cilësime specifike për rastin tuaj të përdorimit. Ju ende zgjidhni çdo opsion hap pas hapi dhe mund të ktheheni për të zgjedhur një konfigurim tjetër në çdo kohë."
@@ -10547,7 +10547,7 @@ msgid "Render Reasoning"
 msgstr "Arsyetimi i Renderimit"
 
 msgid "Render Strategy"
-msgstr "Strategjia e renderimit"
+msgstr "Strategjia e Renderimit"
 
 msgid "Rendering Prompt"
 msgstr "Kërkesa e Renderimit"
@@ -10586,7 +10586,7 @@ msgid "Replace image"
 msgstr "Zëvendëso imazhin"
 
 msgid "Replace PDF"
-msgstr "Zëvendëso PDF-në"
+msgstr "Zëvendëso PDF-in"
 
 msgid "Replace protected quizzes"
 msgstr "Zëvendëso kuizet e mbrojtura"
@@ -11388,7 +11388,7 @@ msgid "Section label"
 msgstr "Etiketë seksioni"
 
 msgid "Section Mode"
-msgstr "Mënyra e seksionimit"
+msgstr "Modaliteti i Seksionit"
 
 msgid "Section not found."
 msgstr "Seksioni nuk u gjet."
@@ -12006,7 +12006,7 @@ msgid "Single Mode"
 msgstr "Modalitet i Vetëm"
 
 msgid "Single Page"
-msgstr "Faqe e vetme"
+msgstr "Faqe e Vetme"
 
 msgid "Single quiz"
 msgstr "Quiz i vetëm"
@@ -12299,7 +12299,7 @@ msgid "Spot gone"
 msgstr "Vendi mungon"
 
 msgid "Spread"
-msgstr "Faqe e përbashkët"
+msgstr "Shpërndarje"
 
 msgid "Spread {left}–{right}"
 msgstr "Faqe e përbashkët {left}–{right}"
