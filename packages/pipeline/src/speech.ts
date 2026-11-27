@@ -1,9 +1,4 @@
 import { inputSignature } from "./output-freshness.js"
-
-/** Active membership owns context; ID prefixes are only a legacy fallback. */
-export function speechPageId(id: string, pageIds: readonly string[] = []): string | undefined {
-  return id.endsWith("_easy_read") ? undefined : pageIds[0] ?? /^(pg\d+)/.exec(id)?.[1]
-}
 import { storeImmutableAsset } from "@adt/storage"
 import fs from "node:fs"
 import path from "node:path"
@@ -16,9 +11,12 @@ import {
   DEFAULT_ELEVENLABS_VOICE_ID,
   ELEVENLABS_SHIPPED_VOICE_NAMES,
   isTtsExcluded,
+  EMPTY_AUTHORED_ELEMENT_AUDIO_IDS,
+  isAuthoredElementAudioId,
   normalizeVoiceMapEntry,
   voiceSlotEntryId,
   parseVoicesConfigEntries,
+  type AuthoredElementAudioIds,
   type SpeechConfig,
   type SpeechFileEntry,
   type TTSProviderConfig,
@@ -42,8 +40,37 @@ import {
   transcribeWithWhisper,
 } from "@adt/llm"
 import { getBaseLanguage, normalizeLocale } from "./language-context.js"
-import { computeEntryTimeRanges, buildPageTranscript, type BatchEntry } from "./speech-batch.js"
+import { computeEntryTimeRanges, buildPageTranscript, supportsPageBatchedSpeech, type BatchEntry } from "./speech-batch.js"
 import { sliceWav, wavDurationSeconds, findQuietCutSeconds } from "./audio-wav.js"
+
+/** Active membership owns context; ID prefixes are only a legacy fallback. */
+export function speechPageId(
+  id: string,
+  pageIds: readonly string[] = [],
+  authoredElementAudioIds: AuthoredElementAudioIds = EMPTY_AUTHORED_ELEMENT_AUDIO_IDS,
+): string | undefined {
+  return id.endsWith("_easy_read") || isAuthoredElementAudioId(id, authoredElementAudioIds)
+    ? undefined
+    : pageIds[0] ?? /^(pg\d+)/.exec(id)?.[1]
+}
+
+/**
+ * Page batching is an explicit provider/config decision. `speechPageId` owns
+ * the id-level exclusion (`_easy_read`, `_audio`), so this predicate only
+ * decides whether a resolved page may take the page-batch path.
+ */
+export function isPageBatchableSpeech(provider: string, language: string, speechConfig?: SpeechConfig): boolean {
+  return speechConfig?.batch_by_page === true && provider === "gemini" && supportsPageBatchedSpeech(language)
+}
+
+export function isBatchableSpeechEntry(
+  pageId: string | undefined,
+  provider: string,
+  language: string,
+  speechConfig?: SpeechConfig,
+): boolean {
+  return pageId !== undefined && isPageBatchableSpeech(provider, language, speechConfig)
+}
 
 // ---------------------------------------------------------------------------
 // Emoji stripping
@@ -902,12 +929,15 @@ export function findAdjacentSpeechText(
   index: number,
   direction: 1 | -1,
   speechConfig: Parameters<typeof isTtsExcluded>[1],
+  authoredElementAudioIds: AuthoredElementAudioIds = EMPTY_AUTHORED_ELEMENT_AUDIO_IDS,
 ): string | undefined {
+  if (isAuthoredElementAudioId(entries[index]?.id ?? "", authoredElementAudioIds)) return undefined
   const wantEasyRead = EASY_READ_ID_RE.test(entries[index]?.id ?? "")
   for (let i = index + direction; i >= 0 && i < entries.length; i += direction) {
     const entry = entries[i]
+    if (isAuthoredElementAudioId(entry.id, authoredElementAudioIds)) continue
     if (EASY_READ_ID_RE.test(entry.id) !== wantEasyRead) continue
-    if (isTtsExcluded(entry.id, speechConfig)) continue
+    if (isTtsExcluded(entry.id, speechConfig, authoredElementAudioIds)) continue
     const text = stripEmojis(entry.text).trim()
     if (isSpeakableText(text)) return text
   }

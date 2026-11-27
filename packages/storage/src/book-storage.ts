@@ -6,7 +6,7 @@ import path from "node:path"
 import type sqlite from "node-sqlite3-wasm"
 import type { ExtractedPage, ExtractedImage } from "@adt/pdf"
 import type { LlmLogEntry } from "@adt/llm"
-import { TranslatedImageAsset, imageFileExtension, parseBookLabel, CATALOG_OUTPUT_NODES, STAGE_OUTPUT_NODES, PIPELINE } from "@adt/types"
+import { TranslatedImageAsset, imageFileExtension, parseBookLabel, CATALOG_OUTPUT_NODES, ELEMENT_AUDIO_NODE, STAGE_OUTPUT_NODES, PIPELINE } from "@adt/types"
 import type { Storage, PageData, ImageData, NodeDataRow, CroppedImageInput, SegmentedImageInput, SignLanguageVideoData, TranslatedImageInput } from "./storage.js"
 import { assertRecoveryCopyReady, openBookDb } from "./db.js"
 import { readCurrentNodeRow } from "./node-current.js"
@@ -103,6 +103,11 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
 
     clearNodesByType(nodes: string[], itemId?: string): void {
       if (nodes.length === 0) return
+      // Authored content has no catalog home: never clear it through any list,
+      // including a named list assembled elsewhere (SPEC-0014, ADR-028).
+      if (nodes.includes(ELEMENT_AUDIO_NODE)) {
+        throw new Error(`${ELEMENT_AUDIO_NODE} is authored content and cannot be cleared`)
+      }
       if (STAGE_OUTPUT_NODES.sectioning.some((node) => nodes.includes(node))) {
         invalidateSectioningLifecycle(paths.bookDir, PIPELINE.find((stage) => stage.name === "sectioning")!.steps.map((step) => step.name))
       }

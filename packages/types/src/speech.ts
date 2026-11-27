@@ -1,6 +1,11 @@
 import { OutputMetadata } from "./output-freshness.js"
 import { z } from "zod"
 import { TextCatalogCategory, getTextCatalogCategory } from "./text-catalog.js"
+import {
+  EMPTY_AUTHORED_ELEMENT_AUDIO_IDS,
+  isAuthoredElementAudioId,
+  type AuthoredElementAudioIds,
+} from "./element-audio.js"
 
 export const TTSRateLimitConfig = z.object({
   /**
@@ -299,16 +304,21 @@ const EASY_READ_SUFFIX_RE = /_easy_read$/
 export function isTtsExcluded(
   textId: string,
   config?: TtsExclusionConfig | null,
+  authoredElementAudioIds: AuthoredElementAudioIds = EMPTY_AUTHORED_ELEMENT_AUDIO_IDS,
 ): boolean {
   if (!config) return false
   const baseId = textId.replace(EASY_READ_SUFFIX_RE, "")
   if (config.excluded_text_ids?.some((id) => id === textId || id === baseId)) {
     return true
   }
+  // Authored element audio is its own surface: muting captions/text must not
+  // silence it. An explicit excluded_text_ids entry still wins above. The
+  // artifact set, not the id suffix, decides what is authored.
+  if (isAuthoredElementAudioId(textId, authoredElementAudioIds)) return false
   const categories = config.excluded_categories
   if (!categories || categories.length === 0) return false
-  if (categories.includes(getTextCatalogCategory(textId))) return true
-  return baseId !== textId && categories.includes(getTextCatalogCategory(baseId))
+  if (categories.includes(getTextCatalogCategory(textId, authoredElementAudioIds))) return true
+  return baseId !== textId && categories.includes(getTextCatalogCategory(baseId, authoredElementAudioIds))
 }
 
 export const SpeechFileEntry = z.object({

@@ -128,6 +128,7 @@ import {
   ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES,
   OPENAI_TTS_MAX_RETRIES,
 } from "./speech.js"
+import { collectElementAudioTextIds } from "./element-audio-ids.js"
 import { packageAdtWeb } from "./packaging/web.js"
 import { processFixedLayoutPages, isFixedLayoutBook } from "./fixed-layout-rendering.js"
 import { getRenderSectioning, assertReflowableSectioning } from "./render-sectioning.js"
@@ -1013,6 +1014,7 @@ async function runAdmittedFullPipeline(
       const outputLanguages = getOutputLanguages(config, language)
       const sourceDisplayEntries = buildOutputSources(storage, config).entries
       if (sourceDisplayEntries.length === 0) return
+      const authoredElementAudioIds = collectElementAudioTextIds(storage)
 
       const preparationConfig = buildCoreTtsPreparationConfig(config)
       preparationConfig.promptSignature = promptEngine.fingerprint(preparationConfig.promptName, { modelId: preparationConfig.modelId })
@@ -1028,6 +1030,7 @@ async function runAdmittedFullPipeline(
         profile: resolveCoreTtsProfile(language, profiles),
         llmModel: model,
         previous: getCoreTtsCatalog(storage, language),
+        authoredElementAudioIds,
       })
       if (inputSignature(getCoreTtsCatalog(storage, language)?.entries) !== inputSignature(sourceCatalog.entries)) storage.putNodeData("core-tts-catalog", language, sourceCatalog)
       const sourceContext = buildCoreTtsSourceContext(
@@ -1055,6 +1058,7 @@ async function runAdmittedFullPipeline(
           llmModel: model,
           previous: getCoreTtsCatalog(storage, lang),
           sourceContext,
+          authoredElementAudioIds,
         })
         if (inputSignature(getCoreTtsCatalog(storage, lang)?.entries) !== inputSignature(targetCatalog.entries)) storage.putNodeData("core-tts-catalog", lang, targetCatalog)
         completed++
@@ -1138,6 +1142,7 @@ async function runAdmittedFullPipeline(
       const workItems: TTSWorkItem[] = []
       const resultsByLang = new Map<string, SpeechFileEntry[]>()
       for (const lang of outputLanguages) resultsByLang.set(lang, [])
+      const authoredElementAudioIds = collectElementAudioTextIds(storage)
       for (const lang of outputLanguages) {
         const entries = getReadyCoreTtsEntries(storage, lang)
         const legacyLang = lang.replace("-", "_")
@@ -1164,7 +1169,7 @@ async function runAdmittedFullPipeline(
           )
         for (let entryIndex = 0; entryIndex < entries.length; entryIndex++) {
           const entry = entries[entryIndex]
-          if (isTtsExcluded(entry.id, config.speech)) continue
+          if (isTtsExcluded(entry.id, config.speech, authoredElementAudioIds)) continue
 
           for (const { slot, profile } of configuredVoices) {
             const {
@@ -1200,11 +1205,11 @@ async function runAdmittedFullPipeline(
             // so the shared cache key (computeSpeechCacheKey) stays in sync.
             const previousText =
               provider === "elevenlabs" && config.speech?.elevenlabs_use_context
-                ? findAdjacentSpeechText(entries, entryIndex, -1, config.speech)
+                ? findAdjacentSpeechText(entries, entryIndex, -1, config.speech, authoredElementAudioIds)
                 : undefined
             const nextText =
               provider === "elevenlabs" && config.speech?.elevenlabs_use_context
-                ? findAdjacentSpeechText(entries, entryIndex, 1, config.speech)
+                ? findAdjacentSpeechText(entries, entryIndex, 1, config.speech, authoredElementAudioIds)
                 : undefined
             workItems.push({
               textId: entry.id,
