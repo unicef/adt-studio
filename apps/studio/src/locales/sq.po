@@ -7639,8 +7639,8 @@ msgstr "I moderuar"
 msgid "Monospace"
 msgstr "Monospace"
 
-msgid "More"
-msgstr "Më shumë"
+msgid "More ({hidden})"
+msgstr "Më shumë ({hidden})"
 
 #. placeholder {0}: publication.title
 msgid "More actions for {0}"
@@ -8463,6 +8463,9 @@ msgstr "Nuk ka filluar"
 
 msgid "Not started yet"
 msgstr "Nuk ka filluar ende"
+
+msgid "Not sure"
+msgstr "Nuk jam i sigurt"
 
 msgid "Not sure what this changes?"
 msgstr "Nuk e dini çfarë ndryshon kjo?"
@@ -11669,6 +11672,9 @@ msgstr "Vendosni çelësin tuaj API për gjenerim automatik"
 
 msgid "Sets the default layout used when a section has no specific strategy assigned."
 msgstr "Vendos paraqitjen e paracaktuar që përdoret kur një seksion nuk ka strategji specifike të caktuar."
+
+msgid "Sets the spelling and the voices. The book isn't translated."
+msgstr "Përcakton drejtshkrimin dhe zërat. Libri nuk përkthehet."
 
 msgid "Setting up"
 msgstr "Duke vendosur"
@@ -15212,8 +15218,8 @@ msgstr "PDF-ja juaj është e skanuar (fjalët e saj nuk mund të zgjidhen), nda
 msgid "Your pick"
 msgstr "Zgjedhja juaj"
 
-msgid "Your pick of variety. The book isn't translated."
-msgstr "Varianti i zgjedhur nga ju. Libri nuk përkthehet."
+msgid "Your pick."
+msgstr "Zgjedhja juaj."
 
 msgid "Your pick. The text is translated into it."
 msgstr "Zgjedhja juaj. Teksti përkthehet në të."

@@ -7637,8 +7637,8 @@ msgstr "Moderate"
 msgid "Monospace"
 msgstr "Monospace"
 
-msgid "More"
-msgstr "More"
+msgid "More ({hidden})"
+msgstr "More ({hidden})"
 
 #. placeholder {0}: publication.title
 msgid "More actions for {0}"
@@ -8461,6 +8461,9 @@ msgstr "Not started"
 
 msgid "Not started yet"
 msgstr "Not started yet"
+
+msgid "Not sure"
+msgstr "Not sure"
 
 msgid "Not sure what this changes?"
 msgstr "Not sure what this changes?"
@@ -11667,6 +11670,9 @@ msgstr "Set your API key to auto-generate"
 
 msgid "Sets the default layout used when a section has no specific strategy assigned."
 msgstr "Sets the default layout used when a section has no specific strategy assigned."
+
+msgid "Sets the spelling and the voices. The book isn't translated."
+msgstr "Sets the spelling and the voices. The book isn't translated."
 
 msgid "Setting up"
 msgstr "Setting up"
@@ -15210,8 +15216,8 @@ msgstr "Your PDF is a scan (its words can't be selected), so there are no labels
 msgid "Your pick"
 msgstr "Your pick"
 
-msgid "Your pick of variety. The book isn't translated."
-msgstr "Your pick of variety. The book isn't translated."
+msgid "Your pick."
+msgstr "Your pick."
 
 msgid "Your pick. The text is translated into it."
 msgstr "Your pick. The text is translated into it."

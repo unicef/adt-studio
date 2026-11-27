@@ -7637,8 +7637,8 @@ msgstr "Moderado"
 msgid "Monospace"
 msgstr "Monoespaçada"
 
-msgid "More"
-msgstr "Mais"
+msgid "More ({hidden})"
+msgstr "Mais ({hidden})"
 
 #. placeholder {0}: publication.title
 msgid "More actions for {0}"
@@ -8461,6 +8461,9 @@ msgstr "Não iniciado"
 
 msgid "Not started yet"
 msgstr "Ainda não iniciado"
+
+msgid "Not sure"
+msgstr "Não sei"
 
 msgid "Not sure what this changes?"
 msgstr "Não sabe o que isso muda?"
@@ -11667,6 +11670,9 @@ msgstr "Defina sua chave de API para gerar automaticamente"
 
 msgid "Sets the default layout used when a section has no specific strategy assigned."
 msgstr "Define o layout padrão usado quando uma seção não tem estratégia específica atribuída."
+
+msgid "Sets the spelling and the voices. The book isn't translated."
+msgstr "Define a ortografia e as vozes. O livro não é traduzido."
 
 msgid "Setting up"
 msgstr "Configurando"
@@ -15210,8 +15216,8 @@ msgstr "Seu PDF é digitalizado (o texto não pode ser selecionado), então não
 msgid "Your pick"
 msgstr "Sua escolha"
 
-msgid "Your pick of variety. The book isn't translated."
-msgstr "Variante escolhida por você. O livro não é traduzido."
+msgid "Your pick."
+msgstr "Escolha sua."
 
 msgid "Your pick. The text is translated into it."
 msgstr "Sua escolha. O texto é traduzido para ele."

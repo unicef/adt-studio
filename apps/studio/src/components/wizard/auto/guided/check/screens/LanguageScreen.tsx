@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react"
-import { Languages, Search } from "lucide-react"
+import { Check, Languages, Search } from "lucide-react"
 import { useStore } from "@tanstack/react-form"
 import { msg } from "@lingui/core/macro"
 import { Trans, useLingui } from "@lingui/react/macro"
@@ -35,30 +35,46 @@ export function useBookLanguage(rec: SetupRecommendation): { found: string | nul
 
 const region = (code: string | null) => (code && code.includes("-") ? code.split("-")[1]!.toLowerCase() : null)
 
-/** One variety as a chip: its country, pressed when it's the one in use, "from the pages" when the reading found it. */
-function VarietyChip({ country, on, found, onPick }: { country: string; on: boolean; found?: ReactNode; onPick: () => void }) {
-  const { i18n } = useLingui()
+/** One variety: a radio styled as a chip. Chosen, it fills with the brand colour and shows a tick. */
+function VarietyChip({ label, on, note, onPick }: { label: ReactNode; on: boolean; note?: ReactNode; onPick: () => void }) {
   return (
     <button
       type="button"
-      aria-pressed={on}
+      role="radio"
+      aria-checked={on}
+      tabIndex={on ? 0 : -1}
       onClick={onPick}
       className={cn(
-        "inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium ring-1 transition-[background-color,box-shadow,transform] duration-150 active:scale-[0.97] motion-reduce:transition-none",
-        on ? "bg-brand-50 text-brand-800 ring-brand-400" : "bg-card text-foreground ring-foreground/15 hover:bg-brand-50 hover:ring-brand-300",
+        "inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[13.5px] font-medium ring-1 transition-[background-color,color,box-shadow,transform] duration-150 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 motion-reduce:transition-none",
+        on ? "bg-brand-600 text-white shadow-[0_4px_12px_-6px_rgba(43,127,255,0.7)] ring-brand-600" : "bg-card text-foreground ring-foreground/15 hover:bg-brand-50 hover:ring-brand-300",
       )}
     >
-      {regionName(country, i18n.locale)}
-      {found && <span className="text-[11.5px] font-normal text-muted-foreground">{found}</span>}
+      {on && <Check aria-hidden className="size-3.5 stroke-[3] animate-in zoom-in-50 duration-200 motion-reduce:animate-none" />}
+      {label}
+      {note && <span className={cn("text-[11.5px] font-normal", on ? "text-white/80" : "text-muted-foreground")}>{note}</span>}
     </button>
   )
 }
 
+/** Arrow keys move between the radios of a group (and pick, as radio groups do); Tab leaves it. */
+function onRadioKeys(e: React.KeyboardEvent<HTMLElement>) {
+  const step = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0
+  if (!step) return
+  const radios = [...e.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]')]
+  const i = radios.indexOf(document.activeElement as HTMLElement)
+  const next = radios[(i + step + radios.length) % radios.length]
+  if (!next) return
+  e.preventDefault()
+  next.focus()
+  next.click()
+}
+
 /**
- * Which variety of the language (Brazil or Portugal, Spain or Mexico…): the usual ones as chips, the
- * found one marked, and More, which opens every usual one plus a search for any country, right
- * there. Picking one only names the variety (voices, the spelling the AI writes in); the book isn't
- * translated.
+ * Which variety of the language (Brazil or Portugal, Spain or Mexico…), as one choice: the one
+ * found in the book first, then the usual ones; "Not sure" when the book didn't tell. More opens
+ * the language's other varieties with a search, right there. Only real varieties of the language
+ * are offered (no "Portuguese (Spain)"). Picking one sets the spelling and the voices; the book
+ * isn't translated.
  */
 function VarietyChips({ code, found, source, onPick }: { code: string; found: string | null; source: string | null | undefined; onPick: (code: string) => void }) {
   const { i18n, t } = useLingui()
@@ -80,55 +96,65 @@ function VarietyChips({ code, found, source, onPick }: { code: string; found: st
     return () => window.clearTimeout(id)
   }, [more])
   const base = getBaseLanguage(code)
-  const { suggested, all } = getCountriesForLanguage(base)
-  if (suggested.length < 2) return null
+  const varieties = getCountriesForLanguage(base).suggested
+  if (varieties.length < 2) return null
   const now = region(code)
   const fromBook = found && getBaseLanguage(found) === base ? region(found) : null
   const foundNote = source === "ai" ? <Trans>from the pages</Trans> : <Trans>from the PDF</Trans>
   // A fixed order (the one found first, then the usual ones, then a pick from More), so nothing moves under the pointer.
-  const shown = [...new Set([fromBook, ...suggested.slice(0, 5).map((c) => c.code), now].filter((c): c is string => !!c))]
+  const shown = [...new Set([fromBook, ...varieties.slice(0, 5).map((c) => c.code), now].filter((c): c is string => !!c))]
   const pick = (country: string) => {
     onPick(`${base}-${country.toUpperCase()}`)
     setMore(false)
     setQuery("")
   }
-  // More: the other usual varieties, or, while searching, any country whose name (in the interface language or English) matches.
+  // More: the language's other varieties, filtered by a search on their names (interface language or English).
   const q = query.trim().toLocaleLowerCase(i18n.locale)
-  const pool = q ? [...suggested, ...all] : suggested.filter((c) => !shown.includes(c.code))
-  const matches = pool.filter((c) => !q || regionName(c.code, i18n.locale).toLocaleLowerCase(i18n.locale).includes(q) || c.name.toLowerCase().includes(q)).slice(0, 30)
+  const rest = varieties.filter((c) => !shown.includes(c.code) && (!q || regionName(c.code, i18n.locale).toLocaleLowerCase(i18n.locale).includes(q) || c.name.toLowerCase().includes(q)))
+  const hidden = varieties.length - shown.filter((c) => varieties.some((v) => v.code === c)).length
   return (
-    <div className="flex flex-col gap-1.5" role="group" aria-label={t`Which variety?`}>
-      <span className="text-[13px] text-muted-foreground">
-        <Trans>Which variety?</Trans>
-      </span>
-      <div className="flex flex-wrap items-center gap-1.5">
+    <div className="mt-1 flex flex-col gap-2">
+      <div>
+        <p id="gd-variety" className="text-[14px] font-semibold">
+          <Trans>Which variety?</Trans>
+        </p>
+        <p className="text-[13px] text-muted-foreground">
+          <Trans>Sets the spelling and the voices. The book isn&apos;t translated.</Trans>
+        </p>
+      </div>
+      <div role="radiogroup" aria-labelledby="gd-variety" onKeyDown={onRadioKeys} className="flex flex-wrap items-center gap-1.5">
+        {!fromBook && <VarietyChip label={<Trans>Not sure</Trans>} on={!now} onPick={() => onPick("")} />}
         {shown.map((c) => (
-          <VarietyChip key={c} country={c} on={c === now} found={c === fromBook ? foundNote : undefined} onPick={() => pick(c)} />
+          <VarietyChip key={c} label={regionName(c, i18n.locale)} on={c === now} note={c === fromBook ? foundNote : undefined} onPick={() => pick(c)} />
         ))}
-        <button type="button" aria-expanded={more} onClick={() => setMore((m) => !m)} className="lc-link h-8 px-2 text-[13px] font-medium">
-          {more ? <Trans>Fewer</Trans> : <Trans>More</Trans>}
-        </button>
+        {hidden > 0 && (
+          <button type="button" aria-expanded={more} onClick={() => setMore((m) => !m)} className="lc-link h-9 px-2 text-[13.5px] font-medium">
+            {more ? <Trans>Fewer</Trans> : <Trans>More ({hidden})</Trans>}
+          </button>
+        )}
       </div>
       <Collapsible shown={more}>
-        <div ref={panel} inert={!more} className="mt-1.5 flex flex-col gap-2.5 rounded-[14px] bg-[var(--lc-bubble)] p-3 ring-1 ring-border">
-          <label className="relative flex items-center">
-            <Search aria-hidden className="pointer-events-none absolute left-3 size-4 text-muted-foreground" />
-            <span className="sr-only">
-              <Trans>Search for a country</Trans>
-            </span>
-            <input
-              ref={search}
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t`Search for a country`}
-              className="h-9 w-full rounded-full bg-card pl-9 pr-3 text-[13.5px] ring-1 ring-foreground/15 outline-none transition-shadow placeholder:text-muted-foreground focus:ring-2 focus:ring-brand-400"
-            />
-          </label>
-          {matches.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
-              {matches.map((c) => (
-                <VarietyChip key={c.code} country={c.code} on={c.code === now} onPick={() => pick(c.code)} />
+        <div ref={panel} inert={!more} className="mt-1 flex flex-col gap-2.5 rounded-[14px] bg-[var(--lc-bubble)] p-3 ring-1 ring-border">
+          {hidden > 8 && (
+            <label className="relative flex items-center">
+              <Search aria-hidden className="pointer-events-none absolute left-3 size-4 text-muted-foreground" />
+              <span className="sr-only">
+                <Trans>Search for a country</Trans>
+              </span>
+              <input
+                ref={search}
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t`Search for a country`}
+                className="h-9 w-full rounded-full bg-card pl-9 pr-3 text-[13.5px] ring-1 ring-foreground/15 outline-none transition-shadow placeholder:text-muted-foreground focus:ring-2 focus:ring-brand-400"
+              />
+            </label>
+          )}
+          {rest.length > 0 ? (
+            <div role="radiogroup" aria-labelledby="gd-variety" onKeyDown={onRadioKeys} className="flex flex-wrap gap-1.5">
+              {rest.map((c) => (
+                <VarietyChip key={c.code} label={regionName(c.code, i18n.locale)} on={false} onPick={() => pick(c.code)} />
               ))}
             </div>
           ) : (
@@ -174,7 +200,7 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
         changed ? (
           <Trans>Your pick. The text is translated into it.</Trans>
         ) : variety ? (
-          <Trans>Your pick of variety. The book isn&apos;t translated.</Trans>
+          <Trans>Your pick.</Trans>
         ) : !found ? (
           <Trans>I couldn&apos;t tell from the PDF. It&apos;s found when the pages are read.</Trans>
         ) : source === "ai" ? (
