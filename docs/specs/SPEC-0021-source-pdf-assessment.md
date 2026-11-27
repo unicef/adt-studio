@@ -8,7 +8,7 @@ issues: ["#1016", "#1008", "#1012", "#901", "#676", "#985", "#326", "#749", "#95
 prs: ["#1009", "#1013", "#1141", "#1015"] # PR 0 adopted 2026-10-29; #1013 implements §Step warnings; #1141 carries the #1012 fix; #1015 emits summary-missing
 adr: ""
 created: 2026-10-27
-updated: 2026-11-24
+updated: 2026-11-27
 ---
 
 **After the `extract` step, every book gets one persisted, deterministic, LLM-free
@@ -90,8 +90,19 @@ new attempt writes a new first version (decision 32, AC-31). The node is written
 attempt body that a first extraction and a reset share, so AC-38 covers both. Every other
 rerun is refused by `prepareSectioningRun`, so PR 2d changes nothing in `makeBeforeRun`. A
 recommendation that needs another extraction setting names Replace while the book can still
-be replaced (decision 33, AC-41). These passages depend on #1215: this amendment merges
-after it, and PR 2d merges after its retry PR (#1219).
+be replaced (decision 33, AC-41). #1215 merged on 2026-11-27. PR 1 merges after #1216, which
+computes the content token, and PR 2d after the retry PR (#1219).
+Revised on 2026-11-27, after #1215 was approved with changes and its implementation
+(#1216, #1218, #1219, #1220) was updated to match. A retry or a replace is now bound to the
+book content it was made against, by a content token over the Extract nodes. The assessment
+is derived, no edit produces it and every new attempt rewrites it, so it stays outside that
+token: otherwise a Reassess, or the version a settings save appends, would refuse the very
+re-run the user asked for (decision 34, AC-42). A reset is also refused, before it discards
+anything, for a part whose extraction settings no longer match the book it was split from.
+AC-31 names that refusal and the token mismatch, and on a part the panel says that such a
+setting is changed in that book (decision 33, AC-41). The deletion of the assessment history
+by a reset is the exception to entity versioning that SPEC-0003 recorded in ADR 025 and
+invariant 10; this spec adds none of its own.
 
 ## Problem (with evidence)
 
@@ -252,10 +263,23 @@ re-run actions (RAC-20–24: Studio and API only, on a book that holds nothing b
 output) follow from that. A resume runs no extraction and leaves every version as it is. A
 retry or a replace discards the extraction and, with the other Extract-owned nodes, every
 assessment version, and the new attempt writes a first version for its own `attemptId`. A
-refused request changes nothing (§Lifecycle, AC-31); (33) a recommendation or a panel state
+refused request changes nothing (§Lifecycle, AC-31). The deletion is covered by the exception
+SPEC-0003 recorded for Extract's own nodes (ADR 025, invariant 10, `AGENTS.md` principle 2);
+(33) a recommendation or a panel state
 that needs the book extracted again names the action that step status offers for the book:
 Replace while the book holds only Extract output, Retry after a failed extraction, and a
-new book otherwise (§Studio, AC-41).
+new book otherwise. On a part book it says that the setting is fixed by the book the part
+was split from, because a part extracted with another value could not be merged back and
+SPEC-0003 refuses that retry (§Studio, AC-41); (34) the assessment is not part of the content
+a retry or a replace is bound to. SPEC-0003 binds those requests to a content token over the
+Extract nodes, the image rows and the extraction record, so that an edit made after the
+request was built refuses it. The assessment is no such edit: it is derived, the user cannot
+change it, the Replace confirmation does not describe it, and the new attempt writes it
+again. The token therefore leaves out the `source-assessment` node, and no assessment
+version, whatever its trigger, makes a re-run request stale. The edit behind a trigger still
+does where it changes the book: a metadata edit and a spreads re-apply change the token
+through the nodes, pages and images they write (§Lifecycle, §Snapshot and current settings,
+AC-42).
 
 ### Data contract
 
@@ -580,7 +604,9 @@ It is never added to `ExtractionInputs`, so it cannot change the extraction fing
   (`pipeline-dag.ts:190-192`). The run is refused before a manifest, a step row or a node
   exists. A retry and a replace resolve their inputs through the same admission code before
   they discard anything (SPEC-0003 RAC-22), so the mapping lives in that shared resolver and
-  they refuse such a PDF with the same code, leaving the book untouched. The API returns a 409 with that code, like the other admission errors, and Studio
+  they refuse such a PDF with the same code, leaving the book untouched. That resolver
+  reads the PDF before it compares a part's settings with its coordinator's (SPEC-0003,
+  reset step 2), so a password-required PDF is reported as such on a part too. The API returns a 409 with that code, like the other admission errors, and Studio
   localises it with them (`apps/studio/src/lib/sectioning-error.ts`). `GET source-pdf/info`
   (`books.ts:216`), the earliest place Studio opens the file, returns the same code
   (decision 29).
@@ -717,7 +743,13 @@ node. Two operations clear it, and both remove the extraction it describes. The 
 without pages (below). The second is the reset of an Extract retry or replace (SPEC-0003
 RAC-22 and RAC-23), which deletes every Extract-owned node. The node is one of them, because
 it is listed in `EXTRA_STAGE_OUTPUT_NODES.extract`, and for the same reason the Extract-only
-check counts it as Extract output and not as downstream work. `extractPDF` no longer clears
+check counts it as Extract output and not as downstream work. That deletion is the one
+exception to entity versioning SPEC-0003 recorded for Extract's own nodes (ADR 025,
+invariant 10): confirmed, bound to the content the user saw, and limited to an Extract-only
+book. In one respect the node is not treated like the other Extract-owned nodes: it is left
+out of the content token that binds a retry or a replace (decision 34). `readExtractContentToken`
+(`packages/storage/src/extract-only.ts`, from #1216) hashes the versions of the Extract-owned
+nodes, and PR 1, which registers the node, excludes it there. `extractPDF` no longer clears
 anything. Since #884 it runs the extraction admission itself (`prepareExtractionAdmission`,
 `extraction-admission.ts:25-68`), under the writer lease and before it writes. An identical,
 intact extraction is a verified reuse that returns without writing. Every other occupied book
@@ -741,9 +773,13 @@ manifest, or a `complete` one). Otherwise the explicit triggers refuse with 409
 
 With the Extract re-run amendment, a run from Extract that carries the `extraction` field is
 admitted only for an Extract-only book and only for the action and `attemptId` that step
-status reported (otherwise 409 `EXTRACTION_RERUN_STALE`, or today's refusal for a book that
-is not Extract-only). A resume then runs only the unfinished Extract steps, and a retry or a
-replace resets the book as described above. An app older than v0.9.0-beta.2 has no guard and
+status reported, and a retry or a replace only with the content token reported with them
+(otherwise 409 `EXTRACTION_RERUN_STALE`, or today's refusal for a book that
+is not Extract-only). No assessment write changes that token (decision 34). A resume then
+runs only the unfinished Extract steps, and a retry or a
+replace resets the book as described above, unless its inputs are refused first: a missing or
+changed PDF, an invalid page window, a password-required PDF, or a part whose extraction
+settings no longer match its coordinator (`EXTRACTION_PART_SETTINGS_CHANGED`). An app older than v0.9.0-beta.2 has no guard and
 can still clear the node, which a newer app cannot detect afterwards. AC-31 covers each entry
 point and each action.
 
@@ -795,7 +831,12 @@ The rules read two kinds of settings, recorded in the node's `settings`:
   (`apps/api/src/routes/books.ts:501`) changes either one on a book that has a node, the route
   appends a reassessed version (`trigger: "settings-change"`). Every Studio save goes through
   that route, including the Save without a run that the Extract re-run work adds to the
-  Extract settings (SPEC-0003 RAC-24), so no save path needs a hook of its own. The effective `editing_language`
+  Extract settings (SPEC-0003 RAC-24), so no save path needs a hook of its own. "Save &
+  Re-run" saves through it too, after Studio has checked that the re-run is still offered,
+  and sends the run request next. The version the hook appends in between does not change
+  the content token (decision 34), so it cannot make that request stale; if the run is a
+  Replace, the reset deletes the version with the others and the new attempt assesses with
+  the saved settings. The effective `editing_language`
   falls back to the book's `language_code` when the config sets none (`books.ts:598-600`), so
   `PUT /books/:label/metadata` (`books.ts:547`) runs the same hook when it changes the
   effective editing language. This is pure and takes milliseconds. A downstream setting change is never treated as a changed extraction input,
@@ -1007,8 +1048,11 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   `ExtractSettings` (value-less: "Check *<control label>*"), with a note on how to apply it,
   chosen from `extractRerun.actions` in `GET step-status` (SPEC-0003 RAC-24). When `replace`
   is offered, the note says that the book can be extracted again with the new setting and
-  links to the Extract settings, where Replace keeps its own confirmation. Otherwise it says
-  that a changed extraction setting needs a new book (decision 33, AC-41). The panel never
+  links to the Extract settings, where Replace keeps its own confirmation. On a part book
+  (`BookSummary.part`) it says that the setting is fixed by the book the part was split from
+  and is changed there, before the parts are made: `figure_extraction_mode` and
+  `remove_watermarks` are part of the identity a part must share with that book. Otherwise it
+  says that a changed extraction setting needs a new book (decision 33, AC-41). The panel never
   starts a run. Actions link where a target exists:
   `mark-spreads` scrolls to `SpreadReview`; `figure-cleanup` opens the page detail of the
   first evidence page (SPEC-0020's entry point); `get-text-pdf`, `trim-page-range` and
@@ -1309,7 +1353,8 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   (a) An API run from Extract (`fromStage: "extract"`) that names no re-run action is refused
   with 409 `SECTIONING_REGENERATION_BLOCKED` before anything is cleared. A request that names
   one is refused the same way on a book that is not Extract-only, and with 409
-  `EXTRACTION_RERUN_STALE` when its action or `attemptId` no longer matches the book.
+  `EXTRACTION_RERUN_STALE` when its action, its `attemptId` or, for a retry or a replace, its
+  content token no longer matches the book.
   (b) The CLI DAG refuses with `UNSAFE_RESUME_UNAVAILABLE` when the PDF bytes and the effective
   extraction inputs are identical, and with the admission's mismatch code when the source or
   an extraction setting changed.
@@ -1321,7 +1366,9 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   (d) A resume (SPEC-0003 RAC-21) runs no extraction and writes no version with `trigger:
   "extract"`.
   (e) A retry or a replace (RAC-22, RAC-23) that is refused before its reset, for a missing or
-  changed PDF or an invalid page window, leaves everything as in (a). An admitted one deletes
+  changed PDF, an invalid page window, a password-required PDF (AC-10) or a part whose
+  extraction settings no longer match its coordinator (`EXTRACTION_PART_SETTINGS_CHANGED`),
+  leaves everything as in (a). An admitted one deletes
   v1 and v2 together with the pages and the images. When the new attempt completes, the node
   has exactly one version, with `trigger: "extract"` and `assessedExtraction` equal to the new
   `attemptId`. When the new attempt fails, the book has no node and can be retried.
@@ -1393,10 +1440,18 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   written. A failing hook does not fail the step.
 - [ ] AC-41: The panel names the way to extract again. For a `setting` recommendation on a
   book for which `GET step-status` offers `replace`, the note says that the book can be
-  extracted again with the new setting and links to the Extract settings. When `replace` is
-  not offered (the book has Sectioning or later output, or is a part), the note says that a
-  changed extraction setting needs a new book. The panel starts no run, and both notes are in
-  the five catalogs.
+  extracted again with the new setting and links to the Extract settings. On a part book the
+  note says that the setting is fixed by the book the part was split from and is changed
+  there. When `replace` is not offered for another reason (the book has Sectioning or later
+  output), the note says that a changed extraction setting needs a new book. The panel starts
+  no run, and the three notes are in the five catalogs.
+- [ ] AC-42: An assessment write never refuses a re-run. On an Extract-only book with a
+  node, the `contentToken` that `GET step-status` reports is the same before and after a
+  Reassess, and before and after a `PUT config` whose hook appends a `settings-change`
+  version. A replace built before a `PUT config` that changes `editing_language`, and sent
+  after it, is accepted: this is the order "Save & Re-run" uses. The edits that change the
+  book still change the token: a metadata edit (whose hook also appends a version), an image
+  decision, an upload and a spreads re-apply.
 
 ## Test plan
 
@@ -1446,7 +1501,8 @@ findings are asserted in `packages/pipeline` tests.
 | AC-38 | integration | `packages/pdf/src/__tests__/source-signals.test.ts` (a failing pass, PRs 3a and 3b), `packages/pipeline/src/__tests__/pdf-extraction.source-assessment.test.ts` (a failing collect or write, and the manifest hashes, PR 2d) | `AC-38: a failing assessment never fails or changes an extraction` |
 | AC-39 | unit + integration + component | `packages/storage/src/__tests__/step-warnings.test.ts`, `apps/api/src/services/sectioning-existing-book.test.ts`, `apps/studio/src/components/pipeline/components/SubStepPillRow.test.tsx` (#1013) | `AC-39: unreadable sectioning input is a typed warning on a done step only` |
 | AC-40 | integration | `apps/api/src/services/stage-runner.test.ts` (PR 4b) | `AC-40: the metadata step appends a settings-change version` |
-| AC-41 | component | `apps/studio/src/components/pipeline/stages/extract/components/SourceQualityPanel.test.tsx` (PR 5b) | `AC-41: a setting recommendation names Replace only when the book offers it` |
+| AC-41 | component | `apps/studio/src/components/pipeline/stages/extract/components/SourceQualityPanel.test.tsx` (PR 5b) | `AC-41: a setting recommendation names Replace only when the book offers it`, `AC-41: on a part the setting belongs to the book it was split from` |
+| AC-42 | integration | `apps/api/src/routes/step-status-extract-rerun.test.ts` (PR 1: the token ignores the node), `apps/api/src/routes/source-assessment.test.ts` and `apps/api/src/services/extract-replace.test.ts` (PR 4b: Reassess, the `PUT config` hook, and the save-then-replace order) | `AC-42: a new assessment version does not change the content token`, `AC-42: a replace sent after the settings save it was built before is accepted` |
 
 Fixtures: cuaderno4 pages 1, 6 and 12 and cuaderno3 page 9 extracted in the test (the
 PDFs are local corpus files, listed in `docs/verification/spec-0021.md`, not committed);
@@ -1494,7 +1550,9 @@ on develop.
    it defines `MIN_TEXT_LAYER_CHARS` and `TextProfile`. Already open at ≈ 745 lines across 13
    files, within the review budget; reviewed as one self-contained, read-only PR.
 1. `packages/types`: schema, constants (moving `MIN_TEXT_LAYER_CHARS` and `TextProfile` from
-   PR 0), registry rows, `BookSummary` field (≈ 200).
+   PR 0), registry rows, `BookSummary` field, and the node left out of the content token
+   (`readExtractContentToken`, one list and one test; the token half of AC-42) (≈ 220).
+   Merges after #1216, which adds that function.
 2. `packages/pipeline`:
    a) the skeleton that both later rule PRs register into (`PageAssessmentInput`,
    `SourceAssessmentInput`, `assessSource` with its rule registry, aggregation, readiness,
@@ -1542,14 +1600,17 @@ on develop.
    (≈ 180). Needs PR 1 only;
    b) the writers: the reassess route (refused for imported books and unreadable
    extractions), the spreads re-apply recompute, the `PUT config`, `PUT metadata` and
-   metadata-step hooks; AC-34, AC-35, AC-40, the API half of AC-28 (≈ 260). Needs PR 2d;
+   metadata-step hooks; AC-34, AC-35, AC-40, the trigger half of AC-42, the API half of
+   AC-28 (≈ 280). Needs PR 2d;
    c) the derived `source-assessment` entry in `GET step-status` and on the `extract`
    `step-complete` event; the API halves of AC-11 and AC-25 (≈ 100). Needs #1013 and PR 2c.
 5. `apps/studio` a) shared validation components, messages map, hook, catalogs (≈ 320);
    b) panel (with the not-assessed, outdated and incomplete states and the Reassess button),
    page badges, page detail, sidebar with the partial marker, and the note on how to apply a
    `setting` recommendation; AC-14, AC-15, AC-41, the pill half of AC-11, the browser halves
-   of AC-16, AC-28, AC-29 and AC-32 (≈ 440). Needs #1013 and, for AC-41, #1216.
+   of AC-16, AC-28, AC-29 and AC-32 (≈ 450). Needs #1013 and, for AC-41, #1216. The panel
+   starts no run of its own: a Replace goes through the Extract settings and their
+   confirmation (#1220).
 
 6. CLI: `extract-report` source section on top of PR 0 (still read-only) with the incomplete
    line, the documented exit code and `summary.coverage` in `--json`; the `assess-source`
@@ -1592,7 +1653,8 @@ that contains #884.
 | #1013 image-pass failures (#1012) | **Implements §Step warnings**; hard prerequisite of PR 2c, PR 4, PR 5b and AC-11 | The typed step-warning channel: `StepWarning`, the `step-complete` field, `step_runs.warnings`, `stepWarnings` in `GET step-status`, the translated amber pill, and the console sink printing `event.message` |
 | #1141 image-pass pages unchanged (#1012) | Stacked on #1013 | Emits the `pages-unchanged` step warning |
 | #884 SPEC-0003 sectioning lifecycle | Merged (42f25a21c) | The extraction manifest and the admission in `extractPDF` and the CLI DAG, which are the common boundary of the history guarantee (§Lifecycle, AC-31); `attemptId` for `assessedExtraction`; `telemetryRun`; the `sectioning-unreadable` outcome |
-| SPEC-0003 Extract re-run amendment (#1214; amendment #1215, in review; PRs #1216, #1218, #1219, #1220, in draft) | **Prerequisite of this amendment's re-run passages, of PR 2d and of AC-41** | Resume, retry and replace on an Extract-only book; the attempt body shared by a first extraction and a reset, where the node is written; `extractRerun` in `GET step-status`, which the panel reads; the Extract-owned node list that makes the reset delete the node and the Extract-only check accept it (decisions 32 and 33, AC-31) |
+| SPEC-0003 Extract re-run amendment (#1214; amendment #1215, merged 2026-11-27; PRs #1216, #1218, #1219, #1220, in review) | **Prerequisite of this amendment's re-run passages, of PR 1 (#1216), of PR 2d (#1219) and of AC-41 and AC-42** | Resume, retry and replace on an Extract-only book; the attempt body shared by a first extraction and a reset, where the node is written; `extractRerun` in `GET step-status`, which the panel reads; the Extract-owned node list that makes the reset delete the node and the Extract-only check accept it; the content token, which leaves the node out; the part-settings refusal (decisions 32 to 34, AC-31) |
+| "Save & Re-run" as one server operation (#1254) | Related, not a prerequisite | Today Studio checks, saves and then sends the run. If the server later saves the settings and admits the run in one operation, the `PUT config` hook runs inside it; decision 34 holds either way |
 | SPEC-0010 safe reruns (#886, in review) | Related, no longer a prerequisite: #884 landed the admission this spec needed | The node stays out of the manifest inventory, and verified reuse writes nothing. If SPEC-0010 later admits reruns of a book with downstream work through the API, its outcomes replace the `prepareSectioningRun` refusal |
 | SPEC-0013 page-failure recovery (#889, in review) | Owner of skipped-page records; AC-30's OutputReview half depends on it | `pages-skipped` is a count that links to SPEC-0013's per-page recovery records and OutputReview; it never replaces them (AC-30) |
 | SPEC-0017 connectivity handling (#950, in review) | Owner of error disclosure | Provider error text in `pages-unchanged` and `summary-missing` is shown through its technical-details disclosure; its classified wording replaces the generic line once it lands |
