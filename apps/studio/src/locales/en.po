@@ -436,6 +436,10 @@ msgstr "{0} translations"
 msgid "{0}: “{1}”"
 msgstr "{0}: “{1}”"
 
+#. placeholder {0}: nameOf(lang)
+msgid "{0}: which variety?"
+msgstr "{0}: which variety?"
+
 #. placeholder {0}: String(generatedAudioCount)
 #. placeholder {1}: String(speakableEntries.length)
 msgid "{0}/{1} audio"
@@ -2055,6 +2059,12 @@ msgstr "and more sections across the page"
 msgid "Another ADT Studio connected to this Cloudflare account has taken over sharing, so this computer can't read your hosted books. Reconnecting here takes it back — the other computer will then need to reconnect."
 msgstr "Another ADT Studio connected to this Cloudflare account has taken over sharing, so this computer can't read your hosted books. Reconnecting here takes it back — the other computer will then need to reconnect."
 
+msgid "Another language"
+msgstr "Another language"
+
+msgid "Another language…"
+msgstr "Another language…"
+
 msgid "Another option fits better when"
 msgstr "Another option fits better when"
 
@@ -2923,9 +2933,6 @@ msgstr "Change Preset"
 msgid "Change the book language?"
 msgstr "Change the book language?"
 
-msgid "Change the languages"
-msgstr "Change the languages"
-
 msgid "Change the picture for this term"
 msgstr "Change the picture for this term"
 
@@ -3126,6 +3133,9 @@ msgstr "Choose Provider"
 
 msgid "Choose repaired ZIP"
 msgstr "Choose repaired ZIP"
+
+msgid "Choose the language"
+msgstr "Choose the language"
 
 msgid "Choose the language ADT Studio's interface is shown in."
 msgstr "Choose the language ADT Studio's interface is shown in."
@@ -5237,9 +5247,6 @@ msgstr "Feedback generation failed"
 msgid "Fetching the details of your new setup."
 msgstr "Fetching the details of your new setup."
 
-msgid "Fewer"
-msgstr "Fewer"
-
 msgid "figure"
 msgstr "figure"
 
@@ -5926,9 +5933,6 @@ msgstr "Hide error details"
 
 msgid "Hide reviewer comments"
 msgstr "Hide reviewer comments"
-
-msgid "Hide the languages"
-msgstr "Hide the languages"
 
 msgid "Hide the other options"
 msgstr "Hide the other options"
@@ -6652,9 +6656,6 @@ msgstr "KB"
 msgid "Keep"
 msgstr "Keep"
 
-msgid "Keep {foundName}"
-msgstr "Keep {foundName}"
-
 msgid "Keep accepts existing content without regenerating it."
 msgstr "Keep accepts existing content without regenerating it."
 
@@ -6690,9 +6691,6 @@ msgstr "Keep pages whole by default, but split when distinct activity types are 
 
 msgid "Keep sharing"
 msgstr "Keep sharing"
-
-msgid "Keep the book's own language"
-msgstr "Keep the book's own language"
 
 msgid "Keep the printed page"
 msgstr "Keep the printed page"
@@ -8119,6 +8117,9 @@ msgstr "No items are currently flagged as needing changes in this reviewer sessi
 msgid "No items need attention with these filters."
 msgstr "No items need attention with these filters."
 
+msgid "No language matches."
+msgstr "No language matches."
+
 msgid "No language-specific prompts configured."
 msgstr "No language-specific prompts configured."
 
@@ -8682,9 +8683,6 @@ msgstr "Only a few pages have tasks."
 
 msgid "Only a handful of pages have them."
 msgstr "Only a handful of pages have them."
-
-msgid "Only if you want the whole book in another language."
-msgstr "Only if you want the whole book in another language."
 
 msgid "Only illustrations or photos."
 msgstr "Only illustrations or photos."
@@ -11254,6 +11252,9 @@ msgstr "Search fonts..."
 msgid "Search for a country"
 msgstr "Search for a country"
 
+msgid "Search for a language"
+msgstr "Search for a language"
+
 msgid "Search headings, IDs, or style clusters..."
 msgstr "Search headings, IDs, or style clusters..."
 
@@ -12934,9 +12935,6 @@ msgstr "The book stays in {found}, the language I found in your PDF, so nothing 
 msgid "The book stays in its own language, so nothing is translated."
 msgstr "The book stays in its own language, so nothing is translated."
 
-msgid "The book stays in this language."
-msgstr "The book stays in this language."
-
 msgid "The book summary covers the whole book — regenerate it on the assembled book once you've merged your last part."
 msgstr "The book summary covers the whole book — regenerate it on the assembled book once you've merged your last part."
 
@@ -13957,9 +13955,6 @@ msgstr "Translate text in images"
 
 msgid "Translate the book content to output languages."
 msgstr "Translate the book content to output languages."
-
-msgid "Translate the book into"
-msgstr "Translate the book into"
 
 msgid "Translate the book into additional languages. Each language is generated alongside the original, ready for narration, captions, and on-page reading."
 msgstr "Translate the book into additional languages. Each language is generated alongside the original, ready for narration, captions, and on-page reading."

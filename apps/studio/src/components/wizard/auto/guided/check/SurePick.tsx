@@ -42,7 +42,7 @@ export function PickBadge({ changed }: { changed: boolean }) {
  * large type with its badge and line, and its other options a tap away. Opening them scrolls them
  * into view above the bottom bar; picking one closes them and shows it here as "Your pick".
  */
-export function SurePick({ picture, pictureSize = "full", label, title, hint, result, after, changed, badge = true, labelId, open, onToggle, others, othersLabel, hideLabel, children }: { picture: ReactNode; pictureSize?: "full" | "compact"; label?: ReactNode; after?: ReactNode; title: ReactNode; hint?: ReactNode; result?: ReactNode; changed: boolean; badge?: boolean; labelId: string; open: boolean; onToggle: () => void; others: boolean; othersLabel?: ReactNode; hideLabel?: ReactNode; children?: ReactNode }) {
+export function SurePick({ picture, label, title, hint, result, after, changed, badge = true, labelId, open, onToggle, others, othersLabel, hideLabel, children }: { picture: ReactNode; label?: ReactNode; after?: ReactNode; title: ReactNode; hint?: ReactNode; result?: ReactNode; changed: boolean; badge?: boolean; labelId: string; open: boolean; onToggle: () => void; others: boolean; othersLabel?: ReactNode; hideLabel?: ReactNode; children?: ReactNode }) {
   const more = useRef<HTMLDivElement>(null)
   // Once the options have grown in, bring them into view (gently, above the bottom bar).
   // Once open, the options may spill out (a language list drops below its field); while they
@@ -59,7 +59,7 @@ export function SurePick({ picture, pictureSize = "full", label, title, hint, re
   return (
     <div data-pick className="flex scroll-mt-24 flex-col gap-5">
       {picture && (
-        <div data-vt-pick={`pick-${labelId}`} className={cn("w-full shrink-0 [&>*>*]:!w-full", pictureSize === "compact" ? "[&>*>*]:!h-[clamp(150px,calc(var(--gd-vh,1vh)*22),240px)]" : "[&>*>*]:!h-[clamp(170px,calc(var(--gd-vh,1vh)*30),360px)]")} style={{ viewTransitionName: `pick-${labelId}` }}>
+        <div data-vt-pick={`pick-${labelId}`} className="w-full shrink-0 [&>*>*]:!h-[clamp(170px,calc(var(--gd-vh,1vh)*30),360px)] [&>*>*]:!w-full" style={{ viewTransitionName: `pick-${labelId}` }}>
           <div key={typeof title === "string" ? title : undefined} className="gd-pick-in contents">
             {picture}
           </div>

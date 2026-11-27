@@ -436,6 +436,10 @@ msgstr "{0} traduções"
 msgid "{0}: “{1}”"
 msgstr "{0}: “{1}”"
 
+#. placeholder {0}: nameOf(lang)
+msgid "{0}: which variety?"
+msgstr "{0}: qual variante?"
+
 #. placeholder {0}: String(generatedAudioCount)
 #. placeholder {1}: String(speakableEntries.length)
 msgid "{0}/{1} audio"
@@ -2055,6 +2059,12 @@ msgstr "e mais seções na página"
 msgid "Another ADT Studio connected to this Cloudflare account has taken over sharing, so this computer can't read your hosted books. Reconnecting here takes it back — the other computer will then need to reconnect."
 msgstr "Outro ADT Studio conectado a esta conta da Cloudflare assumiu o compartilhamento, então este computador não consegue ler seus livros hospedados. Reconectar aqui retoma o controle — o outro computador precisará se reconectar depois."
 
+msgid "Another language"
+msgstr "Outro idioma"
+
+msgid "Another language…"
+msgstr "Outro idioma…"
+
 msgid "Another option fits better when"
 msgstr "Outra opção serve melhor quando"
 
@@ -2923,9 +2933,6 @@ msgstr "Alterar predefinição"
 msgid "Change the book language?"
 msgstr "Alterar o idioma do livro?"
 
-msgid "Change the languages"
-msgstr "Mudar os idiomas"
-
 msgid "Change the picture for this term"
 msgstr "Alterar a imagem deste termo"
 
@@ -3126,6 +3133,9 @@ msgstr "Escolher provedor"
 
 msgid "Choose repaired ZIP"
 msgstr "Escolher ZIP reparado"
+
+msgid "Choose the language"
+msgstr "Escolha o idioma"
 
 msgid "Choose the language ADT Studio's interface is shown in."
 msgstr "Escolha o idioma em que a interface do ADT Studio é exibida."
@@ -5237,9 +5247,6 @@ msgstr "Falha ao gerar o feedback"
 msgid "Fetching the details of your new setup."
 msgstr "Buscando os detalhes da sua nova configuração."
 
-msgid "Fewer"
-msgstr "Menos"
-
 msgid "figure"
 msgstr "figura"
 
@@ -5926,9 +5933,6 @@ msgstr "Ocultar detalhes do erro"
 
 msgid "Hide reviewer comments"
 msgstr "Ocultar comentários dos revisores"
-
-msgid "Hide the languages"
-msgstr "Ocultar os idiomas"
 
 msgid "Hide the other options"
 msgstr "Ocultar as outras opções"
@@ -6652,9 +6656,6 @@ msgstr "KB"
 msgid "Keep"
 msgstr "Manter"
 
-msgid "Keep {foundName}"
-msgstr "Manter em {foundName}"
-
 msgid "Keep accepts existing content without regenerating it."
 msgstr "Manter aceita o conteúdo existente sem gerá-lo novamente."
 
@@ -6690,9 +6691,6 @@ msgstr "Mantenha as páginas inteiras por padrão, mas divida quando tipos disti
 
 msgid "Keep sharing"
 msgstr "Continue compartilhando"
-
-msgid "Keep the book's own language"
-msgstr "Manter o idioma do próprio livro"
 
 msgid "Keep the printed page"
 msgstr "Manter a página impressa"
@@ -8119,6 +8117,9 @@ msgstr "Nenhum item está sinalizado como precisando de alterações nesta sess�
 msgid "No items need attention with these filters."
 msgstr "Nenhum item precisa de atenção com estes filtros."
 
+msgid "No language matches."
+msgstr "Nenhum idioma corresponde."
+
 msgid "No language-specific prompts configured."
 msgstr "Nenhum prompt por idioma configurado."
 
@@ -8682,9 +8683,6 @@ msgstr "Só algumas páginas têm tarefas."
 
 msgid "Only a handful of pages have them."
 msgstr "Só pouquíssimas páginas têm."
-
-msgid "Only if you want the whole book in another language."
-msgstr "Só se você quiser o livro inteiro em outro idioma."
 
 msgid "Only illustrations or photos."
 msgstr "Só ilustrações ou fotos."
@@ -11254,6 +11252,9 @@ msgstr "Buscar fontes..."
 msgid "Search for a country"
 msgstr "Buscar um país"
 
+msgid "Search for a language"
+msgstr "Buscar um idioma"
+
 msgid "Search headings, IDs, or style clusters..."
 msgstr "Buscar títulos, IDs ou grupos de estilos..."
 
@@ -12934,9 +12935,6 @@ msgstr "O livro continua em {found}, o idioma que encontrei no seu PDF, então n
 msgid "The book stays in its own language, so nothing is translated."
 msgstr "O livro continua no próprio idioma, então nada é traduzido."
 
-msgid "The book stays in this language."
-msgstr "O livro continua neste idioma."
-
 msgid "The book summary covers the whole book — regenerate it on the assembled book once you've merged your last part."
 msgstr "O resumo do livro abrange o livro inteiro: regenere-o no livro montado depois de mesclar a sua última parte."
 
@@ -13957,9 +13955,6 @@ msgstr "Traduzir texto em imagens"
 
 msgid "Translate the book content to output languages."
 msgstr "Traduz o conteúdo do livro para os idiomas de saída."
-
-msgid "Translate the book into"
-msgstr "Traduzir o livro para"
 
 msgid "Translate the book into additional languages. Each language is generated alongside the original, ready for narration, captions, and on-page reading."
 msgstr "Traduza o livro para idiomas adicionais. Cada idioma é gerado junto com o original, pronto para narração, texto alternativo e leitura na página."

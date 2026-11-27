@@ -13,7 +13,6 @@ Shared style: Friendly, clean, modern flat illustration with soft depth (subtle 
 - `diagrams-none.png`: A page with only a photo of a landscape (mountains, sun) and a single grey caption line under it. No labels, no arrows.
 - `diagrams-some.png`: One labelled scientific diagram of a volcano cross-section with thin label lines pointing to small blank rounded label tags, the whole figure and its labels enclosed in a blue dashed frame showing it is kept together as one piece.
 - `diagrams-many.png`: Three labelled figures side by side, each inside its own blue dashed frame: a simple map with a route, a bar chart, and a labelled drawing of a plant with thin label lines to blank tags.
-- `language.png`: An open book page with several speech bubbles fanning out from it, each bubble in a different soft colour containing abstract squiggles and shapes (no real letters), suggesting the same book made in more languages.
 
 Page layouts (same style and model), a printed page becoming the screen on a tablet and a phone:
 

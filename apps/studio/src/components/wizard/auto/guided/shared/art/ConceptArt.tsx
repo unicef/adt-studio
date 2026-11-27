@@ -189,32 +189,6 @@ function Diagrams({ value }: { value: string }) {
   return <Board>{value === "many" ? [<g key="a">{figure(-46, 0.72)}</g>, <g key="b">{figure(118, 0.72)}</g>] : figure(0, 1)}</Board>
 }
 
-/** The book's language (a page with its code), and the other languages the finished book can come in. */
-export function LanguageArt({ code, outputs }: { code: string | null; outputs: string[] }) {
-  const extra = outputs.slice(0, 3)
-  return (
-    <Board>
-      <Sheet x={70} y={30} w={110} h={140} r={10} />
-      <text x={125} y={92} textAnchor="middle" className="fill-brand-600 text-[40px] font-bold uppercase dark:fill-brand-300">
-        {code ?? "?"}
-      </text>
-      <Lines x={88} y={116} w={74} n={3} gap={10} />
-      <path d="M192 100 L214 100 M206 92 L214 100 L206 108" className="stroke-slate-300 dark:stroke-zinc-600" strokeWidth={3} />
-      {(extra.length ? extra : ["+"]).map((o, i, all) => {
-        const y = 100 - ((all.length - 1) * 30) / 2 + i * 30 - 12
-        return (
-          <g key={o}>
-            <rect x={224} y={y} width={52} height={24} rx={12} className={extra.length ? "fill-white stroke-brand-300 dark:fill-zinc-800 dark:stroke-brand-500/60" : "fill-white stroke-slate-300 dark:fill-zinc-800 dark:stroke-zinc-600"} strokeDasharray={extra.length ? undefined : "4 3"} />
-            <text x={250} y={y + 16.5} textAnchor="middle" className={extra.length ? "fill-brand-700 text-[12px] font-semibold uppercase dark:fill-brand-300" : "fill-slate-400 text-[14px] font-semibold"}>
-              {o}
-            </text>
-          </g>
-        )
-      })}
-    </Board>
-  )
-}
-
 const KIND: Record<string, () => ReactNode> = { story: Story, textbook: SchoolBook, reference: Information }
 
 const IMAGE: Partial<Record<SetupBookFactId, Record<string, string>>> = {
@@ -233,23 +207,6 @@ export function factArt(fact: SetupBookFactId, value: string): ReactNode | null 
   const Kind = KIND[value]
   const drawing = fact === "genre" ? Kind ? <Kind /> : null : fact === "exercises" ? <Exercises value={value} /> : <Diagrams value={value} />
   return <Illustration name={name} fallback={drawing} />
-}
-
-/** The language picture: the illustration with the book's language on it (the drawing until it loads). */
-export function LanguagePicture({ code, outputs, codeBadge = true }: { code: string | null; outputs: string[]; codeBadge?: boolean }) {
-  return (
-    <span className="relative grid h-full w-full place-items-center">
-      <Illustration name="language" fallback={<LanguageArt code={code} outputs={outputs} />} />
-      <span className="absolute bottom-[6%] left-[6%] flex flex-wrap gap-1">
-        {codeBadge && <span className="rounded-full bg-white px-2.5 py-0.5 text-[13px] font-bold uppercase text-brand-700 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-800 dark:text-brand-300 dark:ring-zinc-700">{code ?? "?"}</span>}
-        {outputs.slice(0, 3).map((o) => (
-          <span key={o} className="rounded-full bg-white/90 px-2 py-0.5 text-[12px] font-semibold uppercase text-muted-foreground shadow-sm ring-1 ring-slate-200 dark:bg-zinc-800/90 dark:ring-zinc-700">
-            + {o}
-          </span>
-        ))}
-      </span>
-    </span>
-  )
 }
 
 /** The page layouts' illustrations: a printed page becoming the screen, on a tablet and a phone. */

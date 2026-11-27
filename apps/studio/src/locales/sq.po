@@ -438,6 +438,10 @@ msgstr "{0} përkthime"
 msgid "{0}: “{1}”"
 msgstr "{0}: “{1}”"
 
+#. placeholder {0}: nameOf(lang)
+msgid "{0}: which variety?"
+msgstr "{0}: cili variant?"
+
 #. placeholder {0}: String(generatedAudioCount)
 #. placeholder {1}: String(speakableEntries.length)
 msgid "{0}/{1} audio"
@@ -2057,6 +2061,12 @@ msgstr "dhe seksione të tjera në faqe"
 msgid "Another ADT Studio connected to this Cloudflare account has taken over sharing, so this computer can't read your hosted books. Reconnecting here takes it back — the other computer will then need to reconnect."
 msgstr "Një ADT Studio tjetër i lidhur me këtë llogari Cloudflare e ka marrë përsipër ndarjen, prandaj ky kompjuter nuk mund t’i lexojë librat tuaj të hostuar. Rilidhja këtu ua kthen kontrollin — kompjuteri tjetër do të duhet pastaj të rilidhet."
 
+msgid "Another language"
+msgstr "Një gjuhë tjetër"
+
+msgid "Another language…"
+msgstr "Një gjuhë tjetër…"
+
 msgid "Another option fits better when"
 msgstr "Një opsion tjetër përshtatet më mirë kur"
 
@@ -2925,9 +2935,6 @@ msgstr "Ndrysho Presetin"
 msgid "Change the book language?"
 msgstr "Të ndryshohet gjuha e librit?"
 
-msgid "Change the languages"
-msgstr "Ndrysho gjuhët"
-
 msgid "Change the picture for this term"
 msgstr "Ndrysho figurën e këtij termi"
 
@@ -3128,6 +3135,9 @@ msgstr "Zgjidhni Ofruesin"
 
 msgid "Choose repaired ZIP"
 msgstr "Zgjidhni ZIP-in e riparuar"
+
+msgid "Choose the language"
+msgstr "Zgjidhni gjuhën"
 
 msgid "Choose the language ADT Studio's interface is shown in."
 msgstr "Zgjidh gjuhën në të cilën shfaqet ndërfaqja e ADT Studio."
@@ -5239,9 +5249,6 @@ msgstr "Gjenerimi i reagimit dështoi"
 msgid "Fetching the details of your new setup."
 msgstr "Marrja e detajeve të konfigurimit tuaj të ri."
 
-msgid "Fewer"
-msgstr "Më pak"
-
 msgid "figure"
 msgstr "figurë"
 
@@ -5928,9 +5935,6 @@ msgstr "Fshih detajet e gabimit"
 
 msgid "Hide reviewer comments"
 msgstr "Fshih komentet e rishikuesve"
-
-msgid "Hide the languages"
-msgstr "Fshih gjuhët"
 
 msgid "Hide the other options"
 msgstr "Fshih opsionet e tjera"
@@ -6654,9 +6658,6 @@ msgstr "KB"
 msgid "Keep"
 msgstr "Mbaj"
 
-msgid "Keep {foundName}"
-msgstr "Mbaje në {foundName}"
-
 msgid "Keep accepts existing content without regenerating it."
 msgstr "Mbajtja pranon përmbajtjen ekzistuese pa e rigjeneruar."
 
@@ -6692,9 +6693,6 @@ msgstr "Mbaji faqet të plota si parazgjedhje, por ndaji kur zbulohen lloje të 
 
 msgid "Keep sharing"
 msgstr "Vazhdo ndarjen"
-
-msgid "Keep the book's own language"
-msgstr "Mbaj gjuhën e librit"
 
 msgid "Keep the printed page"
 msgstr "Mbaj faqen e shtypur"
@@ -8121,6 +8119,9 @@ msgstr "Aktualisht nuk ka elemente të sinjalizuara si që kërkojnë ndryshime 
 msgid "No items need attention with these filters."
 msgstr "Asnjë element nuk kërkon vëmendje me këta filtra."
 
+msgid "No language matches."
+msgstr "Asnjë gjuhë nuk përputhet."
+
 msgid "No language-specific prompts configured."
 msgstr "Nuk ka kërkesa specifike gjuhësore të konfiguruara."
 
@@ -8684,9 +8685,6 @@ msgstr "Vetëm pak faqe kanë detyra."
 
 msgid "Only a handful of pages have them."
 msgstr "Vetëm pak faqe i kanë."
-
-msgid "Only if you want the whole book in another language."
-msgstr "Vetëm nëse doni gjithë librin në një gjuhë tjetër."
 
 msgid "Only illustrations or photos."
 msgstr "Vetëm ilustrime ose foto."
@@ -11256,6 +11254,9 @@ msgstr "Kërko fonte..."
 msgid "Search for a country"
 msgstr "Kërkoni një vend"
 
+msgid "Search for a language"
+msgstr "Kërkoni një gjuhë"
+
 msgid "Search headings, IDs, or style clusters..."
 msgstr "Kërkoni tituj, ID ose grupe stilesh..."
 
@@ -12936,9 +12937,6 @@ msgstr "Libri mbetet në {found}, gjuha që gjeta në PDF-në tuaj, ndaj nuk pë
 msgid "The book stays in its own language, so nothing is translated."
 msgstr "Libri mbetet në gjuhën e vet, ndaj nuk përkthehet asgjë."
 
-msgid "The book stays in this language."
-msgstr "Libri mbetet në këtë gjuhë."
-
 msgid "The book summary covers the whole book — regenerate it on the assembled book once you've merged your last part."
 msgstr "Përmbledhja e librit mbulon të gjithë librin — rigjeneroje në librin e bashkuar pasi të kesh bashkuar pjesën tënde të fundit."
 
@@ -13959,9 +13957,6 @@ msgstr "Përkthe tekstin në imazhe"
 
 msgid "Translate the book content to output languages."
 msgstr "Përkthe përmbajtjen e librit në gjuhët e daljes."
-
-msgid "Translate the book into"
-msgstr "Përkthe librin në"
 
 msgid "Translate the book into additional languages. Each language is generated alongside the original, ready for narration, captions, and on-page reading."
 msgstr "Përkthe librin në gjuhë shtesë. Çdo gjuhë gjenerohet bashkë me origjinalin, e gatshme për tregim, tituj dhe lexim në faqe."
