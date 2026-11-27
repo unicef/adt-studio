@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from "react"
-import type { ExtractRerunAction, ExtractRerunDiscards, ExtractRerunRequest } from "@adt/types"
+import { toast } from "sonner"
+import { useLingui } from "@lingui/react/macro"
+import { ExtractionErrorCode, type ExtractRerunAction, type ExtractRerunDiscards, type ExtractRerunRequest } from "@adt/types"
 import { useApiKey } from "@/hooks/use-api-key"
 import { useBookRun } from "@/hooks/use-book-run"
 import { usePages } from "@/hooks/use-pages"
 import { extractRerunAction, extractRerunBlockedMessage } from "@/lib/extract-rerun-messages"
+import { sectioningErrorMessage } from "@/lib/sectioning-error"
+import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { ExtractReplaceDialog } from "./components/ExtractReplaceDialog"
 
 /**
@@ -25,9 +29,18 @@ import { ExtractReplaceDialog } from "./components/ExtractReplaceDialog"
  * `save` is the pending settings a run should use. A replace saves them only
  * once it is confirmed, so cancelling leaves the book's saved settings as they
  * were; a failed save is shown in the dialog and sends nothing.
+ *
+ * A refused run must not change the saved settings either. So before pending
+ * settings are saved for a re-run, `admit` reads the book's status from the
+ * server and compares it with the request about to be sent: if the action is
+ * no longer offered, or the extraction or content it is bound to changed,
+ * nothing is saved and nothing is sent. The server still decides on the run
+ * request itself; what is left is a change made in the moment between this
+ * check and that request.
  */
 export function useExtractRerun(bookLabel: string) {
-  const { extractRerun, extractRerunDiscards, queueRun } = useBookRun()
+  const { t } = useLingui()
+  const { extractRerun, extractRerunDiscards, queueRun, refreshExtractRerun } = useBookRun()
   const { apiKey } = useApiKey()
   const { data: pages } = usePages(bookLabel)
   const [confirming, setConfirming] = useState<{ request: ExtractRerunRequest; discards: ExtractRerunDiscards | null; follow: boolean; save?: () => Promise<void> } | null>(null)
@@ -43,6 +56,24 @@ export function useExtractRerun(bookLabel: string) {
     attemptId: extractRerun?.attemptId ?? null,
     ...(offered !== "resume" && extractRerun?.contentToken ? { contentToken: extractRerun.contentToken } : {}),
   })
+  /** Would the server still accept `request`? Reads the status now. When it
+   * would not, or the status cannot be read, says why as a refused run does
+   * and answers false. */
+  const stillOffered = async (request: ExtractRerunRequest): Promise<boolean> => {
+    let detail = sectioningErrorMessage(undefined, ExtractionErrorCode.enum.EXTRACTION_RERUN_STALE)
+    try {
+      const fresh = await refreshExtractRerun()
+      if (fresh?.actions.includes(request.action) && fresh.attemptId === request.attemptId
+        && (request.action === "resume" || fresh.contentToken === request.contentToken)) return true
+    } catch (cause) {
+      detail = cause instanceof Error && cause.message ? cause.message : detail
+    }
+    toast.error(t`Could not start ${getStageLabelI18n("extract")}: ${detail}`, { id: `run-start:${bookLabel}:extract`, duration: 12_000 })
+    return false
+  }
+  /** Ask before saving settings for the run `start` would send now. A first
+   * extraction is bound to nothing, so there is nothing to ask. */
+  const admit = async (): Promise<boolean> => !action || stillOffered(requestFor(action))
   const blocked = (pages?.length ?? 0) > 0 && !action
   const blockedReason = blocked ? extractRerunBlockedMessage(extractRerun?.blockedReason) : undefined
 
@@ -60,7 +91,7 @@ export function useExtractRerun(bookLabel: string) {
     const run = () => action
       ? queueRun({ fromStage: "extract", toStage: "extract", apiKey, extraction: requestFor(action), viewAfterStart: follow })
       : queueRun({ fromStage: "extract", toStage: "extract", apiKey, viewAfter: follow })
-    if (save) void save().then(run, () => {})
+    if (save) void admit().then((admitted) => admitted ? save().then(run, () => {}) : undefined)
     else run()
     return true
   }
@@ -70,6 +101,11 @@ export function useExtractRerun(bookLabel: string) {
     if (confirming.save) {
       setSaving(true)
       setSaveError(null)
+      // The dialog described the book as it was when it opened. If the server
+      // would now refuse the replace, the settings stay as they are saved.
+      const admitted = await stillOffered(confirming.request)
+      if (!mounted.current) return
+      if (!admitted) { setSaving(false); setConfirming(null); return }
       try {
         await confirming.save()
       } catch (cause) {
@@ -98,5 +134,5 @@ export function useExtractRerun(bookLabel: string) {
     />
   )
 
-  return { action, blocked, blockedReason, start, dialog }
+  return { action, blocked, blockedReason, start, admit, dialog }
 }

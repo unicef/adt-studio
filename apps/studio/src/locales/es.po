@@ -3579,6 +3579,7 @@ msgstr "No se pudieron deshacer los cambios de esta página. Se conservaron tus 
 msgid "Could not save Sectioning mode."
 msgstr "No se pudo guardar el modo de Seccionamiento."
 
+#. placeholder {0}: getStageLabelI18n("extract")
 #. placeholder {0}: getStageLabelI18n(fromStage)
 msgid "Could not start {0}: {detail}"
 msgstr "No se pudo iniciar {0}: {detail}"

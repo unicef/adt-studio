@@ -106,6 +106,10 @@ export interface BookRunContextValue {
   extractRerun?: import("@adt/types").ExtractRerunStatus
   /** What a replace would discard, while one is offered (SPEC-0003 RAC-23/24). */
   extractRerunDiscards?: import("@adt/types").ExtractRerunDiscards | null
+  /** Read step-status from the server now and return its `extractRerun`. For a
+   *  caller that must know the book's current state before it changes
+   *  anything, not the state this screen last loaded. */
+  refreshExtractRerun(): Promise<import("@adt/types").ExtractRerunStatus | undefined>
   /** Stage state: idle / queued / running / done / error */
   stageState(stage: string): StageState
   /** Step state: idle / running / done / error */
@@ -996,6 +1000,9 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     storyboardCoverage: data?.coverage,
     extractRerun: data?.extractRerun,
     extractRerunDiscards: data?.extractRerunDiscards,
+    refreshExtractRerun: async () => (await queryClient.fetchQuery<StepStatusResponse>({
+      queryKey: stepStatusKey(label), queryFn: ({ signal }) => api.getStepStatus(label, signal), staleTime: 0,
+    })).extractRerun,
     bookLabel: label,
     stageState,
     stepState: stepStateAccessor,

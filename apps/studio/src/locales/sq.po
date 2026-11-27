@@ -3581,6 +3581,7 @@ msgstr "Ndryshimet e kësaj faqeje nuk mund të zhbëheshin. Ndryshimet tuaja u 
 msgid "Could not save Sectioning mode."
 msgstr "Nuk u ruajt modaliteti i Seksionimit."
 
+#. placeholder {0}: getStageLabelI18n("extract")
 #. placeholder {0}: getStageLabelI18n(fromStage)
 msgid "Could not start {0}: {detail}"
 msgstr "Nuk u arrit të niset {0}: {detail}"

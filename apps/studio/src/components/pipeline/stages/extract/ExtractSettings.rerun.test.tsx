@@ -7,7 +7,7 @@ import type { ExtractRerunDiscards, ExtractRerunStatus } from "@adt/types"
 
 const state = vi.hoisted(() => ({
   config: { data: { config: {} } }, active: { data: { merged: {} } },
-  save: vi.fn(), queue: vi.fn(), navigate: vi.fn(), proceed: vi.fn(), reset: vi.fn(), blocked: false, provider: true,
+  save: vi.fn(), queue: vi.fn(), refresh: vi.fn(), toastError: vi.fn(), navigate: vi.fn(), proceed: vi.fn(), reset: vi.fn(), blocked: false, provider: true,
   pages: [] as Array<{ pageId: string }>, rerun: undefined as ExtractRerunStatus | undefined, discards: null as ExtractRerunDiscards | null,
 }))
 const interpolate = (strings: TemplateStringsArray, ...values: unknown[]) => strings.reduce((text, part, index) => text + part + (values[index] ?? ""), "")
@@ -17,7 +17,8 @@ vi.mock("@tanstack/react-router", () => ({ useNavigate: () => state.navigate, us
 vi.mock("@/components/close-guard/CloseGuard", () => ({ useCloseIntent: () => {} }))
 vi.mock("@/hooks/use-book-config", () => ({ useBookConfig: () => state.config, useUpdateBookConfig: () => ({ mutateAsync: state.save, isPending: false }) }))
 vi.mock("@/hooks/use-debug", () => ({ useActiveConfig: () => state.active }))
-vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({ queueRun: state.queue, isRunning: false, extractRerun: state.rerun, extractRerunDiscards: state.discards }) }))
+vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({ queueRun: state.queue, isRunning: false, extractRerun: state.rerun, extractRerunDiscards: state.discards, refreshExtractRerun: state.refresh }) }))
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: state.toastError, success: vi.fn(), info: vi.fn(), dismiss: vi.fn() }) }))
 vi.mock("@/hooks/use-api-key", () => ({ useApiKey: () => ({ apiKey: "test-only" }), useBookStructuredTextAvailability: () => state.provider }))
 vi.mock("@/hooks/use-pages", () => ({ usePages: () => ({ data: state.pages }) }))
 vi.mock("@/components/pipeline/pipeline-i18n", () => ({ getStageLabelI18n: (slug: string) => slug }))
@@ -47,6 +48,8 @@ beforeEach(() => {
   vi.clearAllMocks()
   Object.assign(state, { blocked: false, provider: true, pages: twoPages, rerun: offers("replace"), discards: { pages: 2, extractedImages: 7, addedImages: 1 } })
   state.save.mockResolvedValue({})
+  // The server still describes the book as this screen shows it.
+  state.refresh.mockImplementation(async () => state.rerun)
   client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} })
 })
@@ -95,6 +98,8 @@ it("RAC-23: Save & Re-run asks for confirmation first, then saves and sends the 
   await waitFor(() => expect(state.queue).toHaveBeenCalledTimes(1))
   expect(state.save).toHaveBeenCalledTimes(1)
   expect(state.save.mock.calls[0][0]).toMatchObject({ label: "book", config: { image_filters: { min_side: 120 } } })
+  // The settings are saved only after the server confirmed the replace is still offered for this content.
+  expect(state.refresh.mock.invocationCallOrder[0]).toBeLessThan(state.save.mock.invocationCallOrder[0])
   expect(state.save.mock.invocationCallOrder[0]).toBeLessThan(state.queue.mock.invocationCallOrder[0])
   expect(state.queue).toHaveBeenCalledExactlyOnceWith({
     fromStage: "extract", toStage: "extract", apiKey: "test-only",
@@ -103,6 +108,67 @@ it("RAC-23: Save & Re-run asks for confirmation first, then saves and sends the 
   // The view follows the run only once the server accepted it, which queueRun owns.
   expect(state.navigate).not.toHaveBeenCalled()
   expect(screen.queryByRole("dialog")).toBeNull()
+})
+
+const changed: Array<[string, () => Promise<ExtractRerunStatus | undefined>]> = [
+  ["its content changed (an edit, an image decision or an upload in another window)", async () => ({ ...offers("replace"), contentToken: "d".repeat(64) })],
+  ["it was extracted again", async () => ({ ...offers("replace"), attemptId: "00000000-0000-4000-8000-000000000000" })],
+  ["the action is no longer offered", async () => ({ actions: [], attemptId, contentToken: null, blockedReason: "downstream-output" })],
+  ["a run is active", async () => ({ actions: [], attemptId, contentToken: null, blockedReason: "run-active" })],
+  ["its status cannot be read", async () => { throw new Error("Network error") }],
+]
+
+it.each(changed)("RAC-23: a replace the server would refuse leaves the settings unsaved: %s", async (_name, fresh) => {
+  await editGeneral()
+  await click("Save & Re-run")
+  const dialog = await replaceDialog()
+  // The book changes while the confirmation is open.
+  state.refresh.mockImplementationOnce(fresh)
+  await confirmReplace(dialog)
+  await waitFor(() => expect(state.toastError).toHaveBeenCalledTimes(1))
+  expect(state.toastError.mock.calls[0][0]).toMatch(/^Could not start extract/)
+  // Nothing was saved and nothing was sent: the changes are still pending.
+  expect(state.save).not.toHaveBeenCalled()
+  expect(state.queue).not.toHaveBeenCalled()
+  expect(state.navigate).not.toHaveBeenCalled()
+  expect(screen.queryByRole("dialog")).toBeNull()
+  expect(button("Save & Re-run").disabled).toBe(false)
+  expect(button("Save").disabled).toBe(false)
+})
+
+it.each(["retry", "resume"] as const)("RAC-24: a %s the server would refuse leaves the settings unsaved", async action => {
+  state.rerun = offers(action)
+  state.discards = null
+  await editGeneral()
+  // Another window finished the extraction: only a replace is offered now.
+  state.refresh.mockResolvedValueOnce({ ...offers("replace"), attemptId: "00000000-0000-4000-8000-000000000000" })
+  await click("Save & Re-run")
+  await waitFor(() => expect(state.toastError).toHaveBeenCalledTimes(1))
+  expect(state.save).not.toHaveBeenCalled()
+  expect(state.queue).not.toHaveBeenCalled()
+  expect(button("Save & Re-run").disabled).toBe(false)
+})
+
+it("RAC-22: a retry is checked against the content it discards, a resume only against its extraction", async () => {
+  // The content changed since this screen loaded.
+  const fresh = (action: "retry" | "resume"): ExtractRerunStatus => ({ ...offers(action), contentToken: action === "retry" ? "d".repeat(64) : null })
+  state.rerun = offers("retry")
+  state.discards = null
+  const view = await editGeneral()
+  state.refresh.mockResolvedValueOnce(fresh("retry"))
+  await click("Save & Re-run")
+  await waitFor(() => expect(state.toastError).toHaveBeenCalledTimes(1))
+  expect(state.save).not.toHaveBeenCalled()
+  expect(state.queue).not.toHaveBeenCalled()
+  view.unmount()
+
+  // A resume discards nothing, so the same change does not refuse it.
+  state.rerun = offers("resume")
+  await editGeneral()
+  await click("Save & Re-run")
+  await waitFor(() => expect(state.queue).toHaveBeenCalledTimes(1))
+  expect(state.save).toHaveBeenCalledTimes(1)
+  expect(state.refresh.mock.invocationCallOrder.at(-1)!).toBeLessThan(state.save.mock.invocationCallOrder[0])
 })
 
 it("RAC-23: cancelling the confirmation saves nothing, sends nothing and keeps the changes pending", async () => {

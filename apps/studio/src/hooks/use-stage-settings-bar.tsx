@@ -35,8 +35,11 @@ export function useStageSettingsBar({
    * `manual` marks a run that must be asked for explicitly (it shows its own
    * confirmation), so saving while leaving the page does not start it, and
    * the settings are handed to it as `save`, to be saved once it is confirmed.
+   * `admit` asks whether the run would still be accepted, before the settings
+   * are saved for it: a refused run must leave the saved settings unchanged.
+   * It has already told the user why when it answers false.
    */
-  rerun?: { start: (options: { follow: boolean; save?: () => Promise<void> }) => void; disabledReason?: string; manual?: boolean }
+  rerun?: { start: (options: { follow: boolean; save?: () => Promise<void> }) => void; admit?: () => Promise<boolean>; disabledReason?: string; manual?: boolean }
 }) {
   const { t } = useLingui()
   const remount = useSettingsRemount()
@@ -57,6 +60,7 @@ export function useStageSettingsBar({
     // cancelling it must leave the saved settings as they were.
     if (rerun?.manual) { rerun.start({ follow: leave, save: () => saveRef.current() }); return true }
     const apply = async (options = {}, stillCurrent = () => true) => {
+      if (rerun?.admit && !await rerun.admit()) return false
       // The protected versions stay frozen, but untouched settings may have
       // refreshed while confirmation was open. Apply the current form draft.
       if (!protectedStage) await saveRef.current()
@@ -68,7 +72,7 @@ export function useStageSettingsBar({
       if (leave) navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: stage }, ignoreBlocker: true })
       return true
     }
-    if (!protectedStage) { await apply(); return true }
+    if (!protectedStage) return apply()
     if (saving) return false
     return confirmation.requestRun(apply, () => saveRef.current())
   }

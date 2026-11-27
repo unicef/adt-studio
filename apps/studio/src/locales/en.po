@@ -3579,6 +3579,7 @@ msgstr "Could not revert this page. Your edits were kept. Try again."
 msgid "Could not save Sectioning mode."
 msgstr "Could not save Sectioning mode."
 
+#. placeholder {0}: getStageLabelI18n("extract")
 #. placeholder {0}: getStageLabelI18n(fromStage)
 msgid "Could not start {0}: {detail}"
 msgstr "Could not start {0}: {detail}"

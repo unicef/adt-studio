@@ -8,7 +8,7 @@ import type { ExtractRerunBlockedReason, ExtractRerunDiscards, ExtractRerunStatu
 const state = vi.hoisted(() => ({
   pages: [] as Array<{ pageId: string }>, provider: true, stage: "done",
   rerun: undefined as ExtractRerunStatus | undefined, discards: null as ExtractRerunDiscards | null,
-  queueRun: vi.fn(), persist: vi.fn(),
+  queueRun: vi.fn(), persist: vi.fn(), refresh: vi.fn(),
   // Stable references: the page's effects depend on them.
   config: { data: { config: { start_page: 1, end_page: 2 } } }, book: { data: { title: "Raven", pageCount: 12 } }, pdf: { data: { pageCount: 12 }, isPending: false },
 }))
@@ -19,7 +19,7 @@ vi.mock("@lingui/core", () => ({ i18n: { _: (descriptor: { id: string }) => desc
 vi.mock("@tanstack/react-router", () => ({ Link: ({ children }: { children: ReactNode }) => <span>{children}</span>, useNavigate: () => vi.fn() }))
 vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({
   stageState: () => state.stage, queueRun: state.queueRun, isCancelling: false, cancelRun() {},
-  extractRerun: state.rerun, extractRerunDiscards: state.discards,
+  extractRerun: state.rerun, extractRerunDiscards: state.discards, refreshExtractRerun: state.refresh,
 }) }))
 vi.mock("@/hooks/use-api-key", () => ({ useApiKey: () => ({ apiKey: "fixture" }), useBookStructuredTextAvailability: () => state.provider }))
 vi.mock("@/hooks/use-pages", () => ({ usePages: () => ({ data: state.pages }) }))
@@ -109,7 +109,10 @@ it("RAC-23: the confirmation stays bound to the extraction, content and counts i
   const dialog = screen.getByRole("dialog")
   expect(within(dialog).getAllByRole("term")[0].nextElementSibling?.textContent).toBe("2")
   fireEvent.click(within(dialog).getByRole("button", { name: "Discard and extract again" }))
-  // What is sent is what the dialog described, so the server refuses it.
+  // The Overview has no pending settings to protect (it saves each change as
+  // it is made), so it asks nothing first: what is sent is what the dialog
+  // described, and the server refuses it.
+  expect(state.refresh).not.toHaveBeenCalled()
   expect(state.queueRun).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ extraction: { action: "replace", attemptId, contentToken } }))
 })
 

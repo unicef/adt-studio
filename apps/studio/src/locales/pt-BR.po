@@ -3579,6 +3579,7 @@ msgstr "Não foi possível reverter esta página. Suas edições foram mantidas.
 msgid "Could not save Sectioning mode."
 msgstr "Não foi possível salvar o modo de divisão em seções."
 
+#. placeholder {0}: getStageLabelI18n("extract")
 #. placeholder {0}: getStageLabelI18n(fromStage)
 msgid "Could not start {0}: {detail}"
 msgstr "Não foi possível iniciar {0}: {detail}"

@@ -180,7 +180,7 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
     save,
     showSaveOnly: tab === "general" || PROMPT_TABS.includes(tab),
     rerun: extractRerun.action || extractRerun.blocked
-      ? { start: extractRerun.start, disabledReason: extractRerun.blockedReason, manual: extractRerun.action === "replace" }
+      ? { start: extractRerun.start, admit: extractRerun.admit, disabledReason: extractRerun.blockedReason, manual: extractRerun.action === "replace" }
       : undefined,
   })
 

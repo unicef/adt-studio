@@ -3581,6 +3581,7 @@ msgstr "Impossible d’annuler les modifications de cette page. Vos modification
 msgid "Could not save Sectioning mode."
 msgstr "Impossible d’enregistrer le mode de Sectionnement."
 
+#. placeholder {0}: getStageLabelI18n("extract")
 #. placeholder {0}: getStageLabelI18n(fromStage)
 msgid "Could not start {0}: {detail}"
 msgstr "Impossible de démarrer {0} : {detail}"
