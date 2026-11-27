@@ -216,7 +216,7 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
     setView(null)
     check.go(s, true)
   }) : null
-  // How the PDF row looks and where the picks show (dev lab: ?row= &picks=).
+  // Where the picks show (dev lab: ?picks=).
   const pdfAt = useContext(PdfOptionsContext)
   const scroller = useRef<HTMLDivElement>(null)
   const { scale, vh } = usePageScale(scroller)
@@ -233,11 +233,6 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
         </div>
         <FileDropOverlay overlay={flow.overlay} dropLabel={<Trans>Drop PDF here</Trans>} errorLabel={<Trans>Only PDF files are supported</Trans>} accent="blue" />
         <input ref={flow.inputRef} type="file" accept="application/pdf" className="hidden" onChange={flow.onInputChange} />
-        <div aria-hidden className="gd-tint pointer-events-none absolute inset-0">
-          {(["upload", "reading", "check", "create", "done", "error"] as const).map((k) => (
-            <span key={k} data-tint={k} />
-          ))}
-        </div>
 
         <div ref={scroller} className="relative flex-1 overflow-y-auto overflow-x-hidden">
           {/* One column per step, and the stepper takes the same width, so its ends line up with the
@@ -245,7 +240,7 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
               floating small in the middle; on short ones the spacing tightens. */}
           <div className="mx-auto flex w-full flex-col px-4 pb-24 pt-6 sm:px-6 sm:pt-8 [@media(max-height:800px)]:pt-4" style={{ zoom: scale, "--gd-vh": `${vh}px` } as CSSProperties}>
             <div className={cn("gd-col mx-auto w-full", column)}>
-              <PdfRow flow={flow} locked={creating} look={pdfAt.row} />
+              <PdfRow flow={flow} locked={creating} />
               <Stepper
                 at={at}
                 shown={shown}

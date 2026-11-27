@@ -4,19 +4,9 @@ import { PdfOptionsContext, type PdfOptions } from "./options"
 
 const CONTROLS: LabControl[] = [
   {
-    key: "row",
-    label: "PDF row",
-    cycle: true,
-    options: [
-      { value: "plain", label: "Plain (now)" },
-      { value: "card", label: "Card" },
-      { value: "compact", label: "Compact line" },
-      { value: "strip", label: "Page strip" },
-    ],
-  },
-  {
     key: "picks",
     label: "Picks",
+    cycle: true,
     options: [
       { value: "none", label: "None (now)" },
       { value: "chips", label: "Chips under the steps" },
@@ -25,7 +15,7 @@ const CONTROLS: LabControl[] = [
   },
 ]
 
-/** Dev only: how the PDF row looks and where the picks show (?row= &picks=, ← → for the row). */
+/** Dev only: where the picks show (?picks=, ← → to flip). */
 export default function PdfLab({ children }: { children: ReactNode }) {
   const [values, set] = useLabParams(CONTROLS)
   return (
