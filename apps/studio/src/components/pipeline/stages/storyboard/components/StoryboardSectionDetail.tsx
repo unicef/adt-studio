@@ -1167,6 +1167,9 @@ export function StoryboardSectionDetail({
       await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, pageId] })
       invalidateStoryboardDependents(queryClient, bookLabel)
       onNavigateSection?.(result.clonedSectionIndex)
+      // Container/text ids are fresh; image leaves keep their ids, so their
+      // authored element audio still resolves in the clone.
+      toast.info(t`Section duplicated. Its images keep their authored element audio.`)
     } catch (err) {
       setAiError(err instanceof Error ? err.message : t`Clone failed`)
     } finally {
@@ -2446,8 +2449,11 @@ export function StoryboardSectionDetail({
 
     const leafPath = section ? findNodePath(section.nodes, dataId) : null
     const leaf = leafPath ? leafPath[leafPath.length - 1] : null
+    // A node in a pruned section is hidden whatever its own flag says; the
+    // audio inspector must not offer a save the server will reject.
+    const sectionPruned = section?.isPruned ?? false
     // A node under a pruned container is hidden whatever its own flag says.
-    const ancestorPruned = leafPath?.slice(0, -1).some((n) => n.isPruned) ?? false
+    const ancestorPruned = sectionPruned || (leafPath?.slice(0, -1).some((n) => n.isPruned) ?? false)
     const isImage =
       tag === "img" ||
       leaf?.role === "image" ||
@@ -3515,6 +3521,7 @@ export function StoryboardSectionDetail({
         deviceView={deviceView}
         isFixedLayout={isFixedLayout}
         bookLabel={bookLabel}
+        pageId={pageId}
       />
     </div>
 

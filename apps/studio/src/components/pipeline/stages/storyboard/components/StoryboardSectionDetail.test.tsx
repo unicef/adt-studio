@@ -27,16 +27,25 @@ const state = vi.hoisted(() => ({
   convert: vi.fn(),
   headerSlot: null as HTMLElement | null,
   pickers: {} as Record<string, {onRestoringChange: (busy: boolean) => void; onRestored: () => void}>,
-  frame: {} as {editable: boolean; onTextChanged?: (dataId: string, text: string) => void},
+  frame: {} as {editable: boolean; onTextChanged?: (dataId: string, text: string) => void; onSelectElement?: (dataId: string, rect: DOMRect, tagName?: string) => void},
   panel: null as unknown as ComponentProps<typeof SectionEditPanel>,
   style: null as unknown as ComponentProps<typeof StyleEditorPanel>,
   save: vi.fn().mockResolvedValue({}),
+  clone: vi.fn(),
   generate: vi.fn(),
   aiEdit: vi.fn(),
   invalidate: vi.fn().mockResolvedValue(undefined),
   cancel: vi.fn().mockResolvedValue(undefined),
   setQueryData: vi.fn(),
 }))
+const toast = vi.hoisted(() => ({
+  info: vi.fn(),
+  success: vi.fn(),
+  warning: vi.fn(),
+  error: vi.fn(),
+}))
+vi.mock("sonner", () => ({ toast }))
+
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useLingui: () => ({
@@ -49,7 +58,7 @@ vi.mock("@lingui/core/macro", () => ({
 }))
 vi.mock("@/api/client", () => ({
   BASE_URL: "/api",
-  api: { getActiveConfig: async () => ({}), saveStoryboard: state.save, reRenderPage: state.generate, aiEditSection: state.aiEdit },
+  api: { getActiveConfig: async () => ({}), saveStoryboard: state.save, cloneSection: state.clone, reRenderPage: state.generate, aiEditSection: state.aiEdit },
 }))
 vi.mock("@tanstack/react-query", async importOriginal => {
   const actual = await importOriginal<typeof import("@tanstack/react-query")>()
@@ -106,6 +115,15 @@ vi.mock("./BookPreviewFrame", async () => {
       useImperativeHandle(
         ref,
         () => ({
+          getIframeRect() {
+            return new DOMRect()
+          },
+          getComputedTypographyStyles() {
+            return null
+          },
+          getElementClasses() {
+            return []
+          },
           setElementClasses(id: string, classes: string[]) {
             const doc = new DOMParser().parseFromString(html, "text/html")
             doc
@@ -239,6 +257,43 @@ beforeEach(() => {
   state.aiEdit.mockReset().mockResolvedValue({ taskId: "ai-edit" })
 })
 afterEach(cleanup)
+
+it("AC-8: tells the author that a cloned section keeps its images' authored audio", async () => {
+  state.clone.mockResolvedValue({ clonedSectionIndex: 1 })
+  render(<FloatingSaveProvider><StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={fixture()} /><LeaveProbe /></FloatingSaveProvider>)
+  await waitFor(() => expect(state.panel).toBeTruthy())
+  await act(async () => { state.panel.onCloneSection() })
+  expect(state.clone).toHaveBeenCalledWith("fixture", "pg001", 0, 1)
+  await waitFor(() =>
+    expect(toast.info).toHaveBeenCalledWith(
+      "Section duplicated. Its images keep their authored element audio.",
+    ),
+  )
+})
+
+it("AC-8: marks a selected image in a pruned section as pruned", async () => {
+  const page = fixture()
+  page.sectioningTree!.sections[0].isPruned = true
+  page.sectioningTree!.sections[0].nodes.push({
+    nodeId: "pg001_im001",
+    role: "image",
+    isPruned: false,
+  } as never)
+  page.rendering!.sections[0].html =
+    '<section data-section-id="pg001_sec001"><img data-id="pg001_im001" /></section>'
+
+  render(
+    <FloatingSaveProvider>
+      <StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={page} />
+    </FloatingSaveProvider>,
+  )
+
+  await waitFor(() => expect(state.frame.onSelectElement).toBeTypeOf("function"))
+  act(() => state.frame.onSelectElement!("pg001_im001", new DOMRect(), "img"))
+  await waitFor(() => {
+    expect((state.style as { elementProps?: { isPruned?: boolean } }).elementProps?.isPruned).toBe(true)
+  })
+})
 
 it.each([false, true])("Save & leave waits for Storyboard persistence and retains a rejected draft; source=%s", async (sourceDraft) => {
   let reject!: (reason: Error) => void

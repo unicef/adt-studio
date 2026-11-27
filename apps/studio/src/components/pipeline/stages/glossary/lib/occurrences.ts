@@ -58,6 +58,9 @@ export function useGlossaryOccurrences(
     const grouped = new Map<number, string[]>()
     for (const entry of data?.entries ?? []) {
       if (!entry.text) continue
+      // Authored element audio is speech-only: its synthetic catalog entry is
+      // not page text and must not inflate glossary occurrences (SPEC-0014).
+      if (entry.locations?.some((location) => location.role === "element-audio")) continue
       const pageId = entry.id.split("_", 1)[0]
       const pageNumber = pageNumberByPageId.get(pageId)
       if (pageNumber == null) continue

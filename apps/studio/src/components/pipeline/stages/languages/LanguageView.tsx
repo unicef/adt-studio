@@ -47,6 +47,7 @@ import {
   getEntryTtsExclusion,
   isAnswerEntry,
   isEasyReadEntry,
+  isElementAudioCatalogEntry,
   isGlossaryEntry,
   isImageEntry,
 } from "./lib/catalog-entries";
@@ -502,12 +503,30 @@ export function LanguageView({
     }
     return [...byId.values()];
   }, [easyReadData]);
+  // The artifact is the source of truth for authored element audio. A legacy
+  // image id ending in _audio is a normal caption and must stay in this view.
+  const authoredElementAudioIds = useMemo(
+    () =>
+      new Set(
+        (catalog?.entries ?? [])
+          .filter((entry) =>
+            entry.locations?.some((location) => location.role === "element-audio"),
+          )
+          .map((entry) => entry.id),
+      ),
+    [catalog?.entries],
+  );
   const entries = useMemo(() => {
-    const base = catalog?.entries ?? [];
+    const base = (catalog?.entries ?? []).filter(
+      (entry) => !isElementAudioCatalogEntry(entry.id, authoredElementAudioIds),
+    );
     if (easyReadEntries.length === 0) return base;
     const easyReadIds = new Set(easyReadEntries.map((entry) => entry.id));
-    return [...base.filter((entry) => !easyReadIds.has(entry.id)), ...easyReadEntries];
-  }, [catalog?.entries, easyReadEntries]);
+    return [
+      ...base.filter((entry) => !easyReadIds.has(entry.id)),
+      ...easyReadEntries.filter((entry) => !isElementAudioCatalogEntry(entry.id, authoredElementAudioIds)),
+    ];
+  }, [catalog?.entries, easyReadEntries, authoredElementAudioIds]);
   const sourceEntriesById = useMemo(
     () => new Map([...entries].reverse().map((entry) => [entry.id, entry.text])),
     [entries],
@@ -544,7 +563,7 @@ export function LanguageView({
     categoryFilter === "all"
       ? pageFilteredEntries
       : pageFilteredEntries.filter(
-          (e) => getEntryCategory(e.id) === categoryFilter,
+          (e) => getEntryCategory(e.id, authoredElementAudioIds) === categoryFilter,
         );
 
   // When no output languages are configured, we're always viewing the source language.
@@ -791,20 +810,18 @@ export function LanguageView({
   const selectedSpeechMap = useMemo(
     () =>
       new Map(
-        (speechCatalogFor(audioLang)?.entries ?? []).map((entry) => [
-          entry.id,
-          entry,
-        ]),
+        (speechCatalogFor(audioLang)?.entries ?? [])
+          .filter((entry) => !isElementAudioCatalogEntry(entry.id, authoredElementAudioIds))
+          .map((entry) => [entry.id, entry]),
       ),
     [audioLang, speechCatalogFor],
   );
   const sourceSpeechMap = useMemo(
     () =>
       new Map(
-        (speechCatalogFor(editingLanguage)?.entries ?? []).map((entry) => [
-          entry.id,
-          entry,
-        ]),
+        (speechCatalogFor(editingLanguage)?.entries ?? [])
+          .filter((entry) => !isElementAudioCatalogEntry(entry.id, authoredElementAudioIds))
+          .map((entry) => [entry.id, entry]),
       ),
     [editingLanguage, speechCatalogFor],
   );
@@ -1324,7 +1341,7 @@ export function LanguageView({
   }, [hasSecondaryVoice, selectedVoiceSlot, hasTimestampDraft]);
   // Muted entries neither need audio nor count as missing
   const speakableEntries = displayEntries.filter(
-    (entry) => !getEntryTtsExclusion(entry.id, ttsExclusionConfig).excluded,
+    (entry) => !getEntryTtsExclusion(entry.id, ttsExclusionConfig, authoredElementAudioIds).excluded,
   );
   const generatedAudioCount = speakableEntries.filter((entry) =>
     audioMap.has(entry.id),
@@ -1710,7 +1727,7 @@ export function LanguageView({
               searchPlaceholder: t`Search original or translation…`,
               renderItem: (it, ctx) => {
                 const e = it as TextCatalogEntry;
-                const cat = getEntryCategory(e.id);
+                const cat = getEntryCategory(e.id, authoredElementAudioIds);
                 const catLabel =
                   cat === "captions"
                     ? t`Caption`
@@ -2284,7 +2301,7 @@ export function LanguageView({
                   key === "all"
                     ? pageFilteredEntries.length
                     : pageFilteredEntries.filter(
-                        (e) => getEntryCategory(e.id) === key,
+                        (e) => getEntryCategory(e.id, authoredElementAudioIds) === key,
                       ).length;
                 if (key !== "all" && count === 0) return null;
                 return (
@@ -2548,6 +2565,7 @@ export function LanguageView({
                 const exclusion = getEntryTtsExclusion(
                   entry.id,
                   ttsExclusionConfig,
+                  authoredElementAudioIds,
                 );
                 // Easy Read variants inherit their source entry's mute — only the
                 // source row can undo it, so lock the toggle on the variant row.

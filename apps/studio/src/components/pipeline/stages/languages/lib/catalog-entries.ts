@@ -9,8 +9,10 @@
  */
 import {
   getTextCatalogCategory,
+  isAuthoredElementAudioId,
   isTtsExcluded,
   sectionIdOfAnswerTextId,
+  type AuthoredElementAudioIds,
   type TextCatalogCategory,
   type TtsExclusionConfig,
   type TextCatalogEntry,
@@ -19,6 +21,16 @@ import {
 const IMAGE_ID_RE = /_im\d{3}/
 const GLOSSARY_ID_RE = /^gl(?:\d{3}|_manual_)/
 const EASY_READ_ID_RE = /_easy_read$/
+
+/** Authored element audio is speech-only and has its own inspector; it must
+ *  not appear as a text/translation/Core TTS row in the Languages stage.
+ *  The artifact-derived set decides what is authored, never the id suffix. */
+export function isElementAudioCatalogEntry(
+  id: string,
+  authoredElementAudioIds: AuthoredElementAudioIds,
+): boolean {
+  return isAuthoredElementAudioId(id, authoredElementAudioIds)
+}
 
 export type CatalogCategory = "all" | TextCatalogCategory
 
@@ -41,8 +53,11 @@ export function isEasyReadEntry(id: string): boolean {
   return EASY_READ_ID_RE.test(id)
 }
 
-export function getEntryCategory(id: string): CatalogCategory {
-  return getTextCatalogCategory(id)
+export function getEntryCategory(
+  id: string,
+  authoredElementAudioIds: AuthoredElementAudioIds,
+): CatalogCategory {
+  return getTextCatalogCategory(id, authoredElementAudioIds)
 }
 
 export function entryBelongsToPage(entry: TextCatalogEntry, pageId: string): boolean {
@@ -63,12 +78,13 @@ export interface EntryTtsExclusion {
 export function getEntryTtsExclusion(
   id: string,
   config: TtsExclusionConfig | null | undefined,
+  authoredElementAudioIds: AuthoredElementAudioIds,
 ): EntryTtsExclusion {
   const byId = isTtsExcluded(id, {
     excluded_text_ids: config?.excluded_text_ids,
-  })
+  }, authoredElementAudioIds)
   const byCategory =
     !byId &&
-    isTtsExcluded(id, { excluded_categories: config?.excluded_categories })
+    isTtsExcluded(id, { excluded_categories: config?.excluded_categories }, authoredElementAudioIds)
   return { excluded: byId || byCategory, byCategory, byId }
 }

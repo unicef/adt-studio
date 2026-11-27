@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useRef, type ReactNode } from "react"
 import {
+  AudioLines,
   BookOpen,
   Check,
   ChevronDown,
@@ -54,6 +55,7 @@ export type VersionedStep =
   | "image-captioning"
   | "page-sectioning"
   | "web-rendering"
+  | "element-audio"
 
 type Variant = "header" | "muted"
 
@@ -76,6 +78,7 @@ const STEP_STYLING: Record<VersionedStep, StepStyling> = {
   "image-filtering": { variant: "muted", triggerClass: MUTED_TRIGGER },
   "image-captioning": { variant: "muted", triggerClass: MUTED_TRIGGER },
   "page-sectioning": { variant: "muted", triggerClass: MUTED_TRIGGER },
+  "element-audio": { variant: "muted", triggerClass: MUTED_TRIGGER },
 }
 
 /** Default pending-change descriptor shown in the floating save bar per step. */
@@ -89,6 +92,7 @@ const STEP_PENDING: Partial<
   "easy-read": { icon: FileText, label: msg`Easy Read` },
   "image-filtering": { icon: ImageIcon, label: msg`Image selection` },
   "image-captioning": { icon: ImageIcon, label: msg`Captions` },
+  "element-audio": { icon: AudioLines, label: msg`Element audio` },
 }
 
 interface VersionPickerProps {
@@ -239,7 +243,11 @@ export function VersionPicker({
   ) : undefined
 
   const stage: StageName =
-    step === "text-catalog-translation" ? "translate" : STEP_TO_STAGE[step]
+    step === "text-catalog-translation"
+      ? "translate"
+      : step === "element-audio"
+        ? "storyboard"
+        : STEP_TO_STAGE[step]
 
   useFloatingSave({
     id: `${step}:${itemId}`,

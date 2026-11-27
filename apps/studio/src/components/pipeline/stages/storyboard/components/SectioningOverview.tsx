@@ -23,6 +23,7 @@ import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-ke
 import { useBookRun } from "@/hooks/use-book-run"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
+import { toast } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
 
 type DetailPanel = "preview" | "metadata" | "content" | "images" | "prunedImages"
@@ -119,7 +120,12 @@ export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: Se
   const cloneMutation = useMutation({
     mutationFn: ({ pageId, sectionIndex }: { pageId: string; sectionIndex: number }) =>
       api.cloneSection(bookLabel, pageId, sectionIndex, sectionVersion(pageId)),
-    onSuccess: (_data, vars) => invalidatePages(vars.pageId),
+    onSuccess: (_data, vars) => {
+      invalidatePages(vars.pageId)
+      // Container/text ids are fresh; image leaves keep their ids, so their
+      // authored element audio still resolves in the clone.
+      toast.info(t`Section duplicated. Its images keep their authored element audio.`)
+    },
   })
 
   const deleteMutation = useMutation({

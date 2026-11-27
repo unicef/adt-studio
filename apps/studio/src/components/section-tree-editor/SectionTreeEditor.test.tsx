@@ -1,9 +1,13 @@
 // @vitest-environment jsdom
 import React, { useState } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import type { PageSectioningSection } from "@adt/types"
 import { SectionTreeEditor, TREE_DRAG_TYPE } from "./SectionTreeEditor"
+
+const toast = vi.hoisted(() => ({ info: vi.fn() }))
+
+vi.mock("@/components/ui/sonner", () => ({ toast }))
 
 vi.mock("@lingui/react/macro", () => ({
   useLingui: () => ({
@@ -19,12 +23,16 @@ vi.mock("@lingui/react/macro", () => ({
 // Renders only the labels of a menu's visible items, so tests can assert
 // which actions a row offers without opening the Radix dropdown.
 vi.mock("@/components/ui/action-menu", () => ({
-  ActionMenu: ({ items }: { items: Array<{ label?: React.ReactNode; hidden?: boolean; separator?: true }> }) => (
+  ActionMenu: ({ items }: { items: Array<{ label?: React.ReactNode; onClick?: () => void; hidden?: boolean; separator?: true }> }) => (
     <ul data-testid="row-menu">
       {items
         .filter((item) => !item.separator && !item.hidden)
         .map((item, index) => (
-          <li key={index}>{item.label}</li>
+          <li key={index}>
+            <button type="button" onClick={item.onClick}>
+              {item.label}
+            </button>
+          </li>
         ))}
     </ul>
   ),
@@ -95,6 +103,7 @@ function Harness({
 }
 
 beforeEach(() => {
+  toast.info.mockClear()
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
     callback(0)
     return 1
@@ -232,6 +241,30 @@ describe("SectionTreeEditor drag and drop", () => {
       )
       expect(onStructuralChange).toHaveBeenCalledTimes(1)
     })
+  })
+})
+
+describe("SectionTreeEditor element-audio notice (AC-8)", () => {
+  it("tells the author that a duplicated element does not inherit audio", () => {
+    render(<Harness onStructuralChange={vi.fn()} />)
+    const row = document.querySelector<HTMLElement>('[data-node-id="dog-image"]')
+    expect(row).toBeTruthy()
+    fireEvent.click(within(row!).getByText("Duplicate"))
+    expect(toast.info).toHaveBeenCalledWith(
+      "Element duplicated. Authored element audio is not copied to the new element.",
+    )
+  })
+
+  it("does not warn when the duplicated subtree has no image", () => {
+    const textOnlySection: PageSectioningSection = {
+      ...initialSection,
+      nodes: [{ nodeId: "only-text", role: "text", text: "Hola", isPruned: false }],
+    }
+    render(<Harness initial={textOnlySection} onStructuralChange={vi.fn()} />)
+    const row = document.querySelector<HTMLElement>('[data-node-id="only-text"]')
+    expect(row).toBeTruthy()
+    fireEvent.click(within(row!).getByText("Duplicate"))
+    expect(toast.info).not.toHaveBeenCalled()
   })
 })
 

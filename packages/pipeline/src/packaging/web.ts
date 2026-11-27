@@ -55,6 +55,15 @@ import {
 import { reflowableFontChain, bookBodyFont, bookFontFamilyChain } from "@adt/types"
 import { bundleGoogleFontsIntoCss } from "../google-fonts-bundle.js"
 import { currentBookImageSrc } from "../book-image-url.js"
+
+/** Authored element audio is speech-only, so its synthetic id (and the
+ *  easy-read variant) must never become display text in `texts.json`. */
+function isElementAudioCatalogId(
+  id: string,
+  authoredElementAudioIds: AuthoredElementAudioIds,
+): boolean {
+  return isAuthoredElementAudioId(id, authoredElementAudioIds)
+}
 import {
   bundleBookFontsIntoCss,
   readBookFontRegistry,
@@ -870,11 +879,11 @@ async function buildWebPackage(
     const baseLang = getBaseLanguage(lang)
     let textsMap: Record<string, string> = {}
     if (baseLang === sourceLanguage) {
-      // Source language — use original catalog
+      // Source language - use original catalog
       if (catalog?.entries) {
-        for (const e of catalog.entries) textsMap[e.id] = e.text
+        for (const e of catalog.entries) if (!isElementAudioCatalogId(e.id, elementAudioTextIds)) textsMap[e.id] = e.text
       }
-      for (const e of easyReadEntries) textsMap[e.id] = e.text
+      for (const e of easyReadEntries) if (!isElementAudioCatalogId(e.id, elementAudioTextIds)) textsMap[e.id] = e.text
     } else {
       // Translated language
       const legacyLang = lang.replace("-", "_")
@@ -883,7 +892,7 @@ async function buildWebPackage(
         storage.getLatestNodeData("text-catalog-translation", legacyLang)
       if (transRow) {
         const translated = transRow.data as TextCatalogOutput
-        const activeIds = new Set([...catalog.entries, ...easyReadEntries].map((entry) => entry.id))
+        const activeIds = new Set([...catalog.entries, ...easyReadEntries].map((entry) => entry.id).filter((id) => !isElementAudioCatalogId(id, elementAudioTextIds)))
         for (const e of translated.entries) if (activeIds.has(e.id) && !Object.hasOwn(textsMap, e.id)) textsMap[e.id] = e.text
       }
     }

@@ -5,7 +5,7 @@ status: in-progress
 owner: "@gaguerre-iugo"
 approvers: ["@gbergengruen"]
 issues: ["#890"]
-prs: ["#1145", "#1159"]
+prs: ["#1145", "#1159", "#1160"]
 adr: "docs/DECISIONS.md#028-per-element-authored-fields-with-no-catalog-home-live-in-their-own-versioned-node"
 created: 2026-09-23
 updated: 2026-11-26
@@ -139,9 +139,9 @@ Binding.
   reattach to different text. Image ids (`pg001_im001`) come from extraction
   (`page-sectioning.ts:704-706`) and are stable. The artifact **schema stays generic** (`entries: [{
   nodeId, text }]`) so enabling text later needs no migration.
-- **Cloning a section does not inherit element audio.** `cloneNodesWithFreshContainerIds`
-  (`apps/api/src/routes/pages.ts:822`) keeps leaf ids, so a clone would share the original's script.
-  Out of scope in v1; recorded, not silently implemented.
+- **Cloning a section shares the images' authored audio.** `cloneNodesWithFreshContainerIds`
+  (`apps/api/src/routes/pages.ts:866`) keeps image leaf ids, so the clone resolves the same
+  `element-audio` entries. v1 accepts this and the UI says so.
 - **Deleting a page and a full re-extraction destroy the artifact.** `deletePage`
   (`packages/storage/src/book-storage.ts:119`, called from the spreads reconcile) hard-deletes
   everything for the page; `clearExtractedData` (`:77`, via `clearExtractedRows` at `:655`) clears
@@ -475,10 +475,11 @@ Chosen: **Option A**. Rough costs are per rollout PR; refer to the §9 review bu
 - `apps/api`: the `element-audio` route (read/write, immediate save, per-row `versions` + merge);
   `RestorableNode`; the preview mirrors in `adt-preview.ts` (including `element_audio.json`);
   batch-exclusion in `stage-runner.ts`.
-- `apps/studio`: an **unconditional** section in `StyleEditorPanel` (the fixed-layout-safe pattern,
-  like `TextRoleSection`) — **not** the `SectionKey`/`VISIBLE_SECTIONS` accordion, which the
-  `isFixedLayout` branch skips; the save path; `VersionedStep` + `STEP_STYLING`; i18n in all five
-  locales.
+- `apps/studio`: an **unconditional** `AudioSection` in `StyleEditorPanel` (the fixed-layout-safe
+  pattern, like `TextRoleSection`) — **not** the `SectionKey`/`VISIBLE_SECTIONS` accordion, which the
+  `isFixedLayout` branch skips; the immediate-save path and error state; the per-page `VersionPicker`
+  (`VersionedStep` + `STEP_STYLING`); the Languages/Core TTS filter for `${nodeId}_audio`; i18n in
+  all five locales.
 - `apps/adt-runtime`: the optional `element_audio.json` fetch and authored-id set; the non-chaining
   play path in `useAudioPlayer`; the sweep inclusion for authored images; the React trigger
   component bound per `pageEpoch`; the badge (sibling/overlay).
@@ -516,12 +517,12 @@ Chosen: **Option A**. Rough costs are per rollout PR; refer to the §9 review bu
 - [ ] **AC-5** An uncaptioned image (spoken text differs from any visible text) still gets audio; its word timestamps are not published under the element id, so the player uses block highlighting.
 - [x] **AC-6** The authored text **survives** re-running `easy-read` / `text-catalog` / `catalog-translation` / `core-tts-catalog` and changing the book's image set. On merged develop `clearNodesByType` only writes `NULL` invalidation versions for non-catalog rows, so nothing deletes it; `deletePage` and `clearExtractedData` still hard-delete and are documented non-goals. Moving an image between pages keeps the script with the element (AC-22).
 - [x] **AC-7** No code path adds `element-audio` to a clear/delete list; the checker fails CI if one is added. The checker scans **every** `clearNodesByType` literal in `apps/api/src` and `packages/*/src` (8 non-test API sites on merged develop) and asserts every `getStageRerunClearNodes` stage pair, `getStageClearNodes`, `IMAGE_SET_CHANGE_CLEAR_NODE_TYPES` and `CATALOG_OUTPUT_NODES`. The generic `deletePage` / `clearExtractedData` are documented non-goals; the checker does not assert them.
-- [ ] **AC-8** Deleting an element **keeps** its authored text; duplicating a leaf produces a clone **without** audio and the UI says so; cloning a **section** does not inherit audio (documented non-goal).
+- [x] **AC-8** Deleting an element **keeps** its authored text; duplicating a leaf produces a clone **without** audio and the UI says so; cloning a **section** keeps the images' identities, so their authored audio still applies, and the UI says so.
 - [ ] **AC-9** The clickable element carries, in runtime, `tabindex="0"` plus an accessible name (`alt` on `<img>`; role + name on non-`img`), never a positive `tabindex`, never nested in another interactive control; a target with no accessible name is left untouched. A **jsdom runtime test with scripts** asserts this **and** that Enter/Space fire the play path; the axe assessment reports **no new violations** on the static HTML.
 - [ ] **AC-10** The visual indicator is decorative to assistive tech (`aria-hidden`), is not a second tab stop, and does not create a nested interactive control; a pointer click on it plays the element's audio and does not trigger the Storyboard selection.
 - [ ] **AC-11** In the **Storyboard preview** the **badge** plays the element's audio while a body click keeps selecting the element (same bundle/manifests as the reader).
 - [ ] **AC-12** A book whose `output_languages` equals its source language produces element audio with **zero** translation calls.
-- [ ] **AC-13** All new user-visible strings are wrapped in Lingui macros and translated in `en`, `pt-BR`, `es`, `fr`, `sq`; the i18n CI job passes.
+- [x] **AC-13** All new user-visible strings are wrapped in Lingui macros and translated in `en`, `pt-BR`, `es`, `fr`, `sq`; the i18n CI job passes.
 - [ ] **AC-14** Existing books (no `element-audio` node and no `element_audio.json`) open and export unchanged.
 - [ ] **AC-15** Changing one element's script makes **only that element's** audio stale — including with `speech.batch_by_page`, Speech Preparation transformations, ElevenLabs context and easy-read mode enabled: the `_audio` entry never enters another entry's page context or neighbour window, **no real neighbour enters the script's preparation or ElevenLabs context**, the `${nodeId}_easy_read` audio key is removed so the easy-read lookup falls back to the authored file, and **nothing is deleted** (hash-keyed reuse); restoring an earlier script deletes nothing.
 - [ ] **AC-16** An authored script goes through Speech Preparation; with normalization disabled the display text is used unchanged; a failed preparation is surfaced (not silent).
@@ -554,6 +555,7 @@ driven with a stub synthesizer and no API keys.
 | Invariant checker | source scan over `apps/api/src/**` and `packages/*/src` | **AC-7** |
 | Packaging remap | `packages/pipeline/src/__tests__/package-web.test.ts` | AC-2 (`element_audio.json`, no `texts.json` leak), AC-4, AC-18 (precedence + easy-read key), AC-5 (no timings) |
 | API routes | `apps/api/src/routes/` | AC-1 (including the `versions`-map merge/409 and page membership), AC-8, AC-14, **AC-16** (preparation states) |
+| Authoring UI | `.../style-editor/sections/AudioSection.test.tsx` | AC-1 (save, new entry, conflict), AC-13 |
 | Staleness scoping | `apps/api/src/routes/` | **AC-15** — change one script, nothing else stale or deleted; a restore deletes nothing |
 | Batching exclusion | `gemini-item-compatibility.integration.test.ts`, `stage-runner.test.ts`, `output-catalog` tests | **AC-17** - `speechPageId` excludes artifact-authored `_audio` at every grouping site and the output-catalog wiring is exercised |
 | Preview mirrors | `apps/api/src/routes/adt-preview.test.ts` | AC-11 (mirrors), AC-20 (`element_audio.json`) |
@@ -581,10 +583,10 @@ earlier. (The four are tracked as #895–#898 under #894.)
    pages (page membership), and the per-page image-id validation. Value: the script can be saved and
    versioned through the API. PR 3 owns the client-side query invalidation.
 3. **PR 3 — authoring.** The Storyboard inspector section in the **classic** `StyleEditorPanel`
-   (unconditional pattern), the save-path wiring, `VersionedStep` registration, i18n, the filter
-   that hides `${nodeId}_audio` from the Languages/Core TTS editors, and the **bundle `texts.json`
-   exclusion** so the script never appears as page text while the UI exists. Value: the author can
-   write the script.
+   (unconditional pattern, so it also works on fixed-layout books), the immediate-save wiring, the
+   `VersionPicker` registration, i18n, the filter that hides `${nodeId}_audio` from the
+   Languages/Core TTS editors, and the **bundle `texts.json` exclusion** so the script never appears
+   as page text while the UI exists. Value: the author can write the script.
 4. **PR 4 — playback.** The packaging remap (bundle **and** preview mirrors), including the preview
    `texts.json` exclusion, `element_audio.json`, the easy-read key removal and the withheld
    timestamps; the runtime manifest fetch, sweep inclusion, trigger and badge; the a11y attributes.

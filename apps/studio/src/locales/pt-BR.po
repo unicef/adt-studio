@@ -158,10 +158,6 @@ msgstr "{0, plural, one {# tarefa herda este modelo} other {# tarefas herdam est
 msgid "{0, plural, one {comment} other {comments}}"
 msgstr "{0, plural, one {comentário} other {comentários}}"
 
-#. placeholder {0}: health.modelCount
-#~ msgid "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
-#~ msgstr "{0, plural, one {Conectado com sucesso — # modelo disponível.} other {Conectado com sucesso — # modelos disponíveis.}}"
-
 #. placeholder {0}: state.days
 msgid "{0, plural, one {day} other {days}}"
 msgstr "{0, plural, one {dia} other {dias}}"
@@ -1752,9 +1748,6 @@ msgstr "Sobreposição por IA"
 msgid "AI provider connected. Your book can be processed now."
 msgstr "Provedor de IA conectado. Seu livro já pode ser processado."
 
-#~ msgid "AI provider credentials"
-#~ msgstr "Credenciais de provedores de IA"
-
 msgid "AI providers"
 msgstr "Provedores de IA"
 
@@ -1878,9 +1871,6 @@ msgstr "já está lá"
 
 msgid "Also delete the sharing service and every shared book from my Cloudflare account"
 msgstr "Excluir também o serviço de compartilhamento e todos os livros compartilhados da minha conta Cloudflare"
-
-#~ msgid "Also regenerate these pages and replace their saved content"
-#~ msgstr "Regenerar também estas páginas e substituir seu conteúdo salvo"
 
 msgid "Also used by {readerNames} unless that provider has its own key."
 msgstr "Também usada por {readerNames}, a menos que esse provedor tenha a própria chave."
@@ -3243,17 +3233,11 @@ msgstr "Configure as informações básicas do documento e os caminhos de arquiv
 msgid "Configure features to include in the export"
 msgstr "Configure os recursos a incluir na exportação"
 
-#~ msgid "Configure the credentials used by AI features on this device."
-#~ msgstr "Configure as credenciais usadas pelos recursos de IA neste dispositivo."
-
 msgid "Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine."
 msgstr "Configure as credenciais dos provedores usadas quando o ADT Studio executa passos do pipeline de IA nesta máquina."
 
 msgid "Configure voices and accents"
 msgstr "Configurar vozes e sotaques"
-
-#~ msgid "Configured on server"
-#~ msgstr "Configurado no servidor"
 
 msgid "Confirm merge"
 msgstr "Confirmar mesclagem"
@@ -3555,9 +3539,6 @@ msgstr "Não foi possível carregar o conteúdo salvo."
 msgid "Could not load saved content. Retry"
 msgstr "Não foi possível carregar o conteúdo salvo. Tentar novamente"
 
-#~ msgid "Could not load the AI provider catalogue."
-#~ msgstr "Não foi possível carregar o catálogo de provedores de IA."
-
 msgid "Could not load the book outline."
 msgstr "Não foi possível carregar a estrutura do livro."
 
@@ -3607,6 +3588,9 @@ msgstr "Não foi possível copiar o código de acesso."
 
 msgid "Couldn't copy the link — open the book's Sharing step and copy it there."
 msgstr "Não foi possível copiar o link — abra a etapa Compartilhar do livro e copie-o lá."
+
+msgid "Couldn't load the element audio."
+msgstr "Não foi possível carregar o áudio do elemento."
 
 msgid "Couldn't load the PDF preview. The pages can still be split using the controls."
 msgstr "Não foi possível carregar a prévia do PDF. As páginas ainda podem ser divididas usando os controles."
@@ -4525,6 +4509,15 @@ msgstr "Edições vão para este prefixo de variante Tailwind"
 
 msgid "Effort"
 msgstr "Esforço"
+
+msgid "Element audio"
+msgstr "Áudio do elemento"
+
+msgid "Element audio script"
+msgstr "Roteiro de áudio do elemento"
+
+msgid "Element duplicated. Authored element audio is not copied to the new element."
+msgstr "Elemento duplicado. O áudio autoral do elemento não é copiado para o novo elemento."
 
 msgid "Element style editor"
 msgstr "Editor de estilo de elemento"
@@ -6422,9 +6415,6 @@ msgstr "Teclado e navegação"
 msgid "Keyboard shortcuts"
 msgstr "Atalhos de teclado"
 
-#~ msgid "Keys are stored locally in this browser or desktop session and are sent only with run requests."
-#~ msgstr "As chaves são armazenadas localmente neste navegador ou sessão desktop e são enviadas apenas com solicitações de execução."
-
 msgid "Keys are stored locally on this device — never sent anywhere else."
 msgstr "As chaves são armazenadas localmente neste dispositivo — nunca enviadas para nenhum outro lugar."
 
@@ -6722,9 +6712,6 @@ msgstr "Carregar os últimos valores salvos"
 
 msgid "Loading accessibility summary..."
 msgstr "Carregando resumo de acessibilidade..."
-
-#~ msgid "Loading AI providers…"
-#~ msgstr "Carregando provedores de IA…"
 
 msgid "Loading beta versions…"
 msgstr "Carregando versões beta…"
@@ -8333,9 +8320,6 @@ msgstr "Abrir todos no Storyboard"
 msgid "Open an ADT project that <0>already exists</0> — a backup, a book part, or one exported by someone else. Nothing is converted. <1>.zip → added as-is</1>"
 msgstr "Abra um projeto ADT que <0>já existe</0> — um backup, uma parte de livro ou um exportado por outra pessoa. Nada é convertido. <1>.zip → adicionado como está</1>"
 
-#~ msgid "Open API key settings"
-#~ msgstr "Abrir configurações de chaves de API"
-
 msgid "Open command palette"
 msgstr "Abrir paleta de comandos"
 
@@ -8877,9 +8861,6 @@ msgstr "Páginas no intervalo selecionado"
 msgid "Pages in this part"
 msgstr "Páginas desta parte"
 
-#~ msgid "Pages listed below will keep their saved content unless you choose to replace them. All other pages will be regenerated."
-#~ msgstr "As páginas listadas abaixo manterão seu conteúdo salvo, a menos que você escolha substituí-lo. Todas as outras páginas serão regeneradas."
-
 msgid "pages per quiz"
 msgstr "páginas por questionário"
 
@@ -8891,9 +8872,6 @@ msgstr "Páginas revisadas"
 
 msgid "Pages to review"
 msgstr "Páginas para revisar"
-
-#~ msgid "Pages with manual edits or unknown authorship:"
-#~ msgstr "Páginas com edições manuais ou autoria desconhecida:"
 
 msgid "Pages, edits and generated features"
 msgstr "Páginas, edições e recursos gerados"
@@ -9193,6 +9171,9 @@ msgstr "Prefira termos centrais ao assunto do livro. Pule vocabulário genérico
 msgid "Preferences"
 msgstr "Preferências"
 
+msgid "Preparation failed"
+msgstr "A preparação falhou"
+
 msgid "Prepare numbers, dates, and abbreviations for natural speech."
 msgstr "Prepara números, datas e abreviações para uma fala natural."
 
@@ -9368,9 +9349,6 @@ msgstr "O provedor “{providerId}” não oferece suporte à geração de texto
 msgid "Provider \"{providerId}\" is not registered. Add its API keys in Settings or choose another model."
 msgstr "O provedor “{providerId}” não está registrado. Adicione as chaves de API dele em Configurações ou escolha outro modelo."
 
-#~ msgid "Provider credentials"
-#~ msgstr "Credenciais do provedor"
-
 msgid "Provider credentials saved."
 msgstr "Credenciais dos provedores salvas."
 
@@ -9379,9 +9357,6 @@ msgstr "Documentação do provedor"
 
 msgid "providers api key credentials endpoint"
 msgstr "provedores chave api credenciais endpoint"
-
-#~ msgid "Providers unavailable"
-#~ msgstr "Provedores indisponíveis"
 
 msgid "Provides consistent HTML/CSS patterns for LLM-generated pages."
 msgstr "Fornece padrões HTML/CSS consistentes para páginas geradas por LLM."
@@ -10661,6 +10636,9 @@ msgstr "Salve o novo tipo e escolha Regenerar para atualizar a atividade."
 msgid "Save your work first if you want to keep these changes."
 msgstr "Salve seu trabalho primeiro se quiser manter estas alterações."
 
+msgid "Saved"
+msgstr "Salvo"
+
 msgid "Saved book history is unreadable. Existing content has been retained. Verified history recovery is required before generating new content."
 msgstr "O histórico salvo do livro está ilegível. O conteúdo existente foi preservado. É necessário recuperar o histórico com base em dados verificados antes de gerar novo conteúdo."
 
@@ -10878,6 +10856,9 @@ msgstr "Seção 3.2"
 msgid "Section actions"
 msgstr "Ações da seção"
 
+msgid "Section duplicated. Its images keep their authored element audio."
+msgstr "Seção duplicada. As imagens mantêm o áudio autoral do elemento."
+
 msgid "Section heading"
 msgstr "Título de seção"
 
@@ -10904,9 +10885,6 @@ msgstr "Seção sem tipo"
 
 msgid "Sectioning"
 msgstr "Seccionamento"
-
-#~ msgid "Sectioning has changed since some sections were rendered. Open a section and use “Re-render this section” to update it, or re-run Storyboard to regenerate every page."
-#~ msgstr "O seccionamento mudou desde que algumas seções foram renderizadas. Abra uma seção e use “Rerrenderizar esta seção” para atualizá-la, ou execute o Storyboard novamente para regenerar todas as páginas."
 
 msgid "Sectioning mode"
 msgstr "Modo de seccionamento"
@@ -11524,10 +11502,6 @@ msgstr "Atualização de software"
 msgid "Software update status"
 msgstr "Status da atualização de software"
 
-#. placeholder {0}: warnings.length
-#~ msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
-#~ msgstr "Parte do conteúdo ficou fora do pacote: {0} seções renderizadas em {pageList} não têm uma seção de origem verificada e não puderam ser incluídas. O conteúdo e o histórico foram preservados. Revise as identidades das seções no Storyboard e gere o pacote novamente."
-
 #. placeholder {0}: ownership.length
 msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageTotal} page(s) (showing up to 20): {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
 msgstr "Parte do conteúdo foi omitida do pacote: {0} seção(ões) renderizada(s) em {pageTotal} página(s) (exibindo até 20): {pageList} não têm vínculo verificado com uma seção e não puderam ser incluídas. Seu conteúdo e histórico foram preservados. Revise as identidades das seções no Storyboard e gere o pacote novamente."
@@ -12133,10 +12107,6 @@ msgstr "Tarefa concluída"
 msgid "Task failed"
 msgstr "A tarefa falhou"
 
-#. placeholder {0}: d.error
-#~ msgid "Task failed: {0}"
-#~ msgstr "A tarefa falhou: {0}"
-
 msgid "Task failed: {taskError}"
 msgstr "Falha na tarefa: {taskError}"
 
@@ -12208,9 +12178,6 @@ msgstr "Os termos foram escolhidos pela IA a partir do livro. Edite uma definiç
 
 msgid "Terms, character names, or phrases the judge should preserve or prefer."
 msgstr "Termos, nomes de personagens ou frases que o juiz deve preservar ou preferir."
-
-#~ msgid "Test connection"
-#~ msgstr "Testar conexão"
 
 msgid "Test notification"
 msgstr "Notificação de teste"
@@ -12383,9 +12350,6 @@ msgstr "Os comentários que as pessoas deixaram são mantidos. Você pode retoma
 
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "A comunidade de organismos vivos em um lugar e a forma como interagem entre si e com o ambiente."
-
-#~ msgid "The connection check could not be completed."
-#~ msgstr "Não foi possível concluir a verificação da conexão."
 
 msgid "The connection to Cloudflare dropped or timed out. Check your internet, then try again — anything already set up is kept."
 msgstr "A conexão com o Cloudflare caiu ou demorou demais. Verifique sua internet e tente novamente — o que já foi configurado é mantido."
@@ -12872,9 +12836,6 @@ msgstr "Este livro está totalmente montado"
 msgid "This book is not on this computer."
 msgstr "Este livro não está neste computador."
 
-#~ msgid "This book is still open in another process. Close it there before recovering a copy."
-#~ msgstr "Este livro ainda está aberto em outro processo. Feche-o nesse processo antes de recuperar uma cópia."
-
 msgid "This book is temporarily unavailable. Its saved content is preserved. Try opening it for details and retry after resolving the reported problem."
 msgstr "Este livro está temporariamente indisponível. Seu conteúdo salvo foi preservado. Tente abri-lo para ver os detalhes e tente novamente após resolver o problema informado."
 
@@ -13108,9 +13069,6 @@ msgstr "Este projeto foi criado a partir de uma publicação ADT exportada, port
 msgid "This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used."
 msgstr "Este prompt instrui o LLM sobre como avaliar o HTML renderizado em relação à página original. A seleção acima controla qual template é usado."
 
-#~ msgid "This provider does not require local credentials."
-#~ msgstr "Este provedor não requer credenciais locais."
-
 msgid "This provider has no automatic connection check."
 msgstr "Este provedor não possui verificação automática de conexão."
 
@@ -13155,9 +13113,6 @@ msgstr "Isso restaura a fonte padrão em todas as páginas e limpa os ajustes de
 
 msgid "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. Replacing this page later requires a separate confirmation."
 msgstr "Isso restaura a última divisão em seções gerada para esta página. Sua versão editada permanece no histórico. As outras páginas mantêm suas edições. A substituição desta página depois exige uma confirmação separada."
-
-#~ msgid "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. This page can be regenerated on the next Re-run."
-#~ msgstr "Isso restaura a última divisão em seções gerada para esta página. Sua versão editada permanece no histórico. As outras páginas mantêm suas edições. Esta página poderá ser regenerada na próxima execução."
 
 msgid "This screen couldn’t load"
 msgstr "Esta tela não pôde ser carregada"
@@ -13488,6 +13443,9 @@ msgstr "Tipo"
 
 msgid "Type the code you were given"
 msgstr "Digite o código que você recebeu"
+
+msgid "Type what the reader should hear"
+msgstr "Digite o que o leitor deve ouvir"
 
 msgid "Typed Sections"
 msgstr "Seções classificadas"
@@ -14349,6 +14307,9 @@ msgstr "Escrever uma resposta livre."
 
 msgid "Write correct/incorrect feedback for every step with AI"
 msgstr "Escrever com IA o feedback de acerto/erro para cada passo"
+
+msgid "Write what this image should say when the reader taps it. Leave empty to remove the audio."
+msgstr "Escreva o que esta imagem deve dizer quando o leitor tocar nela. Deixe vazio para remover o áudio."
 
 #. placeholder {0}: `[[blank:item-${n}]]`
 msgid "Write your sentence with a {0} marker."
