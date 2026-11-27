@@ -209,5 +209,6 @@
     "reduce-motion-label": "Punguza mwendo",
     "reduce-motion-description": "Zima uhuishaji na mabadiliko katika kisomaji chote.",
     "sign-language-no-video": "Hakuna video ya lugha ya ishara kwa ukurasa huu",
-    "sign-language-drag-handle": "Buruta video ya lugha ya ishara"
+    "sign-language-drag-handle": "Buruta video ya lugha ya ishara",
+    "page-n-of-m": "Ukurasa wa ${n} kati ya ${m}"
 }

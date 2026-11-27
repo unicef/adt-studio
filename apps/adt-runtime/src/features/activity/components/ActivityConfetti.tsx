@@ -30,6 +30,9 @@ export function ActivityConfetti() {
     <Confetti
       ref={ref}
       manualstart
+      // Decoration only. Hidden from assistive tech so it is not a stray
+      // element outside the page's landmarks.
+      aria-hidden="true"
       className="pointer-events-none fixed inset-0 z-[200] h-full w-full"
     />
   );

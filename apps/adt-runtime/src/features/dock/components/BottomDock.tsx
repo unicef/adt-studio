@@ -13,13 +13,12 @@ import { useTranslation } from "@/features/language/hooks/useTranslation";
 function ReaderDockContents() {
   const features = useAtomValue(appConfigAtom).features;
   const { isSpread } = useDockContext();
-  const { t } = useTranslation();
   const isMobile = useIsMobile();
 
   if (isMobile) {
     return (
       <>
-        <BookMetadata ariaLabel={t("main-menu-label") || "Main Menu"} />
+        <BookMetadata />
         {features.showNavigationControls ? (
           <div className="flex min-w-0 flex-1 justify-center">
             <PageNav />
@@ -54,10 +53,7 @@ function ReaderDockContents() {
       )}
 
       <div className={cn("order-1", flankClass)}>
-        <BookMetadata
-          className="w-full"
-          ariaLabel={t("main-menu-label") || "Main Menu"}
-        />
+        <BookMetadata className="w-full" />
       </div>
 
       <DockMenu className={cn("order-3", flankClass)} />
@@ -94,8 +90,12 @@ function DockContainer({ children }: DockContainerProps) {
               : "bottom-0",
         ),
       )}
-      role="group"
-      aria-label={t("dock-label") || "Reader controls"}
+      // A named region is a landmark, so screen-reader users can jump straight
+      // to the reader's controls from anywhere on the page. `group` is not one.
+      // The fallback argument matters: `t()` returns the key itself when a
+      // catalog lacks it, so `t(...) || "…"` would name the dock "dock-label".
+      role="region"
+      aria-label={t("dock-label", {}, "Reader controls")}
       aria-hidden={shouldHide || undefined}
     >
       {children}

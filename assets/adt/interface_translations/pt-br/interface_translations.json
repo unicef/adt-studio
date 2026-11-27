@@ -275,5 +275,6 @@
     "comments-reading-now-label": "Lendo agora",
     "comments-hint-title": "Você pode comentar este livro",
     "comments-hint-body": "Toque neste botão e depois clique em qualquer lugar de uma página para deixar uma nota.",
-    "comments-hint-dismiss-label": "Fechar"
+    "comments-hint-dismiss-label": "Fechar",
+    "page-n-of-m": "Página ${n} de ${m}"
 }
