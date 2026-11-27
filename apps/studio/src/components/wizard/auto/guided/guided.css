@@ -38,19 +38,16 @@
 .gd-root:is([data-tone="error"]) .gd-tint > [data-tint="error"] { opacity: 1; }
 .dark .gd-tint > span { filter: saturate(1.1); }
 
-/* The stepper: the line fills and the dot under the step on screen slides in. */
-.gd-line { transition: background-color 0.5s ease; }
-.gd-dot { transition: transform 0.35s var(--lc-pop), opacity 0.25s ease, background-color 0.4s ease; }
 
 /* The drop zone breathes in the step colour while a file is dragged over the page. */
 .gd-drop:focus-visible { outline: 2px solid var(--gd-step); outline-offset: 3px; }
 
 @media (prefers-reduced-motion: reduce) {
   .gd-tint > span { animation: none; }
-  .gd-tint > span, .gd-line, .gd-dot { transition: none; }
+  .gd-tint > span { transition: none; }
 }
 .reduce-effects .gd-tint > span { animation: none; }
-.reduce-effects :is(.gd-tint > span, .gd-line, .gd-dot) { transition: none; }
+.reduce-effects .gd-tint > span { transition: none; }
 
 /* Morphs between steps, screens and picks (shared/motion.ts): named places move and resize, the rest crossfades. */
 ::view-transition-group(*) { animation-duration: 0.45s; animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1); }

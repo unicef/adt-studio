@@ -72,9 +72,6 @@ msgstr "(base)"
 msgid "(default)"
 msgstr "(predeterminado)"
 
-msgid "(done, open again)"
-msgstr "(hecho, abrir de nuevo)"
-
 msgid "(empty)"
 msgstr "(vacío)"
 

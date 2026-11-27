@@ -74,9 +74,6 @@ msgstr "(bazë)"
 msgid "(default)"
 msgstr "(parazgjedhje)"
 
-msgid "(done, open again)"
-msgstr "(u krye, hape përsëri)"
-
 msgid "(empty)"
 msgstr "(bosh)"
 
