@@ -4930,8 +4930,11 @@ msgstr "Extraction..."
 msgid "Extraction and the other AI steps run on your own AI provider."
 msgstr "L'extraction et les autres étapes d'IA s'exécutent avec votre propre fournisseur d'IA."
 
-msgid "Extraction did not finish. Partial data is retained. Start extraction in a new book."
-msgstr "L’extraction ne s’est pas terminée. Les données partielles sont conservées. Lancez l’extraction dans un nouveau livre."
+msgid "Extraction did not finish. Open Extract and retry it."
+msgstr "L’extraction ne s’est pas terminée. Ouvrez Extraire et réessayez."
+
+#~ msgid "Extraction did not finish. Partial data is retained. Start extraction in a new book."
+#~ msgstr "L’extraction ne s’est pas terminée. Les données partielles sont conservées. Lancez l’extraction dans un nouveau livre."
 
 msgid "Extraction is running — you can review spreads once it finishes."
 msgstr "L'extraction est en cours — vous pouvez revoir les fusions une fois terminée."
@@ -13091,6 +13094,9 @@ msgstr "Cette partie ne peut pas être fusionnée"
 
 msgid "This part doesn't match this book"
 msgstr "Cette partie ne correspond pas à ce livre"
+
+msgid "This part's extraction settings no longer match the book it was split from, so it could not be merged back. Nothing was changed. Restore the part's spread, figure extraction and watermark settings, then retry."
+msgstr "Les paramètres d’extraction de cette partie ne correspondent plus à ceux du livre dont elle a été séparée ; elle ne pourrait donc plus y être fusionnée. Rien n’a été modifié. Rétablissez les paramètres de double page, d’extraction de figures et de filigranes de la partie, puis réessayez."
 
 msgid "This permanently deletes every uploaded video and clears all section assignments. This can't be undone."
 msgstr "Cela supprime définitivement chaque vidéo téléchargée et efface toutes les affectations de sections. Cela ne peut pas être annulé."

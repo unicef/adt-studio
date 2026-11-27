@@ -4930,8 +4930,11 @@ msgstr "Duke nxjerrë..."
 msgid "Extraction and the other AI steps run on your own AI provider."
 msgstr "Nxjerrja dhe hapat e tjerë të IA ekzekutohen te ofruesi juaj i IA."
 
-msgid "Extraction did not finish. Partial data is retained. Start extraction in a new book."
-msgstr "Nxjerrja nuk përfundoi. Të dhënat e pjesshme mbahen. Nisni nxjerrjen në një libër të ri."
+msgid "Extraction did not finish. Open Extract and retry it."
+msgstr "Nxjerrja nuk përfundoi. Hapni Nxjerr dhe provoni përsëri."
+
+#~ msgid "Extraction did not finish. Partial data is retained. Start extraction in a new book."
+#~ msgstr "Nxjerrja nuk përfundoi. Të dhënat e pjesshme mbahen. Nisni nxjerrjen në një libër të ri."
 
 msgid "Extraction is running — you can review spreads once it finishes."
 msgstr "Ekstraktimi është në proces — mund të rishikoni faqet e përbashkëta pasi të përfundojë."
@@ -13091,6 +13094,9 @@ msgstr "Kjo pjesë nuk mund të bashkohet"
 
 msgid "This part doesn't match this book"
 msgstr "Kjo pjesë nuk përputhet me këtë libër"
+
+msgid "This part's extraction settings no longer match the book it was split from, so it could not be merged back. Nothing was changed. Restore the part's spread, figure extraction and watermark settings, then retry."
+msgstr "Cilësimet e nxjerrjes së kësaj pjese nuk përputhen më me ato të librit nga i cili u nda, prandaj ajo nuk do të mund të bashkohej përsëri me të. Asgjë nuk u ndryshua. Riktheni cilësimet e pjesës për faqet e përbashkëta, nxjerrjen e figurave dhe filigranët, pastaj provoni përsëri."
 
 msgid "This permanently deletes every uploaded video and clears all section assignments. This can't be undone."
 msgstr "Kjo fshin përgjithmonë çdo video të ngarkuar dhe pastron të gjitha caktimet e seksioneve. Ky veprim nuk mund të zhbëhet."

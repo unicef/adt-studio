@@ -80,13 +80,45 @@ export function readExtractRerunStatus(storage: Storage, runActive: boolean): Ex
  * other reason, including one added later, means the book is not Extract-only. */
 const EXTRACT_ONLY_REASONS: ReadonlySet<ExtractRerunBlockedReason | null> = new Set([null, "part-book", "extraction-inconsistent"])
 
-/** SPEC-0003 RAC-21 admission of a resume request, re-checked under the writer
- * lease by every caller. False: the book is not Extract-only, and the caller
- * keeps today's refusal. Throws before any write when the book is Extract-only
- * and the request no longer matches it. */
-export function admitExtractResume(storage: Storage, request: ExtractRerunRequest): boolean {
+/** Is the book Extract-only, with `status` read by readExtractRerunStatus? */
+const isExtractOnly = (status: ExtractRerunStatus): boolean => status.actions.length > 0 || EXTRACT_ONLY_REASONS.has(status.blockedReason)
+
+/** SPEC-0003 RAC-21–23 admission of an Extract re-run request, re-checked
+ * under the writer lease by every caller. False: the book is not Extract-only,
+ * and the caller keeps today's refusal. Throws before any write when the book
+ * is Extract-only and the request no longer matches it. */
+export function admitExtractRerun(storage: Storage, request: ExtractRerunRequest): boolean {
   const status = readExtractRerunStatus(storage, false)
-  if (!status.actions.length && !EXTRACT_ONLY_REASONS.has(status.blockedReason)) return false
-  if (!status.actions.includes("resume") || status.attemptId !== request.attemptId) throw new ExtractionAdmissionError("EXTRACTION_RERUN_STALE")
+  if (!isExtractOnly(status)) return false
+  const bound = request.action === "resume" ? status.attemptId === request.attemptId : isBoundTo(status, request)
+  if (!status.actions.includes(request.action) || !bound) throw new ExtractionAdmissionError("EXTRACTION_RERUN_STALE")
   return true
+}
+
+/** What a retry or replace is bound to: the extraction, and the content the
+ * request was made against (SPEC-0003 "Consent and binding"). */
+export interface ExtractResetBinding { attemptId: string | null; contentToken?: string }
+
+/** The book still holds the extraction and the content the request names. An
+ * edit, an image decision or an upload made since changes the token. */
+const isBoundTo = (status: ExtractRerunStatus, binding: ExtractResetBinding): boolean =>
+  status.attemptId === binding.attemptId && status.contentToken !== null && status.contentToken === binding.contentToken
+
+/** Reset step 1 (RAC-22/23): the same admission for the reset itself, which is
+ * bound to an extraction and its content, not to one action. A reset serves
+ * retry and replace alike, so either being offered admits it. */
+export function admitExtractReset(storage: Storage, binding: ExtractResetBinding): boolean {
+  const status = readExtractRerunStatus(storage, false)
+  if (!isExtractOnly(status)) return false
+  if (!status.actions.some((action) => action !== "resume") || !isBoundTo(status, binding)) throw new ExtractionAdmissionError("EXTRACTION_RERUN_STALE")
+  return true
+}
+
+/** Reset step 5 (RAC-22/23): the book holds nothing the new extraction would
+ * collide with. Initial admission cannot be reused here: it refuses the LLM
+ * log, typography, style guides and the extraction record a reset keeps. */
+export function assertExtractResetComplete(storage: Storage): void {
+  const inspection = storage.inspectExtractOnly?.()
+  const leftover = inspection?.extractOnly ? storage.findExtractResetLeftover?.() : "storage:not-extract-only"
+  if (leftover !== null) throw new ExtractionAdmissionError("EXTRACTION_INCOMPLETE")
 }

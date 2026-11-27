@@ -4928,8 +4928,11 @@ msgstr "Extracting..."
 msgid "Extraction and the other AI steps run on your own AI provider."
 msgstr "Extraction and the other AI steps run on your own AI provider."
 
-msgid "Extraction did not finish. Partial data is retained. Start extraction in a new book."
-msgstr "Extraction did not finish. Partial data is retained. Start extraction in a new book."
+msgid "Extraction did not finish. Open Extract and retry it."
+msgstr "Extraction did not finish. Open Extract and retry it."
+
+#~ msgid "Extraction did not finish. Partial data is retained. Start extraction in a new book."
+#~ msgstr "Extraction did not finish. Partial data is retained. Start extraction in a new book."
 
 msgid "Extraction is running — you can review spreads once it finishes."
 msgstr "Extraction is running — you can review spreads once it finishes."
@@ -13089,6 +13092,9 @@ msgstr "This part cannot be merged"
 
 msgid "This part doesn't match this book"
 msgstr "This part doesn't match this book"
+
+msgid "This part's extraction settings no longer match the book it was split from, so it could not be merged back. Nothing was changed. Restore the part's spread, figure extraction and watermark settings, then retry."
+msgstr "This part's extraction settings no longer match the book it was split from, so it could not be merged back. Nothing was changed. Restore the part's spread, figure extraction and watermark settings, then retry."
 
 msgid "This permanently deletes every uploaded video and clears all section assignments. This can't be undone."
 msgstr "This permanently deletes every uploaded video and clears all section assignments. This can't be undone."

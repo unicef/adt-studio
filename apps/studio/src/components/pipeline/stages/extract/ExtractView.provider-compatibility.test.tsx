@@ -49,7 +49,7 @@ const offers = (...actions: ExtractRerunStatus["actions"]): ExtractRerunStatus =
 
 it.each([
   { stage: "idle", rerun: undefined }, { stage: "error", rerun: undefined },
-  { stage: "error", rerun: offers("replace") }, { stage: "idle", rerun: offers("retry") },
+  { stage: "error", rerun: offers("replace") },
   { stage: "error", rerun: { actions: [], attemptId: null, contentToken: null, blockedReason: "downstream-output" } satisfies ExtractRerunStatus },
 ])("preserves populated-book extraction protection when provider onboarding is available ($stage, $rerun.actions)", ({ stage, rerun }) => {
   state.stage = stage
@@ -112,5 +112,34 @@ it.each([
   expect(state.queueRun).toHaveBeenCalledExactlyOnceWith({
     fromStage: "extract", toStage: "extract", apiKey: "fixture",
     extraction: { action: "resume", attemptId: rerun.attemptId },
+  })
+})
+
+it.each([
+  { stage: "error", pages: 1, rerun: offers("retry") },
+  { stage: "idle", pages: 1, rerun: offers("retry") },
+  // A reset that was interrupted after it deleted the pages and step records.
+  { stage: "idle", pages: 0, rerun: offers("retry") },
+  // An unreadable extraction record has no attempt to name.
+  { stage: "error", pages: 0, rerun: { ...offers("retry"), attemptId: null } },
+])("RAC-22: enables Retry and sends the retry request when the extraction did not finish ($stage, $pages page(s), $rerun.attemptId)", ({ stage, pages, rerun }) => {
+  state.stage = stage
+  state.rerun = rerun
+  state.pages = Array.from({ length: pages }, (_, index) => ({ pageId: `pg00${index + 1}`, pageNumber: index + 1 }) as PageSummaryItem)
+  const view = render(<ExtractView bookLabel="failed" />)
+  expect(screen.queryByText("Re-extraction is not available in this version")).toBeNull()
+  const run = screen.getByRole("button", { name: /^(Run|Retry) Extract$/ }) as HTMLButtonElement
+  // Still needs a provider: the retried extraction runs every Extract step.
+  expect(run.disabled).toBe(true)
+  fireEvent.click(run)
+  expect(state.queueRun).not.toHaveBeenCalled()
+  state.available = true
+  view.rerender(<ExtractView bookLabel="failed" />)
+  expect(run.disabled).toBe(false)
+  fireEvent.click(run)
+  expect(state.queueRun).toHaveBeenCalledExactlyOnceWith({
+    fromStage: "extract", toStage: "extract", apiKey: "fixture",
+    // Bound to the content the retry discards, as step-status reported it.
+    extraction: { action: "retry", attemptId: rerun.attemptId, contentToken: "c".repeat(64) },
   })
 })

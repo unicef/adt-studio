@@ -3,7 +3,7 @@ vi.mock("@lingui/core/macro", () => ({ msg: (parts: TemplateStringsArray, ...val
 vi.mock("@lingui/core", () => ({ i18n: { _: (descriptor: { id: string }) => descriptor.id } }))
 const { sectioningErrorMessage, needsHistoryRecovery } = await import("./sectioning-error")
 
-it.each(["HISTORY_RECOVERY_BOOK_MISSING", "HISTORY_RECOVERY_AUDIT_MISSING", "HISTORY_RECOVERY_STALE", "HISTORY_RECOVERY_UNVERIFIED", "HISTORY_RECOVERY_REQUEST_CONFLICT", "HISTORY_RECOVERY_NOT_NEEDED", "HISTORY_RECOVERY_REQUEST_INVALID", "HISTORY_REPAIR_REQUIRED", "PACKAGE_RECOVERY_UNSAFE", "BOOK_CONFIG_INVALID", "STORYBOARD_REQUEST_INVALID", "SECTIONING_WINDOW_INVALID", "EXTRACTION_LEGACY", "EXTRACTION_INCOMPLETE", "EXTRACTION_SOURCE_CHANGED", "EXTRACTION_INPUTS_CHANGED", "EXTRACTION_ASSETS_INVALID", "EXTRACTION_INPUT_INVALID", "EXTRACTION_RERUN_STALE", "SECTIONING_REGENERATION_BLOCKED", "UNSAFE_RESUME_UNAVAILABLE"])("RAC-16: maps %s consistently for HTTP codes and persisted/SSE diagnostics", code => {
+it.each(["HISTORY_RECOVERY_BOOK_MISSING", "HISTORY_RECOVERY_AUDIT_MISSING", "HISTORY_RECOVERY_STALE", "HISTORY_RECOVERY_UNVERIFIED", "HISTORY_RECOVERY_REQUEST_CONFLICT", "HISTORY_RECOVERY_NOT_NEEDED", "HISTORY_RECOVERY_REQUEST_INVALID", "HISTORY_REPAIR_REQUIRED", "PACKAGE_RECOVERY_UNSAFE", "BOOK_CONFIG_INVALID", "STORYBOARD_REQUEST_INVALID", "SECTIONING_WINDOW_INVALID", "EXTRACTION_LEGACY", "EXTRACTION_INCOMPLETE", "EXTRACTION_SOURCE_CHANGED", "EXTRACTION_INPUTS_CHANGED", "EXTRACTION_ASSETS_INVALID", "EXTRACTION_INPUT_INVALID", "EXTRACTION_RERUN_STALE", "EXTRACTION_PART_SETTINGS_CHANGED", "SECTIONING_REGENERATION_BLOCKED", "UNSAFE_RESUME_UNAVAILABLE"])("RAC-16: maps %s consistently for HTTP codes and persisted/SSE diagnostics", code => {
   const diagnostic = `${code}: internal diagnostic; pnpm pipeline private-label private.pdf`
   const http = sectioningErrorMessage(diagnostic, code)
   expect(http).toBe(sectioningErrorMessage(diagnostic))
@@ -11,6 +11,13 @@ it.each(["HISTORY_RECOVERY_BOOK_MISSING", "HISTORY_RECOVERY_AUDIT_MISSING", "HIS
   expect(http).not.toContain("pnpm")
   expect(http).not.toContain("private-label")
   expect(http).toBeTruthy()
+})
+it("RAC-22: says how to make a part retryable again, not to start a new book", () => {
+  const message = sectioningErrorMessage("EXTRACTION_PART_SETTINGS_CHANGED: This part's extraction settings no longer match the book it was split from.")
+  expect(message).toContain("part")
+  expect(message).toContain("Restore")
+  expect(message).not.toContain("new book")
+  expect(message).not.toBe(sectioningErrorMessage(undefined, "EXTRACTION_INPUTS_CHANGED"))
 })
 it("RAC-24: tells a stale Extract re-run, a refused Extract run and an unavailable resume apart", () => {
   const stale = sectioningErrorMessage("EXTRACTION_RERUN_STALE: The book changed after this Extract run was requested.", "EXTRACTION_RERUN_STALE")
@@ -25,6 +32,14 @@ it("RAC-24: tells a stale Extract re-run, a refused Extract run and an unavailab
   }
   expect(sectioningErrorMessage("UNSAFE_RESUME_UNAVAILABLE: Extraction is reusable."))
     .toBe("Existing-book extraction and CLI resume are unavailable here. Use Sectioning in Studio to review and confirm any replacement.")
+})
+
+it("RAC-22: points an unfinished extraction to Retry, not to a new book", () => {
+  for (const diagnostic of ["Extraction is incomplete or failed; its partial data has been retained. Use a fresh, user-chosen label: pnpm pipeline <new-label> <pdf-file> [options].", "Extraction did not complete; partial data was retained."]) {
+    const message = sectioningErrorMessage(`EXTRACTION_INCOMPLETE: ${diagnostic}`)
+    expect(message).toBe("Extraction did not finish. Open Extract and retry it.")
+    expect(message).toBe(sectioningErrorMessage(diagnostic, "EXTRACTION_INCOMPLETE"))
+  }
 })
 
 it("retains unrecognized provider diagnostics", () => {

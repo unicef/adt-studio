@@ -3,7 +3,7 @@ import {
   createBookStorage, withBookWriter, recoverSectioningTransition,
   writeSectioningLifecycle, assertExtractionReadable, resolveBookPaths, ExtractionAdmissionError, type Storage,
 } from "@adt/storage"
-import { admitExtractResume } from "./extraction-rerun.js"
+import { admitExtractRerun } from "./extraction-rerun.js"
 import { sectioningConfigInputs } from "./generation-config.js"
 import { loadBookConfig } from "./config.js"
 import { SectioningSafetyError } from "./sectioning-errors.js"
@@ -29,24 +29,33 @@ export function assertSectioningReplacementSafe(storage: Storage): void {
   }
 }
 
-/** `extraction` is the run request's Extract re-run field (SPEC-0003 RAC-21).
- * Without it, and for the retry and replace actions (RAC-22/23, not accepted
- * yet), a run from Extract is refused exactly as before. */
+/** Today's refusal of a run from Extract on a book that already has an
+ * extraction. Returns only for a book a first extraction may use. */
+export function assertFirstExtraction(bookDir: string, storage: Storage): void {
+  assertExtractionReadable(bookDir)
+  assertSectioningReplacementSafe(storage)
+  if (storage.getPages().length) {
+    throw new SectioningSafetyError("SECTIONING_REGENERATION_BLOCKED", "Re-extraction of an existing book requires preservation-safe CLI/Extract admission. Existing pages and assets are kept.")
+  }
+}
+
+/** `extraction` is the run request's Extract re-run field (SPEC-0003 RAC-21
+ * resume, RAC-22 retry). Without it, and for the replace action (RAC-23, not
+ * accepted yet), a run from Extract is refused exactly as before. */
 export function prepareSectioningRun(label: string, booksRoot: string, from: StageName, _to: StageName, _configPath?: string, extraction?: ExtractRerunRequest): void {
   const { bookDir } = resolveBookPaths(label, booksRoot)
   withBookWriter(bookDir, () => {
     recoverSectioningTransition(bookDir)
-    assertExtractionReadable(bookDir)
+    const rerun = from === "extract" && extraction?.action !== "replace" ? extraction : undefined
+    // A retry exists for the record this check refuses, so a re-run is
+    // admitted first. A book that is not Extract-only still gets the check.
+    if (!rerun) assertExtractionReadable(bookDir)
     const storage = createBookStorage(label, booksRoot)
     try {
-      const resume = from === "extract" && extraction?.action === "resume"
-      if (resume && admitExtractResume(storage, extraction)) return
-      if (from === "extract") assertSectioningReplacementSafe(storage)
-      if (from === "extract" && storage.getPages().length) {
-        throw new SectioningSafetyError("SECTIONING_REGENERATION_BLOCKED", "Re-extraction of an existing book requires preservation-safe CLI/Extract admission. Existing pages and assets are kept.")
-      }
-      // A resume is admitted above or refused: it never becomes a first extraction.
-      if (resume) throw new ExtractionAdmissionError("EXTRACTION_RERUN_STALE")
+      if (rerun && admitExtractRerun(storage, rerun)) return
+      if (from === "extract") assertFirstExtraction(bookDir, storage)
+      // A re-run is admitted above or refused: it never becomes a first extraction.
+      if (rerun) throw new ExtractionAdmissionError("EXTRACTION_RERUN_STALE")
     } finally { storage.close() }
   })
 }

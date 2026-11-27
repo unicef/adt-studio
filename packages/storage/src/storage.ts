@@ -87,6 +87,16 @@ export interface Storage {
    * It changes with any version of an Extract node, any image row and the
    * extraction record, and with nothing a reset keeps. Read-only. */
   readExtractContentToken?(): string
+  /** SPEC-0003 RAC-22/23, reset step 4: delete what Extract produced. One
+   * transaction removes the Extract-owned node versions, every page and image
+   * row and the Extract steps' run records; the files in `images/` and
+   * `.debug-images/` are deleted after it commits. Fonts, typography, the LLM
+   * log and every file outside those two folders are kept. The caller holds the
+   * writer lease and has already marked the extraction record as failed. */
+  resetExtractData?(): void
+  /** Reset step 5: the first thing a completed reset should not have left
+   * behind (a table, node or file name, never book content), or null. */
+  findExtractResetLeftover?(): string | null
   /** Run all storage operations in one SQLite transaction. Nested calls join
    *  the outer transaction. Any thrown error rolls the whole operation back. */
   transaction<T>(operation: () => T): T

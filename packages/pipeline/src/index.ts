@@ -9,6 +9,7 @@ export { processWithConcurrency, createSemaphore, type Semaphore } from "./concu
 export { collectSpentQuizIds, assertQuizGenerationCapacity, saveQuizOutput } from "./quiz-ids.js"
 export {
   extractPDF,
+  reextractPDF,
   resolveFigureExtractionMode,
   figureExtractionFlags,
   type ExtractOptions,
