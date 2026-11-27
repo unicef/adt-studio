@@ -151,8 +151,9 @@ function FactWhy({ fact, file }: { fact: SetupFact; file: File | null | undefine
       {other ? (
         <span className="block">{i18n._(msg`My first reading of the pages picked this. When I read the book a second time, I thought it could be “${i18n._(other)}”, so please check.`)}</span>
       ) : (
-        fact.reason && <span className="block">“{fact.reason}”</span>
+        <span className="block">{fact.secondOpinion ? <Trans>Both times I read the book, I came to this answer.</Trans> : <Trans>This is what I found when I read the book.</Trans>}</span>
       )}
+      {!other && <AiWords reason={fact.reason} />}
       {fact.evidencePages.length > 0 && (
         <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
           <Trans>Where I read it:</Trans> <Citation file={file} pages={fact.evidencePages} />
@@ -169,7 +170,28 @@ function SecondWhy({ fact }: { fact: SetupFact }) {
       <span className="block">
         <Trans>My second reading picked this one.</Trans>
       </span>
-      {fact.reason && <span className="mt-1 block">“{fact.reason}”</span>}
+      <AiWords reason={fact.reason} />
     </>
+  )
+}
+
+/**
+ * The AI's own note, on request: it is written in English and in the AI's terms, so the
+ * explanation above says it in plain words, and this keeps the AI's reasoning one click away.
+ */
+function AiWords({ reason }: { reason: string | null | undefined }) {
+  const [open, setOpen] = useState(false)
+  if (!reason) return null
+  return (
+    <span className="mt-1 block">
+      <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="lc-link text-[12.5px] font-medium">
+        {open ? <Trans>Hide what the AI wrote</Trans> : <Trans>What the AI wrote</Trans>}
+      </button>
+      {open && (
+        <span lang="en" className="mt-1 block text-[12.5px] text-muted-foreground">
+          “{reason}”
+        </span>
+      )}
+    </span>
   )
 }

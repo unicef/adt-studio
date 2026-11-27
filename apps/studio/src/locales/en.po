@@ -630,6 +630,9 @@ msgstr "{label} desktop size"
 msgid "{label} mobile size"
 msgstr "{label} mobile size"
 
+msgid "{label}: {said}"
+msgstr "{label}: {said}"
+
 msgid "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 msgstr "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 
@@ -1373,9 +1376,6 @@ msgstr "Activities disabled"
 
 msgid "Activities enabled"
 msgstr "Activities enabled"
-
-msgid "Activities on"
-msgstr "Activities on"
 
 msgid "Activity"
 msgstr "Activity"
@@ -2663,6 +2663,9 @@ msgstr "Both pages lose their rendering and will be re-rendered automatically."
 
 msgid "Both pages lose their rendering. Without an API key they cannot be re-rendered, so the Storyboard will need re-running."
 msgstr "Both pages lose their rendering. Without an API key they cannot be re-rendered, so the Storyboard will need re-running."
+
+msgid "Both times I read the book, I came to this answer."
+msgstr "Both times I read the book, I came to this answer."
 
 msgid "Bottom center"
 msgstr "Bottom center"
@@ -4999,6 +5002,9 @@ msgstr "Exclude from read-aloud"
 msgid "Exclude from render"
 msgstr "Exclude from render"
 
+msgid "Exercises"
+msgstr "Exercises"
+
 msgid "Exercises and maps"
 msgstr "Exercises and maps"
 
@@ -5948,6 +5954,9 @@ msgstr "Hide toasts automatically after a delay."
 
 msgid "Hide toasts automatically, or keep them until dismissed."
 msgstr "Hide toasts automatically, or keep them until dismissed."
+
+msgid "Hide what the AI wrote"
+msgstr "Hide what the AI wrote"
 
 msgid "High"
 msgstr "High"
@@ -7323,8 +7332,8 @@ msgstr "Map"
 msgid "Map language codes to voice names for each TTS provider."
 msgstr "Map language codes to voice names for each TTS provider."
 
-msgid "Maps and diagrams kept with their labels"
-msgstr "Maps and diagrams kept with their labels"
+msgid "Maps and diagrams"
+msgstr "Maps and diagrams"
 
 msgid "Maps and labelled drawings"
 msgstr "Maps and labelled drawings"
@@ -7921,9 +7930,6 @@ msgstr "No accessibility assessment has been generated yet. Package the ADT outp
 msgid "No accessibility findings were reported for this page."
 msgstr "No accessibility findings were reported for this page."
 
-msgid "No activities"
-msgstr "No activities"
-
 msgid "No AI edits yet for this section."
 msgstr "No AI edits yet for this section."
 
@@ -8143,9 +8149,6 @@ msgstr "No manual terms yet"
 
 msgid "No mapped variables for this prompt yet."
 msgstr "No mapped variables for this prompt yet."
-
-msgid "No maps or diagrams"
-msgstr "No maps or diagrams"
 
 msgid "No matches for \"{search}\""
 msgstr "No matches for \"{search}\""
@@ -13653,6 +13656,9 @@ msgstr "This is the active version — pick another above to compare and restore
 msgid "This is the longest step on a big book — it's safe to wait here."
 msgstr "This is the longest step on a big book — it's safe to wait here."
 
+msgid "This is what I found when I read the book."
+msgstr "This is what I found when I read the book."
+
 msgid "This is your pick"
 msgstr "This is your pick"
 
@@ -14843,6 +14849,9 @@ msgstr "What should the AI change?"
 
 msgid "What should the review focus on?"
 msgstr "What should the review focus on?"
+
+msgid "What the AI wrote"
+msgstr "What the AI wrote"
 
 msgid "What this comment was on isn't on the page any more."
 msgstr "What this comment was on isn't on the page any more."

@@ -5,6 +5,7 @@ import { languageName } from "../shared/languageName"
 import { useWizardForm } from "../../../core/wizardForm"
 import type { Derived } from "../shared/useAnswers"
 import { plainTitle } from "../shared/words"
+import { FACT_SHORT } from "../../engine/words"
 import { activityFacts, bookLanguage, type ScreenId } from "./screens"
 import { useWizardNames, WIZARD_SETTING, wizardValue } from "../shared/wizardNames"
 
@@ -28,12 +29,19 @@ export function useScreenValues(rec: SetupRecommendation | null, derived: Derive
   }
   const pages = scope === "split" ? t`Split into parts` : scope === "range" && (start > 1 || end < pageCount) ? t`Pages ${start}–${end}` : t`All ${pageCount} pages`
   const facts = activityFacts(rec, derived.current)
+  // The person's own answers ("Yes, a few"), named only when the screen asked both questions.
+  const answer = (id: "exercises" | "diagrams", label: string) => {
+    const value = derived.current[id]
+    const short = value ? FACT_SHORT[id][value] : undefined
+    const said = short ? i18n._(short) : ""
+    return facts.length > 1 ? t`${label}: ${said}` : said
+  }
   const named = (id: "activitiesGenerator" | "figureExtraction") => `${i18n._(WIZARD_SETTING[id])}: ${plain(id)}`
   const activities = [
     // eslint-disable-next-line lingui/no-unlocalized-strings -- setting ids
-    facts.includes("exercises") ? (names ? named("activitiesGenerator") : derived.effective.activitiesGenerator?.value === true ? t`Activities on` : t`No activities`) : null,
+    facts.includes("exercises") ? (names ? named("activitiesGenerator") : answer("exercises", t`Exercises`)) : null,
     // eslint-disable-next-line lingui/no-unlocalized-strings -- setting ids
-    facts.includes("diagrams") ? (names ? named("figureExtraction") : derived.effective.figureExtraction?.value === "auto" ? t`Maps and diagrams kept with their labels` : t`No maps or diagrams`) : null,
+    facts.includes("diagrams") ? (names ? named("figureExtraction") : answer("diagrams", t`Maps and diagrams`)) : null,
   ]
     .filter(Boolean)
     .join(" · ")

@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { ArrowLeft, Check as CheckIcon, Pencil, Sparkles, Wrench } from "lucide-react"
-import type { SetupRecommendation } from "@adt/types"
+import type { SetupBookFactId, SetupRecommendation } from "@adt/types"
 import { cn } from "@/lib/utils"
 import { useCreate } from "./nameField"
 import { PrimaryButton } from "../../../core/ui"
@@ -13,9 +13,9 @@ import { LanguageScreen } from "./screens/LanguageScreen"
 import { LookScreen } from "./screens/LookScreen"
 import { NameScreen } from "./screens/NameScreen"
 import { PagesScreen } from "./screens/PagesScreen"
-import { screenFacts, screenSure, type ScreenId } from "./screens"
+import { activityFacts, screenFacts, screenSure, type ScreenId } from "./screens"
 import type { Check } from "./useCheck"
-import { SCREEN_TITLE } from "./words"
+import { screenTitle } from "./words"
 
 const HEADING = "gd-check-title"
 
@@ -44,6 +44,7 @@ type Props = {
 export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, onCreate, onManual }: Props) {
   const { i18n } = useLingui()
   const derived = chat.derived!
+  const facts = activityFacts(rec, derived.current)
   const { at, screens } = check
   const index = screens.indexOf(at)
   const last = at === "name"
@@ -95,15 +96,15 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
   else if (at === "look") body = <LookScreen rec={rec} chat={chat} file={file} />
   else if (at === "pages") body = <PagesScreen pageCount={pageCount} />
   else if (at === "activities") body = <ActivitiesScreen rec={rec} chat={chat} file={file} />
-  else body = <NameScreen screens={screens} values={values} settings={derived.effective} onEdit={(s) => check.go(s, true)} />
+  else body = <NameScreen facts={facts} screens={screens} values={values} settings={derived.effective} onEdit={(s) => check.go(s, true)} />
 
   return (
     <section aria-labelledby={HEADING} inert={locked} className="flex flex-col">
-      <EarlierPicks screens={screens} at={at} done={check.done} values={values} onGo={(s) => check.go(s)} />
+      <EarlierPicks facts={facts} screens={screens} at={at} done={check.done} values={values} onGo={(s) => check.go(s)} />
       <div key={at} data-dir={dir} className="gd-screen-in -mx-2 flex flex-col gap-3 px-2 pb-2 pt-1 lg:gap-4">
         {/* The decision leads: the screen's name is for screen readers, and the count and switch live in the bottom bar. */}
         <h2 id={HEADING} ref={heading} tabIndex={-1} className="sr-only">
-          {i18n._(SCREEN_TITLE[at])}
+          {i18n._(screenTitle(at, facts))}
         </h2>
         {body}
       </div>
@@ -115,7 +116,7 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
           <div className="flex min-w-0 flex-col gap-1.5">
             <span className="flex items-baseline gap-2 text-[14px]">
               <span key={at} data-dir={dir} className="gd-bar-in font-semibold">
-                {i18n._(SCREEN_TITLE[at])}
+                {i18n._(screenTitle(at, facts))}
               </span>
               <span key={`n-${at}`} data-dir={dir} className="gd-bar-in tabular-nums text-muted-foreground">
                 <Trans>
@@ -171,14 +172,14 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
  * The picks made so far, in order, as a row above the screen: each opens its screen again in one
  * tap ("Kind of book: Story"), so going back never takes several Backs.
  */
-function EarlierPicks({ screens, at, done, values, onGo }: { screens: ScreenId[]; at: ScreenId; done: ScreenId[]; values: Record<ScreenId, string>; onGo: (screen: ScreenId) => void }) {
+function EarlierPicks({ facts, screens, at, done, values, onGo }: { facts: SetupBookFactId[]; screens: ScreenId[]; at: ScreenId; done: ScreenId[]; values: Record<ScreenId, string>; onGo: (screen: ScreenId) => void }) {
   const { t, i18n } = useLingui()
   const shown = screens.filter((s) => s !== at && s !== "name" && done.includes(s))
   if (!shown.length) return null
   return (
     <nav aria-label={t`Your picks so far`} className="mb-4 flex flex-wrap gap-2">
       {shown.map((s) => {
-        const title = i18n._(SCREEN_TITLE[s])
+        const title = i18n._(screenTitle(s, facts))
         return (
           <button key={s} type="button" onClick={() => onGo(s)} aria-label={t`Change ${title}: ${values[s]}`} className="gd-bar-in group inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-[var(--lc-bubble)] px-3 text-[13.5px] transition-colors hover:border-[var(--gd-step)]">
             <span className="text-muted-foreground">{title}</span>

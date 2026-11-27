@@ -632,6 +632,9 @@ msgstr "Madhësia e {label} në desktop"
 msgid "{label} mobile size"
 msgstr "Madhësia e {label} në celular"
 
+msgid "{label}: {said}"
+msgstr "{label}: {said}"
+
 msgid "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 msgstr "{merged, plural, =0 {0 nga {total} faqe të bashkuara} one {# nga {total} faqe të bashkuara} other {# nga {total} faqe të bashkuara}}"
 
@@ -1375,9 +1378,6 @@ msgstr "Aktivitetet çaktivizuar"
 
 msgid "Activities enabled"
 msgstr "Aktivitetet aktivizuar"
-
-msgid "Activities on"
-msgstr "Me aktivitete"
 
 msgid "Activity"
 msgstr "Aktivitet"
@@ -2665,6 +2665,9 @@ msgstr "Të dyja faqet humbin renderimin e tyre dhe do të ri-renderizohen autom
 
 msgid "Both pages lose their rendering. Without an API key they cannot be re-rendered, so the Storyboard will need re-running."
 msgstr "Të dyja faqet humbin renderimin e tyre. Pa një çelës API ato nuk mund të ri-renderizohen, prandaj Storyboard-i do të duhet të ekzekutohet përsëri."
+
+msgid "Both times I read the book, I came to this answer."
+msgstr "Të dyja herët që e lexova librin, arrita në këtë përgjigje."
 
 msgid "Bottom center"
 msgstr "Qendra e poshtme"
@@ -5001,6 +5004,9 @@ msgstr "Përjashto nga leximi me zë"
 msgid "Exclude from render"
 msgstr "Përjashto nga renderimi"
 
+msgid "Exercises"
+msgstr "Ushtrime"
+
 msgid "Exercises and maps"
 msgstr "Ushtrime dhe harta"
 
@@ -5950,6 +5956,9 @@ msgstr "Fshih njoftimet automatikisht pas një vonese."
 
 msgid "Hide toasts automatically, or keep them until dismissed."
 msgstr "Fshih njoftimet automatikisht, ose mbaji deri sa të mbyllen."
+
+msgid "Hide what the AI wrote"
+msgstr "Fshih atë që shkroi AI"
 
 msgid "High"
 msgstr "I lartë"
@@ -7325,8 +7334,8 @@ msgstr "Hartë"
 msgid "Map language codes to voice names for each TTS provider."
 msgstr "Lidh kodet e gjuhës me emrat e zërit për çdo ofrues TTS."
 
-msgid "Maps and diagrams kept with their labels"
-msgstr "Harta dhe diagrame të mbajtura me etiketat"
+msgid "Maps and diagrams"
+msgstr "Harta dhe diagrame"
 
 msgid "Maps and labelled drawings"
 msgstr "Harta dhe vizatime me etiketa"
@@ -7923,9 +7932,6 @@ msgstr "Nuk është gjeneruar ende vlerësimi i aksesueshmërisë. Pako rezultat
 msgid "No accessibility findings were reported for this page."
 msgstr "Nuk u raportuan gjetje aksesueshmërie për këtë faqe."
 
-msgid "No activities"
-msgstr "Pa aktivitete"
-
 msgid "No AI edits yet for this section."
 msgstr "Nuk ka redaktime të AI ende për këtë seksion."
 
@@ -8145,9 +8151,6 @@ msgstr "Nuk ka terma manualë ende"
 
 msgid "No mapped variables for this prompt yet."
 msgstr "Ende nuk ka variabla të mapuara për këtë prompt."
-
-msgid "No maps or diagrams"
-msgstr "Pa harta ose diagrame"
 
 msgid "No matches for \"{search}\""
 msgstr "Nuk ka përputhje për \"{search}\""
@@ -13655,6 +13658,9 @@ msgstr "Ky është versioni aktiv — zgjidhni një tjetër më lart për ta kra
 msgid "This is the longest step on a big book — it's safe to wait here."
 msgstr "Ky është hapi më i gjatë në një libër të madh — është i sigurt për të pritur këtu."
 
+msgid "This is what I found when I read the book."
+msgstr "Kjo është ajo që gjeta kur e lexova librin."
+
 msgid "This is your pick"
 msgstr "Kjo është zgjedhja juaj"
 
@@ -14845,6 +14851,9 @@ msgstr "Çfarë duhet të ndryshojë AI-ja?"
 
 msgid "What should the review focus on?"
 msgstr "Në çfarë duhet të fokusohet rishikimi?"
+
+msgid "What the AI wrote"
+msgstr "Çfarë shkroi AI"
 
 msgid "What this comment was on isn't on the page any more."
 msgstr "Ajo për të cilën ishte ky koment nuk është më në faqe."

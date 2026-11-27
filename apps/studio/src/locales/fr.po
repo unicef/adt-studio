@@ -632,6 +632,9 @@ msgstr "Taille de {label} sur ordinateur"
 msgid "{label} mobile size"
 msgstr "Taille de {label} sur mobile"
 
+msgid "{label}: {said}"
+msgstr "{label} : {said}"
+
 msgid "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 msgstr "{merged, plural, =0 {0 sur {total} pages fusionnées} one {# sur {total} pages fusionnées} other {# sur {total} pages fusionnées}}"
 
@@ -1374,9 +1377,6 @@ msgid "Activities disabled"
 msgstr "Activités désactivées"
 
 msgid "Activities enabled"
-msgstr "Activités activées"
-
-msgid "Activities on"
 msgstr "Activités activées"
 
 msgid "Activity"
@@ -2665,6 +2665,9 @@ msgstr "Les deux pages perdent leur rendu et seront re-rendues automatiquement."
 
 msgid "Both pages lose their rendering. Without an API key they cannot be re-rendered, so the Storyboard will need re-running."
 msgstr "Les deux pages perdent leur rendu. Sans clé API, elles ne peuvent pas être re-rendues : il faudra donc relancer le Scénarimage."
+
+msgid "Both times I read the book, I came to this answer."
+msgstr "Les deux fois où j'ai lu le livre, je suis arrivé à cette réponse."
 
 msgid "Bottom center"
 msgstr "Centre bas"
@@ -5001,6 +5004,9 @@ msgstr "Exclure de la lecture à voix haute"
 msgid "Exclude from render"
 msgstr "Exclure du rendu"
 
+msgid "Exercises"
+msgstr "Exercices"
+
 msgid "Exercises and maps"
 msgstr "Exercices et cartes"
 
@@ -5950,6 +5956,9 @@ msgstr "Masquer les notifications automatiquement après un délai."
 
 msgid "Hide toasts automatically, or keep them until dismissed."
 msgstr "Masquer les notifications automatiquement, ou les garder jusqu'à ce qu'elles soient fermées."
+
+msgid "Hide what the AI wrote"
+msgstr "Masquer ce que l'IA a écrit"
 
 msgid "High"
 msgstr "Élevé"
@@ -7325,8 +7334,8 @@ msgstr "Carte"
 msgid "Map language codes to voice names for each TTS provider."
 msgstr "Associez les codes de langue aux noms de voix pour chaque fournisseur TTS."
 
-msgid "Maps and diagrams kept with their labels"
-msgstr "Cartes et schémas gardés avec leurs légendes"
+msgid "Maps and diagrams"
+msgstr "Cartes et schémas"
 
 msgid "Maps and labelled drawings"
 msgstr "Cartes et dessins légendés"
@@ -7923,9 +7932,6 @@ msgstr "Aucune évaluation d'accessibilité n'a encore été générée. Empaque
 msgid "No accessibility findings were reported for this page."
 msgstr "Aucun résultat d'accessibilité n'a été signalé pour cette page."
 
-msgid "No activities"
-msgstr "Pas d'activités"
-
 msgid "No AI edits yet for this section."
 msgstr "Aucune modification IA pour cette section pour l'instant."
 
@@ -8145,9 +8151,6 @@ msgstr "Pas encore de termes manuels"
 
 msgid "No mapped variables for this prompt yet."
 msgstr "Aucune variable n'est encore mappée pour ce prompt."
-
-msgid "No maps or diagrams"
-msgstr "Pas de cartes ni de schémas"
 
 msgid "No matches for \"{search}\""
 msgstr "Aucun résultat pour \\\"{search}\\\""
@@ -13655,6 +13658,9 @@ msgstr "Ceci est la version active — choisissez-en une autre ci-dessus pour la
 msgid "This is the longest step on a big book — it's safe to wait here."
 msgstr "C'est l'étape la plus longue sur un gros livre — il est sûr d'attendre ici."
 
+msgid "This is what I found when I read the book."
+msgstr "Voici ce que j'ai trouvé en lisant le livre."
+
 msgid "This is your pick"
 msgstr "C'est votre choix"
 
@@ -14845,6 +14851,9 @@ msgstr "Que doit modifier l'IA ?"
 
 msgid "What should the review focus on?"
 msgstr "Sur quoi la révision doit-elle se concentrer ?"
+
+msgid "What the AI wrote"
+msgstr "Ce que l'IA a écrit"
 
 msgid "What this comment was on isn't on the page any more."
 msgstr "Ce que visait ce commentaire n’est plus sur la page."
