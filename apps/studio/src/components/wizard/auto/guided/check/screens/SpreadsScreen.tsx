@@ -49,6 +49,8 @@ export function SpreadsScreen({ rec, chat, file }: Props) {
       // The explanation dialog ("Explain the options"): what it does, when it fits, and why it was guessed.
       more: i18n._(GROUPING_MORE[v]!),
       guide: GROUPING_GUIDE[v],
+      // In the explanation, the idea itself (a book's pages becoming screens), not the user's pages.
+      helpArt: <Illustration name={`grouping-${v}`} />,
       why: v === guess && rule && RULE_WHY[rule] ? i18n._(RULE_WHY[rule]!) : undefined,
     }),
   )
