@@ -299,10 +299,15 @@ function useSqueeze(scroller: RefObject<HTMLElement | null>, page: RefObject<HTM
     const el = page.current
     if (!sc || !el) return
     const fit = () => {
+      // A phone scrolls anyway: its pictures keep their size.
+      if (!window.matchMedia(WIDE).matches) return el.style.setProperty("--gd-squeeze", "0px")
+      // Still fits with little room to spare: keep the pictures as they are, so a change on the
+      // page (a new language, a pick) never nudges everything by a few pixels.
+      const slack = sc.clientHeight - el.getBoundingClientRect().height
+      const now = parseFloat(el.style.getPropertyValue("--gd-squeeze")) || 0
+      if (slack >= -1 && (slack < 24 || now === 0)) return
       let q = 0
       el.style.setProperty("--gd-squeeze", "0px")
-      // A phone scrolls anyway: its pictures keep their size.
-      if (!window.matchMedia(WIDE).matches) return
       const set = (v: number) => el.style.setProperty("--gd-squeeze", `${v}px`)
       const fits = () => sc.scrollHeight - sc.clientHeight <= 1
       for (let i = 0; i < 3 && !fits(); i++) {

@@ -24,3 +24,14 @@ export function morph(update: () => void): void {
   if (!hasViewTransitions || motionOff()) return update()
   ;(document as ViewTransitionDoc).startViewTransition(() => flushSync(update))
 }
+
+/**
+ * A view-transition name for words that change in place: one name per text, so words that stay
+ * the same keep their name (and just move), while new words enter and the old ones leave
+ * (the `.gd-swap` animations in guided.css).
+ */
+export function swapName(prefix: string, text: string): string {
+  let h = 5381
+  for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0
+  return `${prefix}-${(h >>> 0).toString(36)}`
+}

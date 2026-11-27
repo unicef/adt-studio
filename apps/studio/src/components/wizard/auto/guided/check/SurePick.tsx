@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react"
 import { Trans } from "@lingui/react/macro"
 import { Check, ChevronDown } from "lucide-react"
 import type { SetupRecommendation } from "@adt/types"
 import { cn } from "@/lib/utils"
 import { Screen } from "../shared/PreviewChoices"
+import { swapName } from "../shared/motion"
 import { screenPages, useDescribe, useScreenImages } from "../shared/screens/pages"
 import { SCREEN } from "../shared/screens/layouts"
 import { useBox } from "../shared/screens/useBox"
@@ -41,8 +42,9 @@ export function PickBadge({ changed }: { changed: boolean }) {
  * A pick the engine is sure of, in one column: the picture across it, the question, the pick in
  * large type with its badge and line, and its other options a tap away. Opening them scrolls them
  * into view above the bottom bar; picking one closes them and shows it here as "Your pick".
+ * `pictureKey` keeps the picture mounted while the pick changes (it morphs instead of popping in again).
  */
-export function SurePick({ picture, label, title, hint, result, after, changed, badge = true, labelId, open, onToggle, others, othersLabel, hideLabel, children }: { picture: ReactNode; label?: ReactNode; after?: ReactNode; title: ReactNode; hint?: ReactNode; result?: ReactNode; changed: boolean; badge?: boolean; labelId: string; open: boolean; onToggle: () => void; others: boolean; othersLabel?: ReactNode; hideLabel?: ReactNode; children?: ReactNode }) {
+export function SurePick({ picture, pictureKey, label, title, hint, result, after, changed, badge = true, labelId, open, onToggle, others, othersLabel, hideLabel, children }: { picture: ReactNode; pictureKey?: string; label?: ReactNode; after?: ReactNode; title: ReactNode; hint?: ReactNode; result?: ReactNode; changed: boolean; badge?: boolean; labelId: string; open: boolean; onToggle: () => void; others: boolean; othersLabel?: ReactNode; hideLabel?: ReactNode; children?: ReactNode }) {
   const more = useRef<HTMLDivElement>(null)
   // Once the options have grown in, bring them into view (gently, above the bottom bar).
   // Once open, the options may spill out (a language list drops below its field); while they
@@ -62,18 +64,18 @@ export function SurePick({ picture, label, title, hint, result, after, changed, 
       <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:gap-8">
         {picture && (
           <div data-vt-pick={`pick-${labelId}`} className="w-full shrink-0 lg:w-[46%] [&>*>*]:!h-[max(120px,calc(clamp(170px,calc(var(--gd-vh,1vh)*30),360px)-var(--gd-squeeze,0px)))] [&>*>*]:!w-full lg:[&>*>*]:!h-[max(180px,calc(clamp(220px,calc(var(--gd-vh,1vh)*34),400px)-var(--gd-squeeze,0px)))]" style={{ viewTransitionName: `pick-${labelId}` }}>
-            <div key={typeof title === "string" ? title : undefined} className="gd-pick-in contents">
+            <div key={pictureKey ?? (typeof title === "string" ? title : undefined)} className="gd-pick-in contents">
               {picture}
             </div>
           </div>
         )}
-        <div className="flex min-w-0 flex-1 flex-col items-start gap-2">
+        <div className="flex min-w-0 flex-1 flex-col items-start gap-2" style={{ viewTransitionName: `${labelId}-words` }}>
           {label && (
             <span id={labelId} className="text-[15px] text-muted-foreground lg:text-[16px]">
               {label}
             </span>
           )}
-          <span className="flex flex-wrap items-center gap-2">
+          <span className="flex flex-wrap items-center gap-2" style={{ viewTransitionName: swapName(`${labelId}-title`, typeof title === "string" ? title : ""), viewTransitionClass: "gd-swap gd-swap-start" } as CSSProperties}>
             <span className="text-[26px] font-semibold leading-tight tracking-[-0.02em] lg:text-[32px]">{title}</span>
             {(badge || changed) && <PickBadge changed={changed} />}
           </span>
@@ -87,7 +89,12 @@ export function SurePick({ picture, label, title, hint, result, after, changed, 
           )}
         </div>
       </div>
-      {after && <div className="-mt-1 w-full">{after}</div>}
+      {/* The words and what comes after have their own names, so when the page shifts they slide rather than fade between two places. */}
+      {after && (
+        <div className="-mt-1 w-full" style={{ viewTransitionName: `${labelId}-after` }}>
+          {after}
+        </div>
+      )}
       {/* The options grow in (height and fade), and shrink away when hidden; nothing else on the page moves. */}
       <div className={cn("gd-expand grid", open ? "grid-rows-[1fr] opacity-100" : "-mt-5 grid-rows-[0fr] opacity-0")} inert={!open}>
         <div className={cn("min-h-0", settled ? "overflow-visible" : "overflow-hidden")}>

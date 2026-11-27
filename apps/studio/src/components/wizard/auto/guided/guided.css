@@ -33,6 +33,16 @@
 ::view-transition-old(*), ::view-transition-new(*) { animation-duration: 0.3s; animation-timing-function: ease; }
 /* The step dot and the rail's highlight are shapes, not content: they stretch as they move. */
 ::view-transition-old(gd-step-dot), ::view-transition-new(gd-step-dot) { height: 100%; width: 100%; object-fit: fill; }
+/* Words that change in place (the pick's name, the language's bubbles and stamp; shared/motion.ts
+   swapName): words that stay keep their name and just move (a plain crossfade of the same image),
+   new words rise in and the old ones lift away, softly blurred. */
+/* Their snapshots aren't cropped, so a bubble keeps its tail and shadow while it moves. */
+::view-transition-image-pair(.gd-swap) { overflow: visible; }
+::view-transition-old(.gd-swap), ::view-transition-new(.gd-swap) { height: auto; object-fit: fill; }
+::view-transition-old(.gd-swap):only-child { animation: gd-swap-out 0.22s ease-in both; }
+::view-transition-new(.gd-swap):only-child { animation: gd-swap-in 0.45s cubic-bezier(0.32, 0.72, 0, 1) 0.08s both; }
+@keyframes gd-swap-out { to { opacity: 0; transform: translateY(-6px) scale(0.96); filter: blur(3px); } }
+@keyframes gd-swap-in { from { opacity: 0; transform: translateY(8px) scale(0.96); filter: blur(3px); } }
 /* A picked card grows into the pick: its picture scales rather than crops. */
 [data-vt-off] { view-transition-name: none !important; }
 @media (prefers-reduced-motion: reduce) {

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, type CSSProperties } from "react"
 import { useStore } from "@tanstack/react-form"
 import { Trans } from "@lingui/react/macro"
 import type { SetupRecommendation } from "@adt/types"
@@ -11,6 +11,7 @@ import { LanguageBook } from "../../shared/art/LanguageBook"
 import { PICTURE, SurePick } from "../SurePick"
 import { LanguageHelp } from "./LanguageHelp"
 import { useExplain } from "../../shared/explain"
+import { morph, swapName } from "../../shared/motion"
 import { endonym, LanguageChoice, region } from "./LanguageChoice"
 
 /**
@@ -33,7 +34,7 @@ function LanguageStamp({ code }: { code: string | null }) {
   const base = code ? getBaseLanguage(code).toUpperCase() : "?"
   const country = region(code)?.toUpperCase()
   return (
-    <span key={code ?? "none"} className="absolute bottom-[3%] left-[3%] z-20 flex items-center gap-3 rounded-[20px] bg-card p-1.5 sm:pr-4 lg:pr-1.5 shadow-[0_14px_34px_-16px_rgba(15,23,42,0.45)] ring-1 ring-border animate-in fade-in slide-in-from-bottom-2 duration-500 motion-reduce:animate-none">
+    <span style={{ viewTransitionName: swapName("gd-lang-stamp", code ?? ""), viewTransitionClass: "gd-swap" } as CSSProperties} className="absolute bottom-[3%] left-[3%] z-20 flex items-center gap-3 rounded-[20px] bg-card p-1.5 sm:pr-4 lg:pr-1.5 shadow-[0_14px_34px_-16px_rgba(15,23,42,0.45)] ring-1 ring-border animate-in fade-in slide-in-from-bottom-2 duration-500 motion-reduce:animate-none">
       <span className="flex size-[52px] shrink-0 flex-col items-center justify-center rounded-[15px] bg-brand-50 text-brand-700 ring-1 ring-brand-200">
         <span className="text-[20px] font-extrabold leading-none tracking-[0.02em]">{base}</span>
         {country && <span className="mt-1 rounded-full bg-brand-600 px-1.5 text-[10px] font-bold leading-[15px] text-white">{country}</span>}
@@ -60,7 +61,8 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
   const shown = picked ?? found
   const source = rec.language?.source
   // Picking the language found in the book (as it was found) is the same as picking nothing.
-  const pick = (code: string) => form.setFieldValue("editingLanguage", code === found ? "" : code)
+  // The change morphs: the picture stays, its bubbles, stamp and the name move to the new words.
+  const pick = (code: string) => morph(() => form.setFieldValue("editingLanguage", code === found ? "" : code))
   return (
     <SurePick
       picture={
@@ -93,6 +95,7 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
       changed={changed || variety}
       badge={!!found}
       labelId="gd-language"
+      pictureKey="language"
       open={false}
       onToggle={() => {}}
       others={false}
