@@ -6401,6 +6401,9 @@ msgstr "in the book"
 msgid "In their own area outside the picture."
 msgstr "In their own area outside the picture."
 
+msgid "In your book"
+msgstr "In your book"
+
 msgid "In-app toast"
 msgstr "In-app toast"
 

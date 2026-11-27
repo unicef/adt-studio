@@ -6403,6 +6403,9 @@ msgstr "në libër"
 msgid "In their own area outside the picture."
 msgstr "Në hapësirën e tyre jashtë figurës."
 
+msgid "In your book"
+msgstr "Në librin tuaj"
+
 msgid "In-app toast"
 msgstr "Njoftim në aplikacion"
 

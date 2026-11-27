@@ -66,7 +66,7 @@ export function SpreadsScreen({ rec, chat, file }: Props) {
         <span className="mt-1 flex flex-col gap-1.5">
           {evidence.length > 0 && (
             <span className="flex flex-wrap items-center gap-1.5">
-              <Trans>Where I saw it:</Trans> <SpreadEvidence file={file} pages={evidence} rule={rule} />
+              <Trans>Where I saw it:</Trans> <SpreadEvidence file={file} pages={evidence} rule={rule} wide={rec.measured.pageStorage === "spreads-as-wide-pages"} />
             </span>
           )}
           <span className="flex items-start gap-2 text-muted-foreground">

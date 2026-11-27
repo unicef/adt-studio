@@ -6401,6 +6401,9 @@ msgstr "en el libro"
 msgid "In their own area outside the picture."
 msgstr "En su propia zona fuera de la ilustración."
 
+msgid "In your book"
+msgstr "En tu libro"
+
 msgid "In-app toast"
 msgstr "Notificación en la app"
 
