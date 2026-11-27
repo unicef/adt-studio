@@ -1,5 +1,4 @@
 import { partScopedPages, requiredPartRange } from "./sectioning-window.js"
-import { resolveQuizOptionId } from "@adt/types"
 import { extractImageIds } from "./image-captioning.js"
 import { parseDocument, DomUtils } from "htmlparser2"
 import type {
