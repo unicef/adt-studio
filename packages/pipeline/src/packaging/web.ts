@@ -1,3 +1,4 @@
+import { serializeHtml } from "../html-serialize.js"
 import { setImmediate as yieldToEventLoop } from "node:timers/promises"
 import { storyboardSourceWarnings } from "../storyboard-source-state.js"
 import { recordPackagedOwners } from "./bundle-ownership.js"
@@ -2189,7 +2190,7 @@ export function rewriteImageUrls(
     }
   }
 
-  const normalizedHtml = DomUtils.getOuterHTML(doc).replace(/(<img\b[^>]*?)\salt(?=[\s>])/g, "$1 alt=\"\"")
+  const normalizedHtml = serializeHtml(doc).replace(/(<img\b[^>]*?)\salt(?=[\s>])/g, "$1 alt=\"\"")
   return { html: normalizedHtml, referencedImages }
 }
 

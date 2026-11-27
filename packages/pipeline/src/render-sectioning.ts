@@ -1,3 +1,4 @@
+import { serializeHtml } from "./html-serialize.js"
 /**
  * Render-sectioning resolver.
  *
@@ -95,7 +96,7 @@ function withLegacyFixedLayoutOwnership(
   if (roots.length !== 1) return rendering
   const sectionId = fixed.data.sections[0].sectionId
   roots[0].attribs["data-section-id"] = sectionId
-  const html = DomUtils.getOuterHTML(doc)
+  const html = serializeHtml(doc)
   if (renderedSectionId({ ...entry, html }) !== sectionId) return rendering
   return { ...rendering, sections: [{ ...entry, sectionId, html }] }
 }

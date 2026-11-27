@@ -1,3 +1,4 @@
+import { serializeHtml } from "../html-serialize.js"
 /**
  * Fixed-layout projection for imported ADT pages.
  *
@@ -314,7 +315,7 @@ export function projectImportedFixedLayoutPage(
 
 
   return {
-    html: DomUtils.getOuterHTML(contentRoot),
+    html: serializeHtml(contentRoot),
     viewport,
     ...(positiveDimension(referenceWidth) !== null ? { referenceWidth } : {}),
     nodes,
