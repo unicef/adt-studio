@@ -139,6 +139,7 @@ it.each([
   fireEvent.click(run)
   expect(state.queueRun).toHaveBeenCalledExactlyOnceWith({
     fromStage: "extract", toStage: "extract", apiKey: "fixture",
-    extraction: { action: "retry", attemptId: rerun.attemptId },
+    // Bound to the content the retry discards, as step-status reported it.
+    extraction: { action: "retry", attemptId: rerun.attemptId, contentToken: "c".repeat(64) },
   })
 })

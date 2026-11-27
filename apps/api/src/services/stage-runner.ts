@@ -1168,7 +1168,7 @@ async function runPdfExtraction(
   console.log(`[stage-run] ${label}: extracting PDF from ${pdfPath}`)
   const rerun = options.extraction?.action === "retry" ? options.extraction : undefined
   const extract: (...args: Parameters<typeof extractPDF>) => Promise<unknown> = rerun
-    ? (extractOptions, target, events) => reextractPDF(extractOptions, target, events, { expectedAttemptId: rerun.attemptId })
+    ? (extractOptions, target, events) => reextractPDF(extractOptions, target, events, { binding: rerun, config })
     : extractPDF
   await extract(
     {

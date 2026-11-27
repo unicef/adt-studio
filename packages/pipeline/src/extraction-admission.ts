@@ -2,6 +2,8 @@ import fs from "node:fs"
 import path from "node:path"
 import { countPdfPages, computeGroups } from "@adt/pdf"
 import { EXTRACTION_CONTRACT_VERSION, ExtractionInputs, PartManifest, PROJECT_IDENTITY_FILE, ProjectIdentity, type AppConfig, type ExtractionManifest } from "@adt/types"
+import { z } from "zod"
+import { canonicalJson, computeFingerprint, hashPdfBytes } from "@adt/types/fingerprint"
 import { extractionHash, readExtractionManifest, inspectExtractionDestination, ExtractionAdmissionError, BookBusyError, assertBookWriter, resolveBookPaths, withBookWriter } from "@adt/storage"
 import type { ExtractOptions } from "./pdf-extraction.js"
 import { figureExtractionFlags } from "./figure-extraction-config.js"
@@ -29,10 +31,43 @@ export function prepareExtractionAdmission(bookDir: string, options: ExtractOpti
 /** SPEC-0003 RAC-22/23, reset step 2: what a retry or replace will extract,
  * resolved as initial admission resolves it, before anything is discarded.
  * `previous` is the book's extraction record when it has a readable one. The
- * PDF must still be the one that record and the project identity name. Reads
- * only: any refusal leaves the book untouched. */
-export function prepareExtractionReset(bookDir: string, options: ExtractOptions, previous: ExtractionManifest | null) {
-  return resolveExtraction(bookDir, options, { previous })
+ * PDF must still be the one that record and the project identity name. On a
+ * part book, `config` (the settings `options` were resolved from) must still
+ * give the identity its coordinator merges against. Reads only: any refusal
+ * leaves the book untouched. */
+export function prepareExtractionReset(bookDir: string, options: ExtractOptions, previous: ExtractionManifest | null, config: AppConfig) {
+  return resolveExtraction(bookDir, options, { previous, config })
+}
+
+/** The identity tier of the fingerprint `part.json` keeps beside its hash. */
+const RecordedPartIdentity = z.object({
+  identity: z.object({ pdfSha256: z.string(), schemaVersion: z.number(), extraction: z.record(z.unknown()) }).strict(),
+})
+
+/** A part is merged back only while its pipeline identity (the PDF, the schema
+ * and the extraction-affecting settings) equals its coordinator's, which
+ * `part.json` recorded when the part was made. Extracting it again with a
+ * changed spread, figure-extraction or watermark setting would complete a part
+ * that can no longer be merged, retried or replaced.
+ *
+ * 1. The recorded hash equals the current one: the part still merges.
+ * 2. Otherwise the hash may differ only because the app was updated since the
+ *    part was exported: it also covers the database schema version, which the
+ *    merge gate recomputes on both sides. The part is then accepted when the
+ *    identity recorded beside the hash is the one that hash names, and its PDF
+ *    and extraction settings are the current ones. Anything else is refused. */
+function assertPartStillMerges(bookDir: string, config: AppConfig, pdfBuffer: Buffer): void {
+  const partFile = path.join(bookDir, "part.json")
+  if (!fs.existsSync(partFile)) return
+  const part = PartManifest.parse(JSON.parse(fs.readFileSync(partFile, "utf8")))
+  const current = computeFingerprint({ config, pdfSha256: hashPdfBytes(pdfBuffer) })
+  if (current.identityHash === part.identityHash) return
+  const recorded = RecordedPartIdentity.safeParse(part.fingerprint).data?.identity
+  const sameContent = recorded !== undefined
+    && extractionHash(canonicalJson(recorded)) === part.identityHash
+    && recorded.pdfSha256 === current.identity.pdfSha256
+    && canonicalJson(recorded.extraction) === canonicalJson(current.identity.extraction)
+  if (!sameContent) throw new ExtractionAdmissionError("EXTRACTION_PART_SETTINGS_CHANGED")
 }
 
 /** The source of a reset is the PDF the project was created from. */
@@ -45,10 +80,11 @@ function assertResetSource(bookDir: string, sourceHash: string): "reset" {
   return "reset"
 }
 
+interface ResetInputs { previous: ExtractionManifest | null; config: AppConfig }
 interface ResolvedExtraction<Outcome> { pdfBuffer: Buffer; sourceHash: string; inputs: ExtractionInputs; outcome: Outcome; expectedPages: number }
 function resolveExtraction(bookDir: string, options: ExtractOptions): ResolvedExtraction<"initial" | "reused">
-function resolveExtraction(bookDir: string, options: ExtractOptions, reset: { previous: ExtractionManifest | null }): ResolvedExtraction<"reset">
-function resolveExtraction(bookDir: string, options: ExtractOptions, reset?: { previous: ExtractionManifest | null }): ResolvedExtraction<"initial" | "reused" | "reset"> {
+function resolveExtraction(bookDir: string, options: ExtractOptions, reset: ResetInputs): ResolvedExtraction<"reset">
+function resolveExtraction(bookDir: string, options: ExtractOptions, reset?: ResetInputs): ResolvedExtraction<"initial" | "reused" | "reset"> {
   assertBookWriter(bookDir)
   try {
     const previous = reset ? reset.previous : readExtractionManifest(bookDir)
@@ -86,6 +122,7 @@ function resolveExtraction(bookDir: string, options: ExtractOptions, reset?: { p
       fixedLayout: options.fixedLayout ?? false,
     })
     const outcome = reset ? assertResetSource(bookDir, sourceHash) : inspectExtractionDestination(bookDir, sourceHash, inputs)
+    if (reset) assertPartStillMerges(bookDir, reset.config, pdfBuffer)
     return { pdfBuffer, sourceHash, inputs, outcome, expectedPages: groups.length }
   } catch (error) {
     if (error instanceof ExtractionAdmissionError || error instanceof BookBusyError) throw error

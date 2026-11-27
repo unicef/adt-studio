@@ -52,6 +52,8 @@ vi.mock("@adt/storage", async original => {
 import { createBookStorage, openBookDb, writeSectioningLifecycle } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import { FONT_REGISTRY_NODE, PIPELINE, PROJECT_IDENTITY_FILE, type ExtractRerunRequest, type ExtractRerunStatus } from "@adt/types"
+import { canonicalJson, computeFingerprint, hashPdfBytes, type PipelineFingerprint } from "@adt/types/fingerprint"
+import { loadBookConfig } from "@adt/pipeline"
 import { createStageRunner } from "./stage-runner.js"
 import { createStageService, type StageRunner } from "./stage-service.js"
 import { createBookEventBus, type BookSSEEvent } from "./book-event-bus.js"
@@ -93,6 +95,8 @@ interface Book {
   root: string
   dir: string
   record(): { attemptId: string; status: string; sourceHash: string; pages: unknown[] }
+  /** The retry request Studio would send for the book as it is now. */
+  retry(): ExtractRerunRequest
   read<T>(use: (storage: Storage) => T): T
   rows<T = Record<string, unknown>>(sql: string): T[]
   exec(sql: string): void
@@ -102,10 +106,15 @@ function book(): Book {
   const dir = path.join(root, label)
   fs.cpSync(path.join(template, label), dir, { recursive: true })
   const db = <T>(use: (db: ReturnType<typeof openBookDb>) => T): T => { const handle = openBookDb(path.join(dir, `${label}.db`)); try { return use(handle) } finally { handle.close() } }
+  const record = () => JSON.parse(fs.readFileSync(path.join(dir, "extraction.json"), "utf8"))
+  const read: Book["read"] = use => { const storage = createBookStorage(label, root); try { return use(storage) } finally { storage.close() } }
   return {
-    root, dir,
-    record: () => JSON.parse(fs.readFileSync(path.join(dir, "extraction.json"), "utf8")),
-    read: use => { const storage = createBookStorage(label, root); try { return use(storage) } finally { storage.close() } },
+    root, dir, record, read,
+    retry: () => {
+      let attemptId: string | null = null
+      try { attemptId = record().attemptId } catch { /* an unreadable record binds null */ }
+      return { action: "retry", attemptId, contentToken: read(storage => storage.readExtractContentToken!()) }
+    },
     rows: sql => db(handle => handle.all(sql)) as never,
     exec: sql => db(handle => { handle.exec(sql) }),
   }
@@ -144,7 +153,19 @@ function server(root: string, runner: StageRunner = createStageRunner()) {
   return { app, bus, service, post, offered, run }
 }
 const extractRun = (extraction?: unknown) => ({ fromStage: "extract", toStage: "extract", ...(extraction ? { extraction } : {}) })
-const retry = (attemptId: string | null) => extractRun({ action: "retry", attemptId })
+const digest = expect.stringMatching(/^[a-f0-9]{64}$/)
+const partManifest = (identityHash: string, fingerprint: unknown = null) => JSON.stringify({ adtPart: 1, sourceLabel: "source", title: null, range: { startPage: 1, endPage: 2 }, pageCount: 3, fingerprint,
+  identityHash, semanticsHash: "b", createdAt: "2026-01-01T00:00:00.000Z", partLabelSuggestion: "source-part-1" })
+/** The fingerprint the coordinator's merge gate computes for this book now. */
+const mergeFingerprint = (b: Book) => computeFingerprint({
+  config: loadBookConfig(label, b.root, path.join(b.root, "config.yaml")), pdfSha256: hashPdfBytes(fs.readFileSync(path.join(b.dir, `${label}.pdf`))),
+})
+const mergeIdentity = (b: Book) => mergeFingerprint(b).identityHash
+/** The same fingerprint as an app with the previous database schema wrote it at export. */
+const underOlderSchema = (fingerprint: PipelineFingerprint): PipelineFingerprint => {
+  const identity = { ...fingerprint.identity, schemaVersion: fingerprint.identity.schemaVersion - 1 }
+  return { ...fingerprint, identity, identityHash: createHash("sha256").update(canonicalJson(identity)).digest("hex") }
+}
 const refusal = async (response: Response) => ({ status: response.status, ...(await response.json() as { code?: string; error: string }) })
 
 describe("SPEC-0003 Extract retry", { timeout: 60_000 }, () => {
@@ -166,8 +187,8 @@ describe("SPEC-0003 Extract retry", { timeout: 60_000 }, () => {
     const kept = { pdf: fs.readFileSync(path.join(b.dir, `${label}.pdf`)), config: fs.readFileSync(path.join(b.dir, "config.yaml")), identity: fs.readFileSync(path.join(b.dir, PROJECT_IDENTITY_FILE)) }
 
     const { offered, run } = server(b.root)
-    expect(await offered()).toEqual({ actions: ["retry"], attemptId: failed.attemptId, blockedReason: null })
-    expect(await run(retry(failed.attemptId))).toEqual({ type: "stage-run-complete", label })
+    expect(await offered()).toEqual({ actions: ["retry"], attemptId: failed.attemptId, contentToken: digest, blockedReason: null })
+    expect(await run(extractRun(b.retry()))).toEqual({ type: "stage-run-complete", label })
 
     const record = b.record()
     expect(record.status).toBe("complete")
@@ -203,7 +224,7 @@ describe("SPEC-0003 Extract retry", { timeout: 60_000 }, () => {
       if (point === "transaction") b.exec("CREATE TRIGGER fault_reset BEFORE DELETE ON pages BEGIN SELECT RAISE(ABORT, 'fault in the transaction'); END")
       else stub.fault = point
 
-      const failure = await run(retry(before.attemptId))
+      const failure = await run(extractRun(b.retry()))
       expect(failure.type).toBe("stage-run-error")
       const record = b.record()
       expect(record.status).toBe("failed")
@@ -221,10 +242,10 @@ describe("SPEC-0003 Extract retry", { timeout: 60_000 }, () => {
       }
 
       const again = await offered()
-      expect(again).toEqual({ actions: ["retry"], attemptId: record.attemptId, blockedReason: null })
+      expect(again).toEqual({ actions: ["retry"], attemptId: record.attemptId, contentToken: digest, blockedReason: null })
       stub.fault = null
       if (point === "transaction") b.exec("DROP TRIGGER fault_reset")
-      expect(await run(retry(again.attemptId))).toEqual({ type: "stage-run-complete", label })
+      expect(await run(extractRun(b.retry()))).toEqual({ type: "stage-run-complete", label })
       expect(b.record()).toMatchObject({ status: "complete" })
       expect(b.record().attemptId).not.toBe(record.attemptId)
       expect(count(b, "pages")).toBe(2)
@@ -245,11 +266,11 @@ describe("SPEC-0003 Extract retry", { timeout: 60_000 }, () => {
       const before = snapshot(b)
       const code = kind === "the PDF is missing" || kind === "the page window is invalid" ? "EXTRACTION_INPUT_INVALID" : "EXTRACTION_SOURCE_CHANGED"
 
-      await expect(createStageRunner().run(label, runOptions(b.root, { action: "retry", attemptId: b.record().attemptId }), { emit() {} })).rejects.toMatchObject({ code })
+      await expect(createStageRunner().run(label, runOptions(b.root, b.retry()), { emit() {} })).rejects.toMatchObject({ code })
       expect(snapshot(b)).toEqual(before)
       // Through the route the run starts and fails with the same typed error, still without a write.
       const { offered, run } = server(b.root)
-      expect(await run(retry(b.record().attemptId))).toMatchObject({ type: "stage-run-error", code })
+      expect(await run(extractRun(b.retry()))).toMatchObject({ type: "stage-run-error", code })
       expect(snapshot(b)).toEqual(before)
       expect(await offered()).toMatchObject({ actions: ["retry"] })
       expect(stub.calls).toEqual([])
@@ -265,9 +286,9 @@ describe("SPEC-0003 Extract retry", { timeout: 60_000 }, () => {
       const { post, offered, service } = server(b.root)
       expect(await offered()).toMatchObject({ actions: [], blockedReason: "downstream-output" })
       // Exactly what this book answers without the field.
-      expect(await refusal(await post(retry(b.record().attemptId)))).toEqual({ status: 409, code: "EXTRACTION_INCOMPLETE", error: incomplete })
+      expect(await refusal(await post(extractRun(b.retry())))).toEqual({ status: 409, code: "EXTRACTION_INCOMPLETE", error: incomplete })
       expect(service.getStatus(label).active).toBeNull()
-      await expect(createStageRunner().run(label, runOptions(b.root, { action: "retry", attemptId: b.record().attemptId }), { emit() {} })).rejects.toMatchObject({ code: "EXTRACTION_INCOMPLETE" })
+      await expect(createStageRunner().run(label, runOptions(b.root, b.retry()), { emit() {} })).rejects.toMatchObject({ code: "EXTRACTION_INCOMPLETE" })
       expect(snapshot(b)).toEqual(before)
     }
     expect(stub.calls).toEqual([])
@@ -275,33 +296,36 @@ describe("SPEC-0003 Extract retry", { timeout: 60_000 }, () => {
 
   it("RAC-22: a stale retry is refused before any write", async () => {
     const b = book()
-    const stale = async (attemptId: string | null) => {
+    const stale = async (binding: Partial<ExtractRerunRequest>) => {
       const before = snapshot(b)
+      const request = { ...b.retry(), ...binding }
       const { post, service } = server(b.root)
-      const body = await refusal(await post(retry(attemptId)))
+      const body = await refusal(await post(extractRun(request)))
       expect(body).toMatchObject({ status: 409, code: "EXTRACTION_RERUN_STALE" })
       expect(body.error).not.toMatch(/fresh|pnpm pipeline/)
       expect(service.getStatus(label).active).toBeNull()
-      expect(() => makeBeforeRun(label, "extract", "extract", b.root, undefined, path.join(b.root, "config.yaml"), { action: "retry", attemptId })()).toThrow("EXTRACTION_RERUN_STALE")
-      await expect(createStageRunner().run(label, runOptions(b.root, { action: "retry", attemptId }), { emit() {} })).rejects.toMatchObject({ code: "EXTRACTION_RERUN_STALE" })
+      expect(() => makeBeforeRun(label, "extract", "extract", b.root, undefined, path.join(b.root, "config.yaml"), request)()).toThrow("EXTRACTION_RERUN_STALE")
+      await expect(createStageRunner().run(label, runOptions(b.root, request), { emit() {} })).rejects.toMatchObject({ code: "EXTRACTION_RERUN_STALE" })
       expect(snapshot(b)).toEqual(before)
     }
-    await stale("00000000-0000-4000-8000-000000000000")
-    await stale(null)
+    await stale({ attemptId: "00000000-0000-4000-8000-000000000000" })
+    await stale({ attemptId: null })
+    // The right extraction, described by content the book no longer holds.
+    await stale({ contentToken: "0".repeat(64) })
     // An action the book does not offer is stale too: nothing can resume or replace a failed extraction.
     for (const action of ["resume", "replace"]) {
       const before = snapshot(b)
-      expect(await refusal(await server(b.root).post(extractRun({ action, attemptId: b.record().attemptId })))).toMatchObject({ status: 409, code: action === "resume" ? "EXTRACTION_RERUN_STALE" : "EXTRACTION_INCOMPLETE" })
+      expect(await refusal(await server(b.root).post(extractRun({ ...b.retry(), action })))).toMatchObject({ status: 409, code: action === "resume" ? "EXTRACTION_RERUN_STALE" : "EXTRACTION_INCOMPLETE" })
       expect(snapshot(b)).toEqual(before)
     }
     // Once the extraction is complete a retry no longer applies, whatever it is bound to.
-    expect(await server(b.root).run(retry(b.record().attemptId))).toEqual({ type: "stage-run-complete", label })
+    expect(await server(b.root).run(extractRun(b.retry()))).toEqual({ type: "stage-run-complete", label })
     stub.calls.length = 0
-    await stale(b.record().attemptId)
+    await stale({})
     // The same on a complete extraction whose later Extract step failed (resume and replace are offered).
     b.read(storage => storage.recordStepError("book-summary", "provider failed"))
     expect(await server(b.root).offered()).toMatchObject({ actions: ["resume", "replace"] })
-    await stale(b.record().attemptId)
+    await stale({})
     expect(stub.calls).toEqual([])
   })
 
@@ -316,17 +340,17 @@ describe("SPEC-0003 Extract retry", { timeout: 60_000 }, () => {
     const { post, service, bus } = server(b.root, blocked)
     const settled = new Promise<void>(resolve => bus.addListener(label, event => { if (event.type === "stage-run-complete") resolve() }))
     const before = snapshot(b)
-    expect((await post(retry(b.record().attemptId))).status).toBe(200)
+    expect((await post(extractRun(b.retry()))).status).toBe(200)
     await running
     for (const action of ["retry", "replace"]) {
-      const body = await refusal(await post(extractRun({ action, attemptId: b.record().attemptId })))
+      const body = await refusal(await post(extractRun({ ...b.retry(), action })))
       expect(body).toMatchObject({ status: 409, code: "EXTRACTION_RERUN_STALE" })
       expect(service.getStatus(label).queue).toEqual([])
     }
     expect(service.getStatus(label).active).toMatchObject({ fromStage: "extract", status: "running" })
     // While the run is being cancelled it still occupies the book.
     expect(service.cancelStageRun(label)).toEqual({ status: "cancelling" })
-    expect(await refusal(await post(retry(b.record().attemptId)))).toMatchObject({ status: 409, code: "EXTRACTION_RERUN_STALE" })
+    expect(await refusal(await post(extractRun(b.retry())))).toMatchObject({ status: 409, code: "EXTRACTION_RERUN_STALE" })
     expect(service.getStatus(label).queue).toEqual([])
     expect(snapshot(b)).toEqual(before)
     finish()
@@ -361,8 +385,7 @@ describe("SPEC-0003 Extract retry", { timeout: 60_000 }, () => {
     const files: Record<string, string> = {
       "fonts/custom.woff2": "font", "styleguides/book-generated.md": "# Guide", "templates/two_column.liquid": "<section></section>",
       "prompts/metadata.liquid": "prompt", ".cache/entry.json": "{}",
-      "part.json": JSON.stringify({ adtPart: 1, sourceLabel: "source", title: null, range: { startPage: 1, endPage: 2 }, pageCount: 3, fingerprint: null,
-        identityHash: "a", semanticsHash: "b", createdAt: "2026-01-01T00:00:00.000Z", partLabelSuggestion: "source-part-1" }),
+      "part.json": partManifest(mergeIdentity(b)),
     }
     for (const [file, content] of Object.entries(files)) {
       fs.mkdirSync(path.dirname(path.join(b.dir, file)), { recursive: true })
@@ -376,7 +399,7 @@ describe("SPEC-0003 Extract retry", { timeout: 60_000 }, () => {
 
     const { offered, run } = server(b.root)
     expect(await offered()).toMatchObject({ actions: ["retry"] })
-    expect(await run(retry(b.record().attemptId))).toEqual({ type: "stage-run-complete", label })
+    expect(await run(extractRun(b.retry()))).toEqual({ type: "stage-run-complete", label })
     expect(b.record()).toMatchObject({ status: "complete" })
     expect(count(b, "pages")).toBe(2)
     expect(statuses(b)).toEqual(allDone)
@@ -392,10 +415,113 @@ describe("SPEC-0003 Extract retry", { timeout: 60_000 }, () => {
     const b = book()
     fs.writeFileSync(path.join(b.dir, "extraction.json"), "{")
     const { offered, run } = server(b.root)
-    expect(await offered()).toEqual({ actions: ["retry"], attemptId: null, blockedReason: null })
-    expect(await run(retry(null))).toEqual({ type: "stage-run-complete", label })
+    expect(await offered()).toEqual({ actions: ["retry"], attemptId: null, contentToken: digest, blockedReason: null })
+    expect(await run(extractRun(b.retry()))).toEqual({ type: "stage-run-complete", label })
     expect(b.record()).toMatchObject({ status: "complete" })
     expect(b.read(storage => storage.getPages()).map(page => page.pageId)).toEqual(["pg001", "pg002"])
     expect(statuses(b)).toEqual(allDone)
   })
+
+  it.each(["a book detail is edited", "an image decision is made", "an image is uploaded"])(
+    "RAC-22: a retry made against other content is refused before any write (%s)", async kind => {
+      const b = book()
+      const request = b.retry()
+      // Another window changes the book through its own storage handle.
+      if (kind === "a book detail is edited") b.read(storage => storage.putNodeData("metadata", "book", { title: "Edited meanwhile" }))
+      if (kind === "an image decision is made") b.read(storage => storage.putNodeData("image-filtering", "pg001", { images: [] }))
+      if (kind === "an image is uploaded") {
+        b.exec("INSERT INTO images (image_id, page_id, path, hash, width, height, source) VALUES ('pg001_upload001', 'pg001', 'images/pg001_upload001.png', 'h', 4, 4, 'upload')")
+        fs.writeFileSync(path.join(b.dir, "images", "pg001_upload001.png"), "png")
+      }
+      const before = snapshot(b)
+      const { post, offered, run, service } = server(b.root)
+      expect(await refusal(await post(extractRun(request)))).toMatchObject({ status: 409, code: "EXTRACTION_RERUN_STALE" })
+      expect(service.getStatus(label).active).toBeNull()
+      expect(() => makeBeforeRun(label, "extract", "extract", b.root, undefined, path.join(b.root, "config.yaml"), request)()).toThrow("EXTRACTION_RERUN_STALE")
+      // The reset itself checks the binding again (step 1), whoever calls it.
+      await expect(createStageRunner().run(label, runOptions(b.root, request), { emit() {} })).rejects.toMatchObject({ code: "EXTRACTION_RERUN_STALE" })
+      expect(snapshot(b)).toEqual(before)
+      expect(stub.calls).toEqual([])
+      // A request made against the book as it is now is accepted.
+      const current = await offered()
+      expect(current.contentToken).not.toBe(request.contentToken)
+      expect(await run(extractRun(b.retry()))).toEqual({ type: "stage-run-complete", label })
+    })
+
+  it("RAC-22: a retry without a content token is not a valid request", async () => {
+    const b = book()
+    const before = snapshot(b)
+    const { post, service } = server(b.root)
+    for (const contentToken of [undefined, null, "", "not-a-digest"]) {
+      const response = await post(extractRun({ action: "retry", attemptId: b.record().attemptId, contentToken }))
+      expect(response.status, JSON.stringify(contentToken)).toBe(400)
+    }
+    expect(service.getStatus(label).active).toBeNull()
+    expect(snapshot(b)).toEqual(before)
+  })
+
+  it.each([
+    ["spread mode", "spread_mode: true\n"],
+    ["figure extraction", "figure_extraction_mode: all\n"],
+    ["watermark removal", "remove_watermarks: true\n"],
+  ])("RAC-22: a part whose %s no longer matches its coordinator is refused before the reset", async (_setting, change) => {
+    const b = book()
+    fs.writeFileSync(path.join(b.dir, "part.json"), partManifest(mergeIdentity(b)))
+    const settings = path.join(b.dir, "config.yaml")
+    const original = fs.readFileSync(settings, "utf8")
+    fs.writeFileSync(settings, `${original}${change}`)
+    expect(mergeIdentity(b)).not.toBe(JSON.parse(fs.readFileSync(path.join(b.dir, "part.json"), "utf8")).identityHash)
+    const before = snapshot(b)
+
+    await expect(createStageRunner().run(label, runOptions(b.root, b.retry()), { emit() {} })).rejects.toMatchObject({ code: "EXTRACTION_PART_SETTINGS_CHANGED" })
+    expect(snapshot(b)).toEqual(before)
+    const { offered, run } = server(b.root)
+    expect(await run(extractRun(b.retry()))).toMatchObject({ type: "stage-run-error", code: "EXTRACTION_PART_SETTINGS_CHANGED" })
+    expect(snapshot(b)).toEqual(before)
+    expect(stub.calls).toEqual([])
+
+    // Restoring the part's settings makes Retry available again.
+    fs.writeFileSync(settings, original)
+    expect(await offered()).toMatchObject({ actions: ["retry"] })
+    expect(await run(extractRun(b.retry()))).toEqual({ type: "stage-run-complete", label })
+    expect(b.record()).toMatchObject({ status: "complete" })
+    expect(count(b, "pages")).toBe(2)
+  })
+
+  it("RAC-22: a part exported before a database schema update can still be retried", async () => {
+    const b = book()
+    // The recorded hash also covers the schema version, which an app update
+    // changes for the part and its coordinator alike: the merge gate recomputes
+    // both sides, so the part still merges while its PDF and settings are those recorded.
+    const exported = underOlderSchema(mergeFingerprint(b))
+    expect(exported.identityHash).not.toBe(mergeIdentity(b))
+    fs.writeFileSync(path.join(b.dir, "part.json"), partManifest(exported.identityHash, exported))
+    const settings = path.join(b.dir, "config.yaml")
+    const original = fs.readFileSync(settings, "utf8")
+
+    // A setting that changes the identity is still refused, before any write.
+    fs.writeFileSync(settings, `${original}spread_mode: true\n`)
+    const before = snapshot(b)
+    await expect(createStageRunner().run(label, runOptions(b.root, b.retry()), { emit() {} })).rejects.toMatchObject({ code: "EXTRACTION_PART_SETTINGS_CHANGED" })
+    expect(snapshot(b)).toEqual(before)
+
+    fs.writeFileSync(settings, original)
+    const { run } = server(b.root)
+    expect(await run(extractRun(b.retry()))).toEqual({ type: "stage-run-complete", label })
+    expect(b.record()).toMatchObject({ status: "complete" })
+    expect(count(b, "pages")).toBe(2)
+  })
+
+  it.each(["is not the one its hash names", "is missing", "is unreadable"])(
+    "RAC-22: a part whose recorded identity %s is compared by its hash alone", async kind => {
+      const b = book()
+      const current = mergeFingerprint(b)
+      // The recorded settings equal the current ones, but nothing ties them to the hash the part was exported with.
+      const recorded = kind === "is missing" ? null : kind === "is unreadable" ? { identity: "corrupt" } : current
+      fs.writeFileSync(path.join(b.dir, "part.json"), partManifest("a".repeat(64), recorded))
+      const before = snapshot(b)
+      await expect(createStageRunner().run(label, runOptions(b.root, b.retry()), { emit() {} })).rejects.toMatchObject({ code: "EXTRACTION_PART_SETTINGS_CHANGED" })
+      expect(snapshot(b)).toEqual(before)
+      expect(stub.calls).toEqual([])
+    })
 })

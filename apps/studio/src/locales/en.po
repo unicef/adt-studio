@@ -13093,6 +13093,9 @@ msgstr "This part cannot be merged"
 msgid "This part doesn't match this book"
 msgstr "This part doesn't match this book"
 
+msgid "This part's extraction settings no longer match the book it was split from, so it could not be merged back. Nothing was changed. Restore the part's spread, figure extraction and watermark settings, then retry."
+msgstr "This part's extraction settings no longer match the book it was split from, so it could not be merged back. Nothing was changed. Restore the part's spread, figure extraction and watermark settings, then retry."
+
 msgid "This permanently deletes every uploaded video and clears all section assignments. This can't be undone."
 msgstr "This permanently deletes every uploaded video and clears all section assignments. This can't be undone."
 

@@ -5,13 +5,25 @@ import { z } from "zod"
 export const ExtractRerunAction = z.enum(["resume", "retry", "replace"])
 export type ExtractRerunAction = z.infer<typeof ExtractRerunAction>
 
+/** A SHA-256 digest of the content a retry or replace discards: every version
+ * of the Extract nodes, every image row and the extraction record. It names
+ * nothing in the book and is only ever compared for equality. */
+export const ExtractContentToken = z.string().regex(/^[a-f0-9]{64}$/)
+export type ExtractContentToken = z.infer<typeof ExtractContentToken>
+
 /** The `extraction` field of a Studio/API stage run, accepted only on a run
  * from Extract to Extract: the action, bound to the extraction it applies to
- * (the record's `attemptId`, or null when the book has none). */
+ * (the record's `attemptId`, or null when the book has none). A retry or
+ * replace discards content, so it also names the content it was made against:
+ * the `contentToken` step-status reported with the action. */
 export const ExtractRerunRequest = z.object({
   action: ExtractRerunAction,
   attemptId: z.string().uuid().nullable(),
-}).strict()
+  contentToken: ExtractContentToken.optional(),
+}).strict().refine((request) => request.action === "resume" || request.contentToken !== undefined, {
+  message: "contentToken is required for retry and replace",
+  path: ["contentToken"],
+})
 export type ExtractRerunRequest = z.infer<typeof ExtractRerunRequest>
 
 /** Why no action is offered. Stable identifiers for Studio to translate, never
@@ -33,12 +45,6 @@ export const ExtractRerunBlockedReason = z.enum([
   "extraction-inconsistent",
 ])
 export type ExtractRerunBlockedReason = z.infer<typeof ExtractRerunBlockedReason>
-
-/** A SHA-256 digest of the content a retry or replace discards: every version
- * of the Extract nodes, every image row and the extraction record. It names
- * nothing in the book and is only ever compared for equality. */
-export const ExtractContentToken = z.string().regex(/^[a-f0-9]{64}$/)
-export type ExtractContentToken = z.infer<typeof ExtractContentToken>
 
 /** Reported by step-status (RAC-24). `attemptId` names the extraction record a
  * later run request must be bound to; null when the book has none.

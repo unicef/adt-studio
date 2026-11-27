@@ -153,16 +153,19 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
   // existing pages. Without the offer, a book with pages cannot run Extract.
   // It offers a retry when the extraction itself failed, was cancelled or was
   // interrupted (RAC-22): Retry then discards that attempt and extracts again.
+  // A retry discards content, so it is bound to the content step-status
+  // described: the server refuses it if the book changed since.
   const rerunAction = (["resume", "retry"] as const).find((action) => extractRerun?.actions.includes(action)) ?? null
   const rerunAttemptId = extractRerun?.attemptId ?? null
+  const rerunContentToken = rerunAction === "retry" ? extractRerun?.contentToken ?? undefined : undefined
 
   const handleRetryExtract = useCallback(() => {
     if (!hasStructuredTextProvider || extractRunning) return
     queueRun({
       fromStage: "extract", toStage: "extract", apiKey,
-      ...(rerunAction ? { extraction: { action: rerunAction, attemptId: rerunAttemptId } } : {}),
+      ...(rerunAction ? { extraction: { action: rerunAction, attemptId: rerunAttemptId, ...(rerunContentToken ? { contentToken: rerunContentToken } : {}) } } : {}),
     })
-  }, [hasStructuredTextProvider, extractRunning, apiKey, queueRun, rerunAction, rerunAttemptId])
+  }, [hasStructuredTextProvider, extractRunning, apiKey, queueRun, rerunAction, rerunAttemptId, rerunContentToken])
 
   const pageList = pages ?? []
   const warnPages = pageList.filter((p) => p.extractionWarning)

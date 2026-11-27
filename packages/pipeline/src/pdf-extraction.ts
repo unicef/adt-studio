@@ -4,9 +4,9 @@ import { randomUUID } from "node:crypto"
 import { extractPdfStream, samplePageEdges } from "@adt/pdf"
 import type { Storage } from "@adt/storage"
 import { getStorageBookDir, withBookWriter, extractionHash, readExtractionManifest, writeExtractionManifest, hashExtractionAsset, flushExtractionAsset, syncDirectory, verifyExtractionInventory, ExtractionAdmissionError } from "@adt/storage"
-import type { ExtractionManifest } from "@adt/types"
+import type { AppConfig, ExtractionManifest } from "@adt/types"
 import { prepareExtractionAdmission, prepareExtractionReset } from "./extraction-admission.js"
-import { admitExtractReset, assertExtractResetComplete } from "./extraction-rerun.js"
+import { admitExtractReset, assertExtractResetComplete, type ExtractResetBinding } from "./extraction-rerun.js"
 import { assertFirstExtraction } from "./sectioning-lifecycle.js"
 import type { Progress } from "./progress.js"
 import { toBookMetadata } from "./metadata-model.js"
@@ -61,10 +61,13 @@ export async function extractPDF(
 }
 
 /** SPEC-0003 RAC-22/23: discard the book's extraction and extract again with
- * the current settings (Studio/API retry and replace). `expectedAttemptId`
- * binds the reset to the extraction the request was made for: the record's
- * `attemptId`, or null when the book has no readable record. The source is the
- * book's own PDF; `options.pdfPath` is ignored. `extractPDF` never does this.
+ * the current settings (Studio/API retry and replace). `rerun.binding` ties
+ * the reset to what the request was made for: the extraction (the record's
+ * `attemptId`, or null when the book has no readable record) and the content
+ * token step-status reported. `rerun.config` is the book configuration
+ * `options` were resolved from; a part's merge identity is computed from it.
+ * The source is the book's own PDF; `options.pdfPath` is ignored. `extractPDF`
+ * never does this.
  *
  * One writer lease, in this order (the spec's "Reset order"):
  *  1. binding and Extract-only rule; 2. extraction inputs. A refusal in either
@@ -78,18 +81,18 @@ export async function reextractPDF(
   options: ExtractOptions,
   storage: Storage,
   progress: Progress,
-  rerun: { expectedAttemptId: string | null },
+  rerun: { binding: ExtractResetBinding; config: AppConfig },
 ): Promise<void> {
   const bookDir = getStorageBookDir(storage)
   return withBookWriter(bookDir, async () => {
-    if (!admitExtractReset(storage, rerun.expectedAttemptId)) {
+    if (!admitExtractReset(storage, rerun.binding)) {
       assertFirstExtraction(bookDir, storage)
       throw new ExtractionAdmissionError("EXTRACTION_RERUN_STALE")
     }
     let previous: ExtractionManifest | null = null
     try { previous = readExtractionManifest(bookDir) } catch { /* unreadable: replaced below */ }
     const source = { ...options, pdfPath: path.join(bookDir, `${path.basename(bookDir)}.pdf`) }
-    const admission = prepareExtractionReset(bookDir, source, previous)
+    const admission = prepareExtractionReset(bookDir, source, previous, rerun.config)
     options.signal?.throwIfAborted()
     writeExtractionManifest(bookDir, previous
       ? { ...previous, status: "failed" }

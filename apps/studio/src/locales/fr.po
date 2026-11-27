@@ -13095,6 +13095,9 @@ msgstr "Cette partie ne peut pas être fusionnée"
 msgid "This part doesn't match this book"
 msgstr "Cette partie ne correspond pas à ce livre"
 
+msgid "This part's extraction settings no longer match the book it was split from, so it could not be merged back. Nothing was changed. Restore the part's spread, figure extraction and watermark settings, then retry."
+msgstr "Les paramètres d’extraction de cette partie ne correspondent plus à ceux du livre dont elle a été séparée ; elle ne pourrait donc plus y être fusionnée. Rien n’a été modifié. Rétablissez les paramètres de double page, d’extraction de figures et de filigranes de la partie, puis réessayez."
+
 msgid "This permanently deletes every uploaded video and clears all section assignments. This can't be undone."
 msgstr "Cela supprime définitivement chaque vidéo téléchargée et efface toutes les affectations de sections. Cela ne peut pas être annulé."
 

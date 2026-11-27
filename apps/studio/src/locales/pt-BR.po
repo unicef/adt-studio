@@ -13093,6 +13093,9 @@ msgstr "Esta parte não pode ser mesclada"
 msgid "This part doesn't match this book"
 msgstr "Esta parte não corresponde a este livro"
 
+msgid "This part's extraction settings no longer match the book it was split from, so it could not be merged back. Nothing was changed. Restore the part's spread, figure extraction and watermark settings, then retry."
+msgstr "As configurações de extração desta parte não correspondem mais às do livro do qual ela foi separada; por isso, ela não poderia ser mesclada de volta. Nada foi alterado. Restaure as configurações de páginas duplas, extração de figuras e marcas d'água da parte e tente novamente."
+
 msgid "This permanently deletes every uploaded video and clears all section assignments. This can't be undone."
 msgstr "Isso exclui permanentemente todos os vídeos enviados e limpa todas as atribuições de seção. Isso não pode ser desfeito."
 
