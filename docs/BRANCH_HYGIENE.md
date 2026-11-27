@@ -24,6 +24,7 @@ before you delete, prune or clean up any branch, local or remote.
    | Branch | Why it stays |
    |---|---|
    | `main`, `develop` | Release branches; protected by the "Protect main and develop" ruleset |
+   | `landing-page` | `site.yml` deploys the live site (`unicef.github.io/adt-studio`) from it; protected |
    | `staging/pr-<n>` | Created by `staging.yml` and deleted by `staging-cleanup.yml` when PR `<n>` closes. Delete one by hand only when its PR is closed and the workflow missed it |
 
    Other `staging/*` branches are ordinary branches and follow rule 4.
