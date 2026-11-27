@@ -51,6 +51,8 @@
 
 /* Morphs between steps, screens and picks (shared/motion.ts): named places move and resize, the rest crossfades. */
 ::view-transition-group(*) { animation-duration: 0.45s; animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1); }
+/* The top bar stays put: no slide, resize or crossfade when the step changes. */
+::view-transition-group(gd-topbar), ::view-transition-old(gd-topbar), ::view-transition-new(gd-topbar) { animation: none; }
 ::view-transition-image-pair(*) { overflow: clip; }
 ::view-transition-old(*), ::view-transition-new(*) { height: 100%; object-fit: none; object-position: top left; }
 /* Old and new crossfade together (same timing), so the screen never looks washed out halfway. */

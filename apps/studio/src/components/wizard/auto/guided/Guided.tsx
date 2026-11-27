@@ -196,7 +196,10 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
   return (
     <FinishContext.Provider value={{ onOpen: create.open }}>
       <div className="lc-root gd-root relative flex h-full min-h-0 flex-1 flex-col overflow-clip" data-tone={tone}>
-        <FlowTopBar title={t`Add Book`} actions={<PdfChip flow={flow} />} contentWidth={columnPx * scale} />
+        {/* Its own view-transition layer with no animation (guided.css): step morphs never move or fade the bar. */}
+        <div className="shrink-0" style={{ viewTransitionName: "gd-topbar" }}>
+          <FlowTopBar title={t`Add Book`} actions={<PdfChip flow={flow} />} contentWidth={columnPx * scale} />
+        </div>
         <FileDropOverlay overlay={flow.overlay} dropLabel={<Trans>Drop PDF here</Trans>} errorLabel={<Trans>Only PDF files are supported</Trans>} accent="blue" />
         <input ref={flow.inputRef} type="file" accept="application/pdf" className="hidden" onChange={flow.onInputChange} />
         <div aria-hidden className="gd-tint pointer-events-none absolute inset-0">
