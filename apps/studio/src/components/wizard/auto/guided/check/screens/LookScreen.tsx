@@ -14,8 +14,6 @@ import { LAYOUT_AT_A_GLANCE, LAYOUT_GUIDE } from "../../shared/optionGuide"
 import { Citation } from "../../shared/Citation"
 import type { Answers } from "../../shared/useAnswers"
 import { plainTitle, SETTING_OPTIONS } from "../../shared/words"
-import { WizardSettings } from "../../shared/WizardSettings"
-import { useWizardNames, WIZARD_SETTING, wizardValue } from "../../shared/wizardNames"
 import { screenFacts } from "../screens"
 import { PICTURE, SurePick } from "../SurePick"
 
@@ -29,17 +27,12 @@ type Props = { rec: SetupRecommendation; chat: Answers; file: File | null | unde
  */
 function LayoutPick({ rec, chat, file, asked }: Props & { asked: boolean }) {
   const { i18n } = useLingui()
-  const names = useWizardNames()
   const derived = chat.derived!
   const [open, setOpen] = useState(asked)
   const value = String(derived.effective.renderStrategy?.value)
   const shown = new Set(SETTING_OPTIONS.renderStrategy.map((o) => String(o.value)))
   const allowed = strategiesFor(derived.effective.preset?.value).filter((s) => shown.has(s))
   const name = (v: string) => {
-    if (names) {
-      const w = wizardValue("renderStrategy", v)
-      return typeof w === "string" ? w : i18n._(w)
-    }
     const words = plainTitle("renderStrategy", v)
     return words ? i18n._(words) : v
   }
@@ -71,8 +64,6 @@ function LayoutPick({ rec, chat, file, asked }: Props & { asked: boolean }) {
       tag: <MethodTag strategy={v} />,
       look: lookOf({ ...derived.effective, renderStrategy: { value: v, rule: "user" } }),
       guess: v === derived.fromAnswers.renderStrategy?.value,
-      settings: { ...derived.effective, renderStrategy: { value: v, rule: "user" } },
-      only: ["renderStrategy"],
     }),
   )
   const labelId = "gd-layout"
@@ -83,7 +74,7 @@ function LayoutPick({ rec, chat, file, asked }: Props & { asked: boolean }) {
       label={<Trans>How the pages look on screen</Trans>}
       title={name(value)}
       hint={means ? i18n._(means) : undefined}
-      result={names ? <WizardSettings settings={derived.effective} only={["preset", "renderStrategy", "pageGrouping"]} /> : <AtAGlance strategy={value} />}
+      result={<AtAGlance strategy={value} />}
       badge={!asked}
       changed={derived.source("renderStrategy") === "changed"}
       labelId={labelId}
@@ -148,13 +139,11 @@ function GroupingLine({ rec, chat }: Omit<Props, "file">) {
   const words = plainTitle("pageGrouping", joined ? "spread" : "single")
   const why = RULE_WHY[rec.settings.pageGrouping?.rule ?? ""]
   const changed = derived.source("pageGrouping") === "changed"
-  const names = useWizardNames()
-  const wizard = wizardValue("pageGrouping", joined ? "spread" : "single")
   return (
     <div className="flex items-start gap-3 rounded-[16px] bg-[var(--lc-bubble)] px-4 py-3 shadow-[var(--lc-shadow)]">
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span id="gd-grouping" className="inline-flex items-center gap-1.5 text-[14.5px] font-medium">
-          {names ? `${i18n._(WIZARD_SETTING.pageGrouping)}: ${typeof wizard === "string" ? wizard : i18n._(wizard)}` : i18n._(SETTING_NAME.pageGrouping)}
+          {i18n._(SETTING_NAME.pageGrouping)}
           <Lock aria-hidden className="size-3 text-muted-foreground" />
         </span>
         <span className="text-[13.5px] leading-snug text-muted-foreground">

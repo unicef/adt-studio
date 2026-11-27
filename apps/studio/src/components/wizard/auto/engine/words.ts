@@ -9,13 +9,6 @@ import type { MessageDescriptor } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
 import type { SetupBookFactId, SetupSettingId } from "@adt/types"
 
-export const FACT_QUESTION: Record<SetupBookFactId, MessageDescriptor> = {
-  genre: msg`What is this book mostly?`,
-  exercises: msg`Does the book ask the reader to write or mark answers? (Colouring and drawing do not count.)`,
-  composition: msg`Where are the words on a page?`,
-  diagrams: msg`Are there pictures with labels that explain something, like maps, charts, diagrams or labelled drawings?`,
-}
-
 export const FACT_SHORT: Record<SetupBookFactId, Record<string, MessageDescriptor>> = {
   genre: { story: msg`A story`, textbook: msg`A school book`, reference: msg`Information` },
   exercises: { none: msg`No`, some: msg`Yes, on a few pages`, many: msg`Yes, on most pages` },
@@ -122,12 +115,3 @@ export const RULE_WHY: Record<string, MessageDescriptor> = {
   "figures-no-text-layer": msg`Your PDF is a scan (its words can't be selected), so there are no labels to keep together.`,
 }
 
-export const TEXT_LAYER: Record<string, MessageDescriptor> = {
-  digital: msg`The PDF has real text, so we read the words directly.`,
-  scanned: msg`The pages are photos of paper (a scan), so the words are read from the pictures.`,
-  "scanned-with-ocr": msg`The pages are a scan with hidden text added.`,
-  mixed: msg`Some pages have real text, some are scans.`,
-}
-
-export const OUR_GUESS = msg`Our guess`
-export const OTHER_POSSIBILITY = msg`Other possibility`

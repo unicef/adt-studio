@@ -1705,21 +1705,12 @@ msgstr "Shton tabelat që i duhen. Çdo gjë që është tashmë aty lihet vetë
 msgid "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
 msgstr "Shton udhëzime për Dizajnin Universal për të Nxënit (gjuhë e thjeshtë, alternativë me tastierë + klikim për tërheqjen, vlerësim aria-live, pa reagime vetëm me ngjyra). Çaktivizoje për të krahasuar rezultatin pa këto udhëzime."
 
-msgid "ADT Assistant"
-msgstr "Asistenti ADT"
-
 msgid "ADT Book"
 msgstr "Libër ADT"
 
 #. placeholder {0}: i18n._(selectedBook.title)
 msgid "ADT Book - {0}"
 msgstr "Libër ADT - {0}"
-
-msgid "ADT Bot"
-msgstr "Roboti ADT"
-
-msgid "ADT Buddy"
-msgstr "Shoku ADT"
 
 msgid "ADT Package"
 msgstr "Paketë ADT"
@@ -2003,9 +1994,6 @@ msgstr "Përdoret edhe nga {readerNames}, përveç nëse ai ofrues ka çelësin 
 msgid "Always on"
 msgstr "Gjithmonë aktiv"
 
-msgid "Amber"
-msgstr "Qelibar"
-
 msgid "Among the Stars"
 msgstr "Mes yjeve"
 
@@ -2207,9 +2195,6 @@ msgstr "Përmbajtja e arkivit"
 
 msgid "Are there labelled pictures, like maps or diagrams?"
 msgstr "A ka figura me etiketa, si harta ose diagrame?"
-
-msgid "Are there pictures with labels that explain something, like maps, charts, diagrams or labelled drawings?"
-msgstr "A ka figura me etiketa që shpjegojnë diçka, si harta, grafikë, diagrame ose vizatime me etiketa?"
 
 #. placeholder {0}: confirmMerge?.label ?? ""
 msgid "Are you sure you want to {0}? This action cannot be undone."
@@ -2548,9 +2533,6 @@ msgstr "Referenca e vendit bosh"
 
 msgid "Blocked"
 msgstr "Bllokuar"
-
-msgid "Blue"
-msgstr "Blu"
 
 msgid "Body"
 msgstr "Trupi"
@@ -3313,9 +3295,6 @@ msgstr "Ngjyrë"
 msgid "color-contrast"
 msgstr "kontrast-ngjyre"
 
-msgid "Colour"
-msgstr "Ngjyra"
-
 msgid "Column"
 msgstr "Kolonë"
 
@@ -4013,12 +3992,6 @@ msgstr "Interval i personalizuar"
 msgid "Custom section {index}"
 msgstr "Seksion i personalizuar {index}"
 
-msgid "Customize the assistant"
-msgstr "Personalizo asistentin"
-
-msgid "Customize your assistant"
-msgstr "Personalizoni asistentin tuaj"
-
 msgid "Cut a region out of any page"
 msgstr "Prit një zonë nga çdo faqe"
 
@@ -4415,9 +4388,6 @@ msgstr "Shpërnda nëpërmjet aplikacioneve dhe bibliotekave të leximit të paj
 
 msgid "Divide the book into equal windows, then export each to hand out."
 msgstr "Ndajeni librin në dritare të barabarta, pastaj eksportoni secilën për t'i shpërndarë."
-
-msgid "Does the book ask the reader to write or mark answers? (Colouring and drawing do not count.)"
-msgstr "A i kërkon libri lexuesit të shkruajë ose të shënojë përgjigje? (Ngjyrosja dhe vizatimi nuk llogariten.)"
 
 msgid "Does the reader write or mark answers?"
 msgstr "A shkruan ose shënon lexuesi përgjigje?"
@@ -6565,9 +6535,6 @@ msgstr "Është kryesisht tekst. Figurat janë të pakta ose të vogla."
 msgid "It no longer opens. Sharing again makes a new one."
 msgstr "Nuk hapet më. Duke e ndarë përsëri krijohet një e re."
 
-msgid "It only changes how the assistant looks. You can change it any time by clicking it."
-msgstr "Ndryshon vetëm pamjen e asistentit. Mund ta ndryshoni kurdo duke klikuar mbi të."
-
 msgid "It sets tasks for a learner."
 msgstr "I jep detyra nxënësit."
 
@@ -7249,9 +7216,6 @@ msgstr "Përgjigje e gjatë"
 
 msgid "Long reading on small screens."
 msgstr "Lexim i gjatë në ekrane të vogla."
-
-msgid "Look"
-msgstr "Pamja"
 
 msgid "Looking for the latest version…"
 msgstr "Duke kërkuar versionin më të fundit…"
@@ -9025,17 +8989,11 @@ msgstr "Elemente të tjera"
 msgid "Other options"
 msgstr "Opsione të tjera"
 
-msgid "Other possibility"
-msgstr "Mundësi tjetër"
-
 msgid "Other stages may need attention"
 msgstr "Faza të tjera mund të kërkojnë vëmendje"
 
 msgid "Other text"
 msgstr "Tekst tjetër"
-
-msgid "Our guess"
-msgstr "Hamendësimi ynë"
 
 msgid "Out for processing"
 msgstr "Në përpunim"
@@ -10938,9 +10896,6 @@ msgstr "Hapësirë për edhe {0} të tjerë"
 msgid "Room for 99"
 msgstr "Vend për 99"
 
-msgid "Rose"
-msgstr "Rozë"
-
 msgid "Rotate"
 msgstr "Rrotullo"
 
@@ -12100,9 +12055,6 @@ msgstr "Disa faqe kanë vende bosh, rreshta ose kuti për të shkruar."
 msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 msgstr "Disa faqe nuk kanë shtresë teksti të integruar — teksti u rikuperua nga imazhi i faqes. Preferoni një PDF të bazuar në tekst."
 
-msgid "Some pages have real text, some are scans."
-msgstr "Disa faqe kanë tekst të vërtetë, disa janë të skanuara."
-
 msgid "Some permissions are missing"
 msgstr "Disa leje mungojnë"
 
@@ -12723,9 +12675,6 @@ msgstr "Detyrat po Ekzekutohen"
 msgid "Teaching the pixels new tricks..."
 msgstr "Duke i mësuar pikselëve truke të reja..."
 
-msgid "Teal"
-msgstr "Bruz"
-
 msgid "Technical documentation"
 msgstr "Dokumentacion teknik"
 
@@ -13191,26 +13140,17 @@ msgstr "Faqja përdor një skript të jashtëm të pambështetur."
 msgid "The page’s element ids no longer match the page lists in manifest.json and content/pages.json."
 msgstr "Id-të e elementeve të faqes nuk përputhen më me listat e faqeve në manifest.json dhe content/pages.json."
 
-msgid "The pages are a scan with hidden text added."
-msgstr "Faqet janë të skanuara, me tekst të fshehur të shtuar."
-
 msgid "The pages are lessons with exercises."
 msgstr "Faqet janë mësime me ushtrime."
 
 msgid "The pages are mostly text."
 msgstr "Faqet janë kryesisht tekst."
 
-msgid "The pages are photos of paper (a scan), so the words are read from the pictures."
-msgstr "Faqet janë foto të letrës (të skanuara), prandaj fjalët lexohen nga imazhet."
-
 msgid "The pages go into a ready-made layout without the AI, so it is quick and costs nothing extra."
 msgstr "Faqet vendosen në një paraqitje të gatshme pa AI, ndaj është e shpejtë dhe nuk kushton asgjë shtesë."
 
 msgid "The pages I read this on"
 msgstr "Faqet ku e lexova këtë"
-
-msgid "The PDF has real text, so we read the words directly."
-msgstr "PDF-ja ka tekst të vërtetë, prandaj i lexojmë fjalët drejtpërdrejt."
 
 msgid "The picture and its words belong together."
 msgstr "Figura dhe teksti i saj shkojnë bashkë."
@@ -13319,9 +13259,6 @@ msgstr "Seksioni u ndryshua pas konvertimit — përdor «Rindërto nga faqja» 
 
 msgid "The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section."
 msgstr "Seksionet do të kombinohen lokalisht. Pa një çelës API-je, Storyboard-i do të duhet të ekzekutohet përsëri për të rigjeneruar seksionin e kombinuar."
-
-msgid "The settings the book is set up with"
-msgstr "Cilësimet me të cilat konfigurohet libri"
 
 msgid "The setup stopped before it finished. Nothing was lost — trying again continues from where it stopped."
 msgstr "Vendosja ndaloi para se të përfundonte. Asgjë nuk u humb — provimi përsëri vazhdon nga ku u ndal."
@@ -14661,9 +14598,6 @@ msgstr "Shiko faqen"
 
 msgid "View page {pageNum} larger"
 msgstr "Shiko faqen {pageNum} më të madhe"
-
-msgid "Violet"
-msgstr "Vjollcë"
 
 msgid "Visible page entries"
 msgstr "Hyrjet e dukshme të faqes"

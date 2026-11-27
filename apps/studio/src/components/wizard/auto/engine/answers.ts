@@ -88,11 +88,6 @@ export function fitPreset(settings: SetupDecided, rule = "preset-default"): Setu
   return fitted === strategy.value ? settings : { ...settings, renderStrategy: { value: fitted, rule } }
 }
 
-/** Which facts a setting depends on: those whose other answers change it. */
-export function factsBehind(rec: SetupRecommendation, answers: FactAnswers, setting: SetupSettingId): SetupBookFactId[] {
-  return FACT_IDS.filter((fact) => FACT_OPTIONS[fact].some((v) => v !== answers[fact] && settingsChangedBy(rec, answers, fact, v).includes(setting)))
-}
-
 /**
  * Fills the wizard form the way the preset grid would, then with the decided settings, so "All
  * settings" and the step-by-step wizard open prefilled. Leaves what the user typed or chose on

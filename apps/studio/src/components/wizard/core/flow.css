@@ -11,22 +11,9 @@
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
-@keyframes am-check-pop {
-  0% { transform: scale(0.4); opacity: 0; }
-  60% { transform: scale(1.12); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
-}
-@keyframes am-pulse-once {
-  0% { transform: scale(1); opacity: 0.5; }
-  100% { transform: scale(2.2); opacity: 0; }
-}
 @keyframes am-cta-ready {
   0% { box-shadow: 0 0 0 0 rgba(43, 127, 255, 0.45); }
   100% { box-shadow: 0 0 0 14px rgba(43, 127, 255, 0); }
-}
-@keyframes am-fade-out {
-  from { opacity: 1; transform: translateY(0); filter: blur(0); }
-  to { opacity: 0; transform: translateY(-6px); filter: blur(3px); }
 }
 
 /* Book cover as a standing hardback (adapted from the published-book access page). */
@@ -72,80 +59,18 @@
   from { background-position: 100% 0; }
   to { background-position: -150% 0; }
 }
-@keyframes am-book-in {
-  0% { opacity: 0; transform: translateX(200px) scale(0.6); filter: blur(6px); }
-  60% { opacity: 1; filter: blur(0); }
-  100% { opacity: 1; transform: none; filter: none; }
-}
-@keyframes am-book-out {
-  from { opacity: 1; transform: none; filter: none; }
-  to { opacity: 0; transform: translateX(-80px) scale(0.85); filter: blur(4px); }
-}
 @media (prefers-reduced-motion: reduce) {
   .am-book-settle, .am-book-blank::before { animation: none; }
   .am-book-tilt { transition: none; }
 }
 .reduce-effects .am-book-settle, .reduce-effects .am-book-blank::before { animation: none; }
-@keyframes am-text-shimmer {
-  from { background-position: 200% 0; }
-  to { background-position: -200% 0; }
-}
 
-/* Loader: the open book's paper, cloth cover, page curves and page turn. */
-@keyframes am-turn-shade {
-  0% { opacity: 0; }
-  50% { opacity: 1; }
-  100% { opacity: 0; }
-}
-.am-paper {
-  background-color: #fdfaf2;
-  background-image:
-    radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, 0.5), transparent 60%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.38 0 0 0 0 0.25 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-.am-cloth {
-  background-color: var(--brand-800);
-  background-image:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent 45%, rgba(0, 0, 0, 0.25)),
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0, rgba(255, 255, 255, 0.035) 1px, transparent 1px, transparent 3px),
-    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.05) 0, rgba(0, 0, 0, 0.05) 1px, transparent 1px, transparent 3px);
-}
-@keyframes am-leaf {
-  0% { transform: rotateY(-5deg) translateZ(0); }
-  50% { transform: rotateY(-90deg) translateZ(14px); }
-  100% { transform: rotateY(-175deg) translateZ(0); }
-}
-@keyframes am-leaf-single {
-  0% { transform: rotateY(0deg); opacity: 1; }
-  55% { opacity: 1; }
-  100% { transform: rotateY(-120deg); opacity: 0; }
-}
-.am-curve-single { clip-path: polygon(0 2.4%, 8% 1%, 20% 0.3%, 40% 0, 100% 0, 100% 100%, 40% 100%, 20% 99.7%, 8% 99%, 0 97.6%); }
+/* Small entrances: a mark popping onto a page, a screen fading in. */
 @keyframes am-pop {
   0% { opacity: 0; transform: scale(0.55) translateY(6px); }
   100% { opacity: 1; transform: scale(1) translateY(0); }
 }
-@keyframes am-dot {
-  0%, 100% { transform: translateY(0); opacity: 0.45; }
-  50% { transform: translateY(-3px); opacity: 1; }
-}
-.am-curve-left { clip-path: polygon(0 0, 50% 0.3%, 75% 0.9%, 90% 1.8%, 100% 3%, 100% 97.4%, 90% 98.4%, 75% 99.2%, 50% 99.7%, 0 100%); }
-.am-curve-right { clip-path: polygon(0 3%, 10% 1.8%, 25% 0.9%, 50% 0.3%, 100% 0, 100% 100%, 50% 99.7%, 25% 99.2%, 10% 98.4%, 0 97.4%); }
-@keyframes am-ripple {
-  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0.9; }
-  100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
-}
-@keyframes am-word {
-  from { opacity: 0; filter: blur(4px); transform: translateY(2px); }
-  to { opacity: 1; filter: none; transform: none; }
-}
 @keyframes am-screen-in {
   from { opacity: 0; transform: scale(0.97); filter: blur(3px); }
   to { opacity: 1; transform: none; filter: none; }
-}
-
-@keyframes am-wiggle {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-14deg); }
-  75% { transform: rotate(14deg); }
 }

@@ -2,7 +2,7 @@
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { SetupRecommendation } from "@adt/types"
-import textbook from "../../lab/fixtures/textbook.json"
+import textbook from "../../engine/fixtures/textbook.json"
 
 // The macros aren't compiled under vitest; the preset constants use them.
 vi.mock("@lingui/core/macro", () => ({ msg: (strings: TemplateStringsArray) => ({ id: strings.join("") }) }))

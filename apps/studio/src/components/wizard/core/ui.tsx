@@ -1,7 +1,5 @@
 import type { ReactNode } from "react"
-import { Trans, useLingui } from "@lingui/react/macro"
-import { ArrowLeft, ArrowRight } from "lucide-react"
-import { FlowTopBar } from "@/components/FlowTopBar"
+import { ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 /** Entrance used by every screen's blocks (stagger with `animationDelay`). */
@@ -18,32 +16,6 @@ export function DotGrid({ children }: { children?: ReactNode }) {
       <div className="absolute inset-0 bg-[radial-gradient(var(--brand-200)_1px,transparent_1px)] [background-size:24px_24px] opacity-60 [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_70%)]" />
       {children}
     </div>
-  )
-}
-
-/**
- * The frame every auto-mode step shares: the app's "Add Book" top bar, the dot-grid backdrop and a
- * scrolling content area. `backdrop` adds layers behind the content; `overlay` renders after it
- * (dialogs, live regions).
- */
-export function ScreenShell({ children, backdrop, overlay, scrollClassName }: { children: ReactNode; backdrop?: ReactNode; overlay?: ReactNode; scrollClassName?: string }) {
-  const { t } = useLingui()
-  return (
-    <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-background">
-      <FlowTopBar title={t`Add Book`} />
-      <DotGrid>{backdrop}</DotGrid>
-      <div className={cn("relative flex flex-1 flex-col overflow-y-auto px-6", scrollClassName)}>{children}</div>
-      {overlay}
-    </div>
-  )
-}
-
-export function BackButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button type="button" onClick={onClick} className="inline-flex h-11 items-center gap-1.5 rounded-full bg-muted px-4 text-[14px] font-medium transition-[background-color,transform] duration-150 hover:bg-muted/70 active:scale-[0.97]">
-      <ArrowLeft className="size-4" />
-      <Trans>Back</Trans>
-    </button>
   )
 }
 

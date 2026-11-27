@@ -21,7 +21,7 @@ const HEADING = "gd-check-title"
 
 /** Enter moves on unless focus is in a field or on something Enter already presses. */
 // eslint-disable-next-line lingui/no-unlocalized-strings -- a CSS selector
-const OWN_ENTER = "input, textarea, select, button, a[href], [role='slider'], [role='switch'], [contenteditable='true'], [data-lab-toolbar]"
+const OWN_ENTER = "input, textarea, select, button, a[href], [role='slider'], [role='switch'], [contenteditable='true']"
 
 type Props = {
   rec: SetupRecommendation

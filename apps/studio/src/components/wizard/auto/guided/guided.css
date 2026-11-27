@@ -42,29 +42,15 @@
 .gd-line { transition: background-color 0.5s ease; }
 .gd-dot { transition: transform 0.35s var(--lc-pop), opacity 0.25s ease, background-color 0.4s ease; }
 
-/* A question just ticked comes in as a one-line row. */
-@keyframes gd-tick-in { from { opacity: 0; transform: translateY(-4px); } }
-.gd-tick { animation: gd-tick-in 0.35s var(--lc-out) both; }
-
-/* Check's footer (Create) sticks to the bottom of the view over a fade into the page; above the lab toolbar when there is one. */
-
-
 /* The drop zone breathes in the step colour while a file is dragged over the page. */
 .gd-drop:focus-visible { outline: 2px solid var(--gd-step); outline-offset: 3px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .gd-tint > span, .gd-tick { animation: none; }
+  .gd-tint > span { animation: none; }
   .gd-tint > span, .gd-line, .gd-dot { transition: none; }
 }
-.reduce-effects :is(.gd-tint > span, .gd-tick) { animation: none; }
+.reduce-effects .gd-tint > span { animation: none; }
 .reduce-effects :is(.gd-tint > span, .gd-line, .gd-dot) { transition: none; }
-
-/* A fact the engine is sure of: highlighted as the pick (accent edge, soft tint), its other options under a link. */
-.gd-sure {
-  background: color-mix(in oklab, var(--lc-accent-soft, var(--brand-50)) 70%, var(--lc-bubble, var(--card)));
-  box-shadow: 0 0 0 1.5px var(--lc-accent, var(--brand-600)), 0 10px 22px -10px color-mix(in oklab, var(--brand-600) 28%, transparent);
-}
-.gd-sure .qd18-pg { transform: rotate(-1.5deg); }
 
 /* Morphs between steps, screens and picks (shared/motion.ts): named places move and resize, the rest crossfades. */
 ::view-transition-group(*) { animation-duration: 0.45s; animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1); }
@@ -83,46 +69,17 @@
 :root.reduce-effects::view-transition-old(*),
 :root.reduce-effects::view-transition-new(*) { animation: none !important; }
 
-/* The assistant (shared/Assistant.tsx): a character in the picked look and colour that breathes, blinks, talks and reads. */
+/* The assistant (shared/Assistant.tsx): the book wizard's avatar, in a ring that ripples while it talks or thinks. */
 .gd-ai { width: var(--ai); height: var(--ai); }
-.gd-ai[data-color="blue"] { --ai-300: var(--brand-300); --ai-500: var(--brand-500); --ai-700: var(--brand-700); --ai-800: var(--brand-800); --ai-900: var(--brand-900); }
-.gd-ai[data-color="violet"] { --ai-300: var(--color-violet-300); --ai-500: var(--color-violet-500); --ai-700: var(--color-violet-700); --ai-800: var(--color-violet-800); --ai-900: var(--color-violet-900); }
-.gd-ai[data-color="teal"] { --ai-300: var(--color-teal-300); --ai-500: var(--color-teal-500); --ai-700: var(--color-teal-700); --ai-800: var(--color-teal-800); --ai-900: var(--color-teal-900); }
-.gd-ai[data-color="amber"] { --ai-300: var(--color-amber-300); --ai-500: var(--color-amber-500); --ai-700: var(--color-amber-700); --ai-800: var(--color-amber-800); --ai-900: var(--color-amber-900); }
-.gd-ai[data-color="rose"] { --ai-300: var(--color-rose-300); --ai-500: var(--color-rose-500); --ai-700: var(--color-rose-700); --ai-800: var(--color-rose-800); --ai-900: var(--color-rose-900); }
-.gd-ai-svg { filter: drop-shadow(0 2px 4px rgb(15 23 42 / 0.18)); }
-.gd-ai-body { transform-box: fill-box; transform-origin: center bottom; animation: gd-ai-breathe 3.6s ease-in-out infinite; }
-.gd-ai-eyes { fill: #fff; transform-box: fill-box; transform-origin: center; animation: gd-ai-blink 4.8s infinite; }
-.gd-ai-ink .gd-ai-eyes, .gd-ai-ink .gd-ai-mouth { fill: var(--ai-800); }
-.gd-ai-ink .gd-ai-smile { stroke: var(--ai-800); }
 /* The book wizard in full size (pictures): a gentle bob while it talks. */
 @keyframes gd-pose-talk { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-3px) rotate(-1deg); } }
 .gd-pose[data-talking] { animation: gd-pose-talk 0.9s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .gd-pose { animation: none !important; } }
 .reduce-effects .gd-pose { animation: none !important; }
-.gd-ai-mouth { fill: #fff; transform-box: fill-box; transform-origin: center; opacity: 0; }
-.gd-ai-smile { fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; transition: opacity 0.15s ease; }
-.gd-ai[data-mood="talking"] .gd-ai-mouth { opacity: 1; animation: gd-ai-talk 0.62s ease-in-out infinite; }
-.gd-ai[data-mood="talking"] .gd-ai-smile { opacity: 0; }
-.gd-ai-ring { position: absolute; inset: 6%; border-radius: 9999px; opacity: 0; box-shadow: 0 0 0 2px color-mix(in oklab, var(--ai-500) 55%, transparent); }
+.gd-ai-ring { position: absolute; inset: 6%; border-radius: 9999px; opacity: 0; box-shadow: 0 0 0 2px color-mix(in oklab, var(--brand-500) 55%, transparent); }
 .gd-ai[data-mood="talking"] .gd-ai-ring { animation: gd-ai-ripple 1.3s ease-out infinite; }
-.gd-ai[data-mood="thinking"] .gd-ai-eyes { animation: gd-ai-read 1.6s ease-in-out infinite; }
 .gd-ai[data-mood="thinking"] .gd-ai-ring { animation: gd-ai-ripple 2.2s ease-out infinite; }
-/* Each look's own touch while it talks: the wand sparkles, the pages flap, the antenna glows. */
-.gd-ai-spark { transform-box: fill-box; transform-origin: center; opacity: 0.55; }
-.gd-ai[data-mood="talking"] .gd-ai-spark { animation: gd-ai-spark 0.9s ease-in-out infinite; }
-.gd-ai-page-r { transform-box: fill-box; transform-origin: left center; }
-.gd-ai[data-mood="talking"] .gd-ai-page-r { animation: gd-ai-flap 0.9s ease-in-out infinite; }
-.gd-ai-light { fill: color-mix(in oklab, #F5B83D 55%, var(--ai-300)); }
-.gd-ai[data-mood="talking"] .gd-ai-light { animation: gd-ai-glow 0.62s ease-in-out infinite; }
-@keyframes gd-ai-breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-0.75px); } }
-@keyframes gd-ai-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
-@keyframes gd-ai-talk { 0% { transform: scaleY(0.5); } 25% { transform: scaleY(1.35); } 50% { transform: scaleY(0.7); } 75% { transform: scaleY(1.15); } 100% { transform: scaleY(0.5); } }
 @keyframes gd-ai-ripple { 0% { transform: scale(1); opacity: 0.35; } 100% { transform: scale(1.25); opacity: 0; } }
-@keyframes gd-ai-read { 0%, 100% { transform: translateX(-2px); } 45%, 55% { transform: translateX(2px); } }
-@keyframes gd-ai-spark { 0%, 100% { opacity: 0.55; transform: scale(0.85) rotate(0); } 50% { opacity: 1; transform: scale(1.15) rotate(20deg); } }
-@keyframes gd-ai-flap { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.92); } }
-@keyframes gd-ai-glow { 0%, 100% { fill: color-mix(in oklab, #F5B83D 55%, var(--ai-300)); } 50% { fill: #FDE047; } }
 @media (prefers-reduced-motion: reduce) {
   .gd-ai * { animation: none !important; }
 }
@@ -131,29 +88,18 @@
 /* The PDF being read, where it was dropped: an indeterminate bar slides under the pages. */
 .gd-reading-bar > span { display: block; height: 100%; width: 35%; border-radius: inherit; background: var(--gd-step); animation: gd-bar 1.4s ease-in-out infinite; }
 @keyframes gd-bar { 0% { transform: translateX(-110%); } 100% { transform: translateX(310%); } }
-/* Check comes in: the list of its screens cascades. */
-@keyframes gd-rise { from { opacity: 0; transform: translateY(8px); } }
-.gd-rise { animation: gd-rise 0.45s var(--lc-out, cubic-bezier(0.23, 1, 0.32, 1)) both; }
-/* The tour's dots. */
-.gd-tour-dot { transition: width 0.3s var(--lc-out, ease), background-color 0.3s ease; }
 @media (prefers-reduced-motion: reduce) {
-  .gd-reading-bar > span, .gd-rise { animation: none; }
+  .gd-reading-bar > span { animation: none; }
 }
-.reduce-effects :is(.gd-reading-bar > span, .gd-rise) { animation: none; }
+.reduce-effects .gd-reading-bar > span { animation: none; }
 
-/* First-run tour: a spotlight on the page as it is. What the assistant talks about is outlined; the rest steps back. Nothing moves. */
-.gd-spot { transition: opacity 0.35s ease, filter 0.35s ease, box-shadow 0.35s ease; }
-.gd-spot-off { opacity: 0.35; filter: saturate(0.6); }
-.gd-spot-rest { opacity: 0.6; }
-.gd-spot-on { box-shadow: 0 0 0 3px var(--gd-step), 0 18px 40px -18px color-mix(in oklab, var(--brand-600) 45%, transparent); }
 /* The drop zone checking a PDF: the badge breathes; when it's fine, the check pops once. */
 @keyframes gd-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
 .gd-breathe { animation: gd-breathe 1.4s ease-in-out infinite; }
 @keyframes gd-pop { 0% { transform: scale(0.6); } 60% { transform: scale(1.12); } 100% { transform: none; } }
 .gd-pop { animation: gd-pop 0.45s var(--lc-pop, cubic-bezier(0.34, 1.56, 0.64, 1)) both; }
-@media (prefers-reduced-motion: reduce) { .gd-breathe, .gd-pop { animation: none; } .gd-spot { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .gd-breathe, .gd-pop { animation: none; } }
 .reduce-effects :is(.gd-breathe, .gd-pop) { animation: none; }
-.reduce-effects .gd-spot { transition: none; }
 
 /* The first-run tour (TourCoach): a dark veil over the page with the lit item cut out of it, and the assistant beside it. */
 .gd-tour-hole {

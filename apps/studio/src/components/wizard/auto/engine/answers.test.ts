@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
 import type { SetupDecided, SetupRecommendation } from "@adt/types"
-import asksKind from "../lab/fixtures/asks-kind.json"
-import textbook from "../lab/fixtures/textbook.json"
+import asksKind from "./fixtures/asks-kind.json"
+import textbook from "./fixtures/textbook.json"
 import { factsThatMatter, fitPreset, fitStrategy, genreFor, proposedAnswers, settingsFor } from "./answers"
 
 // The macros aren't compiled under vitest; the preset constants use them.

@@ -1,9 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from "react"
-import { Plural, Trans } from "@lingui/react/macro"
-import { AlertTriangle, BookOpen, Check, ChevronDown, Loader2, RotateCcw, X } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Trans } from "@lingui/react/macro"
+import { RotateCcw } from "lucide-react"
 import { ErrorDetails } from "../../errors/ErrorState"
-import { PrimaryButton } from "../../../core/ui"
 import { Chip } from "./bubbles"
 import type { CreateRun } from "./useCreateRun"
 

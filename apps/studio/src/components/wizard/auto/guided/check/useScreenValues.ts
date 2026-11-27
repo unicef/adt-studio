@@ -7,12 +7,10 @@ import type { Derived } from "../shared/useAnswers"
 import { plainTitle } from "../shared/words"
 import { FACT_SHORT } from "../../engine/words"
 import { activityFacts, bookLanguage, type ScreenId } from "./screens"
-import { useWizardNames, WIZARD_SETTING, wizardValue } from "../shared/wizardNames"
 
 /** What each screen settled, in a few words, for the list of screens and the summary. */
 export function useScreenValues(rec: SetupRecommendation | null, derived: Derived | null, pageCount: number): Record<ScreenId, string> | null {
   const { t, i18n } = useLingui()
-  const names = useWizardNames()
   const form = useWizardForm()
   const scope = useStore(form.store, (s) => s.values.scope)
   const start = parseInt(useStore(form.store, (s) => s.values.startPage)) || 1
@@ -20,10 +18,6 @@ export function useScreenValues(rec: SetupRecommendation | null, derived: Derive
   const editing = useStore(form.store, (s) => s.values.editingLanguage).trim()
   if (!rec || !derived) return null
   const plain = (id: Parameters<typeof plainTitle>[0]) => {
-    if (names) {
-      const w = wizardValue(id, derived.effective[id]?.value)
-      return typeof w === "string" ? w : i18n._(w)
-    }
     const words = plainTitle(id, derived.effective[id]?.value)
     return words ? i18n._(words) : String(derived.effective[id]?.value ?? "")
   }
@@ -36,12 +30,9 @@ export function useScreenValues(rec: SetupRecommendation | null, derived: Derive
     const said = short ? i18n._(short) : ""
     return facts.length > 1 ? t`${label}: ${said}` : said
   }
-  const named = (id: "activitiesGenerator" | "figureExtraction") => `${i18n._(WIZARD_SETTING[id])}: ${plain(id)}`
   const activities = [
-    // eslint-disable-next-line lingui/no-unlocalized-strings -- setting ids
-    facts.includes("exercises") ? (names ? named("activitiesGenerator") : answer("exercises", t`Exercises`)) : null,
-    // eslint-disable-next-line lingui/no-unlocalized-strings -- setting ids
-    facts.includes("diagrams") ? (names ? named("figureExtraction") : answer("diagrams", t`Maps and diagrams`)) : null,
+    facts.includes("exercises") ? answer("exercises", t`Exercises`) : null,
+    facts.includes("diagrams") ? answer("diagrams", t`Maps and diagrams`) : null,
   ]
     .filter(Boolean)
     .join(" · ")

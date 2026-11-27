@@ -1,10 +1,5 @@
-import type { CSSProperties, ReactNode } from "react"
+import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
-
-/** The assistant: the board's small orb in brand blue (turns slowly while it writes). Decoration only. */
-export function Orb({ typing, hidden, size = 28, className }: { typing?: boolean; hidden?: boolean; size?: number; className?: string }) {
-  return <span aria-hidden data-typing={typing || undefined} data-hidden={hidden || undefined} className={cn("lc-orb", className)} style={{ "--lc-orb": `${size}px` } as CSSProperties} />
-}
 
 /** A reply the user can tap. */
 export function Chip({ onClick, children, icon, primary, pressed, disabled, className }: { onClick: () => void; children: ReactNode; icon?: ReactNode; primary?: boolean; pressed?: boolean; disabled?: boolean; className?: string }) {

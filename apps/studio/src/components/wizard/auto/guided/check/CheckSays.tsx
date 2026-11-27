@@ -74,7 +74,6 @@ function Says({ rec, derived, screen, file, pageCount, firstBook, trying, onTryi
   const why = (rule: string | undefined) => (rule && RULE_WHY[rule] ? i18n._(RULE_WHY[rule]!) : null)
 
   if (screen === "kind") {
-    const genre = rec.facts.find((f) => f.id === "genre")
     return (
       <p>
         {asked ? (

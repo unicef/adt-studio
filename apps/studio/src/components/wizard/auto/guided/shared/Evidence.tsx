@@ -1,8 +1,6 @@
-import { useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { ChevronLeft, ChevronRight, FileText } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
-import { cn } from "@/lib/utils"
 import { usePageThumb } from "../../../core/pdf/usePageThumb"
 
 function Big({ file, page }: { file: File; page: number }) {

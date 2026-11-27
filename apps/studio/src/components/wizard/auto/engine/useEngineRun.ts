@@ -37,7 +37,7 @@ export function useEngineRun(file: File | null | undefined, attempt = 0, settle:
       controller.abort()
       window.clearTimeout(slow)
     }
-    // One run per file and attempt; the engine client is stable per lab state.
+    // One run per file and attempt; the engine client changes only with the API key.
   }, [file, attempt])
   return run
 }

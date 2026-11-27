@@ -1,8 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Pencil } from "lucide-react"
 import type { SetupDecided } from "@adt/types"
-import { WizardSettings } from "../../shared/WizardSettings"
-import { useWizardNames } from "../../shared/wizardNames"
 import { NameField } from "../nameField"
 import type { ScreenId } from "../screens"
 import type { SetupBookFactId } from "@adt/types"
@@ -14,7 +12,6 @@ import { screenTitle } from "../words"
  */
 export function NameScreen({ facts, screens, values, settings, onEdit }: { facts: SetupBookFactId[]; screens: ScreenId[]; values: Record<ScreenId, string>; settings: SetupDecided; onEdit: (screen: ScreenId) => void }) {
   const { i18n, t } = useLingui()
-  const names = useWizardNames()
   return (
     <div className="flex flex-col gap-4">
       <ul className="lc-surface flex flex-col divide-y divide-border/70 px-4 py-1 sm:px-5">
@@ -36,14 +33,6 @@ export function NameScreen({ facts, screens, values, settings, onEdit }: { facts
             )
           })}
       </ul>
-      {names && (
-        <div className="lc-surface flex flex-col gap-2 p-4 sm:px-5">
-          <span className="text-[13px] text-muted-foreground">
-            <Trans>The settings the book is set up with</Trans>
-          </span>
-          <WizardSettings settings={settings} className="gap-1.5" />
-        </div>
-      )}
       <div className="lc-surface p-4 sm:px-5">
         <NameField />
       </div>

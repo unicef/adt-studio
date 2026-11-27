@@ -38,8 +38,6 @@ export function useCheck(rec: SetupRecommendation | null, chat: Answers) {
       if (left.length) chat.skipRest(left)
       move({ type: "end" })
     },
-    /** Lab only: opens a screen at once (no morph), the ones before it passed. */
-    jump: (to: ScreenId) => setState((s) => moveCheck(s, { type: "jump", to }, screens)),
     trying,
     setTrying: (t: boolean) => morph(() => setTrying(t)),
   }

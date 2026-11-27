@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest"
 import type { SetupRecommendation } from "@adt/types"
-import askKind from "../../lab/fixtures/asks-kind.json"
-import spread from "../../lab/fixtures/spread-no-questions.json"
-import textbook from "../../lab/fixtures/textbook.json"
-import twoQuestions from "../../lab/fixtures/two-questions.json"
+import askKind from "../../engine/fixtures/asks-kind.json"
+import spread from "../../engine/fixtures/spread-no-questions.json"
+import textbook from "../../engine/fixtures/textbook.json"
+import twoQuestions from "../../engine/fixtures/two-questions.json"
 import { proposedAnswers } from "../../engine/answers"
 import { bookLanguage, CHECK_START, checkScreens, moveCheck, screenFacts, screenOf, screenSure, shownScreen, type CheckState, type ScreenId } from "./screens"
 
@@ -84,11 +84,6 @@ describe("moving through Check", () => {
     const s = run([{ type: "end" }, { type: "go", to: "look", edit: true }])
     expect(s.at).toBe("look")
     expect(run([{ type: "next" }], s).at).toBe("name")
-  })
-
-  it("lands a lab jump with the screens before it passed", () => {
-    const s = run([{ type: "jump", to: "pages" }])
-    expect(s).toEqual({ at: "pages", done: ["kind", "look"], back: null })
   })
 
   it("moves off a screen that stopped applying", () => {

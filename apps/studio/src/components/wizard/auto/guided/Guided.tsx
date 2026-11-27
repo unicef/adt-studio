@@ -1,4 +1,4 @@
-import { useContext, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react"
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react"
 import { flushSync } from "react-dom"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { FileDropOverlay } from "@/components/ui/file-drop-overlay"
@@ -14,7 +14,6 @@ import "../../core/flow.css"
 import { FinishContext } from "./shared/finish"
 import { NAME_INPUT } from "./shared/Create"
 import { EngineError } from "./shared/EngineError"
-import { LabDriveContext, useLabDrive } from "./shared/labDrive"
 import { ReadingCard, ReadingMessage } from "./shared/Reading"
 import { useAnswers } from "./shared/useAnswers"
 import { useCreateRun } from "./shared/useCreateRun"
@@ -90,49 +89,34 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
     if (validFile) setRejectedAt(0)
   }, [validFile])
 
-  const labTarget = useContext(LabDriveContext)?.target
   // Check: the bubble first, then the first screen under it.
   useEffect(() => {
     if (!rec) return setRevealed(false)
-    // A lab jump straight to a Check screen shows it at once.
-    if (labTarget && labTarget !== "start" && labTarget !== "reading") return setRevealed(true)
     const id = window.setTimeout(() => morph(() => setRevealed(true)), REVEAL_MS)
     return () => window.clearTimeout(id)
   }, [rec])
 
   // The step the flow is at; what's on screen follows it through a morph, so every step change animates.
   // The drop zone shows that the PDF is fine for a moment before the flow moves on (reading has
-  // already started underneath). Lab jumps past Start don't wait.
+  // already started underneath).
   const [ready, setReady] = useState(false)
   useEffect(() => {
     if (!validFile) return setReady(false)
-    if (labTarget && labTarget !== "start") return setReady(true)
     const id = window.setTimeout(() => setReady(true), READY_MS)
     return () => window.clearTimeout(id)
   }, [validFile, flow.fileKey])
   const atNow: StepId = !validFile || !ready ? "upload" : !rec ? "reading" : lastRun ? "create" : "check"
   const [at, setAt] = useState<StepId>(atNow)
-  // A lab jump (or a reload on one) passes through the earlier steps on its way to the target:
-  // those changes happen at once, and only the steps after it morph.
-  const landed = useRef(false)
   useEffect(() => {
-    if (at === atNow) return
-    const jumping = !!labTarget && labTarget !== "start" && !landed.current
-    if (atNow === "check" || atNow === "create") landed.current = true
-    if (jumping) setAt(atNow)
-    else morph(() => setAt(atNow))
+    if (at !== atNow) morph(() => setAt(atNow))
   }, [atNow])
-  // Until a lab jump (or a reload on one) reaches its step, the page stays blank: the steps it
-  // passes on the way (upload, reading) never flash. With no PDF to jump with, Upload shows.
-  const settling = !!flow.file && !!labTarget && labTarget !== "start" && labTarget !== "reading" && labTarget !== "error" && at !== "check" && at !== "create"
 
   // A first run starts with a tour of the page: the assistant, each card, then the drop zone.
   const firstRun = useFirstRun()
   const [tour, setTour] = useState<number | null>(null)
   const toured = useRef(false)
   useEffect(() => {
-    // Not on a lab jump past Start: the lab opens a later step, not the first-run page.
-    if (firstRun && !toured.current && !flow.file && (!labTarget || labTarget === "start")) {
+    if (firstRun && !toured.current && !flow.file) {
       toured.current = true
       setTour(0)
     }
@@ -146,17 +130,6 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
     if (flow.file && tour !== null) endTour()
   }, [flow.file])
   const shown: StepId = view && STEPS.indexOf(view) < STEPS.indexOf(at) ? view : at
-  // Dev lab only (no-op elsewhere): reports the step and plays the lab's jumps.
-  useLabDrive({
-    validFile,
-    failed: !!failure,
-    rec,
-    chat,
-    create,
-    screen: rec ? check.at : null,
-    jump: check.jump,
-    flush: () => setRevealed(true),
-  })
 
   const manual = () => {
     if (chat.derived) applySettings(form, chat.derived.effective)
@@ -228,7 +201,7 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
           ))}
         </div>
 
-        <div ref={scroller} className={cn("relative flex-1 overflow-y-auto overflow-x-hidden", settling && "invisible")} aria-busy={settling || undefined}>
+        <div ref={scroller} className="relative flex-1 overflow-y-auto overflow-x-hidden">
           {/* One column per step, and the stepper takes the same width, so its ends line up with the
               bubble and the content. On big windows the whole page scales up (zoom) instead of
               floating small in the middle; on short ones the spacing tightens. */}

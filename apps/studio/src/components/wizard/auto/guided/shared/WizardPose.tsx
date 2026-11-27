@@ -1,10 +1,6 @@
 import { cn } from "@/lib/utils"
-import { useAssistantStyle } from "./assistantLook"
 
 export type Pose = "hello" | "reading" | "thinking" | "celebrate"
-
-/** The book wizard is the look: then the roomy places use its full-size poses. */
-export const useIsWizard = () => useAssistantStyle().look === "wizard"
 
 /**
  * The book wizard in full (arms, wand, sparkles), for places with room: the tour, reading the

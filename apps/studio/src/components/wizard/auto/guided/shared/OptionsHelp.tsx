@@ -6,8 +6,7 @@ import type { SetupRecommendation } from "@adt/types"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { PrimaryButton } from "../../../core/ui"
-import { Assistant } from "./Assistant"
-import { useIsWizard, WizardPose } from "./WizardPose"
+import { WizardPose } from "./WizardPose"
 import { Screen } from "./Screen"
 import { screenPages, useScreenImages } from "./screens/pages"
 import type { LookOption } from "./PreviewChoices"
@@ -20,7 +19,6 @@ import type { LookOption } from "./PreviewChoices"
  * be picked from here.
  */
 export function OptionsHelp({ open, onOpenChange, rec, options, page, chosen, file, onPick }: { open: boolean; onOpenChange: (open: boolean) => void; rec: SetupRecommendation; options: LookOption[]; page: number; chosen?: string; file: File | null | undefined; onPick: (value: string) => void }) {
-  const wizard = useIsWizard()
   const [at, setAt] = useState(0)
   const [was, setWas] = useState(false)
   // Each time it opens, it starts on the picked option.
@@ -84,7 +82,7 @@ export function OptionsHelp({ open, onOpenChange, rec, options, page, chosen, fi
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <CardBody key={o.value} o={o} options={options} rec={rec} page={page} file={file} wizard={wizard} show={show} />
+          <CardBody key={o.value} o={o} options={options} rec={rec} page={page} file={file} show={show} />
         </div>
 
         <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border px-6 py-3">
@@ -153,10 +151,10 @@ function HelpPicture({ rec, option, page, file }: { rec: SetupRecommendation; op
   )
 }
 
-type BodyProps = { o: LookOption; options: LookOption[]; rec: SetupRecommendation; page: number; file: File | null | undefined; wizard: boolean; show: (value: string) => void }
+type BodyProps = { o: LookOption; options: LookOption[]; rec: SetupRecommendation; page: number; file: File | null | undefined; show: (value: string) => void }
 
 /** The details laid out as sections: the option at a glance, then the signs, then the settings. */
-function CardBody({ o, options, rec, page, file, wizard, show }: BodyProps) {
+function CardBody({ o, options, rec, page, file, show }: BodyProps) {
   return (
           <div role="tabpanel" className="gd-help-in flex flex-col gap-5 px-6 py-5 text-[14px] leading-relaxed">
             {/* The option at a glance: its picture, and the assistant saying what it is. */}
@@ -164,7 +162,7 @@ function CardBody({ o, options, rec, page, file, wizard, show }: BodyProps) {
               <HelpPicture rec={rec} option={o} page={page} file={file} />
               <div className="flex min-w-0 flex-col gap-2">
                 <div className="flex items-center gap-2.5">
-                  {wizard ? <WizardPose pose="hello" size={52} className="-my-1 shrink-0" /> : <Assistant mood="talking" size={36} />}
+                  <WizardPose pose="hello" size={52} className="-my-1 shrink-0" />
                   <p className="text-[19px] font-semibold leading-tight">{o.label}</p>
                 </div>
                 <DialogDescription className="text-[14.5px] leading-relaxed text-muted-foreground">{o.more ?? o.line}</DialogDescription>

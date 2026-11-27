@@ -1703,21 +1703,12 @@ msgstr "Adds the tables it needs. Anything already there is left alone."
 msgid "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
 msgstr "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
 
-msgid "ADT Assistant"
-msgstr "ADT Assistant"
-
 msgid "ADT Book"
 msgstr "ADT Book"
 
 #. placeholder {0}: i18n._(selectedBook.title)
 msgid "ADT Book - {0}"
 msgstr "ADT Book - {0}"
-
-msgid "ADT Bot"
-msgstr "ADT Bot"
-
-msgid "ADT Buddy"
-msgstr "ADT Buddy"
 
 msgid "ADT Package"
 msgstr "ADT Package"
@@ -2001,9 +1992,6 @@ msgstr "Also used by {readerNames} unless that provider has its own key."
 msgid "Always on"
 msgstr "Always on"
 
-msgid "Amber"
-msgstr "Amber"
-
 msgid "Among the Stars"
 msgstr "Among the Stars"
 
@@ -2205,9 +2193,6 @@ msgstr "Archive contents"
 
 msgid "Are there labelled pictures, like maps or diagrams?"
 msgstr "Are there labelled pictures, like maps or diagrams?"
-
-msgid "Are there pictures with labels that explain something, like maps, charts, diagrams or labelled drawings?"
-msgstr "Are there pictures with labels that explain something, like maps, charts, diagrams or labelled drawings?"
 
 #. placeholder {0}: confirmMerge?.label ?? ""
 msgid "Are you sure you want to {0}? This action cannot be undone."
@@ -2546,9 +2531,6 @@ msgstr "Blank reference"
 
 msgid "Blocked"
 msgstr "Blocked"
-
-msgid "Blue"
-msgstr "Blue"
 
 msgid "Body"
 msgstr "Body"
@@ -3311,9 +3293,6 @@ msgstr "Color"
 msgid "color-contrast"
 msgstr "color-contrast"
 
-msgid "Colour"
-msgstr "Colour"
-
 msgid "Column"
 msgstr "Column"
 
@@ -4011,12 +3990,6 @@ msgstr "Custom range"
 msgid "Custom section {index}"
 msgstr "Custom section {index}"
 
-msgid "Customize the assistant"
-msgstr "Customize the assistant"
-
-msgid "Customize your assistant"
-msgstr "Customize your assistant"
-
 msgid "Cut a region out of any page"
 msgstr "Cut a region out of any page"
 
@@ -4413,9 +4386,6 @@ msgstr "Distribute through Readium-compatible reading apps and libraries."
 
 msgid "Divide the book into equal windows, then export each to hand out."
 msgstr "Divide the book into equal windows, then export each to hand out."
-
-msgid "Does the book ask the reader to write or mark answers? (Colouring and drawing do not count.)"
-msgstr "Does the book ask the reader to write or mark answers? (Colouring and drawing do not count.)"
 
 msgid "Does the reader write or mark answers?"
 msgstr "Does the reader write or mark answers?"
@@ -6563,9 +6533,6 @@ msgstr "It is mostly words. Pictures are few or small."
 msgid "It no longer opens. Sharing again makes a new one."
 msgstr "It no longer opens. Sharing again makes a new one."
 
-msgid "It only changes how the assistant looks. You can change it any time by clicking it."
-msgstr "It only changes how the assistant looks. You can change it any time by clicking it."
-
 msgid "It sets tasks for a learner."
 msgstr "It sets tasks for a learner."
 
@@ -7247,9 +7214,6 @@ msgstr "Long answer"
 
 msgid "Long reading on small screens."
 msgstr "Long reading on small screens."
-
-msgid "Look"
-msgstr "Look"
 
 msgid "Looking for the latest version…"
 msgstr "Looking for the latest version…"
@@ -9023,17 +8987,11 @@ msgstr "Other items"
 msgid "Other options"
 msgstr "Other options"
 
-msgid "Other possibility"
-msgstr "Other possibility"
-
 msgid "Other stages may need attention"
 msgstr "Other stages may need attention"
 
 msgid "Other text"
 msgstr "Other text"
-
-msgid "Our guess"
-msgstr "Our guess"
 
 msgid "Out for processing"
 msgstr "Out for processing"
@@ -10936,9 +10894,6 @@ msgstr "Room for {0} more"
 msgid "Room for 99"
 msgstr "Room for 99"
 
-msgid "Rose"
-msgstr "Rose"
-
 msgid "Rotate"
 msgstr "Rotate"
 
@@ -12098,9 +12053,6 @@ msgstr "Some pages have blanks, lines or boxes to write in."
 msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 msgstr "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 
-msgid "Some pages have real text, some are scans."
-msgstr "Some pages have real text, some are scans."
-
 msgid "Some permissions are missing"
 msgstr "Some permissions are missing"
 
@@ -12721,9 +12673,6 @@ msgstr "Tasks Running"
 msgid "Teaching the pixels new tricks..."
 msgstr "Teaching the pixels new tricks..."
 
-msgid "Teal"
-msgstr "Teal"
-
 msgid "Technical documentation"
 msgstr "Technical documentation"
 
@@ -13189,26 +13138,17 @@ msgstr "The page uses an unsupported external script."
 msgid "The page’s element ids no longer match the page lists in manifest.json and content/pages.json."
 msgstr "The page’s element ids no longer match the page lists in manifest.json and content/pages.json."
 
-msgid "The pages are a scan with hidden text added."
-msgstr "The pages are a scan with hidden text added."
-
 msgid "The pages are lessons with exercises."
 msgstr "The pages are lessons with exercises."
 
 msgid "The pages are mostly text."
 msgstr "The pages are mostly text."
 
-msgid "The pages are photos of paper (a scan), so the words are read from the pictures."
-msgstr "The pages are photos of paper (a scan), so the words are read from the pictures."
-
 msgid "The pages go into a ready-made layout without the AI, so it is quick and costs nothing extra."
 msgstr "The pages go into a ready-made layout without the AI, so it is quick and costs nothing extra."
 
 msgid "The pages I read this on"
 msgstr "The pages I read this on"
-
-msgid "The PDF has real text, so we read the words directly."
-msgstr "The PDF has real text, so we read the words directly."
 
 msgid "The picture and its words belong together."
 msgstr "The picture and its words belong together."
@@ -13317,9 +13257,6 @@ msgstr "The section was edited after conversion — use \"Rebuild from page\" to
 
 msgid "The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section."
 msgstr "The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section."
-
-msgid "The settings the book is set up with"
-msgstr "The settings the book is set up with"
 
 msgid "The setup stopped before it finished. Nothing was lost — trying again continues from where it stopped."
 msgstr "The setup stopped before it finished. Nothing was lost — trying again continues from where it stopped."
@@ -14659,9 +14596,6 @@ msgstr "View page"
 
 msgid "View page {pageNum} larger"
 msgstr "View page {pageNum} larger"
-
-msgid "Violet"
-msgstr "Violet"
 
 msgid "Visible page entries"
 msgstr "Visible page entries"

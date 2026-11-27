@@ -1705,21 +1705,12 @@ msgstr "Ajoute les tables nécessaires. Tout ce qui est déjà là est laissé t
 msgid "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
 msgstr "Ajoute des recommandations de Conception Universelle de l'Apprentissage (langage clair, alternative au glisser-déposer par clavier et clic, retour de correction via aria-live, pas de retour uniquement par la couleur). Désactivez pour comparer le résultat sans cette orientation."
 
-msgid "ADT Assistant"
-msgstr "Assistant ADT"
-
 msgid "ADT Book"
 msgstr "ADT Livre"
 
 #. placeholder {0}: i18n._(selectedBook.title)
 msgid "ADT Book - {0}"
 msgstr "ADT Livre - {0}"
-
-msgid "ADT Bot"
-msgstr "Robot ADT"
-
-msgid "ADT Buddy"
-msgstr "Compagnon ADT"
 
 msgid "ADT Package"
 msgstr "Paquet ADT"
@@ -2003,9 +1994,6 @@ msgstr "Également utilisée par {readerNames}, sauf si ce fournisseur possède 
 msgid "Always on"
 msgstr "Toujours activé"
 
-msgid "Amber"
-msgstr "Ambre"
-
 msgid "Among the Stars"
 msgstr "Parmi les étoiles"
 
@@ -2207,9 +2195,6 @@ msgstr "Contenu de l'archive"
 
 msgid "Are there labelled pictures, like maps or diagrams?"
 msgstr "Y a-t-il des images légendées, comme des cartes ou des schémas ?"
-
-msgid "Are there pictures with labels that explain something, like maps, charts, diagrams or labelled drawings?"
-msgstr "Y a-t-il des images avec des légendes qui expliquent quelque chose, comme des cartes, des graphiques, des schémas ou des dessins légendés ?"
 
 #. placeholder {0}: confirmMerge?.label ?? ""
 msgid "Are you sure you want to {0}? This action cannot be undone."
@@ -2548,9 +2533,6 @@ msgstr "Référence du blanc"
 
 msgid "Blocked"
 msgstr "Bloqué"
-
-msgid "Blue"
-msgstr "Bleu"
 
 msgid "Body"
 msgstr "Corps"
@@ -3313,9 +3295,6 @@ msgstr "Couleur"
 msgid "color-contrast"
 msgstr "couleur-contrast"
 
-msgid "Colour"
-msgstr "Couleur"
-
 msgid "Column"
 msgstr "Colonne"
 
@@ -4013,12 +3992,6 @@ msgstr "Plage personnalisée"
 msgid "Custom section {index}"
 msgstr "Section personnalisée {index}"
 
-msgid "Customize the assistant"
-msgstr "Personnaliser l'assistant"
-
-msgid "Customize your assistant"
-msgstr "Personnalisez votre assistant"
-
 msgid "Cut a region out of any page"
 msgstr "Découpez une région de n'importe quelle page"
 
@@ -4415,9 +4388,6 @@ msgstr "Distribuez via des applications et bibliothèques de lecture compatibles
 
 msgid "Divide the book into equal windows, then export each to hand out."
 msgstr "Divisez le livre en fenêtres égales, puis exportez chacune pour les distribuer."
-
-msgid "Does the book ask the reader to write or mark answers? (Colouring and drawing do not count.)"
-msgstr "Le livre demande-t-il au lecteur d'écrire ou de cocher des réponses ? (Colorier et dessiner ne comptent pas.)"
 
 msgid "Does the reader write or mark answers?"
 msgstr "Le lecteur écrit-il ou coche-t-il des réponses ?"
@@ -6565,9 +6535,6 @@ msgstr "C'est surtout du texte. Les images sont rares ou petites."
 msgid "It no longer opens. Sharing again makes a new one."
 msgstr "Il ne s’ouvre plus. Partager à nouveau en crée un nouveau."
 
-msgid "It only changes how the assistant looks. You can change it any time by clicking it."
-msgstr "Cela change seulement l'apparence de l'assistant. Vous pouvez la modifier à tout moment en cliquant dessus."
-
 msgid "It sets tasks for a learner."
 msgstr "Il donne des tâches à un élève."
 
@@ -7249,9 +7216,6 @@ msgstr "Réponse longue"
 
 msgid "Long reading on small screens."
 msgstr "Lecture longue sur petit écran."
-
-msgid "Look"
-msgstr "Apparence"
 
 msgid "Looking for the latest version…"
 msgstr "Recherche de la dernière version…"
@@ -9025,17 +8989,11 @@ msgstr "Autres éléments"
 msgid "Other options"
 msgstr "Autres options"
 
-msgid "Other possibility"
-msgstr "Autre possibilité"
-
 msgid "Other stages may need attention"
 msgstr "D’autres étapes peuvent nécessiter une vérification"
 
 msgid "Other text"
 msgstr "Autre texte"
-
-msgid "Our guess"
-msgstr "Notre hypothèse"
 
 msgid "Out for processing"
 msgstr "En cours de traitement"
@@ -10938,9 +10896,6 @@ msgstr "De la place pour encore {0}"
 msgid "Room for 99"
 msgstr "Place pour 99"
 
-msgid "Rose"
-msgstr "Rose"
-
 msgid "Rotate"
 msgstr "Pivoter"
 
@@ -12100,9 +12055,6 @@ msgstr "Certaines pages ont des blancs, des lignes ou des cases où écrire."
 msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 msgstr "Certaines pages n'ont pas de couche de texte intégrée — le texte a été récupéré à partir de l'image de la page. Préférez un PDF basé sur du texte."
 
-msgid "Some pages have real text, some are scans."
-msgstr "Certaines pages contiennent du vrai texte, d'autres sont scannées."
-
 msgid "Some permissions are missing"
 msgstr "Certaines autorisations manquent"
 
@@ -12723,9 +12675,6 @@ msgstr "Tâches En cours"
 msgid "Teaching the pixels new tricks..."
 msgstr "On apprend de nouveaux tours aux pixels..."
 
-msgid "Teal"
-msgstr "Bleu canard"
-
 msgid "Technical documentation"
 msgstr "Documentation technique"
 
@@ -13191,26 +13140,17 @@ msgstr "La page utilise un script externe non pris en charge."
 msgid "The page’s element ids no longer match the page lists in manifest.json and content/pages.json."
 msgstr "Les ids des éléments de la page ne correspondent plus aux listes de pages de manifest.json et content/pages.json."
 
-msgid "The pages are a scan with hidden text added."
-msgstr "Les pages sont scannées, avec un texte caché ajouté."
-
 msgid "The pages are lessons with exercises."
 msgstr "Les pages sont des leçons avec des exercices."
 
 msgid "The pages are mostly text."
 msgstr "Les pages sont surtout du texte."
 
-msgid "The pages are photos of paper (a scan), so the words are read from the pictures."
-msgstr "Les pages sont des photos du papier (scannées), donc le texte est lu à partir des images."
-
 msgid "The pages go into a ready-made layout without the AI, so it is quick and costs nothing extra."
 msgstr "Les pages sont placées dans une mise en page toute prête, sans l'IA : c'est rapide et sans frais supplémentaires."
 
 msgid "The pages I read this on"
 msgstr "Les pages où j'ai lu ceci"
-
-msgid "The PDF has real text, so we read the words directly."
-msgstr "Le PDF contient du vrai texte, donc nous lisons les mots directement."
 
 msgid "The picture and its words belong together."
 msgstr "L'image et son texte vont ensemble."
@@ -13319,9 +13259,6 @@ msgstr "La section a été modifiée après la conversion — utilisez « Recons
 
 msgid "The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section."
 msgstr "Les sections seront fusionnées localement. Sans clé API, le storyboard devra être réexécuté pour régénérer la section fusionnée."
-
-msgid "The settings the book is set up with"
-msgstr "Les paramètres de création du livre"
 
 msgid "The setup stopped before it finished. Nothing was lost — trying again continues from where it stopped."
 msgstr "La configuration s'est arrêtée avant d'être terminée. Rien n'a été perdu — réessayer continue là où cela s'est arrêté."
@@ -14661,9 +14598,6 @@ msgstr "Voir la page"
 
 msgid "View page {pageNum} larger"
 msgstr "Voir la page {pageNum} en grand"
-
-msgid "Violet"
-msgstr "Violet"
 
 msgid "Visible page entries"
 msgstr "Entrées visibles de la page"

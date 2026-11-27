@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
-import type { SetupDecided, SetupFact, SetupRecommendation, SetupSettingId } from "@adt/types"
+import type { SetupFact, SetupRecommendation, SetupSettingId } from "@adt/types"
 import { cn } from "@/lib/utils"
 import { OptionsHelp } from "./OptionsHelp"
 import { useExplain } from "./explain"
@@ -16,8 +16,6 @@ import { screenPages, useDescribe, useScreenImages } from "./screens/pages"
 import { useBox } from "./screens/useBox"
 import { lookOf, type Look } from "./screens/look"
 import { factArt } from "./art/ConceptArt"
-import { WizardSettings } from "./WizardSettings"
-import { useWizardNames } from "./wizardNames"
 import "./question.css"
 
 export { Screen }
@@ -27,14 +25,12 @@ const NARROW = 520
 
 /**
  * One card: a label and a line, with the book as it would come out (`look`) or a drawing (`art`)
- * when the user's pages wouldn't tell the options apart. With "Wizard names" on, `settings` shows
- * what the option applies, `changed` marking what differs between the options.
+ * when the user's pages wouldn't tell the options apart.
  */
-export type LookOption = { value: string; label: string; line: string; look: Look; guess: boolean; art?: ReactNode; more?: string; phone?: string; tag?: ReactNode; guide?: OptionGuide; why?: ReactNode; settings?: SetupDecided; only?: SetupSettingId[]; changed?: SetupSettingId[] }
+export type LookOption = { value: string; label: string; line: string; look: Look; guess: boolean; art?: ReactNode; more?: string; phone?: string; tag?: ReactNode; guide?: OptionGuide; why?: ReactNode }
 
 function LookCard({ rec, option, page, narrow, chosen, first, onPick, file }: { rec: SetupRecommendation; option: LookOption; page: number; narrow: boolean; chosen: boolean; first: boolean; onPick: (card: HTMLElement) => void; file: File | null | undefined }) {
   const describe = useDescribe()
-  const names = useWizardNames()
   const { ref, box } = useBox<HTMLSpanElement>()
   const width = Math.max(80, Math.min(box.w - 28, ((box.h - 24) * SCREEN.desktop.w) / SCREEN.desktop.h))
   const pages = screenPages(rec, option.look.pageGrouping, page)
@@ -73,7 +69,6 @@ function LookCard({ rec, option, page, narrow, chosen, first, onPick, file }: { 
         <span className="text-[15px] font-medium leading-tight lg:text-[17px]">{option.label}</span>
         {option.line && <span className="mt-0.5 text-[13px] leading-snug text-muted-foreground lg:text-[14.5px]">{option.line}</span>}
         {option.tag && <span className="mt-2">{option.tag}</span>}
-        {names && option.settings && <WizardSettings settings={option.settings} only={option.only} changed={option.changed} className="mt-2" />}
       </span>
     </button>
   )
@@ -118,8 +113,6 @@ export function PreviewChoices({ rec, fact, order, answers, chosen, onAnswer, fi
   const plain = decided.map((d) => (brings ? plainTitle(brings, d[brings]?.value) : undefined))
   // When the answers share that line ("Rebuilt to fit the screen" twice), each says its own hint instead.
   const distinct = plain.every((p) => p) && new Set(plain.map((p) => p!.id)).size === plain.length
-  // The settings that differ between the answers, for "Wizard names".
-  const changed = touched.filter((id) => new Set(decided.map((d) => String(d[id]?.value))).size > 1)
   const options = order.map((value, i): LookOption => ({
     value,
     label: i18n._(FACT_SHORT[fact.id][value]!),
@@ -130,9 +123,6 @@ export function PreviewChoices({ rec, fact, order, answers, chosen, onAnswer, fi
     more: FACT_LONG[fact.id][value] ? i18n._(FACT_LONG[fact.id][value]!) : undefined,
     guide: FACT_GUIDE[fact.id]?.[value],
     why: value === fact.value ? <FactWhy fact={fact} file={file} /> : fact.secondOpinion === value && fact.secondOpinion !== fact.value ? <SecondWhy fact={fact} /> : undefined,
-    settings: decided[i],
-    only: touched.length ? touched : undefined,
-    changed,
   }))
   return <LookChoices rec={rec} options={options} page={fact.evidencePages[0] ?? rec.previewPage} chosen={chosen} onPick={onAnswer} file={file} labelId={labelId} />
 }

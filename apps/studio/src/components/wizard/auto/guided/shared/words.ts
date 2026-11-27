@@ -4,19 +4,6 @@ import type { SetupSettingId } from "@adt/types"
 import { PRESETS, RENDER_STRATEGIES } from "@/components/wizard/core/constants"
 import { SETTING_VALUE } from "../../engine/words"
 
-/**
- * The settings in the old wizard's own names (the user insists on them): Preset, Render Strategy,
- * Page Grouping, Section Mode, Activities, Figure Extraction, with the wizard's value labels.
- */
-export const SETTING_LABEL: Record<SetupSettingId, MessageDescriptor> = {
-  preset: msg`Preset`,
-  renderStrategy: msg`Render Strategy`,
-  pageGrouping: msg`Page Grouping`,
-  sectioningMode: msg`Section Mode`,
-  activitiesGenerator: msg`Activities`,
-  figureExtraction: msg`Figure Extraction`,
-}
-
 const PRESET_VALUES = PRESETS.filter((p) => p.id !== "custom").map((p) => ({ value: p.id as string, title: p.title }))
 const STRATEGY_VALUES = RENDER_STRATEGIES.filter((r) => !("hidden" in r && r.hidden)).map((r) => ({ value: r.id as string, title: r.title }))
 

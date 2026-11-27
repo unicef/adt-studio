@@ -2,7 +2,7 @@
 import { act, cleanup, renderHook } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { SetupRecommendation } from "@adt/types"
-import textbook from "../../lab/fixtures/textbook.json"
+import textbook from "../../engine/fixtures/textbook.json"
 import { useAnswers } from "./useAnswers"
 
 // The macros aren't compiled under vitest; the preset constants use them.

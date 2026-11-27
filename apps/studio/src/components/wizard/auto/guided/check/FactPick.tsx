@@ -8,8 +8,6 @@ import { lookOf } from "../shared/screens/look"
 import type { Answers } from "../shared/useAnswers"
 import { factArt } from "../shared/art/ConceptArt"
 import { FACT_HINT, plainTitle, QUESTION_SHORT } from "../shared/words"
-import { WizardSettings } from "../shared/WizardSettings"
-import { useWizardNames } from "../shared/wizardNames"
 import { Picture, PICTURE, SurePick } from "./SurePick"
 
 /**
@@ -19,7 +17,6 @@ import { Picture, PICTURE, SurePick } from "./SurePick"
  */
 export function FactPick({ rec, fact, chat, file, sets }: { rec: SetupRecommendation; fact: SetupFact; chat: Answers; file: File | null | undefined; sets?: boolean }) {
   const { i18n } = useLingui()
-  const names = useWizardNames()
   const derived = chat.derived!
   const [open, setOpen] = useState(false)
   const value = derived.current[fact.id]
@@ -62,7 +59,7 @@ export function FactPick({ rec, fact, chat, file, sets }: { rec: SetupRecommenda
       label={question}
       title={i18n._(FACT_SHORT[fact.id][value]!)}
       hint={i18n._(FACT_HINT[fact.id]![value]!)}
-      result={names ? <WizardSettings settings={derived.effective} only={applies.length ? applies : undefined} /> : result || undefined}
+      result={result || undefined}
       changed={value !== fact.value}
       labelId={labelId}
       open={open}

@@ -75,7 +75,7 @@ export type CheckState = { at: ScreenId; done: ScreenId[]; back: ScreenId | null
 
 export const CHECK_START: CheckState = { at: "kind", done: [], back: null }
 
-export type CheckAction = { type: "next" } | { type: "back" } | { type: "go"; to: ScreenId; edit?: boolean } | { type: "end" } | { type: "jump"; to: ScreenId }
+export type CheckAction = { type: "next" } | { type: "back" } | { type: "go"; to: ScreenId; edit?: boolean } | { type: "end" }
 
 /** The screen on view, kept on the list: one that stopped applying gives way to the next that does. */
 export function shownScreen(state: CheckState, screens: ScreenId[]): ScreenId {
@@ -108,9 +108,5 @@ export function moveCheck(state: CheckState, action: CheckAction, screens: Scree
       return { ...state, at: action.to, back: action.edit ? at : null }
     case "end":
       return { at: last, done: add(state.done, ...screens.filter((s) => s !== last)), back: null }
-    case "jump": {
-      const j = Math.max(0, screens.indexOf(action.to))
-      return { at: screens[j]!, done: add(state.done, ...screens.slice(0, j)), back: null }
-    }
   }
 }

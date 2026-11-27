@@ -7,13 +7,13 @@ import type { UploadFlow } from "../../start/upload/useUploadFlow"
 import { Attachment } from "./shared/Attachment"
 import { LC_PRIMARY } from "./shared/Create"
 import { useAssistantName } from "./shared/Assistant"
-import { useIsWizard, type Pose } from "./shared/WizardPose"
+import type { Pose } from "./shared/WizardPose"
 import { Illustration } from "./shared/Illustration"
 import { TourCoach, type CoachStop, type Side } from "./TourCoach"
 
 /** Where the assistant stands for each card, so the tour moves around instead of down a line. */
 const SIDES: Side[] = ["right", "below", "left"]
-/** The book wizard's pose at each card (when it's the look). */
+/** The book wizard's pose at each card. */
 const POSES: Pose[] = ["reading", "thinking", "celebrate"]
 
 /** The three steps ahead, shown above the drop zone (and walked through on a first run). */
@@ -53,11 +53,6 @@ const STEPS: { image: string; icon: ReactNode; title: ReactNode; text: ReactNode
   },
 ]
 
-/**
- * The first-run tour's stops, on the page as it is (nothing moves): 0 the assistant introduces
- * itself, 1–3 one card each, 4 the drop zone. The assistant floats next to each (TourCoach).
- */
-export const TOUR_STOPS = STEPS.length + 2
 
 /** Upload's bubble: what to do, or what the drop zone found. */
 export function UploadSays({ flow, rejected }: { flow: UploadFlow; rejected: boolean }) {
@@ -213,7 +208,6 @@ export function UploadPanel({ flow, rejected, onContinue, tour, onTour, onTourDo
   const cards = [useRef<HTMLLIElement>(null), useRef<HTMLLIElement>(null), useRef<HTMLLIElement>(null)]
   const drop = useRef<HTMLDivElement>(null)
   const name = useAssistantName()
-  const wizard = useIsWizard()
   const stops: CoachStop[] = [
     {
       target: null,
@@ -252,7 +246,7 @@ export function UploadPanel({ flow, rejected, onContinue, tour, onTour, onTourDo
         {STEPS.map((s, i) => (
           <li key={s.image} ref={cards[i]} className={cn("lc-surface flex flex-row items-center gap-4 p-3 sm:flex-col sm:items-stretch sm:gap-3 lg:p-4")}>
             <span className="qd18-pv grid h-[84px] w-[112px] shrink-0 place-items-center overflow-hidden rounded-[14px] p-1.5 sm:h-[clamp(96px,calc(var(--gd-vh,1vh)*15),210px)] sm:w-auto sm:p-3">
-              <Illustration key={`${s.image}-${wizard}`} name={wizard ? `${s.image}-wizard` : s.image} fallback={<span className="grid size-12 place-items-center rounded-full bg-[var(--lc-accent-soft)] text-[var(--lc-accent-text)]">{s.icon}</span>} />
+              <Illustration key={s.image} name={`${s.image}-wizard`} fallback={<span className="grid size-12 place-items-center rounded-full bg-[var(--lc-accent-soft)] text-[var(--lc-accent-text)]">{s.icon}</span>} />
             </span>
             <span className="flex min-w-0 flex-col gap-1 sm:px-1 sm:pb-1">
               <span className="flex items-center gap-2 text-[15.5px] font-semibold leading-tight lg:text-[17px]">

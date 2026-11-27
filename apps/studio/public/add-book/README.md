@@ -4,9 +4,6 @@ Generated with OpenAI gpt-image-2.6-sunburst (1536x1024, transparent, medium), d
 
 Shared style: Friendly, clean, modern flat illustration with soft depth (subtle soft shadows, slightly rounded 3D feel), like a high-quality product onboarding illustration. Limited palette: brand blue #2B7FFF as the main accent, warm amber #F5B83D as second accent, soft green #5FD3A0 sparingly, slate greys, white paper. Consistent soft light from the top left. Transparent background, the subject centred with generous empty margins, no floor, no background scene. Absolutely no text, letters, numbers, words or symbols of writing anywhere: suggest text only with grey rounded lines and blocks. No logos, no brands, no existing characters. Simple shapes, one clear idea, readable when shown small.
 
-- `step-read.png`: A PDF book lying open while a soft glowing blue scanning light passes over its pages, a small friendly round blue assistant orb hovering beside it.
-- `step-check.png`: A short checklist card with three rows: two rows ticked with blue checkmarks and the third row being chosen by a pointing hand, a small friendly round blue assistant orb beside it.
-- `step-create.png`: A finished interactive digital book shown on a tablet and a phone side by side: a big picture, rounded text lines, a round listen button with a speaker icon, and a small quiz card with three options.
 - `kind-story.png`: An open picture storybook: the left page has an illustrated scene of a child and a friendly animal in nature with a sun and hills, the right page has a few grey text lines.
 - `kind-school.png`: A school workbook page: a blue heading block, grey lesson lines, a numbered exercise shown as amber circles with dashed blank lines to fill in, three small tick boxes with one ticked, and a yellow pencil.
 - `kind-information.png`: An information book page with a small bar chart, a small table, grey paragraph lines, and a magnifying glass resting over it.
