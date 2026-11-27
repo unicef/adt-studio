@@ -68,7 +68,7 @@ function RangeReveal({ shown, children }: { shown: boolean; children: ReactNode 
   )
 }
 
-const LINK = "font-semibold text-brand-700 underline decoration-brand-300 underline-offset-4 transition-colors hover:text-brand-800"
+export const SCOPE_LINK = "font-semibold text-brand-700 underline decoration-brand-300 underline-offset-4 transition-colors hover:text-brand-800"
 
 function Layer({ shown, children }: { shown: boolean; children: ReactNode }) {
   return (
@@ -117,7 +117,7 @@ function VisualRange() {
  * the only thing shown; "Choose pages" opens a slider flanked by the first and last chosen page, and
  * Split sits underneath as a quieter option for sharing the work.
  */
-export function ScopeField({ className }: { className?: string }) {
+export function ScopeField({ className, splitPrompt }: { className?: string; /** Replaces the "Sharing the work with others?" line; gets the button that picks Split. */ splitPrompt?: (split: () => void) => ReactNode }) {
   const { scope, totalPages, start, end, setScope } = useScope()
   return (
     <div className={cn("flex flex-col gap-2", className)}>
@@ -125,7 +125,7 @@ export function ScopeField({ className }: { className?: string }) {
         <Layer shown={scope === "whole"}>
           <FileText className="size-4 shrink-0 text-brand-600" />
           <span className="font-medium">{totalPages > 0 ? <Plural value={totalPages} one="The page will be converted" other="All # pages will be converted" /> : <Trans>Counting pages…</Trans>}</span>
-          <button type="button" onClick={() => setScope("range")} className={cn("ml-auto shrink-0", LINK)}>
+          <button type="button" onClick={() => setScope("range")} className={cn("ml-auto shrink-0", SCOPE_LINK)}>
             <Trans>Choose pages</Trans>
           </button>
         </Layer>
@@ -136,7 +136,7 @@ export function ScopeField({ className }: { className?: string }) {
               Pages {start}–{end}
             </Trans>
           </span>
-          <button type="button" onClick={() => setScope("whole")} className={cn("ml-auto shrink-0", LINK)}>
+          <button type="button" onClick={() => setScope("whole")} className={cn("ml-auto shrink-0", SCOPE_LINK)}>
             <Trans>Use all pages</Trans>
           </button>
         </Layer>
@@ -145,7 +145,7 @@ export function ScopeField({ className }: { className?: string }) {
           <span className="font-medium">
             <Trans>Split into parts</Trans>
           </span>
-          <button type="button" onClick={() => setScope("whole")} className={cn("ml-auto shrink-0", LINK)}>
+          <button type="button" onClick={() => setScope("whole")} className={cn("ml-auto shrink-0", SCOPE_LINK)}>
             <Trans>Convert it here instead</Trans>
           </button>
         </Layer>
@@ -154,12 +154,16 @@ export function ScopeField({ className }: { className?: string }) {
       <SplitNote shown={scope === "split"} />
       <Collapsible shown={scope !== "split"}>
         <p inert={scope === "split"} className="pt-1 text-[12px] text-muted-foreground">
-          <Trans>
-            Sharing the work with others?{" "}
-            <button type="button" onClick={() => setScope("split")} className={LINK}>
-              Split into parts
-            </button>
-          </Trans>
+          {splitPrompt ? (
+            splitPrompt(() => setScope("split"))
+          ) : (
+            <Trans>
+              Sharing the work with others?{" "}
+              <button type="button" onClick={() => setScope("split")} className={SCOPE_LINK}>
+                Split into parts
+              </button>
+            </Trans>
+          )}
         </p>
       </Collapsible>
     </div>

@@ -11733,6 +11733,9 @@ msgstr "Configuração parada"
 msgid "Setup stopped partway"
 msgstr "Configuração parada no meio"
 
+msgid "Several people converting this book together? <0>Split it into parts</0> so each person converts some of the pages."
+msgstr "Várias pessoas vão converter este livro juntas? <0>Divida-o em partes</0> para que cada pessoa converta algumas das páginas."
+
 msgid "Shadow"
 msgstr "Sombra"
 
@@ -13128,6 +13131,9 @@ msgstr "A mensagem leva o título, o link e o código."
 
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "O modelo detecta caixas delimitadoras para que cada elemento visual possa ser armazenado e disposto separadamente."
+
+msgid "The name of this book in your library. Use letters, numbers and dashes, with no spaces."
+msgstr "O nome deste livro na sua biblioteca. Use letras, números e hifens, sem espaços."
 
 msgid "The only activities are colouring or drawing."
 msgstr "As únicas atividades são colorir ou desenhar."

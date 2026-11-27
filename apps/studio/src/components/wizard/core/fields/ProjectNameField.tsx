@@ -1,4 +1,4 @@
-import { useId } from "react"
+import { useId, type ReactNode } from "react"
 import { useLingui } from "@lingui/react"
 import { t } from "@lingui/core/macro"
 import { Trans } from "@lingui/react/macro"
@@ -20,6 +20,8 @@ export interface ProjectNameFieldProps {
   onChange: (value: string) => void
   onBlur: () => void
   errors: readonly unknown[]
+  /** Replaces the default hint under the field (the guided flow words it for a first-time user). */
+  hint?: ReactNode
 }
 
 export function ProjectNameField({
@@ -27,6 +29,7 @@ export function ProjectNameField({
   onChange,
   onBlur,
   errors,
+  hint,
 }: ProjectNameFieldProps) {
   const { i18n } = useLingui()
   const inputId = "wizard-project-name"
@@ -62,7 +65,7 @@ export function ProjectNameField({
             hasError ? "pointer-events-none opacity-0" : "opacity-100",
           )}
         >
-          <Trans>A unique identifier used as the book folder name.</Trans>
+          {hint ?? <Trans>A unique identifier used as the book folder name.</Trans>}
         </p>
         <p
           id={errorId}

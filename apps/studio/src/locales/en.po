@@ -11733,6 +11733,9 @@ msgstr "Setup stopped"
 msgid "Setup stopped partway"
 msgstr "Setup stopped partway"
 
+msgid "Several people converting this book together? <0>Split it into parts</0> so each person converts some of the pages."
+msgstr "Several people converting this book together? <0>Split it into parts</0> so each person converts some of the pages."
+
 msgid "Shadow"
 msgstr "Shadow"
 
@@ -13128,6 +13131,9 @@ msgstr "The message carries the title, the link and the code."
 
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "The model detects bounding boxes so each visual element can be stored and laid out separately."
+
+msgid "The name of this book in your library. Use letters, numbers and dashes, with no spaces."
+msgstr "The name of this book in your library. Use letters, numbers and dashes, with no spaces."
 
 msgid "The only activities are colouring or drawing."
 msgstr "The only activities are colouring or drawing."

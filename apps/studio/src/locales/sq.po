@@ -11735,6 +11735,9 @@ msgstr "Vendosja ndaloi"
 msgid "Setup stopped partway"
 msgstr "Vendosja ndaloi në mes"
 
+msgid "Several people converting this book together? <0>Split it into parts</0> so each person converts some of the pages."
+msgstr "Disa persona po e konvertojnë këtë libër së bashku? <0>Ndajeni në pjesë</0> që secili të konvertojë disa nga faqet."
+
 msgid "Shadow"
 msgstr "Hije"
 
@@ -13130,6 +13133,9 @@ msgstr "Mesazhi përmban titullin, lidhjen dhe kodin."
 
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "Modeli zbulон kufijtë e elementeve vizualë që çdo element mund të ruhet dhe të vendoset veçmas."
+
+msgid "The name of this book in your library. Use letters, numbers and dashes, with no spaces."
+msgstr "Emri i këtij libri në bibliotekën tuaj. Përdorni shkronja, numra dhe viza, pa hapësira."
 
 msgid "The only activities are colouring or drawing."
 msgstr "Aktivitetet e vetme janë ngjyrosja ose vizatimi."

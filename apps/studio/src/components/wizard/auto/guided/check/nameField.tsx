@@ -1,4 +1,5 @@
 import { useStore } from "@tanstack/react-form"
+import { Trans } from "@lingui/react/macro"
 import { ProjectNameField } from "@/components/wizard/core/fields/ProjectNameField"
 import { createProjectLabelSchema } from "@/components/wizard/core/fields/projectLabelSchema"
 import { useWizardForm } from "@/components/wizard/core/wizardForm"
@@ -11,7 +12,7 @@ export function NameField() {
   const existing = books?.map((b: { label: string }) => b.label) ?? []
   return (
     <form.Field name="label" validators={{ onChange: createProjectLabelSchema(existing) }}>
-      {(field) => <ProjectNameField value={field.state.value} onChange={field.handleChange} onBlur={field.handleBlur} errors={field.state.meta.errors} />}
+      {(field) => <ProjectNameField value={field.state.value} onChange={field.handleChange} onBlur={field.handleBlur} errors={field.state.meta.errors} hint={<Trans>The name of this book in your library. Use letters, numbers and dashes, with no spaces.</Trans>} />}
     </form.Field>
   )
 }

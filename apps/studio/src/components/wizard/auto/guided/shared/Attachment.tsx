@@ -3,7 +3,8 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { HardDrive, Trash2, Upload } from "lucide-react"
 import { Collapsible } from "@/components/ui/collapsible"
 import { formatBytes } from "@/lib/utils"
-import { ScopeField, useScopeSummary } from "../../../core/fields/ScopeField"
+import { useScopeSummary } from "../../../core/fields/ScopeField"
+import { GuidedScopeField } from "./GuidedScopeField"
 import { Book3D } from "../../../core/Book3D"
 import type { UploadFlow } from "../../../start/upload/useUploadFlow"
 
@@ -46,7 +47,7 @@ export function Attachment({ flow, frozen }: { flow: UploadFlow; frozen: boolean
       </div>
       <Collapsible shown={pages}>
         <div inert={!pages} className="border-t border-border/70 px-3.5 pb-3 pt-3">
-          <ScopeField />
+          <GuidedScopeField />
         </div>
       </Collapsible>
     </div>

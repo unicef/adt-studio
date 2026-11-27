@@ -1,7 +1,8 @@
 import { useStore } from "@tanstack/react-form"
 import { Trans } from "@lingui/react/macro"
 import { ArrowRight } from "lucide-react"
-import { PageThumb, ScopeField } from "../../../../core/fields/ScopeField"
+import { PageThumb } from "../../../../core/fields/ScopeField"
+import { GuidedScopeField } from "../../shared/GuidedScopeField"
 import { useWizardForm } from "../../../../core/wizardForm"
 
 /**
@@ -35,7 +36,7 @@ export function PagesScreen({ pageCount }: { pageCount: number }) {
           </span>
         </div>
       </div>
-      <ScopeField className="text-[14.5px]" />
+      <GuidedScopeField className="text-[14.5px]" />
     </div>
   )
 }
