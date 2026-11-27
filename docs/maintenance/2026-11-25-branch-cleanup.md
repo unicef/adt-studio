@@ -4,13 +4,13 @@ Policy and restore steps: [BRANCH_HYGIENE.md](../BRANCH_HYGIENE.md).
 
 ## What happened
 
-On 2026-11-25 the repository had 633 remote branches besides `main` and `develop`, most of them left behind by merged PRs. The same day, "Automatically delete head branches" was turned on so merged branches no longer pile up, and the existing merged branches were deleted once.
+On 2026-11-25 the repository had 633 remote branches, including `main` and `develop`. The other 631 were mostly left behind by merged PRs. The same day, "Automatically delete head branches" was turned on so merged branches no longer pile up, and the existing merged branches were deleted once.
 
 - **Deleted: 457 branches.** Each one's PR merged, and the branch tip was the PR's merged head commit or older. Just before deleting, every branch was checked again: tip unchanged, not protected, not the head or base of an open PR.
 - **Kept: everything else.** 54 branches whose PR closed without merging, 39 that never had a PR, 13 whose merged PR doesn't contain all of their commits, and 68 used by an open PR or the site deploy. Their owners decide what happens to them.
 
 ```mermaid
-pie showData title Remote branches on 2026-11-25 (633)
+pie showData title Remote branches on 2026-11-25, excluding main and develop (631)
     "Deleted: PR merged, nothing newer" : 457
     "Kept: open PR or site deploy" : 68
     "Kept: PR closed without merging" : 54
