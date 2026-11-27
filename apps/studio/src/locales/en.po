@@ -436,10 +436,6 @@ msgstr "{0} translations"
 msgid "{0}: “{1}”"
 msgstr "{0}: “{1}”"
 
-#. placeholder {0}: flow.title
-msgid "{0}: details and picks"
-msgstr "{0}: details and picks"
-
 #. placeholder {0}: String(generatedAudioCount)
 #. placeholder {1}: String(speakableEntries.length)
 msgid "{0}/{1} audio"

@@ -1,6 +1,5 @@
 /* eslint-disable lingui/no-unlocalized-strings -- dev-only demo page for developers, never shown to users */
 import { useState, type ReactNode } from "react"
-import { useLingui } from "@lingui/react"
 import type { SetupRecommendation } from "@adt/types"
 import { cn } from "@/lib/utils"
 import { FACT_IDS, SETTING_IDS } from "../engine/ids"
@@ -301,7 +300,6 @@ function Labels({ rec, file }: { rec: SetupRecommendation; file: File | null }) 
 }
 
 function Questions({ rec, file }: { rec: SetupRecommendation; file: File | null }) {
-  const { i18n } = useLingui()
   const answers = rec.readings?.questions?.answers
   return (
     <Card step="4" title="Reading B: four plain questions" kind="ai" aside={<span className="text-[12.5px] text-muted-foreground">the second opinion · {ms(rec.timings.questionsMs)}</span>}>
@@ -373,7 +371,6 @@ function Compare({ rec }: { rec: SetupRecommendation }) {
 }
 
 function AskOrNot({ rec }: { rec: SetupRecommendation }) {
-  const { i18n } = useLingui()
   const asked = rec.facts.filter((f) => f.ask)
   const body = rec.readings?.labels?.counts.body ?? rec.pageLabels.filter((l) => BODY.includes(l.type)).length
   return (

@@ -1,10 +1,10 @@
 import { createContext } from "react"
 
-/** Where the PDF shows (dev lab, ?pdf=): the dock in the bar, next to the title, a row above the steps, or a side rail on wide windows. */
-export type PdfPlacement = "dock" | "title" | "row" | "rail"
-/** Where the picks show (dev lab, ?picks=): only in the PDF's panel, chips under the steps, or a trail in the stepper. */
-export type PicksPlacement = "menu" | "chips" | "trail"
-export type PdfOptions = { pdf: PdfPlacement; picks: PicksPlacement }
+/** How the PDF row above the steps looks (dev lab, ?row=). */
+export type RowLook = "plain" | "card" | "compact" | "strip"
+/** Where the picks show (dev lab, ?picks=): nowhere extra, chips under the steps, or a trail in the stepper. */
+export type PicksPlacement = "none" | "chips" | "trail"
+export type PdfOptions = { row: RowLook; picks: PicksPlacement }
 
-export const PDF_NOW: PdfOptions = { pdf: "dock", picks: "menu" }
+export const PDF_NOW: PdfOptions = { row: "plain", picks: "none" }
 export const PdfOptionsContext = createContext<PdfOptions>(PDF_NOW)

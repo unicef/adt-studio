@@ -26,12 +26,9 @@ import { useScreenValues } from "./check/useScreenValues"
 import { CreatePanel, CreateSays } from "./CreatePanel"
 import { Morph } from "./Morph"
 import { FlowTopBar } from "@/components/FlowTopBar"
-import { Dock } from "./pdf/Dock"
 import { PdfOptionsContext } from "./pdf/options"
 import type { PdfPick } from "./pdf/parts"
-import { PdfRail } from "./pdf/PdfRail"
 import { PdfRow } from "./pdf/PdfRow"
-import { PdfTitle } from "./pdf/PdfTitle"
 import { PicksChips, PicksTrail } from "./pdf/PicksChips"
 import { activityFacts, type ScreenId } from "./check/screens"
 import { screenTitle } from "./check/words"
@@ -219,9 +216,8 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
     setView(null)
     check.go(s, true)
   }) : null
-  // Where the PDF and the picks show: the dock until a design is chosen (dev lab: ?pdf= &picks=).
+  // How the PDF row looks and where the picks show (dev lab: ?row= &picks=).
   const pdfAt = useContext(PdfOptionsContext)
-  const pdfProps = { flow, picks, onEdit: create.locked ? null : onEditPick, locked: creating }
   const scroller = useRef<HTMLDivElement>(null)
   const { scale, vh } = usePageScale(scroller)
   return (
@@ -233,8 +229,6 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
           <FlowTopBar
             title={t`Add Book`}
             contentWidth={columnPx * scale}
-            center={pdfAt.pdf === "dock" ? <Dock {...pdfProps} /> : undefined}
-            after={pdfAt.pdf === "title" ? <PdfTitle {...pdfProps} /> : undefined}
           />
         </div>
         <FileDropOverlay overlay={flow.overlay} dropLabel={<Trans>Drop PDF here</Trans>} errorLabel={<Trans>Only PDF files are supported</Trans>} accent="blue" />
@@ -251,7 +245,7 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
               floating small in the middle; on short ones the spacing tightens. */}
           <div className="mx-auto flex w-full flex-col px-4 pb-24 pt-6 sm:px-6 sm:pt-8 [@media(max-height:800px)]:pt-4" style={{ zoom: scale, "--gd-vh": `${vh}px` } as CSSProperties}>
             <div className={cn("gd-col mx-auto w-full", column)}>
-              {(pdfAt.pdf === "row" || pdfAt.pdf === "rail") && <PdfRow flow={flow} locked={creating} className={cn("mb-4", pdfAt.pdf === "rail" && "min-[1480px]:hidden")} />}
+              <PdfRow flow={flow} locked={creating} look={pdfAt.row} />
               <Stepper
                 at={at}
                 shown={shown}
@@ -260,10 +254,9 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
                 complete={lastRun?.status === "done"}
                 onGo={(s) => morph(() => setView(s === at ? null : s))}
                 checkBars={bars}
-                trail={pdfAt.picks === "trail" && shown === "check" && check.at ? <PicksTrail picks={picks.filter((p) => p.screen !== check.at)} current={i18n._(screenTitle(check.at, facts))} onEdit={onEditPick} /> : undefined}
+                trail={pdfAt.picks === "trail" && shown === "check" && check.at ? <PicksTrail picks={picks.filter((p) => p.screen !== check.at)} current={i18n._(screenTitle(check.at, facts))} onEdit={create.locked ? null : onEditPick} /> : undefined}
               />
               {pdfAt.picks === "chips" && <PicksChips picks={picks.filter((p) => p.screen !== check.at || shown !== "check")} onEdit={onEditPick} className="mt-3" />}
-              {pdfAt.pdf === "rail" && <PdfRail {...pdfProps} />}
             </div>
             <div className={cn("gd-col mx-auto mt-7 w-full lg:mt-9 [@media(max-height:800px)]:mt-4", column)}>
               <div className="min-w-0">
