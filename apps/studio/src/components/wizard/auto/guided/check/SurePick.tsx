@@ -58,33 +58,36 @@ export function SurePick({ picture, label, title, hint, result, after, changed, 
   }, [open])
   return (
     <div data-pick className="flex scroll-mt-24 flex-col gap-5">
-      {picture && (
-        <div data-vt-pick={`pick-${labelId}`} className="w-full shrink-0 [&>*>*]:!h-[clamp(170px,calc(var(--gd-vh,1vh)*30),360px)] [&>*>*]:!w-full" style={{ viewTransitionName: `pick-${labelId}` }}>
-          <div key={typeof title === "string" ? title : undefined} className="gd-pick-in contents">
-            {picture}
+      {/* On a wide window the picture stands beside the words, so the step fits without scrolling. */}
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:gap-8">
+        {picture && (
+          <div data-vt-pick={`pick-${labelId}`} className="w-full shrink-0 lg:w-[46%] [&>*>*]:!h-[max(120px,calc(clamp(170px,calc(var(--gd-vh,1vh)*30),360px)-var(--gd-squeeze,0px)))] [&>*>*]:!w-full lg:[&>*>*]:!h-[max(180px,calc(clamp(220px,calc(var(--gd-vh,1vh)*34),400px)-var(--gd-squeeze,0px)))]" style={{ viewTransitionName: `pick-${labelId}` }}>
+            <div key={typeof title === "string" ? title : undefined} className="gd-pick-in contents">
+              {picture}
+            </div>
           </div>
-        </div>
-      )}
-      <div className="flex min-w-0 flex-col items-start gap-2">
-        {label && (
-          <span id={labelId} className="text-[15px] text-muted-foreground lg:text-[16px]">
-            {label}
+        )}
+        <div className="flex min-w-0 flex-1 flex-col items-start gap-2">
+          {label && (
+            <span id={labelId} className="text-[15px] text-muted-foreground lg:text-[16px]">
+              {label}
+            </span>
+          )}
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="text-[26px] font-semibold leading-tight tracking-[-0.02em] lg:text-[32px]">{title}</span>
+            {(badge || changed) && <PickBadge changed={changed} />}
           </span>
-        )}
-        <span className="flex flex-wrap items-center gap-2">
-          <span className="text-[26px] font-semibold leading-tight tracking-[-0.02em] lg:text-[34px]">{title}</span>
-          {(badge || changed) && <PickBadge changed={changed} />}
-        </span>
-        {hint && <span className="text-[15.5px] leading-snug text-muted-foreground lg:text-[17px]">{hint}</span>}
-        {result && <span className="text-[13.5px] leading-snug text-foreground/85 lg:text-[15px]">{result}</span>}
-        {after && <div className="mt-1 w-full">{after}</div>}
-        {others && (
-          <button type="button" aria-expanded={open} onClick={onToggle} className="lc-link -ml-1.5 mt-1 inline-flex min-h-9 items-center gap-1 px-1.5 text-[13.5px] font-medium">
-            {open ? (hideLabel ?? <Trans>Hide the other options</Trans>) : (othersLabel ?? <Trans>See the other options</Trans>)}
-            <ChevronDown className={cn("size-3.5 transition-transform motion-reduce:transition-none", open && "rotate-180")} />
-          </button>
-        )}
+          {hint && <span className="text-[15.5px] leading-snug text-muted-foreground lg:text-[16.5px]">{hint}</span>}
+          {result && <span className="text-[13.5px] leading-snug text-foreground/85 lg:text-[14.5px]">{result}</span>}
+          {others && (
+            <button type="button" aria-expanded={open} onClick={onToggle} className="lc-link -ml-1.5 mt-1 inline-flex min-h-9 items-center gap-1 px-1.5 text-[13.5px] font-medium">
+              {open ? (hideLabel ?? <Trans>Hide the other options</Trans>) : (othersLabel ?? <Trans>See the other options</Trans>)}
+              <ChevronDown className={cn("size-3.5 transition-transform motion-reduce:transition-none", open && "rotate-180")} />
+            </button>
+          )}
+        </div>
       </div>
+      {after && <div className="-mt-1 w-full">{after}</div>}
       {/* The options grow in (height and fade), and shrink away when hidden; nothing else on the page moves. */}
       <div className={cn("gd-expand grid", open ? "grid-rows-[1fr] opacity-100" : "-mt-5 grid-rows-[0fr] opacity-0")} inert={!open}>
         <div className={cn("min-h-0", settled ? "overflow-visible" : "overflow-hidden")}>
@@ -99,4 +102,4 @@ export function SurePick({ picture, label, title, hint, result, after, changed, 
 
 /** The pick's picture area, sized for a screen: full width on a phone, beside the words from sm up. */
 // eslint-disable-next-line lingui/no-unlocalized-strings -- Tailwind classes, never shown
-export const PICTURE = "h-[160px] w-full sm:h-[170px] sm:w-[270px] lg:h-[clamp(220px,calc(var(--gd-vh,1vh)*32),360px)] lg:w-[clamp(340px,calc(var(--gd-vh,1vh)*50),560px)]"
+export const PICTURE = "h-[160px] w-full sm:h-[170px] sm:w-[270px] lg:h-[max(120px,calc(clamp(220px,calc(var(--gd-vh,1vh)*32),360px)-var(--gd-squeeze,0px)))] lg:w-[clamp(340px,calc(var(--gd-vh,1vh)*50),560px)]"

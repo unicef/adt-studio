@@ -22,7 +22,7 @@ export function PagesScreen({ pageCount }: { pageCount: number }) {
   return (
     <div className="lc-surface flex flex-col gap-4 p-4 sm:p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
-        <span className="qd18-pv flex h-[150px] w-full shrink-0 items-center justify-center gap-3 rounded-[12px] sm:h-[170px] sm:w-[270px] lg:h-[clamp(220px,calc(var(--gd-vh,1vh)*32),360px)] lg:w-[clamp(340px,calc(var(--gd-vh,1vh)*50),560px)]">
+        <span className="qd18-pv flex h-[150px] w-full shrink-0 items-center justify-center gap-3 rounded-[12px] sm:h-[170px] sm:w-[270px] lg:h-[max(140px,calc(clamp(220px,calc(var(--gd-vh,1vh)*32),360px)-var(--gd-squeeze,0px)))] lg:w-[clamp(340px,calc(var(--gd-vh,1vh)*50),560px)]">
           <PageThumb file={file} page={first} />
           <ArrowRight aria-hidden className="size-4 text-muted-foreground" />
           <PageThumb file={file} page={last} />

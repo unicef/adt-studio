@@ -163,7 +163,7 @@ function DropZone({ flow, rejected }: { flow: UploadFlow; rejected: boolean }) {
       data-tone={tone}
       className={cn(
         "gd-drop group flex w-full flex-col items-center justify-center gap-3 rounded-[22px] border-2 border-dashed bg-[var(--lc-bubble)] px-6 text-center transition-[border-color,background-color] duration-300",
-        "min-h-[180px] lg:min-h-[clamp(180px,calc(var(--gd-vh,1vh)*26),360px)]",
+        "min-h-[180px] lg:min-h-[max(150px,calc(clamp(180px,calc(var(--gd-vh,1vh)*26),360px)-var(--gd-squeeze,0px)))]",
         tone === "idle" && "border-border hover:border-[var(--gd-step)]",
         tone === "busy" && "cursor-default border-[var(--gd-step)]",
         tone === "ok" && "cursor-default border-emerald-500 bg-emerald-50/60 dark:bg-emerald-500/10",
@@ -245,7 +245,7 @@ export function UploadPanel({ flow, rejected, onContinue, tour, onTour, onTourDo
       <ol className="grid gap-3 sm:grid-cols-3 lg:gap-4">
         {STEPS.map((s, i) => (
           <li key={s.image} ref={cards[i]} className={cn("lc-surface flex flex-row items-center gap-4 p-3 sm:flex-col sm:items-stretch sm:gap-3 lg:p-4")}>
-            <span className="qd18-pv grid h-[84px] w-[112px] shrink-0 place-items-center overflow-hidden rounded-[14px] p-1.5 sm:h-[clamp(96px,calc(var(--gd-vh,1vh)*15),210px)] sm:w-auto sm:p-3">
+            <span className="qd18-pv grid h-[84px] w-[112px] shrink-0 place-items-center overflow-hidden rounded-[14px] p-1.5 sm:h-[max(80px,calc(clamp(96px,calc(var(--gd-vh,1vh)*15),210px)-var(--gd-squeeze,0px)))] sm:w-auto sm:p-3">
               <Illustration key={s.image} name={`${s.image}-wizard`} fallback={<span className="grid size-12 place-items-center rounded-full bg-[var(--lc-accent-soft)] text-[var(--lc-accent-text)]">{s.icon}</span>} />
             </span>
             <span className="flex min-w-0 flex-col gap-1 sm:px-1 sm:pb-1">

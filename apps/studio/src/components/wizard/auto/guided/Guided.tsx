@@ -209,6 +209,8 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
 
   const scroller = useRef<HTMLDivElement>(null)
   const { scale, vh } = usePageScale(scroller)
+  const page = useRef<HTMLDivElement>(null)
+  useSqueeze(scroller, page, scale)
   return (
     <FinishContext.Provider value={{ onOpen: create.open }}>
       <div className="lc-root gd-root relative flex h-full min-h-0 flex-1 flex-col overflow-clip" data-tone={tone}>
@@ -227,7 +229,7 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
           {/* One column per step, and the stepper takes the same width, so its ends line up with the
               bubble and the content. On big windows the whole page scales up (zoom) instead of
               floating small in the middle; on short ones the spacing tightens. */}
-          <div className="mx-auto flex w-full flex-col px-4 pb-24 pt-6 sm:px-6 sm:pt-8 [@media(max-height:800px)]:pt-4" style={{ zoom: scale, "--gd-vh": `${vh}px` } as CSSProperties}>
+          <div ref={page} className="mx-auto flex w-full flex-col px-4 pb-6 pt-6 sm:px-6 sm:pt-8 [@media(max-height:800px)]:pt-4" style={{ zoom: scale, "--gd-vh": `${vh}px` } as CSSProperties}>
             <div className={cn("gd-col mx-auto w-full", column)}>
               <PdfRow flow={flow} locked={creating} />
               <Stepper
@@ -240,12 +242,12 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
                 checkBars={bars}
               />
             </div>
-            <div className={cn("gd-col mx-auto mt-7 w-full lg:mt-9 [@media(max-height:800px)]:mt-4", column)}>
+            <div className={cn("gd-col mx-auto mt-7 w-full lg:mt-9 [@media(max-height:800px)]:mt-3", column)}>
               <div className="min-w-0">
                 <Bubble swap={swap} busy={busy} away={shown === "upload" && !flow.file && tour !== null}>
                   {says}
                 </Bubble>
-                <Morph swap={`${shown}-${!!panel}`} name="gd-panel" className="-mx-2 mt-4" inner="px-2 pb-3 pt-1">
+                <Morph swap={`${shown}-${!!panel}`} name="gd-panel" className="-mx-2 mt-4 [@media(max-height:800px)]:mt-3" inner="px-2 pb-3 pt-1">
                   {panel}
                 </Morph>
               </div>
@@ -284,6 +286,48 @@ function useWide(): boolean {
     () => window.matchMedia(WIDE).matches,
     () => false,
   )
+}
+
+/**
+ * Keeps a step from scrolling on a regular (laptop or bigger) window: when the page is taller than the window, its
+ * pictures give up the difference (--gd-squeeze, in page units), down to each one's smallest size.
+ * Measured from no squeeze every time, so a shorter step gets its pictures back.
+ */
+function useSqueeze(scroller: RefObject<HTMLElement | null>, page: RefObject<HTMLElement | null>, scale: number) {
+  useLayoutEffect(() => {
+    const sc = scroller.current
+    const el = page.current
+    if (!sc || !el) return
+    const fit = () => {
+      let q = 0
+      el.style.setProperty("--gd-squeeze", "0px")
+      // A phone scrolls anyway: its pictures keep their size.
+      if (!window.matchMedia(WIDE).matches) return
+      const set = (v: number) => el.style.setProperty("--gd-squeeze", `${v}px`)
+      const fits = () => sc.scrollHeight - sc.clientHeight <= 1
+      for (let i = 0; i < 3 && !fits(); i++) {
+        q = Math.min(400, q + (sc.scrollHeight - sc.clientHeight) / scale)
+        set(Math.ceil(q))
+      }
+      if (q === 0) return
+      // Several pictures may give up the same squeeze, so it can overshoot: find the least that fits.
+      let lo = 0
+      let hi = Math.ceil(q)
+      if (!fits()) return
+      while (hi - lo > 4) {
+        const mid = Math.round((lo + hi) / 2)
+        set(mid)
+        if (fits()) hi = mid
+        else lo = mid
+      }
+      set(hi)
+    }
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(sc)
+    for (const child of el.children) ro.observe(child)
+    return () => ro.disconnect()
+  }, [scroller, page, scale])
 }
 
 function usePageScale(ref: RefObject<HTMLElement | null>): { scale: number; vh: number } {

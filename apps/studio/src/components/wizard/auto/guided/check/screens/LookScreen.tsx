@@ -28,7 +28,7 @@ type Props = { rec: SetupRecommendation; chat: Answers; file: File | null | unde
 function LayoutPick({ rec, chat, file, asked }: Props & { asked: boolean }) {
   const { i18n } = useLingui()
   const derived = chat.derived!
-  const [open, setOpen] = useState(asked)
+  const [open, setOpen] = useState(false)
   const value = String(derived.effective.renderStrategy?.value)
   const shown = new Set(SETTING_OPTIONS.renderStrategy.map((o) => String(o.value)))
   const allowed = strategiesFor(derived.effective.preset?.value).filter((s) => shown.has(s))
@@ -68,6 +68,17 @@ function LayoutPick({ rec, chat, file, asked }: Props & { asked: boolean }) {
   )
   const labelId = "gd-layout"
   const means = SETTING_VALUE.renderStrategy[value]?.means
+  const choices = <LookChoices rec={rec} options={options} page={rec.previewPage} chosen={value} onPick={(v) => chat.override("renderStrategy", v)} file={file} labelId={labelId} />
+  // Asked: the options are the question, side by side, as on any asked fact.
+  if (asked)
+    return (
+      <div className="flex flex-col gap-2">
+        <p id={labelId} className="px-1 text-[15px] font-medium">
+          <Trans>How the pages look on screen</Trans>
+        </p>
+        {choices}
+      </div>
+    )
   return (
     <SurePick
       picture={<span className={`grid shrink-0 place-items-center p-3 ${PICTURE}`}>{layoutArt(value)}</span>}
@@ -82,15 +93,7 @@ function LayoutPick({ rec, chat, file, asked }: Props & { asked: boolean }) {
       onToggle={() => setOpen((o) => !o)}
       others={options.length > 1}
     >
-      <LookChoices
-        rec={rec}
-        options={options}
-        page={rec.previewPage}
-        chosen={value}
-        onPick={(v) => chat.override("renderStrategy", v)}
-        file={file}
-        labelId={labelId}
-      />
+      {choices}
     </SurePick>
   )
 }

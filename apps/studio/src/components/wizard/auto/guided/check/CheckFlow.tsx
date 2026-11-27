@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react"
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { ArrowLeft, Check as CheckIcon, Sparkles, Wrench } from "lucide-react"
 import type { SetupRecommendation } from "@adt/types"
@@ -53,6 +53,18 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
   const create = useCreate(onCreate)
   const heading = useRef<HTMLHeadingElement>(null)
   const moved = useRef(false)
+  // The space kept under the content is the bar's own height (less the page's own bottom padding, 24px), so a page that fits never scrolls.
+  const bar = useRef<HTMLDivElement>(null)
+  const [barH, setBarH] = useState(88)
+  useLayoutEffect(() => {
+    const el = bar.current
+    if (!el) return
+    const fit = () => setBarH(Math.max(0, el.offsetHeight - 12))
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
   // Which way the flow went, so the new screen slides in from that side.
   const way = useRef<{ at: ScreenId; index: number; dir: "next" | "back" }>({ at, index, dir: "next" })
   if (way.current.at !== at) way.current = { at, index, dir: index >= way.current.index ? "next" : "back" }
@@ -108,9 +120,9 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
         {body}
       </div>
       {/* The bar stays at the bottom of the window, so the button never moves; the space above keeps it off the content. */}
-      <div aria-hidden className="h-[120px]" />
-      <div className="gd-bar fixed inset-x-0 bottom-0 z-20 border-t border-border bg-[var(--lc-bg)]/95 backdrop-blur-sm">
-        <div className="mx-auto flex w-full max-w-[760px] flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-4 sm:px-6">
+      <div aria-hidden style={{ height: barH }} />
+      <div ref={bar} className="gd-bar fixed inset-x-0 bottom-0 z-20 border-t border-border bg-[var(--lc-bg)]/95 backdrop-blur-sm">
+        <div className="mx-auto flex w-full max-w-[760px] flex-wrap items-center justify-between gap-x-6 lg:max-w-[880px] gap-y-3 px-4 py-4 sm:px-6">
           {/* Where you are: this screen, the steps of Check as segments, and the count. */}
           <div className="flex min-w-0 flex-col gap-1.5">
             <span className="flex items-baseline gap-2 text-[14px]">
