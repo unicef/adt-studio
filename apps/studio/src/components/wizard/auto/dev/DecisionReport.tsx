@@ -2,7 +2,7 @@
 import { useState, type ReactNode } from "react"
 import { useLingui } from "@lingui/react"
 import type { SetupRecommendation, SetupSettingId } from "@adt/types"
-import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { FACT_IDS, SETTING_IDS } from "../engine/ids"
 import { RULE_WHY } from "../engine/words"
@@ -202,7 +202,7 @@ function LiveDecisions({ r }: { r: Report }) {
 }
 
 /**
- * Dev mode's decision report (development builds, `?dev`): a button bottom-left that opens a panel
+ * Dev mode's decision report (development builds, on unless `?dev=0`): a button bottom-left that opens a modal
  * with every decision of this run (the engine's guess, the other reading, what was asked and why,
  * the answer given, what is used now; each setting with the rule that picked it), the full engine
  * walkthrough, and Copy as Markdown / Download JSON to attach to a bug or a test note.
@@ -235,12 +235,12 @@ export default function DecisionReport(input: ReportInput) {
         <span className={cn("size-2 rounded-full", input.failure ? "bg-red-400" : input.rec ? "bg-emerald-400" : "bg-amber-300")} />
         Decision report
       </button>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="right" className="flex w-full flex-col gap-3 overflow-hidden p-0 sm:max-w-[min(96vw,960px)]">
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="flex max-h-[90vh] w-[min(96vw,1100px)] max-w-none flex-col gap-0 overflow-hidden rounded-[20px] p-0 sm:max-w-none">
           <div className="flex flex-wrap items-center gap-2 border-b border-border px-5 py-4 pr-12">
             <div className="min-w-0 flex-1">
-              <SheetTitle className="text-[16px]">Decision report</SheetTitle>
-              <SheetDescription className="text-[12.5px]">Dev mode · every decision of this run, live. Hide with ?dev=0, show again with ?dev.</SheetDescription>
+              <DialogTitle className="text-[16px]">Decision report</DialogTitle>
+              <DialogDescription className="text-[12.5px]">Dev mode · every decision of this run, live. Hide with ?dev=0, show again with ?dev.</DialogDescription>
             </div>
             <button type="button" onClick={copy} className="h-8 rounded-full px-3 text-[12.5px] font-medium ring-1 ring-border hover:bg-muted">
               {copied ? "Copied" : "Copy as Markdown"}
@@ -249,7 +249,7 @@ export default function DecisionReport(input: ReportInput) {
               Download JSON
             </button>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-8">
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-4">
             {!input.rec && !input.failure && <p className="py-6 text-[13px] text-muted-foreground">No recommendation yet: drop a PDF and wait for the reading.</p>}
             <LiveDecisions r={report} />
             {input.rec && (
@@ -261,8 +261,8 @@ export default function DecisionReport(input: ReportInput) {
               </details>
             )}
           </div>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
