@@ -6843,6 +6843,9 @@ msgstr "Apprendre en pratiquant."
 msgid "Least used"
 msgstr "Moins utilisé"
 
+msgid "Leave"
+msgstr "Quitter"
+
 msgid "Leave at None to run segmentation on all qualifying images (subject to pipeline rules)."
 msgstr "Laissez sur Aucun pour exécuter la segmentation sur toutes les images éligibles (selon les règles du pipeline)."
 
@@ -6857,6 +6860,9 @@ msgstr "Quitter la configuration"
 
 msgid "Leave unset to keep ElevenLabs' own pacing. Extreme values reduce quality."
 msgstr "Laissez ce réglage vide pour conserver le rythme propre d'ElevenLabs. Les valeurs extrêmes dégradent la qualité."
+
+msgid "Leave without adding this book?"
+msgstr "Quitter sans ajouter ce livre ?"
 
 msgid "Leave without finishing?"
 msgstr "Quitter sans terminer ?"
@@ -13163,6 +13169,9 @@ msgstr "Les pages sont placées dans une mise en page toute prête, sans l'IA : 
 
 msgid "The pages I read this on"
 msgstr "Les pages où j'ai lu ceci"
+
+msgid "The PDF and the choices so far aren't saved."
+msgstr "Le PDF et les choix faits jusqu'ici ne sont pas enregistrés."
 
 msgid "The picture and its words belong together."
 msgstr "L'image et son texte vont ensemble."

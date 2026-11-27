@@ -1,8 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode, type RefObject } from "react"
+import { useContext, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode, type RefObject } from "react"
 import { flushSync } from "react-dom"
-import { Trans, useLingui } from "@lingui/react/macro"
+import { Trans } from "@lingui/react/macro"
 import { FileDropOverlay } from "@/components/ui/file-drop-overlay"
-import { FlowTopBar } from "@/components/FlowTopBar"
 import { cn } from "@/lib/utils"
 import { applySettings } from "../engine/answers"
 import { useEngineRun } from "../engine/useEngineRun"
@@ -26,7 +25,8 @@ import { useCheck } from "./check/useCheck"
 import { useScreenValues } from "./check/useScreenValues"
 import { CreatePanel, CreateSays } from "./CreatePanel"
 import { Morph } from "./Morph"
-import { PdfChip } from "./PdfChip"
+import { GuidedTopBar } from "./topbar/GuidedTopBar"
+import { TopBarOptionsContext } from "./topbar/options"
 import { Stepper } from "./Stepper"
 import { STEPS, type StepId } from "./steps"
 import { UploadPanel, UploadSays } from "./UploadPanel"
@@ -53,7 +53,6 @@ function useHeldWhile<T>(active: boolean, value: T): T {
 }
 
 export function Guided({ onManual, active = true }: { onManual: () => void; active?: boolean }) {
-  const { t } = useLingui()
   const form = useWizardForm()
   const flow = useUploadFlow({ active })
   const validFile = !!flow.file && flow.pageCount > 0 && !flow.error
@@ -187,10 +186,12 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
   const tone = failure && shown === "reading" ? "error" : lastRun?.status === "failed" && shown === "create" ? "error" : lastRun?.status === "done" && shown === "create" ? "done" : shown
 
   // The page column: Check is one focused column, Upload shows its three cards side by side.
-  const column = shown === "check" ? "max-w-[760px]" : shown === "upload" ? "max-w-[760px] lg:max-w-[1080px]" : "max-w-[760px] lg:max-w-[880px]"
-  // The top bar lines up with the same column (its width in px, times the page's zoom).
+  const bar = useContext(TopBarOptionsContext)
+  const column = bar.page === "same" ? "max-w-[760px] lg:max-w-[880px]" : shown === "check" ? "max-w-[760px]" : shown === "upload" ? "max-w-[760px] lg:max-w-[1080px]" : "max-w-[760px] lg:max-w-[880px]"
+  // The top bar lines up with the same column (its width in px, times the page's zoom), or keeps one width.
   const wide = useWide()
-  const columnPx = shown === "check" || !wide ? 760 : shown === "upload" ? 1080 : 880
+  const columnPx = !wide ? 760 : bar.page === "same" ? 880 : shown === "check" ? 760 : shown === "upload" ? 1080 : 880
+  const barPx = bar.width === "fixed" ? (wide ? 880 : 760) : columnPx
   const scroller = useRef<HTMLDivElement>(null)
   const { scale, vh } = usePageScale(scroller)
   return (
@@ -198,7 +199,7 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
       <div className="lc-root gd-root relative flex h-full min-h-0 flex-1 flex-col overflow-clip" data-tone={tone}>
         {/* Its own view-transition layer with no animation (guided.css): step morphs never move or fade the bar. */}
         <div className="shrink-0" style={{ viewTransitionName: "gd-topbar" }}>
-          <FlowTopBar title={t`Add Book`} actions={<PdfChip flow={flow} />} contentWidth={columnPx * scale} />
+          <GuidedTopBar flow={flow} contentWidth={barPx * scale} onHelp={shown === "upload" && !flow.file && tour === null ? () => setTour(0) : null} />
         </div>
         <FileDropOverlay overlay={flow.overlay} dropLabel={<Trans>Drop PDF here</Trans>} errorLabel={<Trans>Only PDF files are supported</Trans>} accent="blue" />
         <input ref={flow.inputRef} type="file" accept="application/pdf" className="hidden" onChange={flow.onInputChange} />

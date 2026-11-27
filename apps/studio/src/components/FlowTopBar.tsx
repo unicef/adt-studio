@@ -20,6 +20,14 @@ export type FlowTopBarProps = {
   onBack?: () => void
   /** Extra controls shown before the locale switcher. */
   actions?: ReactNode
+  /** Shown before the logo (a labelled back button). */
+  start?: ReactNode
+  /** Shown after the locale switcher, at the end of the bar (a close button). */
+  end?: ReactNode
+  /** Shown right after the title (what the flow is working on). */
+  after?: ReactNode
+  /** The bar's border and frosted background; off, it sits on the page. */
+  bordered?: boolean
   /** Lines the bar's contents up with a centred page column this wide (px); full width by default. */
   contentWidth?: number
 }
@@ -30,7 +38,7 @@ export type FlowTopBarProps = {
  * hover — followed by the current page title. Owns the frameless-window drag
  * region, the macOS traffic-light spacing, and the Windows/Linux controls.
  */
-export function FlowTopBar({ title, onBack, actions, contentWidth }: FlowTopBarProps) {
+export function FlowTopBar({ title, onBack, actions, contentWidth, start, after, end, bordered = true }: FlowTopBarProps) {
   const { t } = useLingui()
   const navigate = useNavigate()
   const platform = usePlatform()
@@ -44,7 +52,7 @@ export function FlowTopBar({ title, onBack, actions, contentWidth }: FlowTopBarP
     <header
       style={DRAG_REGION}
       className={cn(
-        "flex h-12 shrink-0 select-none items-center gap-2 border-b border-border bg-background/80 pl-2 text-foreground backdrop-blur",
+        "flex h-12 shrink-0 select-none items-center gap-2 pl-2 text-foreground", bordered ? "border-b border-border bg-background/80 backdrop-blur" : "bg-transparent",
         showNonMacControls ? "pr-0" : "pr-2",
       )}
     >
@@ -53,6 +61,7 @@ export function FlowTopBar({ title, onBack, actions, contentWidth }: FlowTopBarP
       {/* With a column width, the padding matches a page column's 16px side margin on small windows. */}
       <div className={cn("mx-auto flex min-w-0 flex-1 items-center gap-2", contentWidth && "px-2")} style={contentWidth ? { maxWidth: contentWidth + 16 } : undefined}>
       <div className="flex min-w-0 items-center gap-2" style={NO_DRAG_REGION}>
+        {start}
         <button
           type="button"
           onClick={goHome}
@@ -71,11 +80,13 @@ export function FlowTopBar({ title, onBack, actions, contentWidth }: FlowTopBarP
         {title != null && (
           <span className="truncate text-[13.5px] font-semibold">{title}</span>
         )}
+        {after}
       </div>
 
       <div className="ml-auto flex items-center gap-1.5" style={NO_DRAG_REGION}>
         {actions}
         <LocaleSwitcher variant="standalone" />
+        {end}
       </div>
       </div>
 

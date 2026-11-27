@@ -6841,6 +6841,9 @@ msgstr "Learn by doing."
 msgid "Least used"
 msgstr "Least used"
 
+msgid "Leave"
+msgstr "Leave"
+
 msgid "Leave at None to run segmentation on all qualifying images (subject to pipeline rules)."
 msgstr "Leave at None to run segmentation on all qualifying images (subject to pipeline rules)."
 
@@ -6855,6 +6858,9 @@ msgstr "Leave setup"
 
 msgid "Leave unset to keep ElevenLabs' own pacing. Extreme values reduce quality."
 msgstr "Leave unset to keep ElevenLabs' own pacing. Extreme values reduce quality."
+
+msgid "Leave without adding this book?"
+msgstr "Leave without adding this book?"
 
 msgid "Leave without finishing?"
 msgstr "Leave without finishing?"
@@ -13161,6 +13167,9 @@ msgstr "The pages go into a ready-made layout without the AI, so it is quick and
 
 msgid "The pages I read this on"
 msgstr "The pages I read this on"
+
+msgid "The PDF and the choices so far aren't saved."
+msgstr "The PDF and the choices so far aren't saved."
 
 msgid "The picture and its words belong together."
 msgstr "The picture and its words belong together."

@@ -6843,6 +6843,9 @@ msgstr "Mëso duke bërë."
 msgid "Least used"
 msgstr "Më pak i përdorur"
 
+msgid "Leave"
+msgstr "Dilni"
+
 msgid "Leave at None to run segmentation on all qualifying images (subject to pipeline rules)."
 msgstr "Lëre në Asnjë për të ekzekutuar segmentimin në të gjitha imazhet e kualifikuara (sipas rregullave të pipeline)."
 
@@ -6857,6 +6860,9 @@ msgstr "Dil nga konfigurimi"
 
 msgid "Leave unset to keep ElevenLabs' own pacing. Extreme values reduce quality."
 msgstr "Lëreni të papërcaktuar për të ruajtur ritmin e vetë ElevenLabs. Vlerat ekstreme ulin cilësinë."
+
+msgid "Leave without adding this book?"
+msgstr "Të dilni pa e shtuar këtë libër?"
 
 msgid "Leave without finishing?"
 msgstr "Dil pa përfunduar?"
@@ -13163,6 +13169,9 @@ msgstr "Faqet vendosen në një paraqitje të gatshme pa AI, ndaj është e shpe
 
 msgid "The pages I read this on"
 msgstr "Faqet ku e lexova këtë"
+
+msgid "The PDF and the choices so far aren't saved."
+msgstr "PDF-ja dhe zgjedhjet e bëra deri tani nuk ruhen."
 
 msgid "The picture and its words belong together."
 msgstr "Figura dhe teksti i saj shkojnë bashkë."

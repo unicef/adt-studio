@@ -10,34 +10,73 @@ import type { UploadFlow } from "../../start/upload/useUploadFlow"
  * The PDF being set up, at every step: a chip in the top bar (cover, name, pages) that opens its
  * pages, and "Change PDF", which picks another one (the flow starts again from Reading with it).
  */
-export function PdfChip({ flow }: { flow: UploadFlow }) {
+/** How the PDF shows (dev lab): a chip, plain text, or a bigger cover with the name. */
+export type PdfLook = "chip" | "text" | "cover"
+/** How Change PDF shows (dev lab): icon and text, icon only, an outlined button, or only in the pages dialog. */
+export type ChangeLook = "text" | "icon" | "outline" | "dialog"
+
+export function PdfChip({ flow, look = "chip", change = "text" }: { flow: UploadFlow; look?: PdfLook; change?: ChangeLook }) {
   const { t } = useLingui()
   const [open, setOpen] = useState(false)
   if (!flow.file) return null
+  const pages = flow.pageCount > 0 && (
+    <span className="shrink-0 tabular-nums text-muted-foreground max-sm:hidden">
+      <Plural value={flow.pageCount} one="# page" other="# pages" />
+    </span>
+  )
+  const cover = (big: boolean) => (
+    <span className={cn("grid shrink-0 place-items-center overflow-hidden bg-muted ring-1 ring-border", big ? "h-9 w-[27px] rounded-[4px] shadow-[0_3px_8px_-4px_rgba(15,23,42,0.45)]" : "h-6 w-[18px] rounded-[3px]")}>
+      {flow.cover ? <img src={flow.cover} alt="" className="size-full object-cover" /> : <FileText className="size-3 text-muted-foreground" />}
+    </span>
+  )
   return (
     <div className="flex min-w-0 items-center gap-1">
       <button
         type="button"
         onClick={() => setOpen(true)}
         title={t`See the pages`}
-        className="flex h-8 min-w-0 max-w-[280px] items-center gap-2 rounded-full border border-border bg-background/60 py-1 pl-1 pr-3 text-[12.5px] transition-colors hover:bg-muted max-sm:max-w-[150px]"
+        className={cn(
+          "flex min-w-0 max-w-[280px] items-center gap-2 text-[12.5px] transition-colors max-sm:max-w-[150px]",
+          look === "chip" && "h-8 rounded-full border border-border bg-background/60 py-1 pl-1 pr-3 hover:bg-muted",
+          look === "text" && "h-8 rounded-md px-1.5 underline decoration-border underline-offset-4 hover:decoration-foreground/50",
+          look === "cover" && "h-10 rounded-lg py-0.5 pl-0.5 pr-2 hover:bg-muted",
+        )}
       >
-        <span className="grid h-6 w-[18px] shrink-0 place-items-center overflow-hidden rounded-[3px] bg-muted ring-1 ring-border">
-          {flow.cover ? <img src={flow.cover} alt="" className="size-full object-cover" /> : <FileText className="size-3 text-muted-foreground" />}
-        </span>
-        <span className="truncate font-medium">{flow.title}</span>
-        {flow.pageCount > 0 && (
-          <span className="shrink-0 tabular-nums text-muted-foreground max-sm:hidden">
-            <Plural value={flow.pageCount} one="# page" other="# pages" />
+        {look !== "text" && cover(look === "cover")}
+        {look === "cover" ? (
+          <span className="flex min-w-0 flex-col items-start leading-tight">
+            <span className="max-w-full truncate font-semibold">{flow.title}</span>
+            {pages}
           </span>
+        ) : (
+          <>
+            <span className="truncate font-medium">{flow.title}</span>
+            {look === "text" ? flow.pageCount > 0 && <span className="shrink-0 text-muted-foreground max-sm:hidden">·</span> : null}
+            {pages}
+          </>
         )}
       </button>
-      <button type="button" onClick={flow.openPicker} className="flex h-8 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
-        <FileUp className="size-3.5" />
-        <span className="max-sm:sr-only">
-          <Trans>Change PDF</Trans>
-        </span>
-      </button>
+      {change !== "dialog" && (
+        <button
+          type="button"
+          onClick={flow.openPicker}
+          aria-label={change === "icon" ? t`Change PDF` : undefined}
+          title={change === "icon" ? t`Change PDF` : undefined}
+          className={cn(
+            "flex h-8 shrink-0 items-center gap-1.5 rounded-full text-[12.5px] font-medium transition-colors",
+            change === "text" && "px-2.5 text-muted-foreground hover:bg-muted hover:text-foreground",
+            change === "icon" && "w-8 justify-center text-muted-foreground hover:bg-muted hover:text-foreground",
+            change === "outline" && "px-3 ring-1 ring-border hover:bg-muted",
+          )}
+        >
+          <FileUp className="size-3.5" />
+          {change !== "icon" && (
+            <span className="max-sm:sr-only">
+              <Trans>Change PDF</Trans>
+            </span>
+          )}
+        </button>
+      )}
       <PdfPages
         file={flow.file}
         title={flow.title}
