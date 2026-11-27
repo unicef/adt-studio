@@ -695,18 +695,15 @@ msgid "{providerKey, select, other {Your {name} key was rejected, so books can't
 msgstr "{providerKey, select, google {Sua chave do {name} foi recusada, então ainda não é possível processar livros.} gemini {Sua chave do {name} foi recusada, então ainda não é possível processar livros.} azure {Sua chave do {name} foi recusada, então ainda não é possível processar livros.} custom {Sua chave do {name} foi recusada, então ainda não é possível processar livros.} ollama {Sua chave do {name} foi recusada, então ainda não é possível processar livros.} codex {Sua chave do {name} foi recusada, então ainda não é possível processar livros.} claude_agent {Sua chave do {name} foi recusada, então ainda não é possível processar livros.} other {Sua chave da {name} foi recusada, então ainda não é possível processar livros.}}"
 
 #. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
 msgid "{providerKey, select, other {Your {name} key was rejected}}"
 msgstr "{providerKey, select, google {Sua chave do {name} foi recusada} gemini {Sua chave do {name} foi recusada} azure {Sua chave do {name} foi recusada} custom {Sua chave do {name} foi recusada} ollama {Sua chave do {name} foi recusada} codex {Sua chave do {name} foi recusada} claude_agent {Sua chave do {name} foi recusada} other {Sua chave da {name} foi recusada}}"
 
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}}"
 msgstr "{regionCount} {regionCount, plural, one {região} other {regiões}}"
 
-#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
-msgid "{providerKey, select, other {Your {name} key was rejected}}"
-msgstr "{providerKey, select, google {Sua chave do {name} foi recusada} gemini {Sua chave do {name} foi recusada} azure {Sua chave do {name} foi recusada} custom {Sua chave do {name} foi recusada} ollama {Sua chave do {name} foi recusada} codex {Sua chave do {name} foi recusada} claude_agent {Sua chave do {name} foi recusada} other {Sua chave da {name} foi recusada}}"
-
-msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
-msgstr "{regionCount} {regionCount, plural, one {região detectada} other {regiões detectadas}}"
+#~ msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
+#~ msgstr "{regionCount} {regionCount, plural, one {região detectada} other {regiões detectadas}}"
 
 #. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
 msgid "{rejectedProviderKey, select, other {API Key Settings — the {rejectedName} key was rejected}}"
