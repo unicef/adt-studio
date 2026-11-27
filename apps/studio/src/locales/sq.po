@@ -5984,9 +5984,6 @@ msgstr "Fshih njoftimet automatikisht, ose mbaji deri sa të mbyllen."
 msgid "Hide what the AI wrote"
 msgstr "Fshih atë që shkroi AI"
 
-msgid "Hide your pages"
-msgstr "Fshihni faqet tuaja"
-
 msgid "High"
 msgstr "I lartë"
 
@@ -11521,9 +11518,6 @@ msgstr "Shihni librin dhe zgjidhni faqet"
 
 msgid "See the other options"
 msgstr "Shiko opsionet e tjera"
-
-msgid "See your pages both ways"
-msgstr "Shihni faqet tuaja në të dyja mënyrat"
 
 msgid "Seed"
 msgstr "Fara"

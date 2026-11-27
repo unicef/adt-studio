@@ -27,8 +27,7 @@ const NARROW = 520
  * One card: a label and a line, with the book as it would come out (`look`) or a drawing (`art`)
  * when the user's pages wouldn't tell the options apart.
  */
-/** `helpArt`: a picture for the explanation dialog only (the card keeps the user's own pages). */
-export type LookOption = { value: string; label: string; line: string; look: Look; guess: boolean; art?: ReactNode; helpArt?: ReactNode; more?: string; phone?: string; tag?: ReactNode; guide?: OptionGuide; why?: ReactNode }
+export type LookOption = { value: string; label: string; line: string; look: Look; guess: boolean; art?: ReactNode; more?: string; phone?: string; tag?: ReactNode; guide?: OptionGuide; why?: ReactNode }
 
 function LookCard({ rec, option, page, narrow, chosen, first, onPick, file }: { rec: SetupRecommendation; option: LookOption; page: number; narrow: boolean; chosen: boolean; first: boolean; onPick: (card: HTMLElement) => void; file: File | null | undefined }) {
   const describe = useDescribe()

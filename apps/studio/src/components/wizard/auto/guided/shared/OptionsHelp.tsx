@@ -65,7 +65,7 @@ export function OptionsHelp({ open, onOpenChange, rec, options, page, chosen, fi
               )}
             >
               <span aria-hidden className={cn("grid h-[52px] w-[84px] place-items-center overflow-hidden rounded-[8px] transition-opacity", i === at ? "opacity-100" : "opacity-70 group-hover:opacity-100")}>
-                {x.helpArt ?? x.art ?? <TabPicture rec={rec} option={x} page={page} file={file} />}
+                {x.art ?? <TabPicture rec={rec} option={x} page={page} file={file} />}
               </span>
               <span className="flex items-start gap-1 text-[12.5px] font-medium leading-tight">
                 {chosen === x.value && <Check aria-hidden className="mt-px size-3.5 shrink-0 stroke-[3]" />}
@@ -146,7 +146,7 @@ function HelpPicture({ rec, option, page, file }: { rec: SetupRecommendation; op
   const srcs = useScreenImages(file, pages)
   return (
     <span aria-hidden className="qd18-pv grid h-[150px] w-full place-items-center overflow-hidden rounded-[12px] bg-muted">
-      {option.helpArt || option.art ? <span className="block h-full w-full p-3">{option.helpArt ?? option.art}</span> : <Screen shown={option.look} srcs={srcs} width={210} />}
+      {option.art ? <span className="block h-full w-full p-3">{option.art}</span> : <Screen shown={option.look} srcs={srcs} width={210} />}
     </span>
   )
 }

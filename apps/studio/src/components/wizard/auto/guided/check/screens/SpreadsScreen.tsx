@@ -24,7 +24,7 @@ export function spreadPages(rec: SetupRecommendation): number[] {
  * Screen · Facing pages (Page Grouping): whether each PDF page becomes its own screen or two facing
  * pages are joined into one, so a picture drawn across both stays whole. Measured from the PDF
  * (never asked), and fixed once the book is set up, so it gets its own screen: a picture of the
- * idea, the pick, the pages that showed it, and the user's own pages shown both ways.
+ * idea, the pick, the pages that showed it (joined as the book lies open), and both ways as cards.
  */
 export function SpreadsScreen({ rec, chat, file }: Props) {
   const { i18n } = useLingui()
@@ -43,14 +43,13 @@ export function SpreadsScreen({ rec, chat, file }: Props) {
       value: v,
       label: i18n._(SETTING_VALUE.pageGrouping[v]!.name),
       line: i18n._(SETTING_VALUE.pageGrouping[v]!.means),
-      // The user's own pages, as one screen each or joined.
       look: lookOf({ ...derived.effective, pageGrouping: { value: v, rule: "user" } }),
       guess: v === guess,
       // The explanation dialog ("Explain the options"): what it does, when it fits, and why it was guessed.
       more: i18n._(GROUPING_MORE[v]!),
       guide: GROUPING_GUIDE[v],
-      // In the explanation, the idea itself (a book's pages becoming screens), not the user's pages.
-      helpArt: <Illustration name={`grouping-${v}`} />,
+      // The idea itself (a book's pages becoming screens), on the cards and in the explanation.
+      art: <Illustration name={`grouping-${v}`} />,
       why: v === guess && rule && RULE_WHY[rule] ? i18n._(RULE_WHY[rule]!) : undefined,
     }),
   )
@@ -82,8 +81,6 @@ export function SpreadsScreen({ rec, chat, file }: Props) {
       open={open}
       onToggle={() => setOpen((o) => !o)}
       others
-      othersLabel={<Trans>See your pages both ways</Trans>}
-      hideLabel={<Trans>Hide your pages</Trans>}
     >
       <LookChoices rec={rec} options={options} page={page} chosen={value} onPick={(v) => chat.override("pageGrouping", v)} file={file} labelId={labelId} />
     </SurePick>

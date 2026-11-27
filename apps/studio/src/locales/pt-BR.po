@@ -5982,9 +5982,6 @@ msgstr "Ocultar notificações automaticamente ou mantê-las até serem dispensa
 msgid "Hide what the AI wrote"
 msgstr "Ocultar o que a IA escreveu"
 
-msgid "Hide your pages"
-msgstr "Ocultar suas páginas"
-
 msgid "High"
 msgstr "Alto"
 
@@ -11519,9 +11516,6 @@ msgstr "Ver o livro e escolher páginas"
 
 msgid "See the other options"
 msgstr "Ver as outras opções"
-
-msgid "See your pages both ways"
-msgstr "Ver suas páginas dos dois jeitos"
 
 msgid "Seed"
 msgstr "Semente"

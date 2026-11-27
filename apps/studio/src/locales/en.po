@@ -5982,9 +5982,6 @@ msgstr "Hide toasts automatically, or keep them until dismissed."
 msgid "Hide what the AI wrote"
 msgstr "Hide what the AI wrote"
 
-msgid "Hide your pages"
-msgstr "Hide your pages"
-
 msgid "High"
 msgstr "High"
 
@@ -11519,9 +11516,6 @@ msgstr "See the book & pick pages"
 
 msgid "See the other options"
 msgstr "See the other options"
-
-msgid "See your pages both ways"
-msgstr "See your pages both ways"
 
 msgid "Seed"
 msgstr "Seed"
