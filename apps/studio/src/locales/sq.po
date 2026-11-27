@@ -12354,6 +12354,9 @@ msgstr "Hapi"
 msgid "Step {0}"
 msgstr "Hapi {0}"
 
+msgid "Step {n} of {total}"
+msgstr "Hapi {n} nga {total}"
+
 #. placeholder {0}: STEPS.length
 msgid "Step {step} of {0}"
 msgstr "Hapi {step} nga {0}"

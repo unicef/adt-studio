@@ -20,6 +20,8 @@ export type FlowTopBarProps = {
   onBack?: () => void
   /** Extra controls shown before the locale switcher. */
   actions?: ReactNode
+  /** Shown in the middle of the bar (a flow's steps). */
+  center?: ReactNode
 }
 
 /**
@@ -28,7 +30,7 @@ export type FlowTopBarProps = {
  * hover — followed by the current page title. Owns the frameless-window drag
  * region, the macOS traffic-light spacing, and the Windows/Linux controls.
  */
-export function FlowTopBar({ title, onBack, actions }: FlowTopBarProps) {
+export function FlowTopBar({ title, onBack, actions, center }: FlowTopBarProps) {
   const { t } = useLingui()
   const navigate = useNavigate()
   const platform = usePlatform()
@@ -42,7 +44,7 @@ export function FlowTopBar({ title, onBack, actions }: FlowTopBarProps) {
     <header
       style={DRAG_REGION}
       className={cn(
-        "flex h-12 shrink-0 select-none items-center gap-2 border-b border-border bg-background/80 pl-2 text-foreground backdrop-blur",
+        "relative flex h-12 shrink-0 select-none items-center gap-2 border-b border-border bg-background/80 pl-2 text-foreground backdrop-blur",
         showNonMacControls ? "pr-0" : "pr-2",
       )}
     >
@@ -68,6 +70,12 @@ export function FlowTopBar({ title, onBack, actions }: FlowTopBarProps) {
           <span className="truncate text-[13.5px] font-semibold">{title}</span>
         )}
       </div>
+
+      {center && (
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" style={NO_DRAG_REGION}>
+          {center}
+        </div>
+      )}
 
       <div className="ml-auto flex items-center gap-1.5" style={NO_DRAG_REGION}>
         {actions}

@@ -12354,6 +12354,9 @@ msgstr "Étape"
 msgid "Step {0}"
 msgstr "Étape {0}"
 
+msgid "Step {n} of {total}"
+msgstr "Étape {n} sur {total}"
+
 #. placeholder {0}: STEPS.length
 msgid "Step {step} of {0}"
 msgstr "Étape {step} sur {0}"

@@ -26,7 +26,7 @@ import { useCheck } from "./check/useCheck"
 import { useScreenValues } from "./check/useScreenValues"
 import { CreatePanel, CreateSays } from "./CreatePanel"
 import { Morph } from "./Morph"
-import { Stepper } from "./Stepper"
+import { HeaderStepper, Stepper, type StepperProps } from "./stepper"
 import { STEPS, type StepId } from "./steps"
 import { UploadPanel, UploadSays } from "./UploadPanel"
 import "./guided.css"
@@ -182,6 +182,17 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
     panel = <CreatePanel run={lastRun} />
   }
 
+  const stepper: StepperProps = {
+    at,
+    shown,
+    failed: !!failure && at === "reading",
+    locked: create.locked,
+    complete: lastRun?.status === "done",
+    onGo: (s) => morph(() => setView(s === at ? null : s)),
+    checkBars: bars,
+    checkProgress: check.screens.length ? check.done.length / check.screens.length : 0,
+  }
+
   const busy = (shown === "reading" && !failure) || (shown === "create" && !!lastRun && (lastRun.status === "saving" || lastRun.status === "extracting"))
   const tone = failure && shown === "reading" ? "error" : lastRun?.status === "failed" && shown === "create" ? "error" : lastRun?.status === "done" && shown === "create" ? "done" : shown
 
@@ -192,7 +203,7 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
   return (
     <FinishContext.Provider value={{ onOpen: create.open }}>
       <div className="lc-root gd-root relative flex h-full min-h-0 flex-1 flex-col overflow-clip" data-tone={tone}>
-        <FlowTopBar title={t`Add Book`} />
+        <FlowTopBar title={t`Add Book`} center={<HeaderStepper {...stepper} />} />
         <FileDropOverlay overlay={flow.overlay} dropLabel={<Trans>Drop PDF here</Trans>} errorLabel={<Trans>Only PDF files are supported</Trans>} accent="blue" />
         <input ref={flow.inputRef} type="file" accept="application/pdf" className="hidden" onChange={flow.onInputChange} />
         <div aria-hidden className="gd-tint pointer-events-none absolute inset-0">
@@ -207,7 +218,7 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
               floating small in the middle; on short ones the spacing tightens. */}
           <div className="mx-auto flex w-full flex-col px-4 pb-24 pt-6 sm:px-6 sm:pt-8 [@media(max-height:800px)]:pt-4" style={{ zoom: scale, "--gd-vh": `${vh}px` } as CSSProperties}>
             <div className={cn("gd-col mx-auto w-full", column)}>
-              <Stepper at={at} shown={shown} failed={!!failure && at === "reading"} locked={create.locked} complete={lastRun?.status === "done"} onGo={(s) => morph(() => setView(s === at ? null : s))} checkBars={bars} />
+              <Stepper {...stepper} />
             </div>
             <div className={cn("gd-col mx-auto mt-7 w-full lg:mt-9 [@media(max-height:800px)]:mt-4", column)}>
               <div className="min-w-0">

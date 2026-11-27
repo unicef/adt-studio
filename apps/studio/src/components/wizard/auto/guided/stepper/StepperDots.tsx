@@ -1,15 +1,8 @@
-import { Fragment, type ReactNode } from "react"
-import { Trans, useLingui } from "@lingui/react/macro"
+import { Fragment } from "react"
+import { useLingui } from "@lingui/react/macro"
 import { Check, X } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { STEPS, type StepId } from "./steps"
-
-const LABEL: Record<StepId, ReactNode> = {
-  upload: <Trans>Upload</Trans>,
-  reading: <Trans>Reading</Trans>,
-  check: <Trans>Check</Trans>,
-  create: <Trans>Set up</Trans>,
-}
+import { LABEL, OpenAgain, stepStates, type StepperProps } from "./shared"
 
 /**
  * Upload · Reading · Check · Create. The steps already done are the history: each one opens again
@@ -17,18 +10,15 @@ const LABEL: Record<StepId, ReactNode> = {
  * current one when something went wrong there, and `complete` ticks them all once the book is made.
  * On Check, `checkBars` takes the dot's place: one small bar per screen of Check.
  */
-export function Stepper({ at, shown, failed, locked, complete, onGo, checkBars }: { at: StepId; shown: StepId; failed: boolean; locked: boolean; complete: boolean; onGo: (step: StepId) => void; checkBars?: ReactNode }) {
+export function StepperDots(props: StepperProps) {
+  const { at, locked, onGo, checkBars } = props
   const { t } = useLingui()
-  const atIndex = STEPS.indexOf(at)
+  const atIndex = stepStates(props).findIndex((s) => s.step === at)
   return (
     <nav aria-label={t`Add Book steps`}>
       <ol className="flex items-center">
-        {STEPS.map((step, i) => {
-          const done = i < atIndex || complete
-          const current = step === at
-          const onScreen = step === shown
-          const canGo = !onScreen && (current || (done && !locked))
-          const bad = current && failed
+        {stepStates(props).map((s) => {
+          const { step, i, done, current, onScreen, canGo, bad } = s
           return (
             <Fragment key={step}>
               {i > 0 && <li aria-hidden className={cn("gd-line mx-2 h-px min-w-6 flex-1", i <= atIndex ? "bg-[var(--gd-step)]" : "bg-border")} />}
@@ -50,11 +40,7 @@ export function Stepper({ at, shown, failed, locked, complete, onGo, checkBars }
                   </span>
                   {/* On a phone only the step on screen keeps its name, so the four fit. */}
                   <span className={cn(!onScreen && "max-sm:sr-only")}>{LABEL[step]}</span>
-                  {done && !locked && !onScreen && (
-                    <span className="sr-only">
-                      <Trans>(done, open again)</Trans>
-                    </span>
-                  )}
+                  <OpenAgain s={s} locked={locked} />
                 </button>
                 {step === "check" && onScreen && checkBars ? (
                   <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2" style={{ viewTransitionName: "gd-step-dot" }}>

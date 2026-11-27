@@ -1,9 +1,21 @@
-import { useState } from "react"
+import { lazy, Suspense, useState, type ReactNode } from "react"
 import { useWizard } from "@/components/wizard/core/WizardProvider"
 import { BookCreationWizard } from "@/components/wizard/manual/BookCreationWizard"
 import { cn } from "@/lib/utils"
 import { Guided } from "./Guided"
 import "./shared/look.css"
+
+// Dev builds only: the stepper design lab (`?stepper=`). Left out of production bundles.
+// eslint-disable-next-line lingui/no-unlocalized-strings -- module path
+const StepperLab = import.meta.env.DEV ? lazy(() => import("./stepper/StepperLab")) : null
+const Lab = ({ children }: { children: ReactNode }) =>
+  StepperLab ? (
+    <Suspense fallback={children}>
+      <StepperLab>{children}</StepperLab>
+    </Suspense>
+  ) : (
+    children
+  )
 
 /**
  * Guided, the Add Book auto mode design: a four-step stepper with one assistant bubble per step. It
@@ -14,7 +26,7 @@ export function GuidedFlow() {
   const { setPhase, setCurrentStep } = useWizard()
   const [manual, setManual] = useState(false)
   return (
-    <>
+    <Lab>
         <div className={cn("flex h-full min-h-0 flex-1 flex-col", manual && "hidden")}>
           <Guided
             active={!manual}
@@ -33,6 +45,6 @@ export function GuidedFlow() {
           }}
         />
       )}
-    </>
+    </Lab>
   )
 }

@@ -12352,6 +12352,9 @@ msgstr "Passo"
 msgid "Step {0}"
 msgstr "Passo {0}"
 
+msgid "Step {n} of {total}"
+msgstr "Passo {n} de {total}"
+
 #. placeholder {0}: STEPS.length
 msgid "Step {step} of {0}"
 msgstr "Passo {step} de {0}"
