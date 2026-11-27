@@ -304,6 +304,7 @@ function useSqueeze(scroller: RefObject<HTMLElement | null>, page: RefObject<HTM
       // Still fits with little room to spare: keep the pictures as they are, so a change on the
       // page (a new language, a pick) never nudges everything by a few pixels.
       const slack = sc.clientHeight - el.getBoundingClientRect().height
+      // eslint-disable-next-line lingui/no-unlocalized-strings -- a CSS variable
       const now = parseFloat(el.style.getPropertyValue("--gd-squeeze")) || 0
       if (slack >= -1 && (slack < 24 || now === 0)) return
       let q = 0

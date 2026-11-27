@@ -25,3 +25,8 @@ Page layouts (same style and model), a printed page becoming the screen on a tab
 Language (same style and model, generated with the shared style above):
 
 - `language.png`: An open storybook with a blue cover lying open, seen from the front and slightly above, in the lower half of the image: the left page shows a small illustration of a hill with a tree and a sun, the right page has a few grey text lines. Rising from behind the book's spine, a friendly round globe in brand blue with soft green continents on a small amber stand, tilted slightly. Leave clear empty space in the upper left and upper right corners above the book. (The Language screen lays the language's own words over it: a greeting, its name and the variety's country, in speech bubbles.)
+
+Facing pages (same style and model; cropped to the subject, then fitted to 1200x800):
+
+- `grouping-single.png`: On the left an open picture book whose two facing pages are separate: the left page has its own small picture of a tree on a hill, the right page its own small picture of a little house, each with grey text lines under it. A blue arrow to the right. On the right two separate small tablets standing side by side, the first showing only the tree page, the second showing only the house page.
+- `grouping-spread.png`: On the left an open picture book with one big landscape illustration (green hills, a winding blue river, an amber sun) that runs across both facing pages, continuing over the middle fold, with a few grey text lines on it. A blue arrow to the right. On the right one wide landscape tablet showing that whole landscape illustration in one piece across its screen, with the grey text lines.

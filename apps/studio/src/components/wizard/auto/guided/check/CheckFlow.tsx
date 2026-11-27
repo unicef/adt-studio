@@ -13,6 +13,7 @@ import { LanguageScreen } from "./screens/LanguageScreen"
 import { LookScreen } from "./screens/LookScreen"
 import { NameScreen } from "./screens/NameScreen"
 import { PagesScreen } from "./screens/PagesScreen"
+import { SpreadsScreen } from "./screens/SpreadsScreen"
 import { activityFacts, screenFacts, screenSure, type ScreenId } from "./screens"
 import type { Check } from "./useCheck"
 import { screenTitle } from "./words"
@@ -106,6 +107,7 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
   if (at === "kind") body = <KindScreen rec={rec} chat={chat} file={file} />
   else if (at === "language") body = <LanguageScreen rec={rec} />
   else if (at === "look") body = <LookScreen rec={rec} chat={chat} file={file} />
+  else if (at === "spreads") body = <SpreadsScreen rec={rec} chat={chat} file={file} />
   else if (at === "pages") body = <PagesScreen pageCount={pageCount} />
   else if (at === "activities") body = <ActivitiesScreen rec={rec} chat={chat} file={file} />
   else body = <NameScreen facts={facts} screens={screens} values={values} settings={derived.effective} onEdit={(s) => check.go(s, true)} />

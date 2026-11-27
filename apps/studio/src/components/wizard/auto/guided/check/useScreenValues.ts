@@ -39,5 +39,5 @@ export function useScreenValues(rec: SetupRecommendation | null, derived: Derive
   const found = bookLanguage(rec)
   const language = editing ? languageName(editing, i18n.locale, true) : found ? languageName(found, i18n.locale, true) : t`The book's own`
   // eslint-disable-next-line lingui/no-unlocalized-strings -- setting ids
-  return { kind: plain("preset"), language, look: plain("renderStrategy"), pages, activities, name: "" }
+  return { kind: plain("preset"), language, look: plain("renderStrategy"), spreads: plain("pageGrouping"), pages, activities, name: "" }
 }

@@ -16,11 +16,11 @@ const ids = (rec: SetupRecommendation, screen: ScreenId) => screenFacts(rec, pro
 
 describe("which screens show", () => {
   it("leaves Activities out for a story the engine is sure of", () => {
-    expect(screensOf(as(spread))).toEqual(["kind", "language", "look", "pages", "name"])
+    expect(screensOf(as(spread))).toEqual(["kind", "language", "look", "spreads", "pages", "name"])
   })
 
   it("shows Activities for a school book, with both exercises and labelled pictures", () => {
-    expect(screensOf(as(textbook))).toEqual(["kind", "language", "look", "pages", "activities", "name"])
+    expect(screensOf(as(textbook))).toEqual(["kind", "language", "look", "spreads", "pages", "activities", "name"])
     expect(ids(as(textbook), "activities")).toEqual(["exercises", "diagrams"])
   })
 
@@ -50,7 +50,7 @@ describe("sure vs asked", () => {
   it("asks on the screens of the asked facts only", () => {
     const rec = as(twoQuestions)
     const sure = Object.fromEntries(screensOf(rec).map((s) => [s, screenSure(rec, proposedAnswers(rec), s)]))
-    expect(sure).toEqual({ kind: true, language: true, look: false, pages: true, activities: false, name: true })
+    expect(sure).toEqual({ kind: true, language: true, look: false, spreads: true, pages: true, activities: false, name: true })
     expect(screenSure(as(askKind), proposedAnswers(as(askKind)), "kind")).toBe(false)
   })
 

@@ -902,6 +902,9 @@ msgstr "<0>U krye.</0> “{name}” u konfigurua. Nisni konvertimin nga faqja e 
 msgid "<0>Drop a PDF and I'll read it.</0> Together we pick the best settings for this book; the conversion starts only after you set it up."
 msgstr "<0>Lëshoni një PDF dhe unë do ta lexoj.</0> Bashkë zgjedhim cilësimet më të mira për këtë libër; konvertimi nis vetëm pasi ta konfiguroni."
 
+msgid "<0>Each page stands on its own.</0> I didn't find pictures running across two pages, so every PDF page becomes one screen."
+msgstr "<0>Çdo faqe qëndron më vete.</0> Nuk gjeta figura që shtrihen në dy faqe, prandaj çdo faqe e PDF-së bëhet një ekran."
+
 msgid "<0>Got it.</0> The PDF opens fine, so let's set it up."
 msgstr "<0>Në rregull.</0> PDF-ja hapet pa problem, prandaj le ta konfigurojmë."
 
@@ -925,6 +928,9 @@ msgstr "<0>Asgjë këtu nuk është përfundimtare.</0> Cilësimet mund t'i ndry
 
 msgid "<0>Ready when you are.</0> I check the PDF opens before we start, so a damaged or password-protected file is caught right away."
 msgstr "<0>Gati kur të jeni.</0> Kontrolloj që PDF-ja hapet para se të nisim, që një skedar i dëmtuar ose i mbrojtur me fjalëkalim të kapet menjëherë."
+
+msgid "<0>Some pictures run across two pages.</0> So I'll join each pair of facing pages into one screen, and those pictures stay whole."
+msgstr "<0>Disa figura shtrihen në dy faqe.</0> Prandaj do ta bashkoj çdo çift faqesh përballë në një ekran, dhe ato figura mbeten të plota."
 
 msgid "<0>That file isn't a PDF.</0> Choose a PDF and I'll read it."
 msgstr "<0>Ky skedar nuk është PDF.</0> Zgjidhni një PDF dhe unë do ta lexoj."
@@ -952,6 +958,18 @@ msgstr "<0>Libri juaj është në {name}.</0> Do ta mbaj në {name}."
 
 msgid "<0>Your book is in {name}.</0> I'll make it in {chosen}, without translating it."
 msgstr "<0>Libri juaj është në {name}.</0> Do ta bëj në {chosen}, pa e përkthyer."
+
+msgid "<0>Your book is laid out in pairs:</0> a page of words faces a page of picture. So I'll keep each pair together on one screen."
+msgstr "<0>Libri juaj është ndërtuar në çifte:</0> një faqe me tekst përballë një faqeje me figurë. Prandaj do ta mbaj çdo çift bashkë në një ekran."
+
+msgid "<0>Your PDF already has facing pages side by side</0> on one wide page, so each one stays one screen. Nothing needs joining."
+msgstr "<0>PDF-ja juaj i ka tashmë faqet përballë krah për krah</0> në një faqe të gjerë, prandaj secila mbetet një ekran. Nuk ka nevojë për bashkim."
+
+msgid "<0>Your pick: facing pages joined.</0> Each pair of pages becomes one wide screen. Pages that don't belong together are joined too."
+msgstr "<0>Zgjedhja juaj: faqet përballë të bashkuara.</0> Çdo çift faqesh bëhet një ekran i gjerë. Bashkohen edhe faqet që nuk shkojnë bashkë."
+
+msgid "<0>Your pick: one page per screen.</0> A picture drawn across two pages will be cut in two."
+msgstr "<0>Zgjedhja juaj: një faqe për ekran.</0> Një figurë e vizatuar në dy faqe do të pritet më dysh."
 
 msgid "="
 msgstr "="
@@ -2940,9 +2958,6 @@ msgstr "Të ndryshohet gjuha e librit?"
 
 msgid "Change the picture for this term"
 msgstr "Ndrysho figurën e këtij termi"
-
-msgid "Changed by you."
-msgstr "E ndryshuar nga ju."
 
 msgid "Changed since it was exported"
 msgstr "Ka ndryshuar që nga eksportimi"
@@ -5167,6 +5182,9 @@ msgstr "Nxjerr të dhëna teksti dhe imazhi nga çdo faqe e PDF-it."
 msgid "Extracts the correct answer key from the generated activity HTML."
 msgstr "Nxjerr çelësin e saktë të përgjigjeve nga HTML-i i gjeneruar i aktivitetit."
 
+msgid "Facing pages"
+msgstr "Faqet përballë"
+
 msgid "Facing pages join into one wide screen, so a picture across the gutter stays whole."
 msgstr "Faqet përballë bashkohen në një ekran të gjerë, në mënyrë që një figurë që kalon përmes palosjes qendrore të mbetet e plotë."
 
@@ -5357,8 +5375,8 @@ msgstr "Strukturë fikse"
 msgid "Fixed Layout"
 msgstr "Paraqitje e fiksuar"
 
-msgid "Fixed once the book is set up."
-msgstr "E pandryshueshme pasi libri të konfigurohet."
+msgid "Fixed once the book is set up: the pages are cut into screens when the book is made."
+msgstr "Fiksohet pasi libri krijohet: faqet ndahen në ekrane kur bëhet libri."
 
 msgid "Fixed two-column template layout"
 msgstr "Paraqitje e fiksuar me dy kolona"
@@ -5950,6 +5968,9 @@ msgstr "Fshih njoftimet automatikisht, ose mbaji deri sa të mbyllen."
 
 msgid "Hide what the AI wrote"
 msgstr "Fshih atë që shkroi AI"
+
+msgid "Hide your pages"
+msgstr "Fshihni faqet tuaja"
 
 msgid "High"
 msgstr "I lartë"
@@ -11444,6 +11465,9 @@ msgstr "Shihni librin dhe zgjidhni faqet"
 msgid "See the other options"
 msgstr "Shiko opsionet e tjera"
 
+msgid "See your pages both ways"
+msgstr "Shihni faqet tuaja në të dyja mënyrat"
+
 msgid "Seed"
 msgstr "Fara"
 
@@ -14893,6 +14917,9 @@ msgstr "Ku jetojnë projektet e librave në këtë makinë."
 
 msgid "Where I read it:"
 msgstr "Ku e lexova:"
+
+msgid "Where I saw it:"
+msgstr "Ku e pashë:"
 
 msgid "Where it all begins"
 msgstr "Ku fillon gjithçka"

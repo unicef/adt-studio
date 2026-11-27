@@ -20,7 +20,7 @@ export function NameScreen({ facts, screens, values, settings, onEdit }: { facts
           .map((s) => {
             const title = i18n._(screenTitle(s, facts))
             return (
-              <li key={s} className="flex items-center gap-3 py-2 lg:py-2.5 [@media(max-height:800px)]:py-1.5">
+              <li key={s} className="flex items-center gap-3 py-2 lg:py-2.5 [@media(max-height:800px)]:py-1">
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-3">
                   <span className="shrink-0 text-[13px] text-muted-foreground sm:w-[150px] lg:w-[190px] lg:text-[14.5px]">{title}</span>
                   <span className="min-w-0 text-[14.5px] font-medium lg:text-[16px]">{values[s]}</span>

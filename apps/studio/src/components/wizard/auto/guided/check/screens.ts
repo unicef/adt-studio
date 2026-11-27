@@ -3,11 +3,11 @@ import { askedFacts, factsThatMatter, settingsFor, type FactAnswers } from "../.
 
 /**
  * Check as small screens, one decision each: the kind of book, its language, how the pages look,
- * the pages to import, the activities (school books, or when the engine asks about exercises or labelled
+ * whether facing pages are joined (fixed once the book is made), the pages to import, the activities (school books, or when the engine asks about exercises or labelled
  * pictures) and the name. Everything here is worked out from the engine's answer and the current
  * answers, so the screens follow the user's picks (another kind of book can bring Activities in).
  */
-export const SCREEN_IDS = ["kind", "language", "look", "pages", "activities", "name"] as const
+export const SCREEN_IDS = ["kind", "language", "look", "spreads", "pages", "activities", "name"] as const
 export type ScreenId = (typeof SCREEN_IDS)[number]
 
 const ACTIVITY_FACTS: SetupBookFactId[] = ["exercises", "diagrams"]

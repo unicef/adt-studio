@@ -113,6 +113,7 @@ function Says({ rec, derived, screen, file, pageCount, firstBook, trying, onTryi
       </p>
     )
   }
+  if (screen === "spreads") return <SpreadsSays derived={derived} />
   if (screen === "pages") {
     if (firstBook && trying === null)
       return (
@@ -167,3 +168,56 @@ function Says({ rec, derived, screen, file, pageCount, firstBook, trying, onTryi
     </p>
   )
 }
+
+/** Facing pages: what the PDF showed (pictures across two pages, two-page openings, wide pages, or none), and so what happens to its pages. The pages that showed it are on the screen. */
+/* eslint-disable lingui/no-unlocalized-strings -- rule ids and setting values, never shown */
+function SpreadsSays({ derived }: { derived: Derived }) {
+  const rule = derived.fromAnswers.pageGrouping?.rule
+  const joined = derived.effective.pageGrouping?.value === "spread"
+  if (derived.source("pageGrouping") === "changed")
+    return (
+      <p>
+        {joined ? (
+          <Trans>
+            <strong className="font-semibold">Your pick: facing pages joined.</strong> Each pair of pages becomes one wide screen. Pages that don&apos;t belong together are joined too.
+          </Trans>
+        ) : (
+          <Trans>
+            <strong className="font-semibold">Your pick: one page per screen.</strong> A picture drawn across two pages will be cut in two.
+          </Trans>
+        )}
+      </p>
+    )
+  if (rule === "group-joined-spreads")
+    return (
+      <p>
+        <Trans>
+          <strong className="font-semibold">Some pictures run across two pages.</strong> So I&apos;ll join each pair of facing pages into one screen, and those pictures stay whole.
+        </Trans>
+      </p>
+    )
+  if (rule === "group-facing-pages")
+    return (
+      <p>
+        <Trans>
+          <strong className="font-semibold">Your book is laid out in pairs:</strong> a page of words faces a page of picture. So I&apos;ll keep each pair together on one screen.
+        </Trans>
+      </p>
+    )
+  if (rule === "group-wide-pages")
+    return (
+      <p>
+        <Trans>
+          <strong className="font-semibold">Your PDF already has facing pages side by side</strong> on one wide page, so each one stays one screen. Nothing needs joining.
+        </Trans>
+      </p>
+    )
+  return (
+    <p>
+      <Trans>
+        <strong className="font-semibold">Each page stands on its own.</strong> I didn&apos;t find pictures running across two pages, so every PDF page becomes one screen.
+      </Trans>
+    </p>
+  )
+}
+/* eslint-enable lingui/no-unlocalized-strings */

@@ -902,6 +902,9 @@ msgstr "<0>C'est fait.</0> « {name} » est prêt. Lancez la conversion depuis
 msgid "<0>Drop a PDF and I'll read it.</0> Together we pick the best settings for this book; the conversion starts only after you set it up."
 msgstr "<0>Déposez un PDF et je le lirai.</0> Ensemble, nous choisissons les meilleurs paramètres pour ce livre ; la conversion ne commence qu'une fois le livre créé."
 
+msgid "<0>Each page stands on its own.</0> I didn't find pictures running across two pages, so every PDF page becomes one screen."
+msgstr "<0>Chaque page est indépendante.</0> Je n'ai pas trouvé d'images sur deux pages, donc chaque page du PDF devient un écran."
+
 msgid "<0>Got it.</0> The PDF opens fine, so let's set it up."
 msgstr "<0>C'est bon.</0> Le PDF s'ouvre bien, passons aux paramètres."
 
@@ -925,6 +928,9 @@ msgstr "<0>Rien n'est définitif.</0> Vous pourrez modifier les paramètres plus
 
 msgid "<0>Ready when you are.</0> I check the PDF opens before we start, so a damaged or password-protected file is caught right away."
 msgstr "<0>Quand vous voulez.</0> Je vérifie d'abord que le PDF s'ouvre, pour repérer tout de suite un fichier endommagé ou protégé par mot de passe."
+
+msgid "<0>Some pictures run across two pages.</0> So I'll join each pair of facing pages into one screen, and those pictures stay whole."
+msgstr "<0>Certaines images s'étendent sur deux pages.</0> Je vais donc réunir chaque paire de pages en vis-à-vis sur un écran, et ces images resteront entières."
 
 msgid "<0>That file isn't a PDF.</0> Choose a PDF and I'll read it."
 msgstr "<0>Ce fichier n'est pas un PDF.</0> Choisissez un PDF et je le lirai."
@@ -952,6 +958,18 @@ msgstr "<0>Votre livre est en {name}.</0> Je le garde en {name}."
 
 msgid "<0>Your book is in {name}.</0> I'll make it in {chosen}, without translating it."
 msgstr "<0>Votre livre est en {name}.</0> Je le ferai en {chosen}, sans le traduire."
+
+msgid "<0>Your book is laid out in pairs:</0> a page of words faces a page of picture. So I'll keep each pair together on one screen."
+msgstr "<0>Votre livre est organisé par paires :</0> une page de texte fait face à une page d'image. Je vais donc garder chaque paire ensemble sur un écran."
+
+msgid "<0>Your PDF already has facing pages side by side</0> on one wide page, so each one stays one screen. Nothing needs joining."
+msgstr "<0>Votre PDF a déjà les pages en vis-à-vis côte à côte</0> sur une page large, donc chacune reste un écran. Rien à réunir."
+
+msgid "<0>Your pick: facing pages joined.</0> Each pair of pages becomes one wide screen. Pages that don't belong together are joined too."
+msgstr "<0>Votre choix : pages en vis-à-vis réunies.</0> Chaque paire de pages devient un écran large. Les pages qui ne vont pas ensemble sont aussi réunies."
+
+msgid "<0>Your pick: one page per screen.</0> A picture drawn across two pages will be cut in two."
+msgstr "<0>Votre choix : une page par écran.</0> Une image dessinée sur deux pages sera coupée en deux."
 
 msgid "="
 msgstr "="
@@ -2940,9 +2958,6 @@ msgstr "Changer la langue du livre ?"
 
 msgid "Change the picture for this term"
 msgstr "Changer l'image de ce terme"
-
-msgid "Changed by you."
-msgstr "Modifié par vous."
 
 msgid "Changed since it was exported"
 msgstr "Modifié depuis l’export"
@@ -5167,6 +5182,9 @@ msgstr "Extrait le texte et les données d'image de chaque page du PDF."
 msgid "Extracts the correct answer key from the generated activity HTML."
 msgstr "Extrait la clé de réponse correcte du HTML d'activité généré."
 
+msgid "Facing pages"
+msgstr "Pages en vis-à-vis"
+
 msgid "Facing pages join into one wide screen, so a picture across the gutter stays whole."
 msgstr "Les pages en vis-à-vis sont réunies en un seul écran large, afin qu’une image traversant le pli central reste entière."
 
@@ -5357,8 +5375,8 @@ msgstr "Mise en page fixe"
 msgid "Fixed Layout"
 msgstr "Mise en page fixe"
 
-msgid "Fixed once the book is set up."
-msgstr "Fixe une fois le livre créé."
+msgid "Fixed once the book is set up: the pages are cut into screens when the book is made."
+msgstr "Fixé une fois le livre créé : les pages sont découpées en écrans à la création du livre."
 
 msgid "Fixed two-column template layout"
 msgstr "Mise en page fixe à deux colonnes"
@@ -5950,6 +5968,9 @@ msgstr "Masquer les notifications automatiquement, ou les garder jusqu'à ce qu'
 
 msgid "Hide what the AI wrote"
 msgstr "Masquer ce que l'IA a écrit"
+
+msgid "Hide your pages"
+msgstr "Masquer vos pages"
 
 msgid "High"
 msgstr "Élevé"
@@ -11444,6 +11465,9 @@ msgstr "Voir le livre et choisir les pages"
 msgid "See the other options"
 msgstr "Voir les autres options"
 
+msgid "See your pages both ways"
+msgstr "Voir vos pages des deux façons"
+
 msgid "Seed"
 msgstr "Graine"
 
@@ -14893,6 +14917,9 @@ msgstr "Où les projets de livres résident sur cette machine."
 
 msgid "Where I read it:"
 msgstr "Où je l'ai lu :"
+
+msgid "Where I saw it:"
+msgstr "Où je l'ai vu :"
 
 msgid "Where it all begins"
 msgstr "Où tout commence"

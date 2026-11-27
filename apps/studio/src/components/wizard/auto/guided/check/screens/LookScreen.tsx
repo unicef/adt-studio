@@ -131,51 +131,10 @@ function AtAGlance({ strategy }: { strategy: string }) {
   )
 }
 
-/**
- * Pictures across two pages (Page Grouping): measured from the PDF and fixed once the book is
- * created, so it's a quiet line with a switch under the layout, not a question.
- */
-function GroupingLine({ rec, chat }: Omit<Props, "file">) {
-  const { i18n } = useLingui()
-  const derived = chat.derived!
-  const joined = derived.effective.pageGrouping?.value === "spread"
-  const words = plainTitle("pageGrouping", joined ? "spread" : "single")
-  const why = RULE_WHY[rec.settings.pageGrouping?.rule ?? ""]
-  const changed = derived.source("pageGrouping") === "changed"
-  return (
-    <div className="flex items-start gap-3 rounded-[16px] bg-[var(--lc-bubble)] px-4 py-3 shadow-[var(--lc-shadow)]">
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span id="gd-grouping" className="inline-flex items-center gap-1.5 text-[14.5px] font-medium">
-          {i18n._(SETTING_NAME.pageGrouping)}
-          <Lock aria-hidden className="size-3 text-muted-foreground" />
-        </span>
-        <span className="text-[13.5px] leading-snug text-muted-foreground">
-          {words && i18n._(words)}
-          {". "}
-          {changed ? <Trans>Changed by you.</Trans> : why && i18n._(why)} <Trans>Fixed once the book is set up.</Trans>
-        </span>
-      </div>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={joined}
-        aria-labelledby="gd-grouping"
-        onClick={() => chat.override("pageGrouping", joined ? "single" : "spread")}
-        className={cn("relative mt-0.5 inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500", joined ? "bg-[var(--lc-accent)]" : "bg-muted-foreground/30")}
-      >
-        <span className={cn("absolute left-1 size-5 rounded-full bg-white shadow transition-transform duration-200 motion-reduce:transition-none", joined && "translate-x-5")} />
-      </button>
-    </div>
-  )
-}
-
-/** Screen 3 · How the pages look: the page layout (its options start open when the engine asked), and the two-page line. */
+/** Screen 3 · How the pages look: the page layout (its options shown at once when the engine asked). Joining facing pages has its own screen (SpreadsScreen). */
 export function LookScreen({ rec, chat, file }: Props) {
   const fact = screenFacts(rec, chat.derived!.current, "look")[0]
   return (
-    <div className="flex flex-col gap-3">
-      <LayoutPick rec={rec} chat={chat} file={file} asked={!!fact?.ask} />
-      <GroupingLine rec={rec} chat={chat} />
-    </div>
+    <LayoutPick rec={rec} chat={chat} file={file} asked={!!fact?.ask} />
   )
 }
