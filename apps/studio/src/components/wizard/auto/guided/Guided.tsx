@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode, type RefObject } from "react"
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode, type RefObject } from "react"
 import { flushSync } from "react-dom"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { FileDropOverlay } from "@/components/ui/file-drop-overlay"
@@ -33,6 +33,12 @@ import { Stepper } from "./Stepper"
 import { STEPS, type StepId } from "./steps"
 import { UploadPanel, UploadSays } from "./UploadPanel"
 import "./guided.css"
+import { useStore } from "@tanstack/react-form"
+import { useDevMode } from "../dev/devMode"
+
+// Dev builds only: dev mode's decision report (`?dev`). Left out of production bundles.
+// eslint-disable-next-line lingui/no-unlocalized-strings -- module path
+const DecisionReport = import.meta.env.DEV ? lazy(() => import("../dev/DecisionReport")) : null
 
 /** How long the Check bubble stands alone before the first screen comes in under it. */
 const REVEAL_MS = 650
@@ -57,6 +63,8 @@ function useHeldWhile<T>(active: boolean, value: T): T {
 export function Guided({ onManual, active = true }: { onManual: () => void; active?: boolean }) {
   const { t } = useLingui()
   const form = useWizardForm()
+  const devMode = useDevMode()
+  const devForm = useStore(form.store, (st) => ({ scope: st.values.scope, startPage: st.values.startPage, endPage: st.values.endPage, editingLanguage: st.values.editingLanguage, label: st.values.label }))
   const flow = useUploadFlow({ active })
   const validFile = !!flow.file && flow.pageCount > 0 && !flow.error
   const [attempt, setAttempt] = useState(0)
@@ -245,6 +253,11 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
           {busy && shown === "reading" ? <Trans>The {assistant} is reading your book…</Trans> : null}
         </span>
       </div>
+      {DecisionReport && devMode && (
+        <Suspense fallback={null}>
+          <DecisionReport rec={rec} chat={chat} file={flow.file ?? null} failure={failure} form={devForm} stage={shown === "check" ? `check:${check.at}` : shown === "create" && lastRun ? `create:${lastRun.status}` : shown} />
+        </Suspense>
+      )}
     </FinishContext.Provider>
   )
 }
