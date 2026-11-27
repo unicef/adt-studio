@@ -522,13 +522,13 @@ export function createStageRoutes(
       }
       // SPEC-0003 RAC-24: which Extract re-run actions this book allows. Read
       // in the same admission; a failure here must not hide the rest of status.
-      let extractRerun: ExtractRerunStatus = { actions: [], attemptId: null, blockedReason: null }
+      let extractRerun: ExtractRerunStatus = { actions: [], attemptId: null, contentToken: null, blockedReason: null }
       if (storage) {
         const runActive = active?.status === "running" || active?.status === "cancelling" || queuedStages.size > 0
         try { extractRerun = readExtractRerunStatus(storage, runActive) }
         catch (error) {
           console.error(`[stages] ${safeLabel}: Extract re-run availability could not be read: ${error instanceof Error ? error.message : String(error)}`)
-          extractRerun = { actions: [], attemptId: null, blockedReason: "unrecognized-content" }
+          extractRerun = { actions: [], attemptId: null, contentToken: null, blockedReason: "unrecognized-content" }
         }
       }
       return c.json({

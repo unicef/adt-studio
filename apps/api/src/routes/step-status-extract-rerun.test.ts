@@ -13,7 +13,7 @@ vi.mock("@adt/storage", async original => {
     return storage
   } }
 })
-import { createBookStorage } from "@adt/storage"
+import { createBookStorage, openBookDb } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import { extractPDF } from "@adt/pipeline"
 import { ExtractRerunStatus, PIPELINE } from "@adt/types"
@@ -57,7 +57,9 @@ function fixture(extracted = true): Fixture {
 }
 const attemptOf = (bookDir: string): string => JSON.parse(fs.readFileSync(path.join(bookDir, "extraction.json"), "utf8")).attemptId
 
-async function extractRerun(root: string, run: { active?: { status: string }; queued?: string[] } = {}): Promise<unknown> {
+const digest = expect.stringMatching(/^[a-f0-9]{64}$/)
+
+async function extractRerun(root: string, run: { active?: { status: string }; queued?: string[] } = {}): Promise<ExtractRerunStatus> {
   const bus = createBookEventBus()
   const service = {
     getStatus: () => ({ active: run.active ? { label: "book", fromStage: "extract", toStage: "extract", ...run.active } : null, queue: [] }),
@@ -75,7 +77,7 @@ async function extractRerun(root: string, run: { active?: { status: string }; qu
 describe("RAC-24: step-status reports actions and reason", { timeout: 30_000 }, () => {
   it("a book without a database", async () => {
     const f = fixture(false)
-    expect(await extractRerun(f.root)).toEqual({ actions: [], attemptId: null, blockedReason: null })
+    expect(await extractRerun(f.root)).toEqual({ actions: [], attemptId: null, contentToken: null, blockedReason: null })
     expect(fs.existsSync(f.bookDir)).toBe(false)
   })
 
@@ -83,33 +85,33 @@ describe("RAC-24: step-status reports actions and reason", { timeout: 30_000 }, 
     const f = fixture(false)
     f.edit(() => undefined)
     fs.copyFileSync(path.join(template, "book", "book.pdf"), path.join(f.bookDir, "book.pdf"))
-    expect(await extractRerun(f.root)).toEqual({ actions: [], attemptId: null, blockedReason: null })
+    expect(await extractRerun(f.root)).toEqual({ actions: [], attemptId: null, contentToken: null, blockedReason: null })
   })
 
   it("a healthy extracted book with every Extract step done", async () => {
     const f = fixture()
-    expect(await extractRerun(f.root)).toEqual({ actions: ["replace"], attemptId: attemptOf(f.bookDir), blockedReason: null })
+    expect(await extractRerun(f.root)).toEqual({ actions: ["replace"], attemptId: attemptOf(f.bookDir), contentToken: digest, blockedReason: null })
   })
 
   it("an Extract step in error", async () => {
     const f = fixture()
     f.edit(storage => storage.recordStepError("book-summary", "provider failed"))
-    expect(await extractRerun(f.root)).toEqual({ actions: ["resume", "replace"], attemptId: attemptOf(f.bookDir), blockedReason: null })
+    expect(await extractRerun(f.root)).toEqual({ actions: ["resume", "replace"], attemptId: attemptOf(f.bookDir), contentToken: digest, blockedReason: null })
   })
 
   it("a failed extraction record", async () => {
     const f = fixture()
     const record = path.join(f.bookDir, "extraction.json")
     fs.writeFileSync(record, JSON.stringify({ ...JSON.parse(fs.readFileSync(record, "utf8")), status: "failed" }))
-    expect(await extractRerun(f.root)).toEqual({ actions: ["retry"], attemptId: attemptOf(f.bookDir), blockedReason: null })
+    expect(await extractRerun(f.root)).toEqual({ actions: ["retry"], attemptId: attemptOf(f.bookDir), contentToken: digest, blockedReason: null })
     fs.writeFileSync(record, "{")
-    expect(await extractRerun(f.root)).toEqual({ actions: ["retry"], attemptId: null, blockedReason: null })
+    expect(await extractRerun(f.root)).toEqual({ actions: ["retry"], attemptId: null, contentToken: digest, blockedReason: null })
   })
 
   it("a book with a page-sectioning node", async () => {
     const f = fixture()
     f.edit(storage => storage.putNodeData("page-sectioning", "pg001", { sections: [] }))
-    expect(await extractRerun(f.root)).toEqual({ actions: [], attemptId: attemptOf(f.bookDir), blockedReason: "downstream-output" })
+    expect(await extractRerun(f.root)).toEqual({ actions: [], attemptId: attemptOf(f.bookDir), contentToken: null, blockedReason: "downstream-output" })
   })
 
   it("an imported ADT project", async () => {
@@ -123,14 +125,14 @@ describe("RAC-24: step-status reports actions and reason", { timeout: 30_000 }, 
     fs.writeFileSync(path.join(f.bookDir, "part.json"), JSON.stringify({ adtPart: 1, sourceLabel: "source", title: null,
       range: { startPage: 1, endPage: 1 }, pageCount: 1, fingerprint: null, identityHash: "a", semanticsHash: "b",
       createdAt: "2026-01-01T00:00:00.000Z", partLabelSuggestion: "source-part-1" }))
-    expect(await extractRerun(f.root)).toEqual({ actions: [], attemptId: attemptOf(f.bookDir), blockedReason: "part-book" })
+    expect(await extractRerun(f.root)).toEqual({ actions: [], attemptId: attemptOf(f.bookDir), contentToken: null, blockedReason: "part-book" })
     f.edit(storage => storage.clearStepRuns(["image-cropping"]))
-    expect(await extractRerun(f.root)).toEqual({ actions: ["resume"], attemptId: attemptOf(f.bookDir), blockedReason: null })
+    expect(await extractRerun(f.root)).toEqual({ actions: ["resume"], attemptId: attemptOf(f.bookDir), contentToken: null, blockedReason: null })
   })
 
   it.each([{ active: { status: "running" } }, { active: { status: "cancelling" } }, { queued: ["extract"] }])("an active or queued run: %j", async run => {
     const f = fixture()
-    expect(await extractRerun(f.root, run)).toEqual({ actions: [], attemptId: attemptOf(f.bookDir), blockedReason: "run-active" })
+    expect(await extractRerun(f.root, run)).toEqual({ actions: [], attemptId: attemptOf(f.bookDir), contentToken: null, blockedReason: "run-active" })
   })
 
   it("a settled failed run does not count as active", async () => {
@@ -142,7 +144,55 @@ describe("RAC-24: step-status reports actions and reason", { timeout: 30_000 }, 
     const f = fixture()
     const logged = vi.spyOn(console, "error").mockImplementation(() => undefined)
     inspection.fail = true
-    expect(await extractRerun(f.root)).toEqual({ actions: [], attemptId: null, blockedReason: "unrecognized-content" })
+    expect(await extractRerun(f.root)).toEqual({ actions: [], attemptId: null, contentToken: null, blockedReason: "unrecognized-content" })
     expect(logged).toHaveBeenCalledTimes(1)
+  })
+
+  it("the content token follows the content a retry or replace discards", async () => {
+    const f = fixture()
+    const token = async () => (await extractRerun(f.root)).contentToken
+    const first = await token()
+    expect(first).toEqual(digest)
+    expect(await token()).toBe(first)
+
+    // Kept by a reset, or bookkeeping of the run itself: not part of the token.
+    f.edit(storage => {
+      storage.putNodeData("typography", "book", { edited: true })
+      storage.appendLlmLog({ requestId: "r1", timestamp: "2026-01-01T00:00:00.000Z", taskType: "metadata", pageId: "pg001", success: true, errorCount: 0 } as Parameters<Storage["appendLlmLog"]>[0])
+    })
+    expect(await token()).toBe(first)
+
+    // A new version of an Extract node (a metadata edit, an image decision).
+    f.edit(storage => storage.putNodeData("metadata", "book", { title: "Edited" }))
+    const afterEdit = await token()
+    expect(afterEdit).toEqual(digest)
+    expect(afterEdit).not.toBe(first)
+
+    // An image row, as an upload adds one.
+    const db = openBookDb(path.join(f.bookDir, "book.db"))
+    try { db.run("INSERT INTO images (image_id, page_id, path, hash, width, height, source) VALUES ('pg001_upload001', 'pg001', 'images/pg001_upload001.png', 'h', 4, 4, 'upload')") }
+    finally { db.close() }
+    fs.writeFileSync(path.join(f.bookDir, "images", "pg001_upload001.png"), "png")
+    const afterUpload = await token()
+    expect(afterUpload).toEqual(digest)
+    expect(afterUpload).not.toBe(afterEdit)
+
+    // The extraction record.
+    const record = path.join(f.bookDir, "extraction.json")
+    fs.writeFileSync(record, JSON.stringify({ ...JSON.parse(fs.readFileSync(record, "utf8")), status: "failed" }))
+    const afterRecord = await extractRerun(f.root)
+    expect(afterRecord).toMatchObject({ actions: ["retry"], contentToken: digest })
+    expect(afterRecord.contentToken).not.toBe(afterUpload)
+  })
+
+  it("binds a book that has no extraction record", async () => {
+    const f = fixture()
+    fs.rmSync(path.join(f.bookDir, "extraction.json"))
+    const before = await extractRerun(f.root)
+    expect(before).toEqual({ actions: ["replace"], attemptId: null, contentToken: digest, blockedReason: null })
+    f.edit(storage => storage.putNodeData("metadata", "book", { title: "Edited" }))
+    const after = await extractRerun(f.root)
+    expect(after).toMatchObject({ actions: ["replace"], attemptId: null, contentToken: digest })
+    expect(after.contentToken).not.toBe(before.contentToken)
   })
 })

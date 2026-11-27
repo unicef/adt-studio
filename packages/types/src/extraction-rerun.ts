@@ -25,11 +25,20 @@ export const ExtractRerunBlockedReason = z.enum([
 ])
 export type ExtractRerunBlockedReason = z.infer<typeof ExtractRerunBlockedReason>
 
+/** A SHA-256 digest of the content a retry or replace discards: every version
+ * of the Extract nodes, every image row and the extraction record. It names
+ * nothing in the book and is only ever compared for equality. */
+export const ExtractContentToken = z.string().regex(/^[a-f0-9]{64}$/)
+export type ExtractContentToken = z.infer<typeof ExtractContentToken>
+
 /** Reported by step-status (RAC-24). `attemptId` names the extraction record a
- * later run request must be bound to; null when the book has none. */
+ * later run request must be bound to; null when the book has none.
+ * `contentToken` is the content a retry or replace request must be bound to;
+ * null unless one of the two is offered. */
 export const ExtractRerunStatus = z.object({
   actions: z.array(ExtractRerunAction),
   attemptId: z.string().uuid().nullable(),
+  contentToken: ExtractContentToken.nullable(),
   blockedReason: ExtractRerunBlockedReason.nullable(),
 }).strict()
 export type ExtractRerunStatus = z.infer<typeof ExtractRerunStatus>

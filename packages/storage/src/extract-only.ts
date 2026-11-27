@@ -4,7 +4,7 @@ import type sqlite from "node-sqlite3-wasm"
 import { EXTRACT_OWNED_NODES, EXTRACT_RETAINED_CONFIG_NODES, PROJECT_IDENTITY_FILE, ProjectIdentity, STEP_TO_STAGE, type ExtractRerunBlockedReason } from "@adt/types"
 import { isBookWriterArtifact } from "./book-writer.js"
 import { BOOK_TABLES } from "./db.js"
-import { EXTRACTION_MANIFEST_FILE, isInitialRecoveryEvidence, registeredUploadFontFiles } from "./extraction-manifest.js"
+import { EXTRACTION_MANIFEST_FILE, extractionHash, isInitialRecoveryEvidence, registeredUploadFontFiles } from "./extraction-manifest.js"
 import { isConfigRecoveryEvidence, readSectioningLifecycle, SECTIONING_JOURNAL, SECTIONING_LIFECYCLE } from "./sectioning-transition.js"
 
 /** `detail` names the first finding for logs and tests: a file, table, node or
@@ -128,4 +128,28 @@ export function inspectExtractOnly(bookDir: string, db: sqlite.Database): Extrac
     if (error instanceof Finding) return { extractOnly: false, reason: error.reason, detail: error.detail }
     return { extractOnly: false, reason: "unrecognized-content", detail: `unreadable:${(error as NodeJS.ErrnoException)?.code ?? "error"}` }
   }
+}
+
+/** SPEC-0003 "Consent and binding": a digest of the content a retry or replace
+ * discards, so a request made against one state of the book is refused on any
+ * other. Three parts, in a fixed order:
+ *
+ * - every version of every Extract node, and which version is current (a
+ *   metadata edit or an image decision adds a version; a rollback moves the
+ *   current one). Versions are never rewritten, so the row names its content;
+ * - every image row (an upload, crop or segment adds one);
+ * - the bytes of the extraction record, or its absence, so a book extracted
+ *   before the record existed is bound too.
+ *
+ * Retained configuration, the LLM log and the step records are left out: a
+ * reset keeps them, and a run writes them before the reset checks the token. */
+export function readExtractContentToken(bookDir: string, db: sqlite.Database): string {
+  const owned = EXTRACT_OWNED_NODES.map(() => "?").join(", ")
+  const record = path.join(bookDir, EXTRACTION_MANIFEST_FILE)
+  return extractionHash(JSON.stringify([
+    fs.existsSync(record) ? extractionHash(fs.readFileSync(record)) : null,
+    ...["node_data", "node_current"].map((table) =>
+      db.all(`SELECT node, item_id, version FROM ${table} WHERE node IN (${owned}) ORDER BY node, item_id, version`, [...EXTRACT_OWNED_NODES])),
+    db.all("SELECT * FROM images ORDER BY image_id"),
+  ]))
 }

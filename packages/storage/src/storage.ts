@@ -83,6 +83,10 @@ export interface Storage {
   /** SPEC-0003 RAC-20: read-only, fail-closed check that the book holds only
    * Extract output and pre-Extract configuration. Never throws for a finding. */
   inspectExtractOnly?(): ExtractOnlyInspection
+  /** SPEC-0003 RAC-24: a digest of the content a retry or replace discards.
+   * It changes with any version of an Extract node, any image row and the
+   * extraction record, and with nothing a reset keeps. Read-only. */
+  readExtractContentToken?(): string
   /** Run all storage operations in one SQLite transaction. Nested calls join
    *  the outer transaction. Any thrown error rolls the whole operation back. */
   transaction<T>(operation: () => T): T

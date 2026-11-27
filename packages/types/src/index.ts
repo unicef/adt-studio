@@ -786,6 +786,7 @@ export { OutputSource, OutputReference, OutputInputEvidence, OutputReview, Outpu
 export { CATALOG_OUTPUT_NODES } from "./pipeline-effects.js"
 export { EXTRACT_OWNED_NODES, EXTRACT_RETAINED_CONFIG_NODES, LEGACY_OUTPUT_BASELINE_NODE } from "./pipeline-effects.js"
 export { ExtractRerunAction, ExtractRerunBlockedReason, ExtractRerunStatus } from "./extraction-rerun.js"
+export { ExtractContentToken } from "./extraction-rerun.js"
 
 export { OutputReplacement, OutputRunScope } from "./output-freshness.js"
 

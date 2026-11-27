@@ -12,6 +12,9 @@ export interface ExtractRerunInput {
   record: ExtractionRecordState
   /** The record's attempt; null when there is none or it is unreadable. */
   attemptId: string | null
+  /** Digest of the content a retry or replace discards; null when the book is
+   * not Extract-only or the content could not be read. */
+  contentToken: string | null
   pageCount: number
   /** Rows of step_runs; steps of other stages are ignored. */
   stepRuns: ReadonlyArray<{ step: string; status: string }>
@@ -26,19 +29,25 @@ const EXTRACT_STEPS = PIPELINE.find((stage) => stage.name === "extract")!.steps.
  * run may perform on this book, and the reason when none. Pure; the run request
  * that acts on the answer re-checks it under the writer lease. */
 export function decideExtractRerun(input: ExtractRerunInput): ExtractRerunStatus {
-  const { attemptId } = input
-  const none = (blockedReason: ExtractRerunBlockedReason | null): ExtractRerunStatus => ({ actions: [], attemptId, blockedReason })
+  const { attemptId, contentToken } = input
+  const none = (blockedReason: ExtractRerunBlockedReason | null): ExtractRerunStatus => ({ actions: [], attemptId, contentToken: null, blockedReason })
+  /** Retry and replace discard content, so each is offered only with the token
+   * its request must carry; resume discards nothing and needs none. */
+  const offer = (wanted: ExtractRerunAction[], whenNone: ExtractRerunBlockedReason): ExtractRerunStatus => {
+    const actions = wanted.filter((action) => action === "resume" || contentToken !== null)
+    if (!actions.length) return none(wanted.length ? "unrecognized-content" : whenNone)
+    return { actions, attemptId, contentToken: actions.some((action) => action !== "resume") ? contentToken : null, blockedReason: null }
+  }
   if (input.runActive) return none("run-active")
   if (!input.inspection.extractOnly) return none(input.inspection.reason)
   // A failed, cancelled, interrupted or unreadable extraction keeps nothing usable.
-  if (input.record !== "complete" && input.record !== "none") return { actions: ["retry"], attemptId, blockedReason: null }
+  if (input.record !== "complete" && input.record !== "none") return offer(["retry"], "unrecognized-content")
   // No pages and no record is a first extraction, which needs no re-run action.
   if (input.pageCount === 0) return none(input.record === "complete" ? "extraction-inconsistent" : null)
   const statuses = new Map(input.stepRuns.map((run) => [run.step, run.status]))
   const pending = EXTRACT_STEPS.some((step) => !["done", "skipped"].includes(statuses.get(step) ?? "idle"))
   // A part's page window is fixed and its extraction must stay mergeable.
-  const actions: ExtractRerunAction[] = [...(pending ? ["resume" as const] : []), ...(input.isPart ? [] : ["replace" as const])]
-  return actions.length ? { actions, attemptId, blockedReason: null } : none("part-book")
+  return offer([...(pending ? ["resume" as const] : []), ...(input.isPart ? [] : ["replace" as const])], "part-book")
 }
 
 /** Gather the inputs from an open book and decide. Reads only: no writer lease,
@@ -56,10 +65,11 @@ export function readExtractRerunStatus(storage: Storage, runActive: boolean): Ex
   }
   // Status is polled throughout a run, when the answer cannot change: skip
   // the directory and table scan. decideExtractRerun applies the same rule.
-  if (runActive) return { actions: [], attemptId, blockedReason: "run-active" }
+  if (runActive) return { actions: [], attemptId, contentToken: null, blockedReason: "run-active" }
+  const inspection = storage.inspectExtractOnly?.() ?? { extractOnly: false as const, reason: "unrecognized-content" as const, detail: "storage:uninspectable" }
   return decideExtractRerun({
-    inspection: storage.inspectExtractOnly?.() ?? { extractOnly: false, reason: "unrecognized-content", detail: "storage:uninspectable" },
-    record, attemptId, runActive,
+    inspection, record, attemptId, runActive,
+    contentToken: inspection.extractOnly ? storage.readExtractContentToken?.() ?? null : null,
     pageCount: storage.getPages().length,
     stepRuns: storage.getStepRuns(),
     isPart: fs.existsSync(path.join(bookDir, "part.json")),
