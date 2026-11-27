@@ -2241,6 +2241,8 @@ export const api = {
       protectedWork?: Array<import("@adt/types").AuthoredReplacement & { pageNumber?: number }>
       /** Which Extract re-run actions the book allows (SPEC-0003 RAC-24). */
       extractRerun?: import("@adt/types").ExtractRerunStatus
+      /** What a replace would discard; null unless `replace` is offered. */
+      extractRerunDiscards?: import("@adt/types").ExtractRerunDiscards | null
     }>(`/books/${label}/step-status`, { signal }),
 
   getTTS: (label: string) =>

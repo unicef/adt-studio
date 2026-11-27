@@ -40,13 +40,13 @@ export function assertFirstExtraction(bookDir: string, storage: Storage): void {
 }
 
 /** `extraction` is the run request's Extract re-run field (SPEC-0003 RAC-21
- * resume, RAC-22 retry). Without it, and for the replace action (RAC-23, not
- * accepted yet), a run from Extract is refused exactly as before. */
+ * resume, RAC-22 retry, RAC-23 replace). Without it a run from Extract is
+ * refused exactly as before. */
 export function prepareSectioningRun(label: string, booksRoot: string, from: StageName, _to: StageName, _configPath?: string, extraction?: ExtractRerunRequest): void {
   const { bookDir } = resolveBookPaths(label, booksRoot)
   withBookWriter(bookDir, () => {
     recoverSectioningTransition(bookDir)
-    const rerun = from === "extract" && extraction?.action !== "replace" ? extraction : undefined
+    const rerun = from === "extract" ? extraction : undefined
     // A retry exists for the record this check refuses, so a re-run is
     // admitted first. A book that is not Extract-only still gets the check.
     if (!rerun) assertExtractionReadable(bookDir)

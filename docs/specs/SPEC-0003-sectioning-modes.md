@@ -5,10 +5,10 @@ status: approved
 owner: "@ksokolovic"
 approvers: ["@gbergengruen"]
 issues: ["#708", "#1214"]
-prs: ["#884", "#1215"]
+prs: ["#884", "#1215", "#1216", "#1218", "#1219", "#1220"]
 adr: "docs/DECISIONS.md#025-sectioning-generation-preferences-scoped-reset-and-per-page-publication"
 created: 2026-09-22
-updated: 2026-11-23
+updated: 2026-11-27
 ---
 
 ## Approved product amendment
@@ -307,7 +307,7 @@ Expanded existing-book CLI resume is deferred to SPEC-0010. Preserve fresh CLI
 execution and its validator/publication integrity, and safe refusal before
 mutation/provider calls for unsupported existing-book runs here. Inspect #886 and
 #888 for focused reuse with attribution; never merge descendants into this PR.
-The Studio/API Extract re-runs of the [Extract re-run amendment](#extract-re-run-amendment--proposed-2026-11-23)
+The Studio/API Extract re-runs of the [Extract re-run amendment](#extract-re-run-amendment--approved-2026-11-26)
 (RAC-20–24) apply only to a book that holds nothing but Extract output. They are
 not a downstream resume and add no CLI path.
 
@@ -362,11 +362,11 @@ not grant approval.
 - [ ] RAC-17 Fresh CLI/DAG remains safe; expanded existing-book resume is deferred/refused here, except the Studio/API Extract resume, retry and replace of RAC-20–24; the CLI refuses every existing book. No B2 modes, automatic merge, new dependency or competing freshness/lock subsystem.
 - [ ] RAC-18 Inherited authorship, draft, restore, stable ID/audio/TOC-consent, current-read and scoped cache guarantees survive integration, subject to the explicit legacy-owner qualification.
 - [ ] RAC-19 Subject to ownership proof and D2, packaging and downloads refuse only a bundle that could not open. A missing content resource, unreadable content styles or characters the format cannot hold produce a built, downloadable bundle; missing resources are named in a `missing-asset` warning that survives cache hits. EPUB preparation warns about unreadable page documents without dropping their content. Missing persistent book identity refuses formatted export while retaining live Preview, project backup and existing artifacts. No reference is followed outside the bundle.
-- [ ] RAC-20 Extract runs again on an existing book only while the book holds nothing but Extract output and pre-Extract configuration (an *Extract-only book*). Any Sectioning or later output, current or historical, any downstream attempt record, media, identity-history record, part ledger, imported source or unrecognized file or table refuses the run before any change or provider call, with the existing code and message. CLI/DAG runs and direct extraction admission are unchanged.
-- [ ] RAC-21 Resume: when extraction is complete, or an older book has pages and no extraction record, and the Extract stage is not complete, only the steps that are not done or skipped run, on the existing pages. Nothing is cleared, the PDF is not read, existing page image lists are not rebuilt, and pages already segmented or cropped are not processed again.
-- [ ] RAC-22 Retry: a failed, cancelled or interrupted extraction is discarded and extracted again with the current settings. From the first change until the new extraction completes, the book carries an extraction record that is not complete, so a crash, failure or cancellation at any point leaves a book that can be retried. A missing or changed source PDF, an invalid page window, a book whose content changed since the request was made, or a part whose current settings would no longer merge into its coordinator is refused before anything is discarded.
-- [ ] RAC-23 Replace: a complete extraction is replaced only after an explicit confirmation that states what is discarded and that it cannot be restored, bound to the book content the confirmation described. A stale request (including one made stale by an edit or upload after the confirmation opened), a request on a part book, or one that would wait behind other work is refused and changes nothing. The source PDF, configuration, fonts, typography, prompts, LLM cache, LLM log and project identity are kept.
-- [ ] RAC-24 Step status reports which of resume, retry and replace are available for the book, and the reason when none is. Studio offers exactly those, lets Extract settings be saved without starting a run, shows the page list again after a refused or failed run, and translates every new text in the five locales.
+- [x] RAC-20 Extract runs again on an existing book only while the book holds nothing but Extract output and pre-Extract configuration (an *Extract-only book*). Any Sectioning or later output, current or historical, any downstream attempt record, media, identity-history record, part ledger, imported source or unrecognized file or table refuses the run before any change or provider call, with the existing code and message. CLI/DAG runs and direct extraction admission are unchanged.
+- [x] RAC-21 Resume: when extraction is complete, or an older book has pages and no extraction record, and the Extract stage is not complete, only the steps that are not done or skipped run, on the existing pages. Nothing is cleared, the PDF is not read, existing page image lists are not rebuilt, and pages already segmented or cropped are not processed again.
+- [x] RAC-22 Retry: a failed, cancelled or interrupted extraction is discarded and extracted again with the current settings. From the first change until the new extraction completes, the book carries an extraction record that is not complete, so a crash, failure or cancellation at any point leaves a book that can be retried. A missing or changed source PDF, an invalid page window, a book whose content changed since the request was made, or a part whose current settings would no longer merge into its coordinator is refused before anything is discarded.
+- [x] RAC-23 Replace: a complete extraction is replaced only after an explicit confirmation that states what is discarded and that it cannot be restored, bound to the book content the confirmation described. A stale request (including one made stale by an edit or upload after the confirmation opened), a request on a part book, or one that would wait behind other work is refused and changes nothing. The source PDF, configuration, fonts, typography, prompts, LLM cache, LLM log and project identity are kept.
+- [x] RAC-24 Step status reports which of resume, retry and replace are available for the book, and the reason when none is. Studio offers exactly those, lets Extract settings be saved without starting a run, shows the page list again after a refused or failed run, and translates every new text in the five locales.
 
 ## Original acceptance-criteria mapping
 
@@ -485,10 +485,11 @@ Windows/macOS reboot, Docker recreation or signed releases. The accepted direct
 `/adt/` redirect for develop-built packages lasts until Studio Preview rebuilds
 them; normal Preview rebuild/reopen behavior is unchanged.
 
-## Extract re-run amendment — proposed 2026-11-23
+## Extract re-run amendment — approved 2026-11-26
 
-**Status: proposed by @gbergengruen in #1214. Not part of the approved contract
-until a non-author maintainer approves it.** RAC-20–24 and the three edited passages
+**Status: approved. Proposed by @gbergengruen in #1214, approved by
+@ksokolovic in #1215 on 2026-11-26, and implemented by #1216 (RAC-20, status),
+#1218 (RAC-21), #1219 (RAC-22) and #1220 (RAC-23, RAC-24).** RAC-20–24 and the three edited passages
 (the CLI-resume paragraph, RAC-17 and the fixed-layout input qualification) are
 the whole amendment. No other criterion changes.
 
@@ -597,9 +598,15 @@ Retry and Replace run inside one writer lease, in this order:
    matches the project identity, valid page window, mandatory part window. On a
    part book, the pipeline identity of the current settings and PDF must equal
    the identity recorded in the part manifest, the one its coordinator merges
-   against; a spread, figure-extraction or watermark change refuses Retry. A
-   refusal here leaves the book untouched, and restoring the part's settings
-   makes Retry available again.
+   against; a spread, figure-extraction or watermark change refuses Retry
+   with `EXTRACTION_PART_SETTINGS_CHANGED`. A refusal here leaves the book
+   untouched, and restoring the part's settings makes Retry available again.
+   The recorded identity also covers the database schema version, which an
+   app update changes for the part and its coordinator alike while the merge
+   recomputes both sides. A difference in that alone is therefore not a
+   refusal: when the hashes differ, the part is still accepted if the
+   identity recorded beside the hash is the one the hash names and its PDF
+   and extraction settings equal the current ones.
 3. Write the extraction record as `failed`. A book with no record gets one.
 4. Delete the Extract rows in one transaction, then the Extract image files.
    Retained: source PDF, configuration, fonts, typography, prompts, LLM cache,
@@ -678,11 +685,11 @@ their content-preservation, no-task-publication and lock-release assertions.
 | RAC-17 | `pipeline-dag-page-range.test.ts`, `cli-invalid-pdf.test.ts` and preflight tests cover actual fresh CLI/DAG windows and existing-book refusal without provider calls/source replacement. B2/automatic merge/full CLI resume remain excluded. |
 | RAC-18 | `history-recovery.test.ts`, manual-edit survival, Storyboard draft and editable-activity conflict suites cover exact-byte audited repair, IDs, current selection, successor drafts and full-activity conflict choices. SPEC-0001 legacy-owner and SPEC-0002 D1–D6 qualifications remain unchanged. |
 | RAC-19 | `routes/package.test.ts`, `export-service.test.ts`, CSS/resource/XML suites: malformed CSS across build/cache/export and supported import, warning persistence, ownership/path constraints, D2 and `PACKAGE_INPUTS_CHANGED` retaining the old bundle. |
-| RAC-20 | *Planned.* New storage predicate tests: an Extract-only fixture is accepted; one case per downstream trace (node, step record, table row, file, image source, part ledger, imported source) is refused. `apps/api/src/routes/stages.test.ts` "rejects unsupported full extraction…" and "blocks unsafe extract regeneration…", `extraction-admission.test.ts`, `sectioning-resume.test.ts` and `pipeline-dag-page-range.test.ts` stay unmodified and green. |
-| RAC-21 | *Planned.* Real-storage runner tests with stub providers: only pending steps call a provider, the PDF is not opened, a manual prune decision, existing segments, crops and uploads survive, a manual keep decision survives where the meaningfulness pass is not re-run (on pages where it is, it may be overturned, as disclosed above), a resumed cropping pass crops segments but no crop or upload, a stale request is refused before any write and a request without the field is refused as today. |
-| RAC-22 | *Planned.* Fault injection after each reset step leaves a retryable book; a missing or changed PDF, a changed content token, and a part whose spread, figure-extraction or watermark setting changed are each refused with the failed attempt's data intact; an accepted book passes the post-reset check. |
-| RAC-23 | *Planned.* Route tests: old `attemptId`, part book and active-run requests are refused with unchanged bytes; a metadata edit, an image decision and an upload made through a second storage handle after the token was issued (including on a book with no extraction record) each refuse the Replace with the newer work intact; fonts, typography, configuration, LLM log and cache survive a replace. Studio dialog tests cover default-off, cancel, the discarded counts and the cannot-be-restored statement. |
-| RAC-24 | *Planned.* Step-status route tests per state; Studio tests for the run card, the settings bar and the page-list cache after refusal and after a failed queued run; CI `i18n`. |
+| RAC-20 | `packages/pipeline/src/__tests__/extract-only.test.ts`: an Extract-only fixture is accepted; one case per downstream trace (node, step record, table row, file, image source, part ledger, imported source) is refused with its reason; the inspection writes nothing. `apps/api/src/routes/stages.test.ts` "rejects unsupported full extraction…" and "blocks unsafe extract regeneration…", `extraction-admission.test.ts`, `sectioning-resume.test.ts` and `pipeline-dag-page-range.test.ts` stay unmodified and green. |
+| RAC-21 | `apps/api/src/services/extract-resume.test.ts`, real storage with stub providers: only pending steps call a provider, the PDF is not opened, a manual prune decision, existing segments, crops and uploads survive, a manual keep decision survives where the meaningfulness pass is not re-run (on pages where it is, it may be overturned, as disclosed above), a resumed cropping pass crops segments but no crop or upload, a stale request is refused before any write and a request without the field is refused as today. |
+| RAC-22 | `apps/api/src/services/extract-retry.test.ts`: fault injection after each reset step leaves a retryable book; a missing or changed PDF, a changed content token (a book detail, an image decision or an upload made after the request was built), and a part whose spread, figure-extraction or watermark setting changed are each refused with the failed attempt's data intact; a part whose recorded identity differs only in the schema version is accepted, and one whose recorded identity is missing, unreadable or not the one its hash names is refused; an accepted book passes the post-reset check. |
+| RAC-23 | `apps/api/src/services/extract-replace.test.ts`: old `attemptId`, part book and active-run requests are refused with unchanged bytes; a metadata edit, an image decision and an upload made through a second storage handle after the token was issued (including on a book with no extraction record) each refuse the Replace with the newer work intact; fonts, typography, configuration, LLM log and cache survive a replace. `ExtractReplaceDialog.test.tsx`, `ExtractLandingPage.rerun.test.tsx` and `ExtractSettings.rerun.test.tsx` cover default-off, cancel, the discarded counts, the cannot-be-restored statement and the request staying bound to the content the dialog described. |
+| RAC-24 | `apps/api/src/routes/step-status-extract-rerun.test.ts` per state, including the content token; `packages/pipeline/src/__tests__/extraction-rerun.test.ts` for the decision; Studio tests for the run card (`ExtractView.provider-compatibility.test.tsx`), the settings bar, the reason texts (`extract-rerun-messages.test.ts`) and the page-list cache after refusal and after a failed queued run (`use-book-run.extract-resume.test.tsx`); CI `i18n`. |
 
 Run `pnpm typecheck`, `pnpm --filter @adt/runtime typecheck`, `pnpm lint`,
 `pnpm --filter @adt/studio extract`, `pnpm --filter @adt/studio exec lingui compile --strict`,

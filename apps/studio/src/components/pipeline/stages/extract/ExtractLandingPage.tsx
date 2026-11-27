@@ -21,11 +21,11 @@ import { useBookConfig } from "@/hooks/use-book-config"
 import { usePartInfo } from "@/hooks/use-parts"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { usePages } from "@/hooks/use-pages"
-import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
+import { useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { PageGroupingVisual } from "./components/PageGroupingVisual"
 import { ExtractPreview } from "./components/ExtractPreview"
+import { useExtractRerun } from "./use-extract-rerun"
 
 type SpreadModeKey = "single" | "spread"
 
@@ -33,9 +33,7 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui()
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey } = useApiKey()
   const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
-  const { queueRun } = useBookRun()
   const status = useStageStatus("extract")
   const { data: book } = useBook(bookLabel)
   const { data: sourcePdfInfo, isPending: sourcePdfPending } = useSourcePdfInfo(bookLabel)
@@ -45,10 +43,14 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
   const isPart = !!partInfo
 
   const totalPages = sourcePdfInfo?.pageCount ?? book?.pageCount ?? 0
-  // Re-extracting a book that already has pages is refused by the API in this
-  // version (SPEC-0010 owns safe re-extraction); say so instead of failing.
+  // A book that already has pages runs Extract again only as step-status
+  // offers (SPEC-0003 RAC-21–24): a usable extraction is replaced after a
+  // confirmation, an unfinished one is retried or resumed. When nothing is
+  // offered, say why instead of failing.
   const { data: extractedPages } = usePages(bookLabel)
+  const rerun = useExtractRerun(bookLabel)
   const hasExtractedPages = (extractedPages?.length ?? 0) > 0 && !status.isRunning
+  const rerunBlocked = hasExtractedPages && rerun.blocked
 
   const [pageRange, setPageRange] = useState<[number, number]>([1, 1])
   const [spreadMode, setSpreadMode] = useState<SpreadModeKey>("single")
@@ -118,19 +120,13 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
   const pageRangeDisabled = sourcePdfPending || !totalPages
 
   const handleRun = () => {
-    if (!hasStructuredTextProvider || status.isRunning || hasExtractedPages) return
-    queueRun({ fromStage: "extract", toStage: "extract", apiKey, viewAfter: true })
+    if (!hasStructuredTextProvider || status.isRunning || rerunBlocked) return
+    rerun.start()
   }
 
   const disabledReason = !hasStructuredTextProvider ? (
     <Trans>Connect an AI provider to run extraction.</Trans>
-  ) : hasExtractedPages ? (
-    <Trans>
-      This book already has extracted pages. Re-extracting an existing book is
-      not available in this version; to extract again, create a new book from
-      the PDF. This book's content is preserved.
-    </Trans>
-  ) : undefined
+  ) : rerunBlocked ? rerun.blockedReason : undefined
 
   return (
     <LandingPageShell
@@ -145,7 +141,7 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasStructuredTextProvider || hasExtractedPages}
+      extraDisabled={!hasStructuredTextProvider || rerunBlocked}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Extract</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
@@ -172,6 +168,7 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
       </div>
 
       <CascadeWarning stageSlug="extract" />
+      {rerun.dialog}
 
       <SettingsCard>
         <SettingsField

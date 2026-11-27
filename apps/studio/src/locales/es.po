@@ -3579,6 +3579,7 @@ msgstr "No se pudieron deshacer los cambios de esta página. Se conservaron tus 
 msgid "Could not save Sectioning mode."
 msgstr "No se pudo guardar el modo de Seccionamiento."
 
+#. placeholder {0}: getStageLabelI18n("extract")
 #. placeholder {0}: getStageLabelI18n(fromStage)
 msgid "Could not start {0}: {detail}"
 msgstr "No se pudo iniciar {0}: {detail}"
@@ -4192,6 +4193,9 @@ msgstr "Descartar"
 msgid "Discard & leave"
 msgstr "Descartar y salir"
 
+msgid "Discard and extract again"
+msgstr "Descartar y volver a extraer"
+
 msgid "Discard this draft and load the entire latest saved table of contents."
 msgstr "Descarta este borrador y carga la última versión completa del índice guardado."
 
@@ -4522,6 +4526,9 @@ msgstr "Idioma de edición"
 
 msgid "Edits go to this Tailwind variant prefix"
 msgstr "Las ediciones van a este prefijo de variante Tailwind"
+
+msgid "Edits made in Extract are lost: image decisions, crops, segments, added images and book details."
+msgstr "Se pierden las ediciones hechas en Extracción: decisiones sobre imágenes, recortes, segmentos, imágenes añadidas y datos del libro."
 
 msgid "Effort"
 msgstr "Esfuerzo"
@@ -4894,6 +4901,9 @@ msgstr "Extraer y filtrar"
 msgid "Extract cannot run again on this book because it already has extracted pages or later work. To extract again, create a new book from the PDF."
 msgstr "La extracción no puede ejecutarse de nuevo en este libro porque ya tiene páginas extraídas o trabajo posterior. Para volver a extraer, crea un libro nuevo a partir del PDF."
 
+msgid "Extract cannot run again on this book. To extract again, create a new book from the PDF."
+msgstr "La extracción no puede ejecutarse de nuevo en este libro. Para volver a extraer, crea un libro nuevo a partir del PDF."
+
 msgid "Extract hasn't run yet"
 msgstr "Extracción aún no se ha ejecutado"
 
@@ -4905,6 +4915,9 @@ msgstr "La extracción parte de un PDF de origen"
 
 msgid "Extract text and images from each page of the PDF using AI-powered analysis."
 msgstr "Extrae texto e imágenes de cada página del PDF usando análisis con IA."
+
+msgid "Extract this book again?"
+msgstr "¿Volver a extraer este libro?"
 
 msgid "Extracted"
 msgstr "Extraído"
@@ -4918,6 +4931,9 @@ msgstr "Extraído del documento"
 #. placeholder {0}: String(count)
 msgid "Extracted Images ({0})"
 msgstr "Imágenes extraídas ({0})"
+
+msgid "Extracted pages"
+msgstr "Páginas extraídas"
 
 msgid "Extracted Text"
 msgstr "Texto extraído"
@@ -5988,6 +6004,9 @@ msgstr "imágenes"
 msgid "Images"
 msgstr "Imágenes"
 
+msgid "Images added in Extract (crops, segments and uploads)"
+msgstr "Imágenes añadidas en Extracción (recortes, segmentos y subidas)"
+
 msgid "Images and other files"
 msgstr "Imágenes y otros archivos"
 
@@ -6005,6 +6024,9 @@ msgstr "Las imágenes más pequeñas que tu dimensión mínima omiten la segment
 
 msgid "Images stay in the source language"
 msgstr "Las imágenes permanecen en el idioma original"
+
+msgid "Images taken from the PDF"
+msgstr "Imágenes tomadas del PDF"
 
 msgid "Images with shortest side below min or longest side above max are pruned."
 msgstr "Las imágenes con el lado más corto por debajo del mínimo o el lado más largo por encima del máximo se eliminan."
@@ -12435,6 +12457,9 @@ msgstr "La exportación se ha generado, pero es posible que {unreadableTotal} p�
 msgid "The exported activity marker is missing."
 msgstr "Falta el marcador de actividad exportado."
 
+msgid "The extracted pages, their images and the edits made in Extract will be discarded. The PDF is then extracted again with the current settings."
+msgstr "Se descartarán las páginas extraídas, sus imágenes y las ediciones hechas en Extracción. Después, el PDF se extrae de nuevo con la configuración actual."
+
 msgid "The file may be damaged or incomplete. Try downloading it again from the source."
 msgstr "El archivo puede estar dañado o incompleto. Intenta descargarlo nuevamente desde la fuente."
 
@@ -12595,6 +12620,9 @@ msgstr "Los ids de los elementos de la página ya no coinciden con las listas de
 
 msgid "The PDF or extraction settings are invalid. Check the file and settings before trying again."
 msgstr "El PDF o la configuración de extracción no son válidos. Comprueba el archivo y la configuración antes de volver a intentarlo."
+
+msgid "The PDF, settings, fonts and prompts are kept."
+msgstr "Se conservan el PDF, la configuración, las fuentes y los prompts."
 
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "El proceso que las plantas usan para convertir la luz solar, agua y dióxido de carbono en alimento."
@@ -12848,14 +12876,20 @@ msgstr "Este archivo es demasiado grande"
 msgid "This book already has a live link"
 msgstr "Este libro ya tiene un enlace activo"
 
-msgid "This book already has extracted pages, so extraction cannot run again here. Its content is preserved. To extract again, create a new book from the PDF."
-msgstr "Este libro ya tiene páginas extraídas, así que la extracción no puede ejecutarse de nuevo aquí. Su contenido se conserva. Para volver a extraer, crea un libro nuevo a partir del PDF."
+#~ msgid "This book already has extracted pages, so extraction cannot run again here. Its content is preserved. To extract again, create a new book from the PDF."
+#~ msgstr "Este libro ya tiene páginas extraídas, así que la extracción no puede ejecutarse de nuevo aquí. Su contenido se conserva. Para volver a extraer, crea un libro nuevo a partir del PDF."
 
-msgid "This book already has extracted pages. Re-extracting an existing book is not available in this version; to extract again, create a new book from the PDF. This book's content is preserved."
-msgstr "Este libro ya tiene páginas extraídas. Volver a extraer un libro existente no está disponible en esta versión; para extraer de nuevo, crea un libro nuevo a partir del PDF. El contenido de este libro se conserva."
+#~ msgid "This book already has extracted pages. Re-extracting an existing book is not available in this version; to extract again, create a new book from the PDF. This book's content is preserved."
+#~ msgstr "Este libro ya tiene páginas extraídas. Volver a extraer un libro existente no está disponible en esta versión; para extraer de nuevo, crea un libro nuevo a partir del PDF. El contenido de este libro se conserva."
+
+msgid "This book already has work from Sectioning or later stages, so Extract cannot run again on it. To extract again, create a new book from the PDF."
+msgstr "Este libro ya tiene trabajo de Seccionamiento o de etapas posteriores, así que la extracción no puede ejecutarse de nuevo en él. Para volver a extraer, crea un libro nuevo a partir del PDF."
 
 msgid "This book has {pageCount} pages."
 msgstr "Este libro tiene {pageCount} páginas."
+
+msgid "This book has been split into parts. Its extraction stays fixed so the parts can be merged back into it."
+msgstr "Este libro se ha dividido en partes. Su extracción se mantiene fija para que las partes puedan volver a fusionarse en él."
 
 msgid "This book has changed since this screen loaded, so the run was not started. Reload the book and try again."
 msgstr "Este libro cambió desde que se cargó esta pantalla, así que la ejecución no se inició. Vuelve a cargar el libro e inténtalo de nuevo."
@@ -12871,6 +12905,9 @@ msgstr "Este libro no tiene un registro de extracción verificado. Se conserva e
 
 msgid "This book is a part — its page range is fixed to the assigned subset and cannot be changed."
 msgstr "Este libro es una parte: su rango de páginas es fijo, corresponde al subconjunto asignado y no se puede cambiar."
+
+msgid "This book is a part of a larger book. Its extraction is complete and stays fixed so the parts can be merged."
+msgstr "Este libro es una parte de un libro más grande. Su extracción está completa y se mantiene fija para que las partes puedan fusionarse."
 
 msgid "This book is a part. Export it as a <0>Completed Part</0> and send the file back to the coordinator to merge into the source book."
 msgstr "Este libro es una parte. Expórtalo como <0>Parte completada</0> y envía el archivo al coordinador para combinarlo en el libro de origen."
@@ -12910,6 +12947,9 @@ msgstr "Este libro se renderiza con diseño fijo, por lo que mantiene las fuente
 msgid "This book was already shared — another window may have done it. Use \"Update site\" to push your latest changes to the link you already have."
 msgstr "Este libro ya estaba compartido; puede que lo haya hecho otra ventana. Usa \"Actualizar sitio\" para enviar tus últimos cambios al enlace que ya tienes."
 
+msgid "This book was not created from a PDF, so there is nothing to extract again."
+msgstr "Este libro no se creó a partir de un PDF, así que no hay nada que volver a extraer."
+
 msgid "This book's configuration is invalid or unreadable. Check its config.yaml file, then open the book again."
 msgstr "La configuración de este libro no es válida o no se puede leer. Comprueba su archivo config.yaml y vuelve a abrir el libro."
 
@@ -12918,6 +12958,9 @@ msgstr "El intervalo guardado de la parte de este libro no es válido o es ilegi
 
 msgid "This bundle is incomplete. Storyboard output is missing on {missingTotal} page(s) (showing up to 20): {missingList}. Render those pages to complete it."
 msgstr "Este paquete está incompleto. Falta la salida de Storyboard en {missingTotal} página(s) (se muestran hasta 20): {missingList}. Renderiza esas páginas para completarlo."
+
+msgid "This cannot be undone: the discarded pages, images and edits cannot be restored from version history."
+msgstr "Esto no se puede deshacer: las páginas, imágenes y ediciones descartadas no se pueden restaurar desde el historial de versiones."
 
 msgid "This cannot be undone. Every link you have shared will stop working."
 msgstr "Esto no se puede deshacer. Todos los enlaces que has compartido dejarán de funcionar."
@@ -14073,6 +14116,9 @@ msgstr "Espera a que termine la operación actual y, luego, vuelve a intentar la
 msgid "Wait for the current operation to finish."
 msgstr "Espera a que termine la operación actual."
 
+msgid "Wait for the current run to finish before running Extract again."
+msgstr "Espera a que termine la ejecución en curso antes de volver a ejecutar la extracción."
+
 msgid "Waiting"
 msgstr "Pendiente"
 
@@ -14301,6 +14347,9 @@ msgstr "Amplia cobertura multilingüe con voces neuronales para muchos lugares."
 
 msgid "Width"
 msgstr "Ancho"
+
+msgid "Will be discarded"
+msgstr "Se descartará"
 
 msgid "Windows"
 msgstr "Ventanas"

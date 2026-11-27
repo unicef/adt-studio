@@ -395,8 +395,7 @@ describe("SPEC-0003 Extract resume", { timeout: 60_000 }, () => {
     const b = book()
     const before = snapshot(b)
     const { post } = server(b.root)
-    // Replace is RAC-23: not accepted yet, so it changes nothing either.
-    for (const extraction of [undefined, { action: "replace", attemptId: b.attemptId, contentToken: "0".repeat(64) }]) {
+    for (const extraction of [undefined]) {
       const response = await post(extractRun(extraction))
       expect(response.status).toBe(409)
       expect(await response.json()).toEqual({

@@ -16,6 +16,8 @@ vi.mock("@lingui/react/macro", () => ({
   useLingui: () => ({ t: (strings: TemplateStringsArray, ...values: unknown[]) =>
     strings.reduce((text, part, i) => text + part + (values[i] ?? ""), "") }),
 }))
+vi.mock("@lingui/core/macro", () => ({ msg: (strings: TemplateStringsArray) => ({ id: strings.join("") }) }))
+vi.mock("@lingui/core", () => ({ i18n: { _: (descriptor: { id: string }) => descriptor.id } }))
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => state.navigate, Link: () => null }))
 vi.mock("@/hooks/use-pages", () => ({ usePages: () => ({ data: state.pages, isLoading: false }), usePageImage: () => ({}) }))
 vi.mock("@/hooks/use-api-key", () => ({
@@ -46,17 +48,20 @@ const offers = (...actions: ExtractRerunStatus["actions"]): ExtractRerunStatus =
   actions, attemptId: "7b0e9d4c-52a1-4a43-9c0e-2f6f3f1f8a11", blockedReason: null,
   contentToken: actions.some((action) => action !== "resume") ? "c".repeat(64) : null,
 })
+const generic = "Extract cannot run again on this book. To extract again, create a new book from the PDF."
 
 it.each([
-  { stage: "idle", rerun: undefined }, { stage: "error", rerun: undefined },
-  { stage: "error", rerun: offers("replace") },
-  { stage: "error", rerun: { actions: [], attemptId: null, contentToken: null, blockedReason: "downstream-output" } satisfies ExtractRerunStatus },
-])("preserves populated-book extraction protection when provider onboarding is available ($stage, $rerun.actions)", ({ stage, rerun }) => {
+  { stage: "idle", rerun: undefined, reason: generic }, { stage: "error", rerun: undefined, reason: generic },
+  { stage: "error", rerun: { actions: [], attemptId: null, contentToken: null, blockedReason: "downstream-output" } satisfies ExtractRerunStatus, reason: /already has work from Sectioning or later stages/ },
+  { stage: "idle", rerun: { actions: [], attemptId: null, contentToken: null, blockedReason: "run-active" } satisfies ExtractRerunStatus, reason: /Wait for the current run to finish/ },
+])("preserves populated-book extraction protection when provider onboarding is available ($stage, $rerun.blockedReason)", ({ stage, rerun, reason }) => {
   state.stage = stage
   state.rerun = rerun
   state.pages = [{ pageId: "pg001", pageNumber: 1 } as PageSummaryItem]
   const view = render(<ExtractView bookLabel="historical" />)
   expect(screen.getByText("Re-extraction is not available in this version")).toBeTruthy()
+  // RAC-24: the banner says why, from the reason step-status gives.
+  expect(screen.getByText(reason)).toBeTruthy()
   fireEvent.click(screen.getByRole("button", { name: "Connect provider" }))
   expect(state.navigate).toHaveBeenCalledWith(expect.objectContaining({ to: "/settings/providers" }))
   const run = screen.getByRole("button", { name: /^(Run|Retry) Extract$/ }) as HTMLButtonElement
@@ -142,4 +147,18 @@ it.each([
     // Bound to the content the retry discards, as step-status reported it.
     extraction: { action: "retry", attemptId: rerun.attemptId, contentToken: "c".repeat(64) },
   })
+})
+
+it("RAC-24: shows the banner only when no action is offered", () => {
+  // A replace is offered from the Overview and the settings bar, after a
+  // confirmation: the run card neither starts it nor calls it unavailable.
+  state.rerun = offers("replace")
+  state.available = true
+  state.pages = [{ pageId: "pg001", pageNumber: 1 } as PageSummaryItem]
+  render(<ExtractView bookLabel="replaceable" />)
+  expect(screen.queryByText("Re-extraction is not available in this version")).toBeNull()
+  const run = screen.getByRole("button", { name: /^(Run|Retry) Extract$/ }) as HTMLButtonElement
+  expect(run.disabled).toBe(true)
+  fireEvent.click(run)
+  expect(state.queueRun).not.toHaveBeenCalled()
 })

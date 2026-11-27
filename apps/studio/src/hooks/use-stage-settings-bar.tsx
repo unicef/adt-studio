@@ -18,6 +18,7 @@ export function useStageSettingsBar({
   save,
   showSaveOnly = false,
   disabledReason,
+  rerun,
 }: {
   stage: StageName
   bookLabel: string
@@ -27,6 +28,18 @@ export function useStageSettingsBar({
   save: () => Promise<void>
   showSaveOnly?: boolean
   disabledReason?: string
+  /**
+   * The stage starts its own run after the settings are saved, in place of the
+   * plain stage run (Extract on a book that already has an extraction).
+   * `disabledReason` disables the re-run control only; Save keeps working.
+   * `manual` marks a run that must be asked for explicitly (it shows its own
+   * confirmation), so saving while leaving the page does not start it, and
+   * the settings are handed to it as `save`, to be saved once it is confirmed.
+   * `admit` asks whether the run would still be accepted, before the settings
+   * are saved for it: a refused run must leave the saved settings unchanged.
+   * It has already told the user why when it answers false.
+   */
+  rerun?: { start: (options: { follow: boolean; save?: () => Promise<void> }) => void; admit?: () => Promise<boolean>; disabledReason?: string; manual?: boolean }
 }) {
   const { t } = useLingui()
   const remount = useSettingsRemount()
@@ -43,21 +56,28 @@ export function useStageSettingsBar({
     colorClass: "bg-amber-600 hover:bg-amber-700",
   })
   const saveAndRun = async (leave: boolean) => {
+    // A run with its own confirmation saves the settings when it is confirmed:
+    // cancelling it must leave the saved settings as they were.
+    if (rerun?.manual) { rerun.start({ follow: leave, save: () => saveRef.current() }); return true }
     const apply = async (options = {}, stillCurrent = () => true) => {
+      if (rerun?.admit && !await rerun.admit()) return false
       // The protected versions stay frozen, but untouched settings may have
       // refreshed while confirmation was open. Apply the current form draft.
       if (!protectedStage) await saveRef.current()
       // Settings may finish saving after navigation. Never queue the old
       // consent through a new book's run context or navigate back to it.
       if (!stillCurrent()) return false
+      if (rerun) { rerun.start({ follow: leave }); return true }
       queueRun({ fromStage: stage, toStage: stage, apiKey, ...options })
       if (leave) navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: stage }, ignoreBlocker: true })
       return true
     }
-    if (!protectedStage) { await apply(); return true }
+    if (!protectedStage) return apply()
     if (saving) return false
     return confirmation.requestRun(apply, () => saveRef.current())
   }
+
+  const rerunOnLeave = rerun?.manual || rerun?.disabledReason ? false : undefined
 
   useRegisterDirtyTabs(`settings:${stage}`, stage, dirtyTabs)
 
@@ -70,12 +90,15 @@ export function useStageSettingsBar({
       await saveAndRun(true)
     },
     onSaveStay: async () => {
+      // A run that cannot start from here must not be queued just to be refused.
+      if (rerunOnLeave === false) return save()
       if (!await saveAndRun(false)) throw new Error("Run not confirmed")
     },
+    rerunOnLeave,
     onDiscard: remount,
     saveDisabledReason: disabledReason,
     rerunDisabledReason:
-      disabledReason ?? (hasStructuredTextProvider ? protectedStage ? confirmation.disabledReason : undefined : t`Add an API key to re-run`),
+      disabledReason ?? rerun?.disabledReason ?? (hasStructuredTextProvider ? protectedStage ? confirmation.disabledReason : undefined : t`Add an API key to re-run`),
   })
   return { content: <>{confirmation.notice}{confirmation.dialog}</>, busy: saving || confirmation.busy }
 }
