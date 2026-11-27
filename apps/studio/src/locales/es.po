@@ -2062,6 +2062,9 @@ msgstr "Otro ADT Studio conectado a esta cuenta de Cloudflare tomó el control d
 msgid "Another language"
 msgstr "Otro idioma"
 
+msgid "Another language translates the book into it."
+msgstr "Otro idioma traduce el libro a ese idioma."
+
 msgid "Another language…"
 msgstr "Otro idioma…"
 

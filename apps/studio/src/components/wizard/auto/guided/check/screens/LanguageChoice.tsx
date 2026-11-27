@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { ArrowLeft, Check, ChevronRight, Search } from "lucide-react"
-import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { getBaseLanguage, getCountriesForLanguage, SUPPORTED_LANGUAGES } from "@/lib/languages"
 import { cn } from "@/lib/utils"
 import { languageName, regionName } from "../../shared/languageName"
@@ -60,9 +60,9 @@ function onRadioKeys(e: KeyboardEvent<HTMLElement>) {
 const ROW = "flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left text-[14px] transition-colors hover:bg-brand-50 focus-visible:bg-brand-50 focus-visible:outline-none"
 
 /**
- * The floating picker, like the old language picker: first the language, then its variety. It
- * opens on the varieties of the language in use ("variety") or on the languages ("language");
- * each list has a search. The page doesn't move: it floats over it.
+ * The language picker, in a dialog like the old language picker: first the language, then its
+ * variety. It opens on the varieties of the language in use ("variety") or on the languages
+ * ("language"); each list has a search.
  */
 function LanguagePanel({ start, current, found, foundNote, onPick, onDone }: { start: "language" | "variety"; current: string | null; found: string | null; foundNote: ReactNode; onPick: (code: string) => void; onDone: () => void }) {
   const { i18n, t } = useLingui()
@@ -88,12 +88,17 @@ function LanguagePanel({ start, current, found, foundNote, onPick, onDone }: { s
       .filter((l) => !q || l.name.toLocaleLowerCase(i18n.locale).includes(q) || l.own.toLocaleLowerCase().includes(q) || l.code === q)
       .sort((a, b) => Number(b.code === foundBase) - Number(a.code === foundBase) || a.name.localeCompare(b.name, i18n.locale))
     return (
-      <div className="flex flex-col gap-2">
-        <p className="px-1 text-[14px] font-semibold">
-          <Trans>Choose the language</Trans>
-        </p>
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1 pr-8">
+          <DialogTitle className="text-[18px] font-bold tracking-[-0.01em]">
+            <Trans>Choose the language</Trans>
+          </DialogTitle>
+          <DialogDescription className="text-[13.5px] text-muted-foreground">
+            <Trans>Another language translates the book into it.</Trans>
+          </DialogDescription>
+        </div>
         <SearchBox ref={search} value={query} onChange={setQuery} placeholder={t`Search for a language`} />
-        <ul className="-mx-1 max-h-[min(46vh,320px)] overflow-y-auto px-1">
+        <ul className="-mx-1 h-[min(52vh,400px)] overflow-y-auto px-1">
           {list.map((l) => (
             <li key={l.code}>
               <button
@@ -131,18 +136,23 @@ function LanguagePanel({ start, current, found, foundNote, onPick, onDone }: { s
   const fromBook = found && getBaseLanguage(found) === lang ? region(found) : null
   const list = varieties.filter((c) => !q || regionName(c.code, i18n.locale).toLocaleLowerCase(i18n.locale).includes(q) || c.name.toLowerCase().includes(q))
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-1">
+    <div className="flex flex-col gap-3">
+      <div className="-mb-1 -mt-1 flex items-center gap-1">
         <button type="button" onClick={() => setStep("language")} className="flex h-8 items-center gap-1 rounded-full px-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
           <ArrowLeft className="size-3.5" />
           <Trans>Another language</Trans>
         </button>
       </div>
-      <p className="px-1 text-[14px] font-semibold">
-        <Trans>{nameOf(lang)}: which variety?</Trans>
-      </p>
+      <div className="flex flex-col gap-1 pr-8">
+        <DialogTitle className="text-[18px] font-bold tracking-[-0.01em]">
+          <Trans>{nameOf(lang)}: which variety?</Trans>
+        </DialogTitle>
+        <DialogDescription className="text-[13.5px] text-muted-foreground">
+          <Trans>Sets the spelling and the voices. The book isn&apos;t translated.</Trans>
+        </DialogDescription>
+      </div>
       {varieties.length > 8 && <SearchBox ref={search} value={query} onChange={setQuery} placeholder={t`Search for a country`} />}
-      <ul className="-mx-1 max-h-[min(46vh,320px)] overflow-y-auto px-1">
+      <ul className="-mx-1 h-[min(52vh,400px)] overflow-y-auto px-1">
         {!q && (
           <li>
             <button type="button" className={ROW} onClick={() => pick(lang)}>
@@ -185,7 +195,7 @@ function SearchBox({ ref, value, onChange, placeholder }: { ref: React.Ref<HTMLI
 /**
  * The language choice under the book's language: its varieties as one choice (the one found in
  * the book first, then the usual ones; "Not sure" when the book didn't tell), More for the rest,
- * and Another language. Both open the floating picker (language first, then variety), so the page
+ * and Another language. Both open the language dialog (language first, then variety), so the page
  * never grows or scrolls. A variety sets the spelling and the voices; another language translates.
  */
 export function LanguageChoice({ code, found, source, onPick }: { code: string | null; found: string | null; source: string | null | undefined; onPick: (code: string) => void }) {
@@ -201,40 +211,40 @@ export function LanguageChoice({ code, found, source, onPick }: { code: string |
   const hidden = varieties.filter((c) => !shown.includes(c.code)).length
   const pickVariety = (country: string) => onPick(`${base}-${country.toUpperCase()}`)
   return (
-    <Popover open={panel !== null} onOpenChange={(o) => !o && setPanel(null)}>
-      <PopoverAnchor asChild>
-        <div className="flex flex-col gap-2">
-          {varieties.length >= 2 && base && (
-            <>
-              <div>
-                <p id="gd-variety" className="text-[14px] font-semibold">
-                  <Trans>Which variety?</Trans>
-                </p>
-                <p className="text-[13px] text-muted-foreground">
-                  <Trans>Sets the spelling and the voices. The book isn&apos;t translated.</Trans>
-                </p>
-              </div>
-              <div role="radiogroup" aria-labelledby="gd-variety" onKeyDown={onRadioKeys} className="flex flex-wrap items-center gap-1.5">
-                {!fromBook && <VarietyChip label={<Trans>Not sure</Trans>} on={!now} onPick={() => onPick(base)} />}
-                {shown.map((c) => (
-                  <VarietyChip key={c} label={regionName(c, i18n.locale)} on={c === now} note={c === fromBook ? foundNote : undefined} onPick={() => pickVariety(c)} />
-                ))}
-                {hidden > 0 && (
-                  <button type="button" aria-haspopup="dialog" aria-expanded={panel === "variety"} onClick={() => setPanel("variety")} className="lc-link h-9 px-2 text-[13.5px] font-medium">
-                    <Trans>More ({hidden})</Trans>
-                  </button>
-                )}
-              </div>
-            </>
-          )}
-          <button type="button" aria-haspopup="dialog" aria-expanded={panel === "language"} onClick={() => setPanel("language")} className="lc-link -ml-1.5 self-start px-1.5 py-1 text-[13.5px] font-medium">
-            <Trans>Another language…</Trans>
-          </button>
-        </div>
-      </PopoverAnchor>
-      <PopoverContent align="start" side="top" sideOffset={8} collisionPadding={16} className="w-[min(92vw,380px)] rounded-[18px] p-3 shadow-[0_24px_60px_-24px_rgba(15,23,42,0.45)]">
-        {panel && <LanguagePanel key={panel} start={panel} current={code} found={found} foundNote={foundNote} onPick={onPick} onDone={() => setPanel(null)} />}
-      </PopoverContent>
-    </Popover>
+    <>
+      <div className="flex flex-col gap-2">
+        {varieties.length >= 2 && base && (
+          <>
+            <div>
+              <p id="gd-variety" className="text-[14px] font-semibold">
+                <Trans>Which variety?</Trans>
+              </p>
+              <p className="text-[13px] text-muted-foreground">
+                <Trans>Sets the spelling and the voices. The book isn&apos;t translated.</Trans>
+              </p>
+            </div>
+            <div role="radiogroup" aria-labelledby="gd-variety" onKeyDown={onRadioKeys} className="flex flex-wrap items-center gap-1.5">
+              {!fromBook && <VarietyChip label={<Trans>Not sure</Trans>} on={!now} onPick={() => onPick(base)} />}
+              {shown.map((c) => (
+                <VarietyChip key={c} label={regionName(c, i18n.locale)} on={c === now} note={c === fromBook ? foundNote : undefined} onPick={() => pickVariety(c)} />
+              ))}
+              {hidden > 0 && (
+                <button type="button" aria-haspopup="dialog" aria-expanded={panel === "variety"} onClick={() => setPanel("variety")} className="lc-link h-9 px-2 text-[13.5px] font-medium">
+                  <Trans>More ({hidden})</Trans>
+                </button>
+              )}
+            </div>
+          </>
+        )}
+        <button type="button" aria-haspopup="dialog" aria-expanded={panel === "language"} onClick={() => setPanel("language")} className="lc-link -ml-1.5 self-start px-1.5 py-1 text-[13.5px] font-medium">
+          <Trans>Another language…</Trans>
+        </button>
+      </div>
+      <Dialog open={panel !== null} onOpenChange={(o) => !o && setPanel(null)}>
+        <DialogContent className="flex max-h-[90vh] max-w-[min(94vw,460px)] flex-col gap-0 rounded-[24px] p-5 sm:p-6">
+          {panel && <LanguagePanel key={panel} start={panel} current={code} found={found} foundNote={foundNote} onPick={onPick} onDone={() => setPanel(null)} />}
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

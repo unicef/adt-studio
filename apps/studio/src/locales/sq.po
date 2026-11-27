@@ -2064,6 +2064,9 @@ msgstr "Një ADT Studio tjetër i lidhur me këtë llogari Cloudflare e ka marr�
 msgid "Another language"
 msgstr "Një gjuhë tjetër"
 
+msgid "Another language translates the book into it."
+msgstr "Një gjuhë tjetër e përkthen librin në të."
+
 msgid "Another language…"
 msgstr "Një gjuhë tjetër…"
 
