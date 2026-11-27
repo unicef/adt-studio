@@ -438,6 +438,10 @@ msgstr "{0} përkthime"
 msgid "{0}: “{1}”"
 msgstr "{0}: “{1}”"
 
+#. placeholder {0}: flow.title
+msgid "{0}: details and picks"
+msgstr "{0}: detajet dhe zgjedhjet"
+
 #. placeholder {0}: String(generatedAudioCount)
 #. placeholder {1}: String(speakableEntries.length)
 msgid "{0}/{1} audio"
@@ -2901,7 +2905,7 @@ msgstr "Qendër"
 msgid "Change"
 msgstr "Ndrysho"
 
-#. placeholder {0}: values[s]
+#. placeholder {0}: p.value
 msgid "Change {title}: {0}"
 msgstr "Ndrysho {title}: {0}"
 
@@ -6843,9 +6847,6 @@ msgstr "Mëso duke bërë."
 msgid "Least used"
 msgstr "Më pak i përdorur"
 
-msgid "Leave"
-msgstr "Dilni"
-
 msgid "Leave at None to run segmentation on all qualifying images (subject to pipeline rules)."
 msgstr "Lëre në Asnjë për të ekzekutuar segmentimin në të gjitha imazhet e kualifikuara (sipas rregullave të pipeline)."
 
@@ -6860,9 +6861,6 @@ msgstr "Dil nga konfigurimi"
 
 msgid "Leave unset to keep ElevenLabs' own pacing. Extreme values reduce quality."
 msgstr "Lëreni të papërcaktuar për të ruajtur ritmin e vetë ElevenLabs. Vlerat ekstreme ulin cilësinë."
-
-msgid "Leave without adding this book?"
-msgstr "Të dilni pa e shtuar këtë libër?"
 
 msgid "Leave without finishing?"
 msgstr "Dil pa përfunduar?"
@@ -11414,6 +11412,9 @@ msgstr "Seksionet e një faqeje janë të ndara në rendin e leximit."
 msgid "Securing the service"
 msgstr "Sigurimi i shërbimit"
 
+msgid "See pages"
+msgstr "Shihni faqet"
+
 msgid "See release notes"
 msgstr "Shih shënimet e versionit"
 
@@ -11422,9 +11423,6 @@ msgstr "Shihni librin dhe zgjidhni faqet"
 
 msgid "See the other options"
 msgstr "Shiko opsionet e tjera"
-
-msgid "See the pages"
-msgstr "Shihni faqet"
 
 msgid "Seed"
 msgstr "Fara"
@@ -13169,9 +13167,6 @@ msgstr "Faqet vendosen në një paraqitje të gatshme pa AI, ndaj është e shpe
 
 msgid "The pages I read this on"
 msgstr "Faqet ku e lexova këtë"
-
-msgid "The PDF and the choices so far aren't saved."
-msgstr "PDF-ja dhe zgjedhjet e bëra deri tani nuk ruhen."
 
 msgid "The picture and its words belong together."
 msgstr "Figura dhe teksti i saj shkojnë bashkë."
@@ -15201,8 +15196,8 @@ msgstr "Zgjedhja juaj"
 msgid "Your pick. The text is translated into it."
 msgstr "Zgjedhja juaj. Teksti përkthehet në të."
 
-msgid "Your picks so far"
-msgstr "Zgjedhjet tuaja deri tani"
+msgid "Your picks"
+msgstr "Zgjedhjet tuaja"
 
 msgid "Your service isn't answering yet"
 msgstr "Shërbimi juaj ende nuk po përgjigjet"

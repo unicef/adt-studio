@@ -438,6 +438,10 @@ msgstr "{0} traductions"
 msgid "{0}: “{1}”"
 msgstr "{0} : « {1} »"
 
+#. placeholder {0}: flow.title
+msgid "{0}: details and picks"
+msgstr "{0} : détails et choix"
+
 #. placeholder {0}: String(generatedAudioCount)
 #. placeholder {1}: String(speakableEntries.length)
 msgid "{0}/{1} audio"
@@ -2901,7 +2905,7 @@ msgstr "Centrer"
 msgid "Change"
 msgstr "Modifier"
 
-#. placeholder {0}: values[s]
+#. placeholder {0}: p.value
 msgid "Change {title}: {0}"
 msgstr "Modifier {title} : {0}"
 
@@ -6843,9 +6847,6 @@ msgstr "Apprendre en pratiquant."
 msgid "Least used"
 msgstr "Moins utilisé"
 
-msgid "Leave"
-msgstr "Quitter"
-
 msgid "Leave at None to run segmentation on all qualifying images (subject to pipeline rules)."
 msgstr "Laissez sur Aucun pour exécuter la segmentation sur toutes les images éligibles (selon les règles du pipeline)."
 
@@ -6860,9 +6861,6 @@ msgstr "Quitter la configuration"
 
 msgid "Leave unset to keep ElevenLabs' own pacing. Extreme values reduce quality."
 msgstr "Laissez ce réglage vide pour conserver le rythme propre d'ElevenLabs. Les valeurs extrêmes dégradent la qualité."
-
-msgid "Leave without adding this book?"
-msgstr "Quitter sans ajouter ce livre ?"
 
 msgid "Leave without finishing?"
 msgstr "Quitter sans terminer ?"
@@ -11414,6 +11412,9 @@ msgstr "Les sections d’une même page sont séparées dans l’ordre de lectur
 msgid "Securing the service"
 msgstr "Sécurisation du service"
 
+msgid "See pages"
+msgstr "Voir les pages"
+
 msgid "See release notes"
 msgstr "Voir les notes de version"
 
@@ -11422,9 +11423,6 @@ msgstr "Voir le livre et choisir les pages"
 
 msgid "See the other options"
 msgstr "Voir les autres options"
-
-msgid "See the pages"
-msgstr "Voir les pages"
 
 msgid "Seed"
 msgstr "Graine"
@@ -13169,9 +13167,6 @@ msgstr "Les pages sont placées dans une mise en page toute prête, sans l'IA : 
 
 msgid "The pages I read this on"
 msgstr "Les pages où j'ai lu ceci"
-
-msgid "The PDF and the choices so far aren't saved."
-msgstr "Le PDF et les choix faits jusqu'ici ne sont pas enregistrés."
 
 msgid "The picture and its words belong together."
 msgstr "L'image et son texte vont ensemble."
@@ -15201,8 +15196,8 @@ msgstr "Votre choix"
 msgid "Your pick. The text is translated into it."
 msgstr "Votre choix. Le texte y est traduit."
 
-msgid "Your picks so far"
-msgstr "Vos choix jusqu'ici"
+msgid "Your picks"
+msgstr "Vos choix"
 
 msgid "Your service isn't answering yet"
 msgstr "Votre service ne répond pas encore"

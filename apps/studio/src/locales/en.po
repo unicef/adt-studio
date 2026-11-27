@@ -436,6 +436,10 @@ msgstr "{0} translations"
 msgid "{0}: “{1}”"
 msgstr "{0}: “{1}”"
 
+#. placeholder {0}: flow.title
+msgid "{0}: details and picks"
+msgstr "{0}: details and picks"
+
 #. placeholder {0}: String(generatedAudioCount)
 #. placeholder {1}: String(speakableEntries.length)
 msgid "{0}/{1} audio"
@@ -2899,7 +2903,7 @@ msgstr "Center"
 msgid "Change"
 msgstr "Change"
 
-#. placeholder {0}: values[s]
+#. placeholder {0}: p.value
 msgid "Change {title}: {0}"
 msgstr "Change {title}: {0}"
 
@@ -6841,9 +6845,6 @@ msgstr "Learn by doing."
 msgid "Least used"
 msgstr "Least used"
 
-msgid "Leave"
-msgstr "Leave"
-
 msgid "Leave at None to run segmentation on all qualifying images (subject to pipeline rules)."
 msgstr "Leave at None to run segmentation on all qualifying images (subject to pipeline rules)."
 
@@ -6858,9 +6859,6 @@ msgstr "Leave setup"
 
 msgid "Leave unset to keep ElevenLabs' own pacing. Extreme values reduce quality."
 msgstr "Leave unset to keep ElevenLabs' own pacing. Extreme values reduce quality."
-
-msgid "Leave without adding this book?"
-msgstr "Leave without adding this book?"
 
 msgid "Leave without finishing?"
 msgstr "Leave without finishing?"
@@ -11412,6 +11410,9 @@ msgstr "Sections of one page are split apart in the reading order."
 msgid "Securing the service"
 msgstr "Securing the service"
 
+msgid "See pages"
+msgstr "See pages"
+
 msgid "See release notes"
 msgstr "See release notes"
 
@@ -11420,9 +11421,6 @@ msgstr "See the book & pick pages"
 
 msgid "See the other options"
 msgstr "See the other options"
-
-msgid "See the pages"
-msgstr "See the pages"
 
 msgid "Seed"
 msgstr "Seed"
@@ -13167,9 +13165,6 @@ msgstr "The pages go into a ready-made layout without the AI, so it is quick and
 
 msgid "The pages I read this on"
 msgstr "The pages I read this on"
-
-msgid "The PDF and the choices so far aren't saved."
-msgstr "The PDF and the choices so far aren't saved."
 
 msgid "The picture and its words belong together."
 msgstr "The picture and its words belong together."
@@ -15199,8 +15194,8 @@ msgstr "Your pick"
 msgid "Your pick. The text is translated into it."
 msgstr "Your pick. The text is translated into it."
 
-msgid "Your picks so far"
-msgstr "Your picks so far"
+msgid "Your picks"
+msgstr "Your picks"
 
 msgid "Your service isn't answering yet"
 msgstr "Your service isn't answering yet"

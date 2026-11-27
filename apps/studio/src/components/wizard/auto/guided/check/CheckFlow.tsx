@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { ArrowLeft, Check as CheckIcon, Pencil, Sparkles, Wrench } from "lucide-react"
-import type { SetupBookFactId, SetupRecommendation } from "@adt/types"
+import { ArrowLeft, Check as CheckIcon, Sparkles, Wrench } from "lucide-react"
+import type { SetupRecommendation } from "@adt/types"
 import { cn } from "@/lib/utils"
 import { useCreate } from "./nameField"
 import { PrimaryButton } from "../../../core/ui"
@@ -100,7 +100,6 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
 
   return (
     <section aria-labelledby={HEADING} inert={locked} className="flex flex-col">
-      <EarlierPicks facts={facts} screens={screens} at={at} done={check.done} values={values} onGo={(s) => check.go(s)} />
       <div key={at} data-dir={dir} className="gd-screen-in -mx-2 flex flex-col gap-3 px-2 pb-2 pt-1 lg:gap-4">
         {/* The decision leads: the screen's name is for screen readers, and the count and switch live in the bottom bar. */}
         <h2 id={HEADING} ref={heading} tabIndex={-1} className="sr-only">
@@ -168,26 +167,3 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
   )
 }
 
-/**
- * The picks made so far, in order, as a row above the screen: each opens its screen again in one
- * tap ("Kind of book: Story"), so going back never takes several Backs.
- */
-function EarlierPicks({ facts, screens, at, done, values, onGo }: { facts: SetupBookFactId[]; screens: ScreenId[]; at: ScreenId; done: ScreenId[]; values: Record<ScreenId, string>; onGo: (screen: ScreenId) => void }) {
-  const { t, i18n } = useLingui()
-  const shown = screens.filter((s) => s !== at && s !== "name" && done.includes(s))
-  if (!shown.length) return null
-  return (
-    <nav aria-label={t`Your picks so far`} className="mb-4 flex flex-wrap gap-2">
-      {shown.map((s) => {
-        const title = i18n._(screenTitle(s, facts))
-        return (
-          <button key={s} type="button" onClick={() => onGo(s)} aria-label={t`Change ${title}: ${values[s]}`} className="gd-bar-in group inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-[var(--lc-bubble)] px-3 text-[13.5px] transition-colors hover:border-[var(--gd-step)]">
-            <span className="text-muted-foreground">{title}</span>
-            <span className="font-medium">{values[s]}</span>
-            <Pencil aria-hidden className="size-3 text-muted-foreground transition-colors group-hover:text-[var(--gd-step-ink)]" />
-          </button>
-        )
-      })}
-    </nav>
-  )
-}
