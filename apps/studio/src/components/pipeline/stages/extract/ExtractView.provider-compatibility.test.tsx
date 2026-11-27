@@ -42,12 +42,15 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 
-const offers = (...actions: ExtractRerunStatus["actions"]): ExtractRerunStatus => ({ actions, attemptId: "7b0e9d4c-52a1-4a43-9c0e-2f6f3f1f8a11", blockedReason: null })
+const offers = (...actions: ExtractRerunStatus["actions"]): ExtractRerunStatus => ({
+  actions, attemptId: "7b0e9d4c-52a1-4a43-9c0e-2f6f3f1f8a11", blockedReason: null,
+  contentToken: actions.some((action) => action !== "resume") ? "c".repeat(64) : null,
+})
 
 it.each([
   { stage: "idle", rerun: undefined }, { stage: "error", rerun: undefined },
   { stage: "error", rerun: offers("replace") }, { stage: "idle", rerun: offers("retry") },
-  { stage: "error", rerun: { actions: [], attemptId: null, blockedReason: "downstream-output" } satisfies ExtractRerunStatus },
+  { stage: "error", rerun: { actions: [], attemptId: null, contentToken: null, blockedReason: "downstream-output" } satisfies ExtractRerunStatus },
 ])("preserves populated-book extraction protection when provider onboarding is available ($stage, $rerun.actions)", ({ stage, rerun }) => {
   state.stage = stage
   state.rerun = rerun

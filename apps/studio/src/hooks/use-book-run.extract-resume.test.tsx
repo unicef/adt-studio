@@ -36,7 +36,7 @@ class Events {
 }
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.clearAllMocks() })
 
-const extractRerun: ExtractRerunStatus = { actions: ["resume", "replace"], attemptId: "7b0e9d4c-52a1-4a43-9c0e-2f6f3f1f8a11", blockedReason: null }
+const extractRerun: ExtractRerunStatus = { actions: ["resume", "replace"], attemptId: "7b0e9d4c-52a1-4a43-9c0e-2f6f3f1f8a11", contentToken: "c".repeat(64), blockedReason: null }
 const pagesKey = ["books", "book", "pages"]
 const statusKey = ["books", "book", "step-status"]
 const pages = [{ pageId: "pg001" }, { pageId: "pg002" }]
