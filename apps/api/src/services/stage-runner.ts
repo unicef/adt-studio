@@ -21,6 +21,7 @@ import {
   resolveFontsCacheDir,
   buildBookFontsPromptContext,
   readTypography,
+  readPublisherDesignForRendering,
   ensureBookGoogleFontsCached,
   extractMetadata,
   buildMetadataConfig,
@@ -1561,6 +1562,7 @@ async function runStoryboardStep(
 
     // Render config is always needed
     const resolveRenderConfig = buildRenderStrategyResolver(config)
+    const publisherDesign = readPublisherDesignForRendering(storage, config)
 
     // Shared infrastructure for LLM calls
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
@@ -1612,9 +1614,12 @@ async function runStoryboardStep(
 
     // Set up visual refinement if any render strategy enables it
     if (webAssetsDir) {
-      const hasVisualRefinement = Object.values(config.render_strategies ?? {}).some(
-        (s) => s.config?.visual_refinement?.enabled
-      )
+      const hasVisualRefinement = storage.getPages().some((page) => {
+        const row = storage.getLatestNodeData("page-sectioning", page.pageId)
+        return (row?.data as PageSectioningOutput | undefined)?.sections.some((section) =>
+          !section.isPruned && resolveRenderConfig(section.sectionType).visualRefinement?.enabled
+        )
+      })
       if (hasVisualRefinement) {
         const screenshotRenderer = await createScreenshotRenderer()
         visualRefinement = {
@@ -1757,6 +1762,7 @@ async function runStoryboardStep(
               styleguide: styleguideContent,
               bookFonts: buildBookFontsPromptContext(storage),
               typography,
+              publisherDesign,
             },
             resolveRenderConfig,
             resolveRenderModel,

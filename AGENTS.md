@@ -46,6 +46,7 @@ for every PR. Resolve an uncertain lane at triage before implementation.
 | the reader (adt-runtime)    | docs/ARCHITECTURE.md#runtime (planned), docs/SECURITY_MODEL.md (planned)            |
 | exports or publishing       | docs/PRODUCT.md#registry (planned), docs/specs/SPEC-0006-publishing (planned)       |
 | anything user-facing        | docs/PRODUCT.md#critical-path (planned)                                             |
+| publisher styles prototype  | docs/experiments/0744-publisher-styles-prototype.md (experiment; not production)       |
 
 ## Architecture
 
@@ -211,7 +212,7 @@ version-calculation flow.
 
 ## Internationalization (i18n)
 
-The Studio app uses **Lingui v5** for i18n. All user-visible text in `apps/studio/` must be translated to all supported locales: **`en`, `pt-BR`, `es`, `fr`, `sq`**.
+The Studio app uses **Lingui v6** for i18n. All user-visible text in `apps/studio/` must be translated to all supported locales: **`en`, `pt-BR`, `es`, `fr`, `sq`**.
 
 ### Rules
 - **Every user-visible string must be wrapped** in a Lingui macro — no raw string literals in JSX or component output

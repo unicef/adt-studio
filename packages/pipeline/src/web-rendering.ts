@@ -5,6 +5,7 @@ import {
   type PageSectioningSection,
   type SectionRendering,
   type BookTypography,
+  type PublisherDesignVersion,
   type WebRenderingOutput,
   DEFAULT_LLM_MAX_RETRIES,
   DEFAULT_LLM_MODEL_ID,
@@ -14,6 +15,7 @@ import type { BookFontPromptEntry } from "./fonts-bundle.js"
 import { renderSectionLlm, type VisualRefinementDeps } from "./render-llm.js"
 import { renderSectionTemplate, type TemplateEngine } from "./render-template.js"
 import { repairTableOfContentsLayout } from "./toc-layout.js"
+import { renderPublisherSection } from "./publisher-render.js"
 
 export interface VisualRefinementConfig {
   enabled: boolean
@@ -128,6 +130,8 @@ export interface RenderPageInput {
   bookFonts?: BookFontPromptEntry[]
   /** Book typography (editable size-per-role map), shared with every page. */
   typography?: BookTypography
+  /** One saved Styles version, pinned by the caller for the entire run. */
+  publisherDesign?: PublisherDesignVersion
   /** Optional user instructions appended to the LLM prompt during re-render */
   userPrompt?: string
 }
@@ -342,12 +346,20 @@ export async function renderPage(
     // Skip pruned sections
     if (section.isPruned) continue
 
+    const config = resolveConfig(section.sectionType)
     const context = buildRenderContext(section, input.images, input.label)
+
+    if (config.renderType === "template" && config.templateName === "publisher_styles") {
+      if (!input.publisherDesign) throw new Error("Save a design in Styles before rendering with Publisher styles — mixed layouts.")
+      for (const imageId of collectReferencedImageIds([section])) {
+        if (!input.images.get(imageId)?.base64) throw new Error(`Missing image ${imageId} in the saved Styles layout.`)
+      }
+      sections.push(renderPublisherSection(input.publisherDesign, section, i, `/api/books/${input.label}/images`))
+      continue
+    }
 
     // Skip sections with no renderable content
     if (context.leaf_texts.length === 0 && context.image_refs.length === 0) continue
-
-    const config = resolveConfig(section.sectionType)
 
     const sourcePages: SourcePageImage[] = []
     for (const sourcePageId of section.sourcePageIds ?? []) {

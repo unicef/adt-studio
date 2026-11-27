@@ -226,6 +226,10 @@ render_strategies:
     render_type: template
     config:
       template: two_column_story
+  publisher_styles:
+    render_type: template
+    config:
+      template: publisher_styles
   one_column:
     render_type: template
     config:

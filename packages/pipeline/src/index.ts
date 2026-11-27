@@ -459,3 +459,10 @@ export {
   generateActivityFeedback,
   type ActivityFeedbackConfig,
 } from "./activity-feedback.js"
+export { analyzePublisherStyles, publisherNodes } from "./publisher-styles.js"
+export { publisherCss, renderPublisherPage, renderPublisherStoryboard } from "./publisher-render.js"
+
+export { inferPublisherRegions } from "./publisher-layout.js"
+
+export { readPublisherSources, readPublisherDesignForRendering } from "./publisher-design.js"
+export { applyPublisherLearningDesign } from "./publisher-theme.js"

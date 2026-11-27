@@ -24,6 +24,10 @@ import type {
   ProviderCliLoginStatus,
   ProviderHealthResponse,
   AiModality,
+  PublisherDocument,
+  PublisherPreview,
+  PublisherState,
+  PublisherStoryboard,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
 import {
@@ -1045,6 +1049,21 @@ export const api = {
     ),
 
   getBookFonts: (label: string) => request<BookFontsResponse>(`/books/${label}/fonts`),
+
+  getPublisherStyles: (label: string) => request<PublisherState>(`/books/${label}/publisher-styles`),
+  applyPublisherLearningDesign: (label: string, document: PublisherDocument, accent: string) =>
+    request<PublisherDocument>(`/books/${label}/publisher-styles/learning-design`, { method: "POST", body: JSON.stringify({ document, accent }) }),
+  analyzePublisherStyles: (label: string, preset: PublisherDocument["preset"]) =>
+    request<PublisherDocument>(`/books/${label}/publisher-styles/analyze`, { method: "POST", body: JSON.stringify({ preset }) }),
+  detectPublisherLayouts: (label: string, document: PublisherDocument) =>
+    request<PublisherDocument>(`/books/${label}/publisher-styles/layouts`, { method: "POST", body: JSON.stringify({ document }) }),
+  previewPublisherStyles: (label: string, document: PublisherDocument, pageId: string) =>
+    request<PublisherPreview>(`/books/${label}/publisher-styles/preview`, { method: "POST", body: JSON.stringify({ document, pageId }) }),
+  savePublisherStyles: (label: string, document: PublisherDocument, baseVersion: number, generate = false) =>
+    request<PublisherState>(`/books/${label}/publisher-styles/${generate ? "generate" : "save"}`, { method: "POST", body: JSON.stringify({ document, baseVersion }) }),
+  restorePublisherStyles: (label: string, version: number, baseVersion: number) =>
+    request<PublisherState>(`/books/${label}/publisher-styles/restore`, { method: "POST", body: JSON.stringify({ version, baseVersion }) }),
+  getPublisherStoryboard: (label: string) => request<PublisherStoryboard | null>(`/books/${label}/publisher-styles/storyboard`),
 
   getEditableActivities: (label: string, pageId: string) =>
     request<{

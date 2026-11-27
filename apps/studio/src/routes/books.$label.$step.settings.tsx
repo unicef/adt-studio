@@ -10,6 +10,7 @@ import { ExtractLandingPage } from "@/components/pipeline/stages/extract/Extract
 import { SectioningSettings } from "@/components/pipeline/stages/sectioning/SectioningSettings"
 import { SectioningLandingPage } from "@/components/pipeline/stages/sectioning/SectioningLandingPage"
 import { StoryboardSettings } from "@/components/pipeline/stages/storyboard/StoryboardSettings"
+import { PublisherStyles } from "@/components/pipeline/stages/storyboard/styles/PublisherStyles"
 import { StoryboardLandingPage } from "@/components/pipeline/stages/storyboard/StoryboardLandingPage"
 import { QuizzesSettings } from "@/components/pipeline/stages/quizzes/QuizzesSettings"
 import { QuizzesLandingPage } from "@/components/pipeline/stages/quizzes/QuizzesLandingPage"
@@ -134,6 +135,7 @@ export function StepSettingsPage() {
             case "sectioning":
               return <SectioningSettings bookLabel={label} headerTarget={headerTarget} tab={tab} />
             case "storyboard":
+              if (tab === "styles") return <PublisherStyles bookLabel={label} />
               return <StoryboardSettings bookLabel={label} headerTarget={headerTarget} tab={tab} />
             case "quizzes":
               return <QuizzesSettings bookLabel={label} headerTarget={headerTarget} tab={tab} />

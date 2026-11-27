@@ -62,7 +62,7 @@ const OVERLAY_LAYOUT_CYCLE: StoryboardPageLayout[] = [
 ]
 
 function buildPages(strategy: string): StoryboardPageThumb[] {
-  if (strategy === "llm" || !strategy) {
+  if (strategy === "llm" || strategy === "publisher_styles" || !strategy) {
     return PAGE_BASES.map((p, i) => ({
       ...p,
       layout: AI_LAYOUT_CYCLE[i] ?? "ai-title-text-image",

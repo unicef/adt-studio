@@ -43,6 +43,7 @@ import { RenderStrategyVisual } from "./components/RenderStrategyVisual"
 import { StoryboardPreview } from "./components/StoryboardPreview"
 
 const STRATEGY_LABEL_MSGS: Record<string, MessageDescriptor> = {
+  publisher_styles: msg`Publisher styles — mixed layouts`,
   single_column: msg`Template One Column`,
   llm: msg`AI Generated`,
   "llm-overlay": msg`Dynamic Overlay`,
@@ -57,6 +58,10 @@ type LandingStrategyEntry = {
 }
 
 const LANDING_STRATEGY_ITEMS: LandingStrategyEntry[] = [
+  {
+    id: "publisher_styles",
+    description: msg`Prototype: use the saved styles, components, and mixed page regions from Styles.`,
+  },
   {
     id: "single_column",
     description: msg`One column for every section. Clean and predictable.`,
@@ -84,6 +89,7 @@ const AI_STRATEGIES = new Set(["llm", "llm-overlay", "fixed_layout"])
 type StrategyIcon = ComponentType<SVGProps<SVGSVGElement> & { className?: string }>
 
 const STRATEGY_ICONS: Record<string, StrategyIcon> = {
+  publisher_styles: LayoutTemplate,
   single_column: AlignLeft,
   llm: Sparkles,
   "llm-overlay": Layers,
@@ -231,8 +237,11 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
     persist({ storyboard_activity_mode: value })
   }
 
+  const canRunPublisher = defaultRenderStrategy === "publisher_styles" && sectioningReady && activeConfigData?.merged?.generate_activities === false
+  const hasRenderCapability = hasStructuredTextProvider || canRunPublisher
+
   const handleRun = () => {
-    if (!hasStructuredTextProvider || status.isRunning) return
+    if (!hasRenderCapability || status.isRunning) return
     // Cue from here even if upstream stages haven't run. Queue from the first
     // upstream stage that isn't already covered (done/running/queued) so we
     // never try to re-run a stage that's mid-flight.
@@ -259,7 +268,7 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
     (option) => option.id === activityMode,
   )
 
-  const disabledReason = !hasStructuredTextProvider ? (
+  const disabledReason = !hasRenderCapability ? (
     <Trans>Add an API key in Book settings to run storyboard.</Trans>
   ) : undefined
 
@@ -275,7 +284,7 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasStructuredTextProvider}
+      extraDisabled={!hasRenderCapability}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Storyboard</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
+import { Link } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { Eye, Wand2, Loader2, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -55,6 +56,7 @@ function titleCase(slug: string): string {
 }
 
 const STRATEGY_LABEL_MSGS: Record<string, ReturnType<typeof msg>> = {
+  publisher_styles: msg`Publisher styles — mixed layouts`,
   llm: msg`AI Generated`,
   "llm-overlay": msg`AI Overlay`,
   fixed_layout: msg`Fixed Layout`,
@@ -67,6 +69,7 @@ function strategyDisplayName(slug: string): string {
 }
 
 const STRATEGY_DESCRIPTION_MSGS: Record<string, ReturnType<typeof msg>> = {
+  publisher_styles: msg`Uses the saved Styles design and mixed page regions`,
   llm: msg`LLM generates HTML from section content`,
   "llm-overlay": msg`LLM positions text over background images`,
   two_column: msg`Fixed two-column template layout`,
@@ -689,7 +692,8 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
               </SelectContent>
             </Select>
           </div>
-          {templateTabName && (
+          {templateTabName === "publisher_styles" && <p className="rounded-lg border bg-muted/30 p-4 text-sm"><Trans>Mixed layout templates are edited in Styles.</Trans>{" "}<Link className="underline" to="/books/$label/$step/settings" params={{ label: bookLabel, step: "storyboard" }} search={{ tab: "styles" }}><Trans>Open Styles</Trans></Link></p>}
+          {templateTabName && templateTabName !== "publisher_styles" && (
             <div className="flex-1 min-h-0">
               <TemplateViewer
                 templateName={templateTabName}

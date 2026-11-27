@@ -63,6 +63,7 @@ import { cropPageImages, applyCrops, buildCroppingConfig, getCroppedImageId } fr
 import { segmentPageImages, applySegmentation, segmentBoundsOnPage, buildSegmentationConfig, getSegmentedImageId } from "./image-segmentation.js"
 import { renderPage, buildRenderStrategyResolver, collectReferencedImageIds, collectSourcePageImages } from "./web-rendering.js"
 import { translatePageTree, buildTranslationConfig } from "./translation.js"
+import { readPublisherDesignForRendering } from "./publisher-design.js"
 import { createTemplateEngine } from "./render-template.js"
 import { captionPageImages, buildCaptionConfig, collectCaptionImageIds, groupGlossaryImageIdsByPage } from "./image-captioning.js"
 import { regenerateGlossaryPreservingEdits, buildGlossaryConfig } from "./glossary.js"
@@ -616,6 +617,7 @@ export async function runFullPipeline(
         return
       }
 
+      const publisherDesign = readPublisherDesignForRendering(storage, config)
       await ensureBookGoogleFontsCached(storage, resolveFontsCacheDir(booksRoot))
 
       const renderModels = new Map<string, LLMModel>()
@@ -676,6 +678,7 @@ export async function runFullPipeline(
             sourcePageImages,
             bookFonts: buildBookFontsPromptContext(storage),
             typography,
+            publisherDesign,
           },
           resolveRenderConfig,
           resolveRenderModel,

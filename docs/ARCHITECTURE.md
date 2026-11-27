@@ -161,7 +161,7 @@ Every consumer derives from the `PIPELINE` constant:
 
 | Consumer | What it derives |
 |----------|----------------|
-| API stage runner (`step-runner.ts`) | Stage ordering, step groupings |
+| API stage runner (`stage-runner.ts`) | Stage ordering, step groupings |
 | DAG executor (`pipeline-dag.ts`) | Execution graph, parallelism |
 | UI sidebar (`StageSidebar.tsx`) | Stage list and navigation |
 | UI run cards (`StageRunCard.tsx`) | Sub-step list per stage |
@@ -259,7 +259,7 @@ API ──── step-start ────► mark step + stage as "running"
 | DAG runner | `packages/pipeline/src/dag.ts` |
 | API entry point (Hono app) | `apps/api/src/app.ts` |
 | API routes | `apps/api/src/routes/` |
-| API stage runners | `apps/api/src/services/step-runner.ts` |
+| API stage runners | `apps/api/src/services/stage-runner.ts` |
 | Stage queue + SSE service | `apps/api/src/services/stage-service.ts` |
 | API client (frontend) | `apps/studio/src/api/client.ts` |
 | Book layout + run context | `apps/studio/src/routes/books.$label.tsx` |

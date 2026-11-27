@@ -10,6 +10,7 @@ import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNod
 import { assertStageRunModelCredentials } from "@adt/llm"
 import {
   loadBookConfig,
+  readPublisherDesignForRendering,
   collectSpentSectionIds,
   retireSectionIds,
   NOTHING_RETIRED,
@@ -161,12 +162,15 @@ export function retireSectionIdsForClearedSectioning(
 /** Build a beforeRun callback that clears downstream data for a stage.
  *  The returned function is idempotent — only runs once even if called multiple times.
  *  Exported so tests can pin the preserve-retirement-clear boundary. */
-export function makeBeforeRun(label: string, fromStage: StageName, toStage: StageName, booksDir: string): () => void {
+export function makeBeforeRun(label: string, fromStage: StageName, toStage: StageName, booksDir: string, configPath?: string): () => void {
   let ran = false
   return () => {
     if (ran) return
     const storage = createBookStorage(label, booksDir)
     try {
+      // The publisher experiment appends render versions. Validate its saved
+      // design before touching any data, including when a queued run starts.
+      const publisherRendering = fromStage === "storyboard" && readPublisherDesignForRendering(storage, loadBookConfig(label, booksDir, configPath))
       const { retired, preserved } = retireWithPreservedRecordings(
         storage,
         path.join(path.resolve(booksDir), label),
@@ -189,11 +193,11 @@ export function makeBeforeRun(label: string, fromStage: StageName, toStage: Stag
         // clearExtractedData also clears step_runs
         storage.clearExtractedData()
       } else {
-        const nodes = getStageRerunClearNodes(fromStage, toStage)
+        const nodes = publisherRendering ? [] : getStageRerunClearNodes(fromStage, toStage)
         if (nodes.length > 0) {
           storage.clearNodesByType(nodes)
         }
-        if (fromStage === "storyboard" && typeof storage.clearDebugImages === "function") {
+        if (!publisherRendering && fromStage === "storyboard" && typeof storage.clearDebugImages === "function") {
           storage.clearDebugImages()
         }
         // Clear step run records for all downstream stages
@@ -265,7 +269,7 @@ export function createStageRoutes(
       `credentialProviders=${Object.keys(credentials).join(",") || "(none)"}`,
     )
 
-    const clearData = makeBeforeRun(label, fromStage, toStage, booksDir)
+    const clearData = makeBeforeRun(label, fromStage, toStage, booksDir, configPath)
 
     const result = stageService.startStageRun(label, {
       booksDir,

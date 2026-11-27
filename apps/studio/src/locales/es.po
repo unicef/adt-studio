@@ -177,6 +177,14 @@ msgstr "{0} comprobaciones por página"
 msgid "{0} complete"
 msgstr "{0} completado"
 
+#. placeholder {0}: document.components.length
+msgid "{0} components"
+msgstr "{0} componentes"
+
+#. placeholder {0}: nodeIds(region).length
+msgid "{0} content groups"
+msgstr "{0} grupos de contenido"
+
 #. placeholder {0}: String(p.stats.decorative)
 msgid "{0} decorative"
 msgstr "{0} decorativo"
@@ -249,6 +257,11 @@ msgstr "{0} elementos con cambios no guardados"
 msgid "{0} languages"
 msgstr "{0} idiomas"
 
+#. placeholder {0}: selected.evidence.count
+#. placeholder {1}: selected.evidence.pageIds.length
+msgid "{0} matches across {1} source pages"
+msgstr "{0} coincidencias en {1} páginas de origen"
+
 #. placeholder {0}: missingPrompts.length
 msgid "{0} missing prompt files will be created. Existing files are left unchanged."
 msgstr "Se crearán {0} archivos de prompt faltantes. Los archivos existentes no se modificarán."
@@ -288,6 +301,14 @@ msgstr "{0} de {1} elementos"
 msgid "{0} of {1} pages had no extracted text"
 msgstr "{0} de {1} páginas no tienen texto extraído"
 
+#. placeholder {0}: document.pages.length
+msgid "{0} output pages"
+msgstr "{0} páginas de salida"
+
+#. placeholder {0}: document.masters.length
+msgid "{0} page masters"
+msgstr "{0} páginas maestras"
+
 #. placeholder {0}: String(displayPages.length)
 #. placeholder {0}: book.pageCount
 msgid "{0} pages"
@@ -297,6 +318,10 @@ msgstr "{0} páginas"
 #. placeholder {1}: split.exportedParts
 msgid "{0} pages · split into {1} parts"
 msgstr "{0} páginas · dividido en {1} partes"
+
+#. placeholder {0}: document.styles.length
+msgid "{0} paragraph styles"
+msgstr "{0} estilos de párrafo"
 
 #. placeholder {0}: section.criteria.length - reviewed
 msgid "{0} pending"
@@ -310,6 +335,10 @@ msgstr "{0} pendientes de guardar"
 msgid "{0} questions"
 msgstr "{0} preguntas"
 
+#. placeholder {0}: regions.length
+msgid "{0} regions"
+msgstr "{0} regiones"
+
 #. placeholder {0}: String(group.blocks.length)
 msgid "{0} sections"
 msgstr "{0} secciones"
@@ -317,6 +346,10 @@ msgstr "{0} secciones"
 #. placeholder {0}: String(stale.length)
 msgid "{0} selected images are no longer in the storyboard."
 msgstr "{0} imágenes seleccionadas ya no están en el guion gráfico."
+
+#. placeholder {0}: state.sourcePageCount
+msgid "{0} source pages · deterministic analysis · no AI calls"
+msgstr "{0} páginas de origen · análisis determinista · sin llamadas a IA"
 
 #. placeholder {0}: String(visibleCount)
 msgid "{0} terms"
@@ -635,6 +668,9 @@ msgstr "Un glosario equilibrado para la mayoría de los libros."
 msgid "A book with this name already exists."
 msgstr "Ya existe un libro con este nombre."
 
+msgid "A chapter title or opening section suggests an opener."
+msgstr "Un título de capítulo o una sección inicial sugiere una página de apertura."
+
 msgid "A close, long-term relationship between two different species, often benefiting both."
 msgstr "Una relación cercana y a largo plazo entre dos especies diferentes, a menudo beneficiando a ambas."
 
@@ -670,6 +706,12 @@ msgstr "Una página falló en {stageLabel}"
 
 msgid "A page failed in {stepLabel}"
 msgstr "Una página falló en {stepLabel}"
+
+#~ msgid "A page master applies the same grid, margins, and page treatment to every assigned page."
+#~ msgstr "Una página maestra aplica la misma cuadrícula, márgenes y diseño a todas las páginas asignadas."
+
+msgid "A page master shares margins, gutters, and page treatment. Each page can combine different layout regions."
+msgstr "Una página maestra comparte márgenes, medianiles y diseño de página. Cada página puede combinar regiones con distintas distribuciones."
 
 msgid "A question worth asking"
 msgstr "Una pregunta que vale la pena hacer"
@@ -776,6 +818,12 @@ msgstr "Acerca del modo de sección"
 msgid "about version update logs diagnostics"
 msgstr "acerca de actualización de versión registros diagnósticos"
 
+msgid "Accent"
+msgstr "Acento"
+
+msgid "Accent banner"
+msgstr "Banda de color de acento"
+
 msgid "Accent color"
 msgstr "Color de acento"
 
@@ -859,6 +907,9 @@ msgstr "secciones activas"
 
 msgid "Activities"
 msgstr "Actividades"
+
+msgid "Activities are static proofs; interactions are not generated."
+msgstr "Las actividades son pruebas estáticas; no se generan interacciones."
 
 msgid "Activities disabled"
 msgstr "Actividades desactivadas"
@@ -1339,6 +1390,9 @@ msgstr "Alinear a la izquierda"
 msgid "Align right"
 msgstr "Alinear a la derecha"
 
+msgid "Alignment"
+msgstr "Alineación"
+
 msgid "Aligns narration with text to enable word-level highlighting."
 msgstr "Alinea la narración con el texto para permitir el resaltado a nivel de palabra."
 
@@ -1423,6 +1477,12 @@ msgstr "Una clave de API definida en el entorno del servidor tiene prioridad sob
 
 msgid "An open-ended answer activity."
 msgstr "Una actividad de respuesta abierta."
+
+msgid "Analyze again"
+msgstr "Analizar de nuevo"
+
+msgid "Analyze book"
+msgstr "Analizar libro"
 
 msgid "Analyze with AI"
 msgstr "Analizar con IA"
@@ -1533,6 +1593,9 @@ msgstr "Aplicación"
 msgid "Application Programming Interface — a set of rules that allows programs to communicate."
 msgstr "Interfaz de programación de aplicaciones (API): conjunto de reglas que permite que los programas se comuniquen."
 
+msgid "Applies shared typography and box treatments. Keeps content and page layouts. Review the draft before saving."
+msgstr "Aplica tipografía y estilos de recuadros compartidos. Conserva el contenido y los diseños de página. Revisa el borrador antes de guardar."
+
 msgid "Applies to every language routed to ElevenLabs."
 msgstr "Se aplica a todos los idiomas dirigidos a ElevenLabs."
 
@@ -1547,6 +1610,9 @@ msgstr "Aplicar filtros"
 
 msgid "Apply layout"
 msgstr "Aplicar diseño"
+
+msgid "Apply learning design"
+msgstr "Aplicar diseño educativo"
 
 msgid "Apply page background colors"
 msgstr "Aplicar colores de fondo de página"
@@ -1880,6 +1946,12 @@ msgstr "El cuerpo del texto usa esta fuente hoy. Adjunta una fuente abajo y así
 msgid "Book"
 msgstr "Libro"
 
+msgid "Book accent"
+msgstr "Color de acento del libro"
+
+msgid "Book accent linked. Cards use automatic contrasting text, flexible heights, and mobile stacking. Customize each treatment in Objects."
+msgstr "Color de acento del libro vinculado. Las tarjetas usan texto con contraste automático, alturas flexibles y se apilan en móviles. Personaliza cada estilo en Objetos."
+
 msgid "Book coverage"
 msgstr "Cobertura del libro"
 
@@ -1921,6 +1993,9 @@ msgstr "Esquema del libro"
 
 msgid "Book package ready"
 msgstr "Paquete del libro listo"
+
+msgid "Book pages"
+msgstr "Páginas del libro"
 
 msgid "Book pages. Scroll horizontally to see more."
 msgstr "Páginas del libro. Desplázate horizontalmente para ver más."
@@ -1978,6 +2053,12 @@ msgstr "Izquierda inferior"
 
 msgid "Bottom right"
 msgstr "Derecha inferior"
+
+msgid "Box header"
+msgstr "Encabezado del recuadro"
+
+msgid "Box treatment"
+msgstr "Estilo del recuadro"
 
 msgid "Boxed Text"
 msgstr "Texto en recuadro"
@@ -2284,6 +2365,9 @@ msgstr "Elegir un Preajuste"
 msgid "Choose a previously uploaded video or upload a new one."
 msgstr "Elige un video subido anteriormente o sube uno nuevo."
 
+msgid "Choose a starting point above and analyze your book to build the library."
+msgstr "Elige un punto de partida arriba y analiza tu libro para crear la biblioteca."
+
 msgid "Choose an existing image from this project"
 msgstr "Elige una imagen existente de este proyecto"
 
@@ -2434,14 +2518,24 @@ msgstr "Recopila todo el texto traducible en un solo catálogo."
 msgid "Color"
 msgstr "Color"
 
+msgid "Color palette"
+msgstr "Paleta de colores"
+
 msgid "color-contrast"
 msgstr "color-contrast"
 
 msgid "Column"
 msgstr "Columna"
 
+#. placeholder {0}: slot.column + 1
+msgid "Column {0}"
+msgstr "Columna {0}"
+
 msgid "Column reverse"
 msgstr "Columna inversa"
+
+msgid "Columns"
+msgstr "Columnas"
 
 msgid "coming soon"
 msgstr "próximamente"
@@ -2463,6 +2557,9 @@ msgstr "Comentarios"
 
 msgid "Compare"
 msgstr "Comparar"
+
+msgid "Compare source"
+msgstr "Comparar con el original"
 
 msgid "Compare the current version with a chosen version at the same screen size."
 msgstr "Compara la versión actual con una versión elegida en el mismo tamaño de pantalla."
@@ -2493,6 +2590,9 @@ msgstr "Progreso en las páginas abiertas y revisadas en esta sesión."
 
 msgid "Completion across the assigned page range for this reviewer session."
 msgstr "Progreso en el rango de páginas asignado a esta sesión de revisor."
+
+msgid "Component layout"
+msgstr "Diseño del componente"
 
 msgid "Comprehension checks per section."
 msgstr "Verificaciones de comprensión por sección."
@@ -2589,8 +2689,14 @@ msgstr "Tipos de contenedor"
 msgid "Content"
 msgstr "Contenido"
 
+msgid "Content → style and component assignments"
+msgstr "Contenido → asignaciones de estilos y componentes"
+
 msgid "Content Processing"
 msgstr "Procesamiento de Contenido"
+
+msgid "Content structure"
+msgstr "Estructura del contenido"
 
 msgid "Contents"
 msgstr "Contenidos"
@@ -2690,6 +2796,9 @@ msgstr "Los arrecifes de coral cubren menos del 1% del fondo oceánico, pero sos
 
 msgid "Core Pipeline"
 msgstr "Tubería Principal"
+
+msgid "Corners (px)"
+msgstr "Esquinas (px)"
 
 msgid "Correct"
 msgstr "Correcto"
@@ -2904,6 +3013,9 @@ msgstr "Activo actualmente"
 msgid "Custom"
 msgstr "Personalizado"
 
+msgid "Custom colors"
+msgstr "Colores personalizados"
+
 msgid "Custom Instructions"
 msgstr "Instrucciones Personalizadas"
 
@@ -2963,6 +3075,9 @@ msgstr "Predeterminado (heredar)"
 
 msgid "Default (no text detected yet)"
 msgstr "Predeterminada (aún no se detectó texto)"
+
+msgid "Default columns"
+msgstr "Columnas predeterminadas"
 
 msgid "Default guidance"
 msgstr "Orientación predeterminada"
@@ -3156,6 +3271,18 @@ msgstr "Descripciones habladas de las imágenes."
 msgid "Deselect all"
 msgstr "Deseleccionar todo"
 
+msgid "Design extracted. Review the library, then save or generate."
+msgstr "Diseño extraído. Revisa la biblioteca y luego guarda o genera."
+
+msgid "Design saved as a new version."
+msgstr "Diseño guardado como una nueva versión."
+
+msgid "Design starting point"
+msgstr "Punto de partida del diseño"
+
+msgid "Designed preset; no matching PDF text run was used."
+msgstr "Diseño predefinido; no se utilizó un fragmento de texto coincidente del PDF."
+
 msgid "Desktop"
 msgstr "Escritorio"
 
@@ -3183,11 +3310,17 @@ msgstr "Detalles"
 msgid "Detect chapters, headings and learning units."
 msgstr "Detecta capítulos, encabezados y unidades de aprendizaje."
 
+msgid "Detect mixed layouts"
+msgstr "Detectar diseños mixtos"
+
 msgid "Detected {left}–{right}"
 msgstr "Detectado {left}–{right}"
 
 msgid "Detected Font"
 msgstr "Fuente detectada"
+
+msgid "Detected from content structure. The component design is a reusable preset."
+msgstr "Detectado a partir de la estructura del contenido. El diseño del componente es un ajuste predefinido reutilizable."
 
 msgid "Detected in current template"
 msgstr "Detectadas en la plantilla actual"
@@ -3242,6 +3375,9 @@ msgstr "Descartar"
 
 msgid "Discard & leave"
 msgstr "Descartar y salir"
+
+msgid "Discard draft"
+msgstr "Descartar borrador"
 
 msgid "Discard unsaved prompt changes?"
 msgstr "¿Descartar los cambios no guardados del prompt?"
@@ -3494,6 +3630,11 @@ msgstr "Prompt de edición"
 
 msgid "Edit Prompts"
 msgstr "Editar prompts"
+
+#. placeholder {0}: index + 1
+#. placeholder {1}: names[region.template]
+msgid "Edit region {0}: {1}"
+msgstr "Editar región {0}: {1}"
 
 msgid "Edit speech text"
 msgstr "Editar texto hablado"
@@ -3759,6 +3900,9 @@ msgstr "Excluir de la lectura en voz alta"
 msgid "Exclude from render"
 msgstr "Excluir de la renderización"
 
+msgid "Exercise content suggests an activity page."
+msgstr "El contenido de ejercicios sugiere una página de actividades."
+
 msgid "Existing reviewer sessions keep their own checklist snapshot. New checklist changes apply to newly created sessions."
 msgstr "Las sesiones de revisor existentes conservan su propia instantánea de la lista de verificación. Los nuevos cambios en la lista se aplican solo a las sesiones creadas a partir de ahora."
 
@@ -3840,6 +3984,9 @@ msgstr "Extracción"
 
 msgid "Extract & filter"
 msgstr "Extraer y filtrar"
+
+msgid "Extract a reusable library, refine its styles and page masters, then flow your content into a consistent storyboard."
+msgstr "Extrae una biblioteca reutilizable, ajusta sus estilos y páginas maestras, y distribuye el contenido en un storyboard coherente."
 
 msgid "Extract hasn't run yet"
 msgstr "Extracción aún no se ha ejecutado"
@@ -3963,8 +4110,14 @@ msgstr "Retroalimentación generada — revísala y guarda"
 msgid "Feedback generation failed"
 msgstr "Error al generar la retroalimentación"
 
+msgid "Fieldnotes — designed template"
+msgstr "Fieldnotes — plantilla diseñada"
+
 msgid "figure"
 msgstr "figura"
+
+msgid "Figure"
+msgstr "Figura"
 
 msgid "Figure 5.1 - The water cycle: evaporation from oceans, condensation into clouds, precipitation as rain, and runoff back to the sea."
 msgstr "Figura 5.1 - El ciclo del agua: evaporación de los océanos, condensación en nubes, precipitación como lluvia y escorrentía de vuelta al mar."
@@ -3972,11 +4125,17 @@ msgstr "Figura 5.1 - El ciclo del agua: evaporación de los océanos, condensaci
 msgid "Figure Extraction"
 msgstr "Extracción de Figuras"
 
+msgid "Figures, callouts, and content groups become a finite library of repeatable designs."
+msgstr "Las figuras, los recuadros y los grupos de contenido forman una biblioteca finita de diseños reutilizables."
+
 msgid "File accepted"
 msgstr "Archivo aceptado"
 
 msgid "File actions"
 msgstr "Acciones del archivo"
+
+msgid "Fill and crop"
+msgstr "Rellenar y recortar"
 
 msgid "Fill in the blank"
 msgstr "Completar el espacio"
@@ -4095,6 +4254,12 @@ msgstr "Análisis de fuentes"
 msgid "Font assignment, styleguide generation, and visual review also use this default unless overridden."
 msgstr "La asignación de fuentes, la generación de guías de estilo y la revisión visual también usan este valor predeterminado, salvo que se reemplace."
 
+msgid "Font family"
+msgstr "Familia tipográfica"
+
+msgid "Font, size, weight, and color detected from PDF text runs."
+msgstr "Fuente, tamaño, grosor y color detectados en los fragmentos de texto del PDF."
+
 msgid "Fonts"
 msgstr "Fuentes"
 
@@ -4149,6 +4314,9 @@ msgstr "Polígono libre: mueve, añade y elimina puntos"
 msgid "French"
 msgstr "Francés"
 
+msgid "Friendly chapter banners, question cards, vocabulary boxes, and room to read. Inspired by the weather book."
+msgstr "Bandas de capítulo acogedoras, tarjetas de preguntas, recuadros de vocabulario y espacio para leer. Inspirado en el libro del tiempo."
+
 msgid "From a single PDF, every edition gains the ways different readers need to reach it."
 msgstr "Desde un solo PDF, cada edición obtiene las formas que diferentes lectores necesitan para acceder a ella."
 
@@ -4176,6 +4344,9 @@ msgstr "Control total sobre estrategias de renderizado, poda y filtros."
 msgid "Full project backup & transfer"
 msgstr "Respaldo y transferencia completa del proyecto"
 
+msgid "Full width"
+msgstr "Ancho completo"
+
 msgid "Full-size source page preview."
 msgstr "Vista previa de página de origen a tamaño completo."
 
@@ -4187,6 +4358,9 @@ msgstr "Totalmente interactivo"
 
 msgid "Gap"
 msgstr "Espacio"
+
+msgid "Gap (px)"
+msgstr "Separación (px)"
 
 msgid "Gathering the evidence"
 msgstr "Reuniendo la evidencia"
@@ -4290,8 +4464,14 @@ msgstr "Prompt de generación"
 msgid "Generate quiz"
 msgstr "Generar cuestionario"
 
+#~ msgid "Generate storyboard"
+#~ msgstr "Generar storyboard"
+
 msgid "Generate Styleguide from Pages"
 msgstr "Generar guía de estilo desde páginas"
+
+msgid "Generate Styles proof"
+msgstr "Generar prueba de estilos"
 
 msgid "Generate suggested replacement translations for flagged entries"
 msgstr "Generar traducciones de reemplazo sugeridas para entradas marcadas"
@@ -4313,6 +4493,9 @@ msgstr "Generado a partir de estas páginas"
 
 msgid "Generated section"
 msgstr "Sección generada"
+
+#~ msgid "Generated storyboard"
+#~ msgstr "Storyboard generado"
 
 msgid "Generates a short summary of the book used to seed downstream prompts."
 msgstr "Genera un resumen corto del libro para iniciar indicaciones posteriores."
@@ -4469,6 +4652,9 @@ msgstr "Nivel de Grado"
 msgid "Grammar and fluency"
 msgstr "Gramática y fluidez"
 
+msgid "Grid"
+msgstr "Cuadrícula"
+
 msgid "Grid view"
 msgstr "Vista de cuadrícula"
 
@@ -4487,8 +4673,14 @@ msgstr "Agrupa el texto e imágenes de cada página en secciones escritas con un
 msgid "Groups image regions into discrete illustrations on each page."
 msgstr "Agrupa regiones de imágenes en ilustraciones discretas en cada página."
 
+msgid "Groups stay intact and reading order is preserved. On mobile, columns stack in reading order."
+msgstr "Los grupos se mantienen intactos y se conserva el orden de lectura. En móviles, las columnas se apilan en ese orden."
+
 msgid "Guidance for this book"
 msgstr "Orientación para este libro"
+
+msgid "Gutter (px)"
+msgstr "Medianil (px)"
 
 msgid "Hand out page-range parts and merge them back later."
 msgstr "Reparte partes por rango de páginas y combínalas más tarde."
@@ -4501,6 +4693,9 @@ msgstr "Los términos difíciles se vuelven tocables — aparece una definición
 
 msgid "Header"
 msgstr "Encabezado"
+
+msgid "Header size (px)"
+msgstr "Tamaño del encabezado (px)"
 
 msgid "heading"
 msgstr "encabezado"
@@ -4595,6 +4790,9 @@ msgstr "Pista cuando falla (no reveles la respuesta)"
 msgid "História e Sociedade - Vol. 1"
 msgstr "Historia y Sociedad - Vol. 1"
 
+msgid "History"
+msgstr "Historial"
+
 msgid "Hit"
 msgstr "Hit"
 
@@ -4679,6 +4877,9 @@ msgstr "Libros infantiles ilustrados"
 msgid "Illustration"
 msgstr "Ilustración"
 
+msgid "Illustrations suggest an illustrated page."
+msgstr "Las ilustraciones sugieren una página ilustrada."
+
 msgid "image"
 msgstr "imagen"
 
@@ -4702,6 +4903,9 @@ msgstr "Recorte de imágenes"
 
 msgid "Image Cropping Prompt"
 msgstr "Prompt de recorte de imagen"
+
+msgid "Image descriptions need editorial review."
+msgstr "Las descripciones de las imágenes necesitan revisión editorial."
 
 msgid "Image edit complete"
 msgstr "Edición de imagen completada"
@@ -4736,6 +4940,9 @@ msgstr "Generación y edición de imágenes"
 msgid "Image Generation Prompt"
 msgstr "Prompt de generación de imagen"
 
+msgid "Image height (px)"
+msgstr "Altura de imagen (px)"
+
 msgid "Image Meaningfulness"
 msgstr "Relevancia de imágenes"
 
@@ -4753,6 +4960,9 @@ msgstr "Procesamiento de imágenes"
 
 msgid "Image Processing"
 msgstr "Procesamiento de Imágenes"
+
+msgid "Image proportions and grouping detected from PDF geometry. Other treatments use the preset."
+msgstr "Proporciones y agrupación de imágenes detectadas a partir de la geometría del PDF. Los demás tratamientos usan el diseño predefinido."
 
 msgid "Image Segmentation"
 msgstr "Segmentación de imágenes"
@@ -4903,6 +5113,9 @@ msgstr "Aumentar intervalo"
 msgid "Individual sides"
 msgstr "Lados individuales"
 
+msgid "Inferred from PDF text. Run Sectioning for semantic roles and groups."
+msgstr "Inferido del texto del PDF. Ejecuta la división en secciones para obtener funciones y grupos semánticos."
+
 msgid "Infographic"
 msgstr "Infografía"
 
@@ -4923,6 +5136,9 @@ msgstr "Insertar el cuestionario aquí"
 
 msgid "Inside Cover"
 msgstr "Contraportada interna"
+
+msgid "Inspect generated CSS and HTML"
+msgstr "Inspeccionar CSS y HTML generados"
 
 msgid "Install"
 msgstr "Instalar"
@@ -5170,6 +5386,15 @@ msgstr "Interlineado"
 msgid "Learn by doing."
 msgstr "Aprende haciendo."
 
+msgid "Learn typography from this PDF"
+msgstr "Aprender tipografía de este PDF"
+
+msgid "Learning design"
+msgstr "Diseño educativo"
+
+msgid "Learning design applied to the draft. Review the cards and headers, then save."
+msgstr "Diseño educativo aplicado al borrador. Revisa las tarjetas y los encabezados y luego guarda."
+
 msgid "Least used"
 msgstr "Menos usado"
 
@@ -5193,6 +5418,9 @@ msgstr "Déjalo sin definir para conservar el ritmo propio de ElevenLabs. Los va
 
 msgid "Leave without finishing?"
 msgstr "¿Salir sin terminar?"
+
+msgid "Left sidebar"
+msgstr "Barra lateral izquierda"
 
 msgid "Legal and compliance manuals"
 msgstr "Manuales legales y de cumplimiento"
@@ -5242,6 +5470,9 @@ msgstr "Ligero"
 msgid "Lila wandered between the tall pines, her flashlight catching glimmers of gold among the leaves. The path narrowed, and the wind began to whisper her name."
 msgstr "Lila deambulaba entre los altos pinos, su linterna capturando destellos de oro entre las hojas. El camino se estrechó y el viento comenzó a susurrar su nombre."
 
+msgid "Line height"
+msgstr "Interlineado"
+
 msgid "lines"
 msgstr "líneas"
 
@@ -5286,6 +5517,12 @@ msgstr "Escuchando los datos"
 
 msgid "Live"
 msgstr "En vivo"
+
+msgid "Live design"
+msgstr "Diseño en vivo"
+
+msgid "Live proof"
+msgstr "Prueba en vivo"
 
 msgid "LLM Calls"
 msgstr "Llamadas LLM"
@@ -5422,6 +5659,9 @@ msgstr "Cargando estadísticas..."
 msgid "Loading style guides..."
 msgstr "Cargando guías de estilo..."
 
+msgid "Loading styles…"
+msgstr "Cargando estilos…"
+
 msgid "Loading table of contents..."
 msgstr "Cargando tabla de contenidos..."
 
@@ -5533,6 +5773,9 @@ msgstr "margen"
 msgid "Margin"
 msgstr "Margen"
 
+msgid "Margins (px)"
+msgstr "Márgenes (px)"
+
 msgid "Mark as decorative"
 msgstr "Marcar como decorativo"
 
@@ -5541,6 +5784,9 @@ msgstr "Marcar como decorativo (oculto para lectores de pantalla)"
 
 msgid "Mark spreads"
 msgstr "Marcar dobles páginas"
+
+msgid "Masters"
+msgstr "Maestras"
 
 msgid "Match book style"
 msgstr "Combinar con el estilo del libro"
@@ -5782,6 +6028,12 @@ msgstr "Faltan:"
 msgid "Mixed Content Project"
 msgstr "Proyecto de Contenido Mixto"
 
+msgid "Mixed layout templates are edited in Styles."
+msgstr "Las plantillas de diseño mixto se editan en Estilos."
+
+msgid "Mixed layouts detected. Your text and object styles are preserved. Review the regions, then save or generate."
+msgstr "Se detectaron diseños mixtos. Se conservaron los estilos de texto y objetos. Revisa las regiones y luego guarda o genera."
+
 msgid "Mobile"
 msgstr "Móvil"
 
@@ -5871,6 +6123,9 @@ msgstr "mi-libro-slug"
 
 msgid "N/A"
 msgstr "N/A"
+
+msgid "Name"
+msgstr "Nombre"
 
 msgid "Names and terms are consistent"
 msgstr "Los nombres y términos son coherentes"
@@ -6113,6 +6368,9 @@ msgstr "Ninguna fuente coincide con tu búsqueda."
 
 msgid "No grouping"
 msgstr "Sin agrupación"
+
+msgid "No header band"
+msgstr "Sin banda de encabezado"
 
 msgid "No image"
 msgstr "Sin imagen"
@@ -6474,6 +6732,9 @@ msgstr "Número de iteraciones de refinamiento realizadas después del pase inic
 msgid "OAuth 2.0"
 msgstr "OAuth 2.0"
 
+msgid "Objects"
+msgstr "Objetos"
+
 msgid "of"
 msgstr "de"
 
@@ -6504,11 +6765,17 @@ msgstr "Tour de incorporación"
 msgid "One book."
 msgstr "Un libro."
 
+msgid "One book. One design language."
+msgstr "Un libro. Un lenguaje de diseño."
+
 msgid "One Column"
 msgstr "Una Columna"
 
 msgid "One column for every section. Clean and predictable."
 msgstr "Una columna para cada sección. Limpio y predecible."
+
+msgid "One page, several layouts. Each region uses the same shared styles and master margins."
+msgstr "Una página, varios diseños. Cada región utiliza los mismos estilos compartidos y márgenes de la página maestra."
 
 msgid "One tag per line or comma-separated. Leave as-is to keep the current package defaults."
 msgstr "Una etiqueta por línea o separadas por comas. Déjelo como está para mantener los valores predeterminados actuales del paquete."
@@ -6612,6 +6879,9 @@ msgstr "Abrir solicitud de cambios {0}"
 msgid "Open source PDF in a new tab"
 msgstr "Abrir el PDF de origen en una nueva pestaña"
 
+msgid "Open Styles"
+msgstr "Abrir Estilos"
+
 msgid "Open the Quizzes stage to edit this quiz"
 msgstr "Abre la etapa de Cuestionarios para editar este cuestionario"
 
@@ -6650,6 +6920,9 @@ msgstr "Voz OpenAI"
 
 msgid "OpenAI, Azure, and Gemini text-to-speech."
 msgstr "OpenAI, Azure y Gemini texto a voz."
+
+msgid "Opening, reading, illustrated, activity, and reference pages share consistent templates."
+msgstr "Las páginas de apertura, lectura, ilustraciones, actividades y referencia comparten plantillas coherentes."
 
 msgid "Operation failed"
 msgstr "La operación falló"
@@ -6757,6 +7030,9 @@ msgstr "Desactualizado"
 msgid "Outline ID:"
 msgstr "ID del esquema:"
 
+msgid "Outlined card"
+msgstr "Tarjeta con borde"
+
 msgid "Output languages"
 msgstr "Idiomas de salida"
 
@@ -6838,6 +7114,9 @@ msgstr "Empaquetando resultados de validación..."
 msgid "Padding"
 msgstr "Padding"
 
+msgid "Padding (px)"
+msgstr "Espaciado interno (px)"
+
 msgid "page"
 msgstr "página"
 
@@ -6881,6 +7160,9 @@ msgstr "Página {pageNum}"
 msgid "page {shownStr}"
 msgstr "página {shownStr}"
 
+msgid "Page assignment"
+msgstr "Asignación de página"
+
 msgid "Page context"
 msgstr "Contexto de la página"
 
@@ -6901,6 +7183,12 @@ msgstr "Imagen de la página"
 
 msgid "Page image as background with positioned text overlay. Preserves the original page composition; ideal for illustrated storybooks."
 msgstr "Imagen de página como fondo con texto posicionado superpuesto. Preserva la composición original de la página; ideal para libros ilustrados."
+
+msgid "Page master"
+msgstr "Página maestra"
+
+msgid "Page masters"
+msgstr "Páginas maestras"
 
 msgid "Page Mode"
 msgstr "Modo de Página"
@@ -6929,6 +7217,9 @@ msgstr "Rango de páginas bloqueado"
 msgid "Page re-rendered"
 msgstr "Página renderizada de nuevo"
 
+msgid "Page regions"
+msgstr "Regiones de la página"
+
 msgid "Page Sectioning"
 msgstr "Seccionamiento de páginas"
 
@@ -6940,6 +7231,9 @@ msgstr "Prompt de refinamiento de sección"
 
 msgid "Page text, headings, and quiz content."
 msgstr "Texto de página, encabezados y contenido de cuestionarios."
+
+msgid "Page width (px)"
+msgstr "Ancho de página (px)"
 
 msgid "pages"
 msgstr "páginas"
@@ -6984,11 +7278,17 @@ msgstr "Páginas revisadas"
 msgid "Paper Collage"
 msgstr "Collage en papel"
 
+msgid "Paper color"
+msgstr "Color del papel"
+
 msgid "paragraph"
 msgstr "párrafo"
 
 msgid "Paragraph"
 msgstr "Párrafo"
+
+msgid "Paragraph styles"
+msgstr "Estilos de párrafo"
 
 msgid "Parent:"
 msgstr "Elemento superior:"
@@ -7048,6 +7348,9 @@ msgstr "Extracción de PDF"
 
 msgid "PDF File"
 msgstr "Archivo PDF"
+
+msgid "PDF geometry"
+msgstr "Geometría del PDF"
 
 msgid "PDF info"
 msgstr "Información del PDF"
@@ -7169,6 +7472,9 @@ msgstr "Etapas del flujo"
 msgid "Pixel Art"
 msgstr "Pixel Art"
 
+msgid "Plain"
+msgstr "Sin tratamiento"
+
 msgid "Platform"
 msgstr "Plataforma"
 
@@ -7267,6 +7573,9 @@ msgstr "Preparar números, fechas y abreviaturas para una locución natural. Las
 msgid "Prepared speech text"
 msgstr "Texto preparado para voz"
 
+msgid "Preparing proof…"
+msgstr "Preparando prueba…"
+
 msgid "Preparing speech..."
 msgstr "Preparando el audio..."
 
@@ -7311,6 +7620,9 @@ msgstr "Vista previa: palabra por palabra"
 
 msgid "Previewed here — enabled once the AI-agnostic update ships."
 msgstr "Previsualizado aquí — habilitado una vez que se lance la actualización AI-agnóstica."
+
+msgid "Previous design restored as a new version."
+msgstr "Diseño anterior restaurado como una nueva versión."
 
 msgid "Previous image"
 msgstr "Imagen anterior"
@@ -7383,6 +7695,18 @@ msgstr "Prompts"
 
 msgid "prompts templates instructions"
 msgstr "indicaciones plantillas instrucciones"
+
+msgid "Proofing notes"
+msgstr "Notas de revisión"
+
+msgid "Prototype"
+msgstr "Prototipo"
+
+#~ msgid "Prototype storyboards stay in this Styles tab. Existing storyboard pages and exports are unchanged."
+#~ msgstr "Los storyboards del prototipo permanecen en esta pestaña Estilos. Las páginas y exportaciones existentes no cambian."
+
+msgid "Prototype: use the saved styles, components, and mixed page regions from Styles."
+msgstr "Prototipo: utiliza los estilos, componentes y regiones de página mixtas guardados en Estilos."
 
 msgid "Provider"
 msgstr "Proveedor"
@@ -7464,6 +7788,15 @@ msgstr "publicado en"
 
 msgid "Publisher"
 msgstr "Editorial"
+
+msgid "Publisher design lab"
+msgstr "Laboratorio de diseño editorial"
+
+msgid "Publisher override"
+msgstr "Ajuste editorial"
+
+msgid "Publisher styles — mixed layouts"
+msgstr "Estilos editoriales — diseños mixtos"
 
 msgid "Pull requests"
 msgstr "Pull requests"
@@ -7809,6 +8142,9 @@ msgstr "Regenera esta actividad con IA (requiere un estado guardado y una clave 
 msgid "Region"
 msgstr "Región"
 
+msgid "Region layout"
+msgstr "Diseño de la región"
+
 msgid "Reject renderings that diverge stylistically from the original. More rejections and rerenders, closer match to the source."
 msgstr "Rechazar representaciones que divergen estilísticamente del original. Más rechazos y re-renderizados, coincidencia más cercana con la fuente."
 
@@ -8023,6 +8359,9 @@ msgstr "Reiniciar tour"
 msgid "Restore"
 msgstr "Restaurar"
 
+msgid "Restore design version"
+msgstr "Restaurar versión del diseño"
+
 msgid "Restore element"
 msgstr "Restaurar elemento"
 
@@ -8065,6 +8404,9 @@ msgstr "Reintentar exportación"
 
 msgid "Return to coordinator"
 msgstr "Devolver al coordinador"
+
+msgid "Reusable components"
+msgstr "Componentes reutilizables"
 
 msgid "Revert language change"
 msgstr "Revertir cambio de idioma"
@@ -8176,6 +8518,12 @@ msgstr "Revocado"
 msgid "Rewriting the story of this section..."
 msgstr "Reescribiendo la historia de esta sección..."
 
+msgid "Rich text and math are shown as source text in this prototype."
+msgstr "El texto enriquecido y las matemáticas se muestran como texto de origen en este prototipo."
+
+msgid "Right sidebar"
+msgstr "Barra lateral derecha"
+
 msgid "Rising ocean temperatures cause coral bleaching - when stressed corals expel the colorful algae living inside them and turn white. Without these algae, corals slowly starve. Protecting reefs means reducing pollution, overfishing, and greenhouse gas emissions."
 msgstr "El aumento de las temperaturas oceánicas causa el blanqueamiento de corales - cuando los corales estresados expulsan las algas coloridas que viven dentro de ellos y se vuelven blancos. Sin estas algas, los corales se mueren de hambre lentamente. Proteger los arrecifes significa reducir la contaminación, la sobrepesca y las emisiones de gases de efecto invernadero."
 
@@ -8221,6 +8569,9 @@ msgstr "Ejecutar Lectura Fácil"
 
 msgid "Run Extract"
 msgstr "Ejecutar Extracción"
+
+msgid "Run Extract on your PDF first, then return here. Sectioning improves semantic grouping."
+msgstr "Primero ejecuta la extracción del PDF y luego vuelve aquí. La división en secciones mejora la agrupación semántica."
 
 msgid "Run Glossary"
 msgstr "Ejecutar Glosario"
@@ -8360,6 +8711,9 @@ msgstr "Guarda los cambios y luego ejecuta la revisión de nuevo."
 msgid "Save checklist"
 msgstr "Guardar lista de verificación"
 
+msgid "Save design"
+msgstr "Guardar diseño"
+
 msgid "Save failed"
 msgstr "Error al guardar"
 
@@ -8386,6 +8740,12 @@ msgstr "Guardar tamaños de texto"
 
 msgid "Save your work first if you want to keep these changes."
 msgstr "Guarda tu trabajo primero si quieres conservar estos cambios."
+
+#~ msgid "Saved storyboard"
+#~ msgstr "Storyboard guardado"
+
+msgid "Saved Styles proof"
+msgstr "Prueba de estilos guardada"
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Guardado. Vuelva a empaquetar la Vista previa para aplicar."
@@ -8828,6 +9188,9 @@ msgstr "Sombra"
 msgid "Shared"
 msgstr "Compartido"
 
+msgid "Shared fonts, sizes, colors, spacing, and alignment, with evidence from your PDF."
+msgstr "Fuentes, tamaños, colores, espaciado y alineación compartidos, con evidencia del PDF."
+
 msgid "Ship"
 msgstr "Enviar"
 
@@ -8861,6 +9224,9 @@ msgstr "Mostrar todas las traducciones"
 
 #~ msgid "Show API key"
 #~ msgstr "Mostrar clave de API"
+
+msgid "Show complete image"
+msgstr "Mostrar imagen completa"
 
 msgid "Show credential"
 msgstr "Mostrar credencial"
@@ -8898,6 +9264,14 @@ msgstr "Mostrando {start}–{end} de {totalItems} libros"
 msgid "Showing only terms you added — click to show all"
 msgstr "Mostrando solo los términos que agregaste — haz clic para mostrar todos"
 
+#. placeholder {0}: state.generated?.designVersion ?? 0
+#~ msgid "Showing the saved storyboard from design version {0}. Switch to Live design to edit."
+#~ msgstr "Se muestra el storyboard guardado de la versión {0} del diseño. Cambia a Diseño en vivo para editar."
+
+#. placeholder {0}: state.generated?.designVersion ?? 0
+msgid "Showing the saved Styles proof from design version {0}. Switch to Live design to edit."
+msgstr "Se muestra la prueba de estilos guardada de la versión {0} del diseño. Cambia a Diseño en vivo para editar."
+
 msgid "Shown after page {afterNumber}"
 msgstr "Se muestra después de la página {afterNumber}"
 
@@ -8906,6 +9280,9 @@ msgstr "Shqip"
 
 msgid "Side-by-side image and narrative."
 msgstr "Imagen y narrativa lado a lado."
+
+msgid "Sidebar width (%)"
+msgstr "Ancho del recuadro lateral (%)"
 
 msgid "Sign"
 msgstr "Señas"
@@ -8986,6 +9363,9 @@ msgstr "Valor único"
 msgid "Size"
 msgstr "Tamaño"
 
+msgid "Size (px)"
+msgstr "Tamaño (px)"
+
 msgid "Sizing"
 msgstr "Dimensionamiento"
 
@@ -9026,11 +9406,20 @@ msgstr "Pequeño"
 msgid "Smart Cropping"
 msgstr "Recorte Inteligente"
 
+msgid "Soft card"
+msgstr "Tarjeta de color suave"
+
+msgid "Soft tint"
+msgstr "Tono suave"
+
 msgid "Software update"
 msgstr "Actualización de software"
 
 msgid "Software update status"
 msgstr "Estado de la actualización de software"
+
+msgid "Solid accent"
+msgstr "Color de acento sólido"
 
 #~ msgid "Some books are mostly single pages but have a few illustrations that run across two facing pages. Choose Single here — then, after extraction, the Extract view detects those spreads and lets you merge just those pairs while every other page stays on its own."
 #~ msgstr "Algunos libros son principalmente de páginas individuales pero tienen algunas ilustraciones que abarcan dos páginas enfrentadas. Elige Individual aquí — luego, después de la extracción, la vista de Extracción detecta esas dobles páginas y te permite fusionar solo esos pares mientras que cada otra página permanece por su cuenta."
@@ -9064,14 +9453,24 @@ msgstr "Fuente"
 msgid "Source candidates:"
 msgstr "Candidatos de origen:"
 
+msgid "Source evidence"
+msgstr "Evidencia del origen"
+
 msgid "Source file"
 msgstr "Archivo de origen"
 
 msgid "Source language"
 msgstr "Idioma de origen"
 
+#. placeholder {0}: page.pageNumber
+msgid "Source page {0}"
+msgstr "Página de origen {0}"
+
 msgid "Source PDF"
 msgstr "PDF Fuente"
+
+msgid "Space after (px)"
+msgstr "Espacio posterior (px)"
 
 msgid "Space around"
 msgstr "Espacio alrededor"
@@ -9171,6 +9570,12 @@ msgstr "Parte dividida · páginas {0}–{1}"
 msgid "Split preview"
 msgstr "Previsualización de división"
 
+msgid "Split region before"
+msgstr "Dividir región antes de"
+
+msgid "Split region before…"
+msgstr "Dividir región antes de…"
+
 msgid "Split section"
 msgstr "Dividir sección"
 
@@ -9210,6 +9615,9 @@ msgstr "Estabilidad"
 msgid "Stable"
 msgstr "Estable"
 
+msgid "Stack"
+msgstr "Apilado"
+
 msgid "Stages are rerunable and every result is versioned, so experimenting is safe — nothing is ever overwritten."
 msgstr "Las etapas son reutilizables y cada resultado tiene versión, por lo que experimentar es seguro: nada se sobrescribe."
 
@@ -9237,6 +9645,10 @@ msgstr "Inicia un <0>nuevo libro</0> desde un PDF fuente — ADT Studio crea un 
 msgid "Start a reviewer session"
 msgstr "Iniciar una sesión de revisor"
 
+#. placeholder {0}: slot.column + 1
+msgid "Start column {0} with"
+msgstr "Iniciar columna {0} con"
+
 msgid "Start of an equal-split window"
 msgstr "Inicio de una ventana de división equitativa"
 
@@ -9251,6 +9663,9 @@ msgstr "Empieza a escribir para ver palabras del libro…"
 
 msgid "Starting…"
 msgstr "Iniciando…"
+
+msgid "Starts with"
+msgstr "Comienza con"
 
 msgid "Stats"
 msgstr "Estadísticas"
@@ -9308,6 +9723,9 @@ msgstr "Vista general del Storyboard"
 msgid "Storyboard Preview"
 msgstr "Vista previa del Storyboard"
 
+#~ msgid "Storyboard saved as a new prototype version."
+#~ msgstr "Storyboard guardado como una nueva versión del prototipo."
+
 msgid "Storyboards & captions"
 msgstr "Guiones gráficos y descripciones"
 
@@ -9353,6 +9771,9 @@ msgstr "Edición de estilos próximamente"
 msgid "Style exaggeration"
 msgstr "Exageración del estilo"
 
+msgid "Style for {nodeId}"
+msgstr "Estilo de {nodeId}"
+
 msgid "Style guidance"
 msgstr "Guía de estilo"
 
@@ -9385,6 +9806,12 @@ msgstr "Vista previa de guía de estilo — {0}"
 
 msgid "styles"
 msgstr "estilos"
+
+msgid "Styles"
+msgstr "Estilos"
+
+msgid "Styles proof saved. Use in Storyboard to render these layouts in the main storyboard."
+msgstr "Prueba de estilos guardada. Elige Usar en Storyboard para aplicar estos diseños al storyboard principal."
 
 msgid "Subheading"
 msgstr "Subtítulo"
@@ -9464,8 +9891,14 @@ msgstr "Tabla de contenido"
 msgid "Table of Contents"
 msgstr "Índice"
 
+msgid "Table structure needs editorial review."
+msgstr "La estructura de la tabla necesita revisión editorial."
+
 msgid "Tables"
 msgstr "Tablas"
+
+msgid "Tables, definitions, or reference content suggest a reference page."
+msgstr "Las tablas, definiciones o contenido de referencia sugieren una página de referencia."
 
 msgid "Tablet"
 msgstr "Tableta"
@@ -9552,6 +9985,9 @@ msgstr "Basado en plantillas"
 msgid "Templated"
 msgstr "Con plantilla"
 
+msgid "Templated page preview"
+msgstr "Vista previa de página con plantilla"
+
 msgid "term"
 msgstr "término"
 
@@ -9601,6 +10037,9 @@ msgstr "Color del texto"
 msgid "Text color: {0}"
 msgstr "Color del texto: {0}"
 
+msgid "Text content suggests a reading page."
+msgstr "El contenido de texto sugiere una página de lectura."
+
 msgid "Text normalization"
 msgstr "Normalización del texto"
 
@@ -9648,6 +10087,9 @@ msgstr "El archivo debe contener una base de datos de proyecto y su PDF. Vuelve 
 
 msgid "The back cover of the book."
 msgstr "La contraportada del libro."
+
+msgid "The book content has changed since this design was saved. Analyze again before generating."
+msgstr "El contenido del libro cambió desde que se guardó este diseño. Analiza de nuevo antes de generar."
 
 msgid "The book is written in {langName}."
 msgstr "El libro está escrito en {langName}."
@@ -9699,6 +10141,9 @@ msgstr "El archivo puede estar dañado o incompleto. Intenta descargarlo nuevame
 
 msgid "The file you uploaded and the options you picked won't be kept."
 msgstr "No se conservarán el archivo que subiste ni las opciones que elegiste."
+
+msgid "The first heading becomes the box header. Text colors adjust to the fill for contrast; headings and labels retain their meaning without color."
+msgstr "El primer título se convierte en el encabezado del recuadro. Los colores del texto se ajustan al fondo para mantener el contraste; los títulos y las etiquetas conservan su significado sin color."
 
 msgid "The following terms are used throughout this manual. Familiarity with these definitions is required before proceeding to the implementation chapters."
 msgstr "Los siguientes términos se utilizan a lo largo de este manual. Se requiere familiaridad con estas definiciones antes de proceder a los capítulos de implementación."
@@ -9787,6 +10232,9 @@ msgstr "La experiencia del lector"
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "La estrategia de renderización usada para secciones sin un mapeo explícito."
 
+msgid "The same content. A shared design system."
+msgstr "El mismo contenido. Un sistema de diseño compartido."
+
 msgid "The same edition in every language."
 msgstr "La misma edición en cada idioma."
 
@@ -9801,6 +10249,9 @@ msgstr "Las secciones se combinarán localmente. Sin una clave de API, será nec
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "El storyboard debe completarse antes de generar {stageName}. Ejecuta la etapa de Storyboard primero."
+
+msgid "The Styles proof is separate from the main Storyboard. Save your design, then use Publisher styles — mixed layouts as its render strategy. Fixed column templates do not use these regions."
+msgstr "La prueba de estilos es independiente del Storyboard principal. Guarda tu diseño y utiliza Estilos editoriales — diseños mixtos como estrategia de renderizado. Las plantillas de columnas fijas no utilizan estas regiones."
 
 msgid "The sun heats water in oceans, lakes, and rivers, turning it into vapor that rises into the atmosphere. As the vapor cools at higher altitudes, it condenses into tiny droplets that form clouds."
 msgstr "El sol calienta el agua en océanos, lagos y ríos, convirtiéndola en vapor que asciende a la atmósfera. A medida que el vapor se enfría a mayores altitudes, se condensa en pequeñas gotas que forman nubes."
@@ -10053,6 +10504,9 @@ msgstr "Esto elimina la versión global de este archivo de prompt. Los archivos 
 msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 msgstr "Esto restaura la fuente predeterminada en todas las páginas y borra los ajustes de fuente por elemento y la selección de fuente para todo el libro. Las fuentes adjuntas permanecen en la lista. La reversión está disponible por página en el historial de versiones."
 
+msgid "This saved design uses a single page grid. Choose Detect mixed layouts above to add regions while keeping your styles."
+msgstr "Este diseño guardado utiliza una única cuadrícula por página. Elige Detectar diseños mixtos arriba para añadir regiones y conservar tus estilos."
+
 msgid "This screen couldn’t load"
 msgstr "Esta pantalla no pudo cargarse"
 
@@ -10082,6 +10536,9 @@ msgstr "Este ID de voz no está en tu cuenta de ElevenLabs."
 
 msgid "Thorium Reader"
 msgstr "Thorium Reader"
+
+msgid "Three columns"
+msgstr "Tres columnas"
 
 msgid "Time"
 msgstr "Hora"
@@ -10166,6 +10623,9 @@ msgstr "Tokens totales"
 
 msgid "Track reviewer progress and review findings captured from Preview."
 msgstr "Siga el progreso de los revisores y revise los hallazgos registrados desde la Vista previa."
+
+msgid "Tracking (px)"
+msgstr "Espaciado entre letras (px)"
 
 msgid "Transcription"
 msgstr "Transcripción"
@@ -10318,6 +10778,9 @@ msgstr "Dos Columnas"
 msgid "Two Column Story"
 msgstr "Historia de Dos Columnas"
 
+msgid "Two columns"
+msgstr "Dos columnas"
+
 msgid "Two Columns"
 msgstr "Dos Columnas"
 
@@ -10456,6 +10919,9 @@ msgstr "Inalcanzable"
 msgid "Unsaved changes"
 msgstr "Cambios sin guardar"
 
+msgid "Unsaved design"
+msgstr "Diseño sin guardar"
+
 msgid "Untangling nested divs with care..."
 msgstr "Desenredando divs anidados con cuidado..."
 
@@ -10479,6 +10945,9 @@ msgstr "Actualización disponible"
 
 msgid "Update ready to install"
 msgstr "Actualización lista para instalar"
+
+msgid "Updating preview…"
+msgstr "Actualizando vista previa…"
 
 msgid "Upload"
 msgstr "Subir"
@@ -10561,6 +11030,9 @@ msgstr "Usar \"{trimmedQuery}\""
 msgid "Use adjacent text as context"
 msgstr "Usar texto adyacente como contexto"
 
+msgid "Use an installed font or attach it in Fonts. Unavailable fonts use the browser fallback."
+msgstr "Usa una fuente instalada o añádela en Fuentes. Las fuentes no disponibles usan la alternativa del navegador."
+
 msgid "Use an LLM to crop away stray text, artifacts, and excessive whitespace from image edges."
 msgstr "Usa un LLM para recortar texto suelto, artefactos y espacios en blanco excesivos en los bordes de las imágenes."
 
@@ -10575,6 +11047,12 @@ msgstr "Usar como actual"
 
 msgid "Use as template"
 msgstr "Usar como plantilla"
+
+msgid "Use book accent for text"
+msgstr "Usar el color de acento del libro en el texto"
+
+msgid "Use in Storyboard"
+msgstr "Usar en Storyboard"
 
 msgid "Use Liquid syntax to interpolate variables, loop over arrays, and conditionally include instructions in this prompt."
 msgstr "Usa la sintaxis de Liquid para interpolar variables, recorrer arrays e incluir instrucciones condicionalmente en este prompt."
@@ -10655,6 +11133,9 @@ msgstr "Se usa para la síntesis de voz de Gemini."
 msgid "Used for this quiz"
 msgstr "Se usa en este cuestionario"
 
+msgid "Uses the saved Styles design and mixed page regions"
+msgstr "Utiliza el diseño guardado en Estilos y las regiones de página mixtas"
+
 msgid "Using fallback"
 msgstr "Usando fallback"
 
@@ -10696,6 +11177,9 @@ msgstr "Versión {current}"
 
 msgid "Version {selected}"
 msgstr "Versión {selected}"
+
+msgid "Version {version}"
+msgstr "Versión {version}"
 
 msgid "Version history"
 msgstr "Historial de versiones"
@@ -10982,6 +11466,12 @@ msgstr "palabras"
 
 msgid "Wrap in group"
 msgstr "Envolver en grupo"
+
+msgid "Wrap text around sidebar"
+msgstr "Ajustar texto alrededor del recuadro lateral"
+
+msgid "Wrapping is available when the sidebar comes first in reading order. Other regions keep accessible columns. Mobile stacks both."
+msgstr "El ajuste está disponible cuando el recuadro lateral aparece primero en el orden de lectura. Las demás regiones conservan columnas accesibles. En móviles, ambos se apilan."
 
 msgid "Wraps 'Edit this image' requests. The AI receives the original image alongside this prompt. Supports user_prompt and style variables."
 msgstr "Envuelve solicitudes de 'Editar esta imagen'. La IA recibe la imagen original junto con este prompt. Soporta variables user_prompt y style."

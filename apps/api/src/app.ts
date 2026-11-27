@@ -21,6 +21,7 @@ import { createBookSummaryRoutes } from "./routes/book-summary.js"
 import { createBookOutlineRoutes } from "./routes/book-outline.js"
 import { createFontRoutes } from "./routes/fonts.js"
 import { createTypographyRoutes } from "./routes/typography.js"
+import { createPublisherStylesRoutes } from "./routes/publisher-styles.js"
 import { createTTSRoutes } from "./routes/tts.js"
 import { createStageRoutes } from "./routes/stages.js"
 import { createTaskRoutes } from "./routes/tasks.js"
@@ -115,6 +116,7 @@ app.route("/api", createBookSummaryRoutes(booksDir, promptsDir, configPath, task
 app.route("/api", createBookOutlineRoutes(booksDir))
 app.route("/api", createFontRoutes(booksDir, promptsDir, configPath, taskService))
 app.route("/api", createTypographyRoutes(booksDir))
+app.route("/api", createPublisherStylesRoutes(booksDir))
 app.route("/api", createEditableActivitiesRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createTTSRoutes(booksDir, configPath, taskService))
 app.route(

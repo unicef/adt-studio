@@ -3,7 +3,7 @@ import path from "node:path"
 import { createBookStorage } from "@adt/storage"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
 import type { LLMModel, ResolvedCredentials } from "@adt/llm"
-import { renderPage, buildRenderStrategyResolver, buildBookFontsPromptContext, readTypography, buildTypographyCss, collectReferencedImageIds, collectSourcePageImages, createTemplateEngine, loadBookConfig, createScreenshotRenderer, runVisualReviewLoop, DEFAULT_VISUAL_REVIEW_MODEL_ID, buildScreenshotHtml, SCREENSHOT_VIEWPORTS, inspectOrderingActivityHtml, validateRetainedHeadingHierarchy } from "@adt/pipeline"
+import { renderPage, buildRenderStrategyResolver, readPublisherDesignForRendering, buildBookFontsPromptContext, readTypography, buildTypographyCss, collectReferencedImageIds, collectSourcePageImages, createTemplateEngine, loadBookConfig, createScreenshotRenderer, runVisualReviewLoop, DEFAULT_VISUAL_REVIEW_MODEL_ID, buildScreenshotHtml, SCREENSHOT_VIEWPORTS, inspectOrderingActivityHtml, validateRetainedHeadingHierarchy } from "@adt/pipeline"
 import type { VisualRefinementDeps } from "@adt/pipeline"
 import { PageSectioningOutput, WebRenderingOutput, webRenderingLLMSchema, editVerifyLLMSchema, DEFAULT_LLM_MODEL_ID } from "@adt/types"
 import { loadStyleguideContent } from "./styleguide.js"
@@ -88,6 +88,7 @@ export async function reRenderPage(
     // Load config and build render strategy resolver
     const config = loadBookConfig(label, booksDir, configPath)
     const resolveRenderConfig = buildRenderStrategyResolver(config)
+    const publisherDesign = readPublisherDesignForRendering(storage, config)
 
     const styleguideContent = loadStyleguideContent(
       config.styleguide,
@@ -133,8 +134,9 @@ export async function reRenderPage(
 
     // Set up visual refinement if any render strategy enables it
     if (webAssetsDir) {
-      const hasVisualRefinement = Object.values(config.render_strategies ?? {}).some(
-        (s) => s.config?.visual_refinement?.enabled
+      const hasVisualRefinement = sectioning.sections.some((section, index) =>
+        !section.isPruned && (sectionIndex === undefined || sectionIndex === index) &&
+        resolveRenderConfig(section.sectionType).visualRefinement?.enabled
       )
       if (hasVisualRefinement) {
         const screenshotRenderer = await createScreenshotRenderer()
@@ -176,6 +178,7 @@ export async function reRenderPage(
         bookFonts: buildBookFontsPromptContext(storage),
         typography,
         userPrompt: prompt,
+        publisherDesign,
       },
       resolveRenderConfig,
       resolveRenderModel,
