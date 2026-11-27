@@ -550,7 +550,9 @@ export function createStageRoutes(
           extractRerun = { actions: [], attemptId: null, contentToken: null, blockedReason: "unrecognized-content" }
         }
       }
-      // What the confirmation of a replace must state (RAC-23/24).
+      // What the confirmation of a replace must state (RAC-23/24). Read after
+      // the content token above: a write between the two reads leaves a token
+      // older than these counts, so confirming them is refused, never accepted.
       const extractRerunDiscards: ExtractRerunDiscards | null = extractRerun.actions.includes("replace")
         ? storage?.countExtractDiscards?.() ?? null : null
       return c.json({

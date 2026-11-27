@@ -17,7 +17,9 @@ import { cn } from "@/lib/utils"
 /**
  * Confirmation before a complete extraction is replaced (SPEC-0003 RAC-23).
  * States what is discarded, with the counts step-status reported when the
- * dialog opened, and what is kept. Cancel has the initial focus and Escape
+ * dialog opened, that it cannot be restored, and what is kept. Extract's node
+ * history is deleted by a replace, the one edit in Studio that version history
+ * does not bring back. Cancel has the initial focus and Escape
  * closes without sending anything; only the destructive button confirms.
  * `busy` covers the settings save a confirmation may start: nothing can be
  * pressed or closed meanwhile. `error` is why that save failed.
@@ -91,6 +93,12 @@ export function ExtractReplaceDialog({
             <Trans>
               Edits made in Extract are lost: image decisions, crops, segments,
               added images and book details.
+            </Trans>
+          </p>
+          <p className="font-medium leading-snug text-[#0a0a0a]">
+            <Trans>
+              This cannot be undone: the discarded pages, images and edits
+              cannot be restored from version history.
             </Trans>
           </p>
           <p className="leading-snug text-[#525252]">

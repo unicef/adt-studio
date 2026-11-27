@@ -32,7 +32,7 @@ it("RAC-24: falls back to the generic reason", () => {
 })
 
 it("RAC-24: picks the action a run performs from the ones offered", () => {
-  const offers = (...actions: ExtractRerunStatus["actions"]): ExtractRerunStatus => ({ actions, attemptId: null, blockedReason: null })
+  const offers = (...actions: ExtractRerunStatus["actions"]): ExtractRerunStatus => ({ actions, attemptId: null, contentToken: null, blockedReason: null })
   expect(extractRerunAction(offers("resume", "replace"))).toBe("replace")
   expect(extractRerunAction(offers("replace"))).toBe("replace")
   expect(extractRerunAction(offers("retry"))).toBe("retry")

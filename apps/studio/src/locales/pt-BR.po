@@ -12958,6 +12958,9 @@ msgstr "O intervalo salvo da parte deste livro é inválido ou ilegível. Restau
 msgid "This bundle is incomplete. Storyboard output is missing on {missingTotal} page(s) (showing up to 20): {missingList}. Render those pages to complete it."
 msgstr "Este pacote está incompleto. Falta a saída do Storyboard em {missingTotal} página(s) (exibindo até 20): {missingList}. Renderize essas páginas para completá-lo."
 
+msgid "This cannot be undone: the discarded pages, images and edits cannot be restored from version history."
+msgstr "Isso não pode ser desfeito: as páginas, imagens e edições descartadas não podem ser restauradas pelo histórico de versões."
+
 msgid "This cannot be undone. Every link you have shared will stop working."
 msgstr "Isso não pode ser desfeito. Todos os links que você compartilhou deixarão de funcionar."
 

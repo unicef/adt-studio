@@ -12958,6 +12958,9 @@ msgstr "This book's saved part window is invalid or unreadable. Restore a valid 
 msgid "This bundle is incomplete. Storyboard output is missing on {missingTotal} page(s) (showing up to 20): {missingList}. Render those pages to complete it."
 msgstr "This bundle is incomplete. Storyboard output is missing on {missingTotal} page(s) (showing up to 20): {missingList}. Render those pages to complete it."
 
+msgid "This cannot be undone: the discarded pages, images and edits cannot be restored from version history."
+msgstr "This cannot be undone: the discarded pages, images and edits cannot be restored from version history."
+
 msgid "This cannot be undone. Every link you have shared will stop working."
 msgstr "This cannot be undone. Every link you have shared will stop working."
 

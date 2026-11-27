@@ -35,7 +35,12 @@ const { SettingsDirtyTabsProvider } = await import("@/hooks/use-settings-dirty-t
 const { TooltipProvider } = await import("@/components/ui/tooltip")
 
 const attemptId = "7b0e9d4c-52a1-4a43-9c0e-2f6f3f1f8a11"
-const offers = (...actions: ExtractRerunStatus["actions"]): ExtractRerunStatus => ({ actions, attemptId, blockedReason: null })
+const contentToken = "c".repeat(64)
+/** As step-status reports it: the token comes with an action that discards content. */
+const offers = (...actions: ExtractRerunStatus["actions"]): ExtractRerunStatus => ({
+  actions, attemptId, blockedReason: null, contentToken: actions.some((action) => action !== "resume") ? contentToken : null,
+})
+const requestFor = (action: ExtractRerunStatus["actions"][number]) => action === "resume" ? { action, attemptId } : { action, attemptId, contentToken }
 const twoPages = [{ pageId: "pg001" }, { pageId: "pg002" }]
 let client: QueryClient
 beforeEach(() => {
@@ -93,7 +98,7 @@ it("RAC-23: Save & Re-run asks for confirmation first, then saves and sends the 
   expect(state.save.mock.invocationCallOrder[0]).toBeLessThan(state.queue.mock.invocationCallOrder[0])
   expect(state.queue).toHaveBeenCalledExactlyOnceWith({
     fromStage: "extract", toStage: "extract", apiKey: "test-only",
-    extraction: { action: "replace", attemptId }, viewAfterStart: true,
+    extraction: { action: "replace", attemptId, contentToken }, viewAfterStart: true,
   })
   // The view follows the run only once the server accepted it, which queueRun owns.
   expect(state.navigate).not.toHaveBeenCalled()
@@ -132,13 +137,13 @@ it.each(["retry", "resume"] as const)("RAC-24: Save & Re-run sends %s directly w
   await editGeneral()
   await click("Save & Re-run")
   await waitFor(() => expect(state.queue).toHaveBeenCalledTimes(1))
-  expect(state.queue).toHaveBeenCalledWith({ fromStage: "extract", toStage: "extract", apiKey: "test-only", extraction: { action, attemptId }, viewAfterStart: true })
+  expect(state.queue).toHaveBeenCalledWith({ fromStage: "extract", toStage: "extract", apiKey: "test-only", extraction: requestFor(action), viewAfterStart: true })
   expect(state.save).toHaveBeenCalledTimes(1)
   expect(screen.queryByRole("dialog")).toBeNull()
 })
 
 it("RAC-24: with nothing offered the re-run is disabled with the reason and Save still works", async () => {
-  state.rerun = { actions: [], attemptId, blockedReason: "downstream-output" }
+  state.rerun = { actions: [], attemptId, contentToken: null, blockedReason: "downstream-output" }
   state.discards = null
   await editGeneral()
   const rerun = button("Save & Re-run")
@@ -155,7 +160,7 @@ it("RAC-24: with nothing offered the re-run is disabled with the reason and Save
 
 it.each([
   { name: "a replace needs its confirmation", rerun: offers("replace") },
-  { name: "nothing is offered", rerun: { actions: [], attemptId, blockedReason: "part-book" } satisfies ExtractRerunStatus },
+  { name: "nothing is offered", rerun: { actions: [], attemptId, contentToken: null, blockedReason: "part-book" } satisfies ExtractRerunStatus },
 ])("RAC-24: saving while leaving the page starts no run when $name", async ({ rerun }) => {
   state.rerun = rerun
   const view = await editGeneral()
@@ -179,11 +184,11 @@ it("RAC-24: saving while leaving the page still retries an unfinished extraction
   await act(async () => { fireEvent.click(leave) })
   await waitFor(() => expect(state.proceed).toHaveBeenCalledTimes(1))
   expect(state.save).toHaveBeenCalledTimes(1)
-  expect(state.queue).toHaveBeenCalledExactlyOnceWith({ fromStage: "extract", toStage: "extract", apiKey: "test-only", extraction: { action: "retry", attemptId }, viewAfterStart: false })
+  expect(state.queue).toHaveBeenCalledExactlyOnceWith({ fromStage: "extract", toStage: "extract", apiKey: "test-only", extraction: requestFor("retry"), viewAfterStart: false })
 })
 
 it("a book that was never extracted keeps today's Save & Re-run", async () => {
-  Object.assign(state, { pages: [], rerun: { actions: [], attemptId: null, blockedReason: null }, discards: null })
+  Object.assign(state, { pages: [], rerun: { actions: [], attemptId: null, contentToken: null, blockedReason: null }, discards: null })
   await editGeneral()
   await click("Save & Re-run")
   await waitFor(() => expect(state.queue).toHaveBeenCalledTimes(1))

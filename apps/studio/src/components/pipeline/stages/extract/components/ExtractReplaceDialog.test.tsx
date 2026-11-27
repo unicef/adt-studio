@@ -20,6 +20,8 @@ it("RAC-23: states what is discarded, with counts, and what is kept", () => {
   expect(text).toContain("The extracted pages, their images and the edits made in Extract will be discarded.")
   for (const edit of ["image decisions", "crops", "segments", "added images", "book details"]) expect(text).toContain(edit)
   expect(text).toContain("The PDF, settings, fonts and prompts are kept.")
+  // Extract's own history is deleted, unlike every other edit in Studio.
+  expect(text).toContain("This cannot be undone: the discarded pages, images and edits cannot be restored from version history.")
   const counts = Object.fromEntries(within(dialog).getAllByRole("term").map(term => [term.textContent, term.nextElementSibling?.textContent]))
   expect(counts).toEqual({
     "Extracted pages": "12",
@@ -59,6 +61,7 @@ it("names no numbers when the counts are unavailable, and renders nothing while 
   const { dialog } = open(null)
   expect(within(dialog).queryAllByRole("term")).toEqual([])
   expect(dialog.textContent).toContain("The PDF, settings, fonts and prompts are kept.")
+  expect(dialog.textContent).toContain("cannot be restored")
   cleanup()
   render(<ExtractReplaceDialog open={false} discards={discards} onCancel={() => {}} onConfirm={() => {}} />)
   expect(screen.queryByRole("dialog")).toBeNull()

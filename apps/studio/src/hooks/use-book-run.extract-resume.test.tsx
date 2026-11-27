@@ -125,7 +125,7 @@ it.each(["retry", "replace"] as const)("RAC-24: queueRun empties the page list f
   const { client, hook, close } = setup()
   try {
     client.setQueryData(pagesKey, pages)
-    const extraction = { action, attemptId: extractRerun.attemptId }
+    const extraction = { action, attemptId: extractRerun.attemptId, contentToken: extractRerun.contentToken! }
     act(() => hook.result.current.queueRun({ fromStage: "extract", toStage: "extract", apiKey: "key", extraction, viewAfterStart: true }))
     expect(client.getQueryData(pagesKey)).toEqual([])
     expect(status(client).stages.extract).toBe("queued")
@@ -145,7 +145,7 @@ it("RAC-24: a refused replace brings the page list back and does not leave the p
   try {
     await waitFor(() => expect(client.getQueryData(pagesKey)).toEqual(pages))
     readPages.mockClear()
-    const extraction = { action: "replace" as const, attemptId: extractRerun.attemptId }
+    const extraction = { action: "replace" as const, attemptId: extractRerun.attemptId, contentToken: extractRerun.contentToken! }
     act(() => hook.result.current.queueRun({ fromStage: "extract", toStage: "extract", apiKey: "key", extraction, viewAfterStart: true }))
     expect(client.getQueryData(pagesKey)).toEqual([])
     await waitFor(() => expect(readPages).toHaveBeenCalledTimes(1))

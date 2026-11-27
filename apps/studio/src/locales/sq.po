@@ -12960,6 +12960,9 @@ msgstr "Intervali i ruajtur i pjesës së këtij libri është i pavlefshëm ose
 msgid "This bundle is incomplete. Storyboard output is missing on {missingTotal} page(s) (showing up to 20): {missingList}. Render those pages to complete it."
 msgstr "Kjo paketë është e paplotë. Mungon rezultati i Storyboard në {missingTotal} faqe (shfaqen deri në 20): {missingList}. Renderoni këto faqe për ta plotësuar."
 
+msgid "This cannot be undone: the discarded pages, images and edits cannot be restored from version history."
+msgstr "Kjo nuk mund të zhbëhet: faqet, imazhet dhe ndryshimet e hedhura poshtë nuk mund të rikthehen nga historia e versioneve."
+
 msgid "This cannot be undone. Every link you have shared will stop working."
 msgstr "Kjo nuk mund të zhbëhet. Çdo lidhje që keni ndarë do të ndalojë së funksionuari."
 

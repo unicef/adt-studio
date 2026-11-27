@@ -41,8 +41,13 @@ const { ExtractLandingPage } = await import("./ExtractLandingPage")
 const { TooltipProvider } = await import("@/components/ui/tooltip")
 
 const attemptId = "7b0e9d4c-52a1-4a43-9c0e-2f6f3f1f8a11"
-const offers = (...actions: ExtractRerunStatus["actions"]): ExtractRerunStatus => ({ actions, attemptId, blockedReason: null })
-const blockedBy = (blockedReason: ExtractRerunBlockedReason): ExtractRerunStatus => ({ actions: [], attemptId, blockedReason })
+const contentToken = "c".repeat(64)
+/** As step-status reports it: the token comes with an action that discards content. */
+const offers = (...actions: ExtractRerunStatus["actions"]): ExtractRerunStatus => ({
+  actions, attemptId, blockedReason: null, contentToken: actions.some((action) => action !== "resume") ? contentToken : null,
+})
+const requestFor = (action: ExtractRerunStatus["actions"][number]) => action === "resume" ? { action, attemptId } : { action, attemptId, contentToken }
+const blockedBy = (blockedReason: ExtractRerunBlockedReason): ExtractRerunStatus => ({ actions: [], attemptId, contentToken: null, blockedReason })
 const twoPages = [{ pageId: "pg001" }, { pageId: "pg002" }]
 let client: QueryClient
 beforeEach(() => {
@@ -74,7 +79,7 @@ it("RAC-23: Run on an extracted book asks before replacing and sends the replace
   fireEvent.click(within(dialogs[0]).getByRole("button", { name: "Discard and extract again" }))
   expect(state.queueRun).toHaveBeenCalledExactlyOnceWith({
     fromStage: "extract", toStage: "extract", apiKey: "fixture",
-    extraction: { action: "replace", attemptId }, viewAfterStart: true,
+    extraction: { action: "replace", attemptId, contentToken }, viewAfterStart: true,
   })
   expect(screen.queryByRole("dialog")).toBeNull()
 })
@@ -93,17 +98,19 @@ it("RAC-23: Cancel and Escape send nothing, and Cancel has the focus each time t
   expect(state.queueRun).not.toHaveBeenCalled()
 })
 
-it("RAC-23: the confirmation stays bound to the extraction and counts it was opened for", async () => {
+it("RAC-23: the confirmation stays bound to the extraction, content and counts it was opened for", async () => {
   const view = mount()
   await clickRun()
   await screen.findByRole("dialog")
-  state.rerun = { ...offers("replace"), attemptId: "00000000-0000-4000-8000-000000000000" }
+  // The book changed in another window: step-status now describes other content.
+  state.rerun = { ...offers("replace"), attemptId: "00000000-0000-4000-8000-000000000000", contentToken: "d".repeat(64) }
   state.discards = { pages: 9, extractedImages: 9, addedImages: 9 }
   view.rerender(<QueryClientProvider client={client}><TooltipProvider><ExtractLandingPage bookLabel="book" /></TooltipProvider></QueryClientProvider>)
   const dialog = screen.getByRole("dialog")
   expect(within(dialog).getAllByRole("term")[0].nextElementSibling?.textContent).toBe("2")
   fireEvent.click(within(dialog).getByRole("button", { name: "Discard and extract again" }))
-  expect(state.queueRun).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ extraction: { action: "replace", attemptId } }))
+  // What is sent is what the dialog described, so the server refuses it.
+  expect(state.queueRun).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ extraction: { action: "replace", attemptId, contentToken } }))
 })
 
 it.each([
@@ -143,12 +150,12 @@ it.each([
   await waitFor(() => expect(state.queueRun).toHaveBeenCalled())
   expect(screen.queryByRole("dialog")).toBeNull()
   expect(state.queueRun).toHaveBeenCalledExactlyOnceWith({
-    fromStage: "extract", toStage: "extract", apiKey: "fixture", extraction: { action, attemptId }, viewAfterStart: true,
+    fromStage: "extract", toStage: "extract", apiKey: "fixture", extraction: requestFor(action), viewAfterStart: true,
   })
 })
 
 it("a first extraction still runs without the field and without a confirmation", async () => {
-  Object.assign(state, { rerun: { actions: [], attemptId: null, blockedReason: null }, pages: [], stage: "idle", discards: null })
+  Object.assign(state, { rerun: { actions: [], attemptId: null, contentToken: null, blockedReason: null }, pages: [], stage: "idle", discards: null })
   mount()
   await clickRun()
   await waitFor(() => expect(state.queueRun).toHaveBeenCalled())

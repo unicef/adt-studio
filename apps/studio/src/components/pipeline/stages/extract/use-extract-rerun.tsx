@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import type { ExtractRerunDiscards } from "@adt/types"
+import type { ExtractRerunAction, ExtractRerunDiscards, ExtractRerunRequest } from "@adt/types"
 import { useApiKey } from "@/hooks/use-api-key"
 import { useBookRun } from "@/hooks/use-book-run"
 import { usePages } from "@/hooks/use-pages"
@@ -17,8 +17,10 @@ import { ExtractReplaceDialog } from "./components/ExtractReplaceDialog"
  *   nothing can be started.
  * - nothing offered and no pages: a first extraction, sent without the field.
  *
- * The confirmation is bound to the extraction and counts shown when it opened;
- * a book that changed meanwhile is refused by the server and changes nothing.
+ * A retry or replace discards content, so its request names the content
+ * step-status described (`contentToken`). The confirmation keeps the request
+ * and the counts from when it opened: if the book changed meanwhile, in this
+ * window or another, the server refuses the request and changes nothing.
  *
  * `save` is the pending settings a run should use. A replace saves them only
  * once it is confirmed, so cancelling leaves the book's saved settings as they
@@ -28,14 +30,19 @@ export function useExtractRerun(bookLabel: string) {
   const { extractRerun, extractRerunDiscards, queueRun } = useBookRun()
   const { apiKey } = useApiKey()
   const { data: pages } = usePages(bookLabel)
-  const [confirming, setConfirming] = useState<{ attemptId: string | null; discards: ExtractRerunDiscards | null; follow: boolean; save?: () => Promise<void> } | null>(null)
+  const [confirming, setConfirming] = useState<{ request: ExtractRerunRequest; discards: ExtractRerunDiscards | null; follow: boolean; save?: () => Promise<void> } | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const mounted = useRef(true)
   useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
 
   const action = extractRerunAction(extractRerun)
-  const attemptId = extractRerun?.attemptId ?? null
+  /** The request for an offered action, bound to the book as step-status described it. */
+  const requestFor = (offered: ExtractRerunAction): ExtractRerunRequest => ({
+    action: offered,
+    attemptId: extractRerun?.attemptId ?? null,
+    ...(offered !== "resume" && extractRerun?.contentToken ? { contentToken: extractRerun.contentToken } : {}),
+  })
   const blocked = (pages?.length ?? 0) > 0 && !action
   const blockedReason = blocked ? extractRerunBlockedMessage(extractRerun?.blockedReason) : undefined
 
@@ -47,11 +54,11 @@ export function useExtractRerun(bookLabel: string) {
     if (blocked) return false
     if (action === "replace") {
       setSaveError(null)
-      setConfirming({ attemptId, discards: extractRerunDiscards ?? null, follow, save })
+      setConfirming({ request: requestFor("replace"), discards: extractRerunDiscards ?? null, follow, save })
       return true
     }
     const run = () => action
-      ? queueRun({ fromStage: "extract", toStage: "extract", apiKey, extraction: { action, attemptId }, viewAfterStart: follow })
+      ? queueRun({ fromStage: "extract", toStage: "extract", apiKey, extraction: requestFor(action), viewAfterStart: follow })
       : queueRun({ fromStage: "extract", toStage: "extract", apiKey, viewAfter: follow })
     if (save) void save().then(run, () => {})
     else run()
@@ -76,7 +83,7 @@ export function useExtractRerun(bookLabel: string) {
     setConfirming(null)
     queueRun({
       fromStage: "extract", toStage: "extract", apiKey,
-      extraction: { action: "replace", attemptId: confirming.attemptId }, viewAfterStart: confirming.follow,
+      extraction: confirming.request, viewAfterStart: confirming.follow,
     })
   }
 

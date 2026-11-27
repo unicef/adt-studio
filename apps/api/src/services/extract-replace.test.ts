@@ -79,6 +79,8 @@ interface Book {
   root: string
   dir: string
   record(): { attemptId: string; status: string; inputs: { startPage: number; endPage: number }; pages: unknown[] }
+  /** The request Studio would send for the book as it is now. */
+  request(action?: ExtractRerunRequest["action"]): ExtractRerunRequest
   read<T>(use: (storage: Storage) => T): T
   rows<T = Record<string, unknown>>(sql: string): T[]
   exec(sql: string): void
@@ -88,10 +90,14 @@ function book(): Book {
   const dir = path.join(root, label)
   fs.cpSync(path.join(template, label), dir, { recursive: true })
   const db = <T>(use: (db: ReturnType<typeof openBookDb>) => T): T => { const handle = openBookDb(path.join(dir, `${label}.db`)); try { return use(handle) } finally { handle.close() } }
+  const record = () => JSON.parse(fs.readFileSync(path.join(dir, "extraction.json"), "utf8"))
+  const read: Book["read"] = use => { const storage = createBookStorage(label, root); try { return use(storage) } finally { storage.close() } }
   return {
-    root, dir,
-    record: () => JSON.parse(fs.readFileSync(path.join(dir, "extraction.json"), "utf8")),
-    read: use => { const storage = createBookStorage(label, root); try { return use(storage) } finally { storage.close() } },
+    root, dir, record, read,
+    request: (action = "replace") => ({
+      action, attemptId: fs.existsSync(path.join(dir, "extraction.json")) ? record().attemptId : null,
+      contentToken: read(storage => storage.readExtractContentToken!()),
+    }),
     rows: sql => db(handle => handle.all(sql)) as never,
     exec: sql => db(handle => { handle.exec(sql) }),
   }
@@ -140,19 +146,22 @@ function server(root: string, runner: StageRunner = createStageRunner()) {
   }
   return { app, bus, service, post, status, offered, run }
 }
-const extractRun = (action: string, attemptId: string | null) => ({ fromStage: "extract", toStage: "extract", extraction: { action, attemptId } })
-const replace = (attemptId: string | null) => extractRun("replace", attemptId)
+const extractRun = (extraction: unknown) => ({ fromStage: "extract", toStage: "extract", extraction })
+const digest = expect.stringMatching(/^[a-f0-9]{64}$/)
 const refusal = async (response: Response) => ({ status: response.status, ...(await response.json() as { code?: string; error: string }) })
-/** The request is refused by the route, by the queued-run preparation and by the runner, and changes nothing. */
-async function refusedEverywhere(b: Book, attemptId: string | null, code: string, message = /./): Promise<void> {
+/** The replace request (the book's current one unless `binding` overrides it)
+ * is refused by the route, by the queued-run preparation and by the runner,
+ * and changes nothing. */
+async function refusedEverywhere(b: Book, binding: Partial<ExtractRerunRequest>, code: string, message = /./): Promise<void> {
   const before = snapshot(b)
+  const request = { ...b.request(), ...binding }
   const { post, service } = server(b.root)
-  const body = await refusal(await post(replace(attemptId)))
+  const body = await refusal(await post(extractRun(request)))
   expect(body).toMatchObject({ status: 409, code })
   expect(body.error).toMatch(message)
   expect(service.getStatus(label).active).toBeNull()
-  expect(() => makeBeforeRun(label, "extract", "extract", b.root, undefined, path.join(b.root, "config.yaml"), { action: "replace", attemptId })()).toThrow(code)
-  await expect(createStageRunner().run(label, runOptions(b.root, { action: "replace", attemptId }), { emit() {} })).rejects.toMatchObject({ code })
+  expect(() => makeBeforeRun(label, "extract", "extract", b.root, undefined, path.join(b.root, "config.yaml"), request)()).toThrow(code)
+  await expect(createStageRunner().run(label, runOptions(b.root, request), { emit() {} })).rejects.toMatchObject({ code })
   expect(snapshot(b)).toEqual(before)
   expect(stub.calls).toEqual([])
 }
@@ -165,12 +174,12 @@ describe("SPEC-0003 Extract replace", { timeout: 60_000 }, () => {
     expect(pageNumbers(b)).toEqual([1, 2])
     expect(statuses(b)).toEqual(allDone)
     const { offered, run } = server(b.root)
-    expect(await offered()).toEqual({ actions: ["replace"], attemptId: first.attemptId, blockedReason: null })
+    expect(await offered()).toEqual({ actions: ["replace"], attemptId: first.attemptId, contentToken: digest, blockedReason: null })
 
     // The user's case: nothing but Extract ran, and the page range changes.
     setWindow(b, 3, 5)
-    expect(await offered()).toEqual({ actions: ["replace"], attemptId: first.attemptId, blockedReason: null })
-    expect(await run(replace(first.attemptId))).toEqual({ type: "stage-run-complete", label })
+    expect(await offered()).toEqual({ actions: ["replace"], attemptId: first.attemptId, contentToken: digest, blockedReason: null })
+    expect(await run(extractRun(b.request()))).toEqual({ type: "stage-run-complete", label })
 
     const record = b.record()
     expect(record).toMatchObject({ status: "complete", inputs: { startPage: 3, endPage: 5 } })
@@ -181,7 +190,7 @@ describe("SPEC-0003 Extract replace", { timeout: 60_000 }, () => {
     expect(fs.readdirSync(path.join(b.dir, "images")).sort()).toEqual(b.rows<{ path: string }>("SELECT path FROM images").map(row => path.basename(row.path)).sort())
     expect(statuses(b)).toEqual(allDone)
     expect(stub.calls).toEqual(expect.arrayContaining(["metadata", "book-summary", "book-outline", "image-meaningfulness", "image-segmentation", "image-cropping"]))
-    expect(await offered()).toEqual({ actions: ["replace"], attemptId: record.attemptId, blockedReason: null })
+    expect(await offered()).toEqual({ actions: ["replace"], attemptId: record.attemptId, contentToken: digest, blockedReason: null })
   })
 
   it("RAC-23: fonts, typography, configuration, LLM log and cache survive a replace", async () => {
@@ -214,7 +223,7 @@ describe("SPEC-0003 Extract replace", { timeout: 60_000 }, () => {
     expect(crop).toHaveLength(1)
 
     const { run } = server(b.root)
-    expect(await run(replace(b.record().attemptId))).toEqual({ type: "stage-run-complete", label })
+    expect(await run(extractRun(b.request()))).toEqual({ type: "stage-run-complete", label })
     expect(b.record()).toMatchObject({ status: "complete" })
     expect(kept()).toEqual(before)
     expect(b.rows("SELECT 1 FROM images WHERE source = 'crop'")).toEqual([])
@@ -225,24 +234,27 @@ describe("SPEC-0003 Extract replace", { timeout: 60_000 }, () => {
 
   it("RAC-23: replace with an old attemptId is refused", async () => {
     const b = book()
-    const old = b.record().attemptId
-    await refusedEverywhere(b, "00000000-0000-4000-8000-000000000000", "EXTRACTION_RERUN_STALE")
-    await refusedEverywhere(b, null, "EXTRACTION_RERUN_STALE")
+    const old = b.request()
+    await refusedEverywhere(b, { attemptId: "00000000-0000-4000-8000-000000000000" }, "EXTRACTION_RERUN_STALE")
+    await refusedEverywhere(b, { attemptId: null }, "EXTRACTION_RERUN_STALE")
     // The attempt a confirmation was shown for is gone once the book is extracted again.
-    expect(await server(b.root).run(replace(old))).toEqual({ type: "stage-run-complete", label })
+    expect(await server(b.root).run(extractRun(old))).toEqual({ type: "stage-run-complete", label })
     stub.calls.length = 0
     await refusedEverywhere(b, old, "EXTRACTION_RERUN_STALE", /^EXTRACTION_RERUN_STALE: (?!.*(fresh|pnpm pipeline))/)
+    // The new attempt named with the old content, and the old attempt with the new content.
+    await refusedEverywhere(b, { contentToken: old.contentToken }, "EXTRACTION_RERUN_STALE")
+    await refusedEverywhere(b, { attemptId: old.attemptId }, "EXTRACTION_RERUN_STALE")
   })
 
   it("RAC-23: replace is refused on a part book", async () => {
     const b = book()
     makePart(b)
     expect(await server(b.root).status()).toMatchObject({ extractRerun: { actions: [], blockedReason: "part-book" }, extractRerunDiscards: null })
-    await refusedEverywhere(b, b.record().attemptId, "EXTRACTION_RERUN_STALE")
+    await refusedEverywhere(b, {}, "EXTRACTION_RERUN_STALE")
     // A part with unfinished Extract steps resumes; it still cannot be replaced.
     b.read(storage => storage.clearStepRuns(["image-cropping"]))
     expect(await server(b.root).offered()).toMatchObject({ actions: ["resume"] })
-    await refusedEverywhere(b, b.record().attemptId, "EXTRACTION_RERUN_STALE")
+    await refusedEverywhere(b, {}, "EXTRACTION_RERUN_STALE")
   })
 
   it("RAC-23: replace is never queued", async () => {
@@ -257,8 +269,8 @@ describe("SPEC-0003 Extract replace", { timeout: 60_000 }, () => {
     // Another stage's run occupies the book, held at the runner before it changes anything.
     expect(service.startStageRun(label, { ...runOptions(b.root), fromStage: "package", toStage: "package" }).status).toBe("started")
     await running
-    for (const action of ["replace", "retry"]) {
-      expect(await refusal(await post(extractRun(action, b.record().attemptId)))).toMatchObject({ status: 409, code: "EXTRACTION_RERUN_STALE" })
+    for (const action of ["replace", "retry"] as const) {
+      expect(await refusal(await post(extractRun(b.request(action))))).toMatchObject({ status: 409, code: "EXTRACTION_RERUN_STALE" })
       expect(service.getStatus(label).queue).toEqual([])
     }
     // A resume keeps the ordinary queue: it is re-checked when it starts.
@@ -276,7 +288,7 @@ describe("SPEC-0003 Extract replace", { timeout: 60_000 }, () => {
     later.read(storage => storage.markStepCompleted("tts"))
     for (const [b, message] of [[sectioned, /Full extraction reruns cannot safely reconcile existing Sectioning/], [later, /Re-extraction of an existing book/]] as const) {
       expect(await server(b.root).status()).toMatchObject({ extractRerun: { actions: [], blockedReason: "downstream-output" }, extractRerunDiscards: null })
-      await refusedEverywhere(b, b.record().attemptId, "SECTIONING_REGENERATION_BLOCKED", message)
+      await refusedEverywhere(b, {}, "SECTIONING_REGENERATION_BLOCKED", message)
     }
   })
 
@@ -284,10 +296,11 @@ describe("SPEC-0003 Extract replace", { timeout: 60_000 }, () => {
     const b = book()
     fs.rmSync(path.join(b.dir, "extraction.json"))
     const { offered, run } = server(b.root)
-    expect(await offered()).toEqual({ actions: ["replace"], attemptId: null, blockedReason: null })
-    await refusedEverywhere(b, "00000000-0000-4000-8000-000000000000", "EXTRACTION_RERUN_STALE")
+    expect(await offered()).toEqual({ actions: ["replace"], attemptId: null, contentToken: digest, blockedReason: null })
+    await refusedEverywhere(b, { attemptId: "00000000-0000-4000-8000-000000000000" }, "EXTRACTION_RERUN_STALE")
     setWindow(b, 2, 2)
-    expect(await run(replace(null))).toEqual({ type: "stage-run-complete", label })
+    expect(b.request()).toMatchObject({ attemptId: null })
+    expect(await run(extractRun(b.request()))).toEqual({ type: "stage-run-complete", label })
     expect(b.record()).toMatchObject({ status: "complete", inputs: { startPage: 2, endPage: 2 } })
     expect(pageNumbers(b)).toEqual([2])
     expect(statuses(b)).toEqual(allDone)
@@ -298,14 +311,14 @@ describe("SPEC-0003 Extract replace", { timeout: 60_000 }, () => {
     const first = b.record()
     const { offered, run } = server(b.root)
     stub.failReset = true
-    expect((await run(replace(first.attemptId))).type).toBe("stage-run-error")
+    expect((await run(extractRun(b.request()))).type).toBe("stage-run-error")
     // The usable extraction was given up at the first change, and its data is still there.
     expect(b.record()).toMatchObject({ status: "failed", attemptId: first.attemptId })
     expect(pageNumbers(b)).toEqual([1, 2])
-    expect(await offered()).toEqual({ actions: ["retry"], attemptId: first.attemptId, blockedReason: null })
-    await refusedEverywhere(b, first.attemptId, "EXTRACTION_RERUN_STALE")
+    expect(await offered()).toEqual({ actions: ["retry"], attemptId: first.attemptId, contentToken: digest, blockedReason: null })
+    await refusedEverywhere(b, {}, "EXTRACTION_RERUN_STALE")
     stub.failReset = false
-    expect(await run(extractRun("retry", first.attemptId))).toEqual({ type: "stage-run-complete", label })
+    expect(await run(extractRun(b.request("retry")))).toEqual({ type: "stage-run-complete", label })
     expect(b.record()).toMatchObject({ status: "complete" })
     expect(statuses(b)).toEqual(allDone)
   })
@@ -321,6 +334,7 @@ describe("SPEC-0003 Extract replace", { timeout: 60_000 }, () => {
     expect(extracted).toBeGreaterThan(0)
     expect(count(b, "images")).toBe(extracted + 2)
     expect(await discards()).toEqual({ pages: 2, extractedImages: extracted, addedImages: 0 })
+    const tokenBefore = (await server(b.root).offered()).contentToken
     // A crop, a segment and an upload made in Extract.
     b.read(storage => {
       storage.putCroppedImage({ imageId: "pg001_im001", pageId: "pg001", version: 1, buffer: Buffer.from("png"), width: 4, height: 4 })
@@ -329,6 +343,9 @@ describe("SPEC-0003 Extract replace", { timeout: 60_000 }, () => {
     b.exec("INSERT INTO images (image_id, page_id, path, hash, width, height, source) VALUES ('pg001_upload001', 'pg001', 'images/pg001_upload001.png', 'h', 4, 4, 'upload')")
     fs.writeFileSync(path.join(b.dir, "images", "pg001_upload001.png"), "png")
     expect(await discards()).toEqual({ pages: 2, extractedImages: extracted, addedImages: 3 })
+    // The token reported with the counts describes the same content.
+    expect((await server(b.root).offered()).contentToken).toEqual(digest)
+    expect((await server(b.root).offered()).contentToken).not.toBe(tokenBefore)
     // Offered together with resume, and for an older book without a record.
     b.read(storage => storage.recordStepError("book-summary", "provider failed"))
     expect(await server(b.root).offered()).toMatchObject({ actions: ["resume", "replace"] })
@@ -339,5 +356,59 @@ describe("SPEC-0003 Extract replace", { timeout: 60_000 }, () => {
     expect(await server(b.root).offered()).toMatchObject({ actions: ["retry"] })
     expect(await discards()).toBeNull()
     expect(await (await server(tempRoot()).app.request("/books/missing/step-status")).json()).toMatchObject({ extractRerunDiscards: null })
+  })
+
+  describe.each(["a book with an extraction record", "an older book without an extraction record"])("RAC-23: consent is bound to the content the confirmation described (%s)", kind => {
+    it.each(["a book detail is edited", "an image decision is made", "an image is uploaded"])("%s while the confirmation is open", async change => {
+      const b = book()
+      if (kind === "an older book without an extraction record") fs.rmSync(path.join(b.dir, "extraction.json"))
+      // The dialog opens: Studio keeps the binding step-status reported with the counts.
+      const { status } = server(b.root)
+      const shown = await status()
+      expect(shown.extractRerun).toMatchObject({ actions: ["replace"], contentToken: digest })
+      const confirmed: ExtractRerunRequest = { action: "replace", attemptId: shown.extractRerun.attemptId, contentToken: shown.extractRerun.contentToken! }
+
+      // Another window changes the book through its own storage handle.
+      if (change === "a book detail is edited") b.read(storage => storage.putNodeData("metadata", "book", { title: "Edited meanwhile" }))
+      if (change === "an image decision is made") {
+        b.read(storage => {
+          const list = storage.getLatestNodeData("image-filtering", "pg001")!.data as { images: Array<{ imageId: string; isPruned: boolean }> }
+          storage.putNodeData("image-filtering", "pg001", { images: list.images.map(image => ({ ...image, isPruned: true })) })
+        })
+      }
+      if (change === "an image is uploaded") {
+        b.exec("INSERT INTO images (image_id, page_id, path, hash, width, height, source) VALUES ('pg001_upload001', 'pg001', 'images/pg001_upload001.png', 'h', 4, 4, 'upload')")
+        fs.writeFileSync(path.join(b.dir, "images", "pg001_upload001.png"), "png")
+      }
+      const newer = {
+        metadata: b.read(storage => storage.getLatestNodeData("metadata", "book")),
+        decisions: b.read(storage => storage.getLatestNodeData("image-filtering", "pg001")),
+        images: b.rows("SELECT image_id, source FROM images ORDER BY image_id"),
+      }
+
+      // Confirming now is refused everywhere, and the newer work is intact.
+      await refusedEverywhere(b, confirmed, "EXTRACTION_RERUN_STALE")
+      expect(b.read(storage => storage.getLatestNodeData("metadata", "book"))).toEqual(newer.metadata)
+      expect(b.read(storage => storage.getLatestNodeData("image-filtering", "pg001"))).toEqual(newer.decisions)
+      expect(b.rows("SELECT image_id, source FROM images ORDER BY image_id")).toEqual(newer.images)
+      expect(pageNumbers(b)).toEqual([1, 2])
+
+      // A confirmation of the book as it is now, counts included, is accepted.
+      const current = await status()
+      expect(current.extractRerun.contentToken).not.toBe(confirmed.contentToken)
+      expect(await server(b.root).run(extractRun({ ...confirmed, contentToken: current.extractRerun.contentToken }))).toEqual({ type: "stage-run-complete", label })
+    })
+  })
+
+  it("RAC-23: a replace without a content token is not a valid request", async () => {
+    const b = book()
+    const before = snapshot(b)
+    const { post, service } = server(b.root)
+    for (const contentToken of [undefined, null, "", "not-a-digest"]) {
+      const response = await post(extractRun({ action: "replace", attemptId: b.record().attemptId, contentToken }))
+      expect(response.status, JSON.stringify(contentToken)).toBe(400)
+    }
+    expect(service.getStatus(label).active).toBeNull()
+    expect(snapshot(b)).toEqual(before)
   })
 })
