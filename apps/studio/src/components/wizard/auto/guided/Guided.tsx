@@ -19,6 +19,7 @@ import { useCreateRun } from "./shared/useCreateRun"
 import { markTourSeen, useFirstBook, useFirstRun } from "./shared/useFirstBook"
 import { Bubble } from "./Bubble"
 import { CheckFlow } from "./check/CheckFlow"
+import { confirmedVariety } from "./check/screens"
 import { CheckBars } from "./check/CheckBars"
 import { CheckSays } from "./check/CheckSays"
 import { useCheck } from "./check/useCheck"
@@ -151,6 +152,9 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
     const left = chat.derived.asked.filter((f) => !(f.id in chat.answers))
     if (left.length) chat.skipRest(left)
     setView(null)
+    // The variety found in the book goes with it when the user picked none and the signals agree.
+    const variety = form.state.values.editingLanguage.trim() ? null : confirmedVariety(rec)
+    if (variety) form.setFieldValue("editingLanguage", variety)
     void create.start(chat.derived.effective, rec.id)
   }
   const onRename = () => {

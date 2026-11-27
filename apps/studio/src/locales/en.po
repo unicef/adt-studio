@@ -5237,6 +5237,9 @@ msgstr "Feedback generation failed"
 msgid "Fetching the details of your new setup."
 msgstr "Fetching the details of your new setup."
 
+msgid "Fewer"
+msgstr "Fewer"
+
 msgid "figure"
 msgstr "figure"
 
@@ -5479,6 +5482,9 @@ msgstr "From reference image..."
 
 msgid "from the pages"
 msgstr "from the pages"
+
+msgid "from the PDF"
+msgstr "from the PDF"
 
 msgid "Front Cover"
 msgstr "Front Cover"
@@ -7998,6 +8004,9 @@ msgstr "No comments yet"
 
 msgid "No content processing needed"
 msgstr "No content processing needed"
+
+msgid "No country matches."
+msgstr "No country matches."
 
 msgid "No cover available"
 msgstr "No cover available"
@@ -11238,6 +11247,9 @@ msgstr "Search fonts"
 
 msgid "Search fonts..."
 msgstr "Search fonts..."
+
+msgid "Search for a country"
+msgstr "Search for a country"
 
 msgid "Search headings, IDs, or style clusters..."
 msgstr "Search headings, IDs, or style clusters..."

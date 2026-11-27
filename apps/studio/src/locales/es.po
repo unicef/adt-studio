@@ -5237,6 +5237,9 @@ msgstr "Error al generar la retroalimentación"
 msgid "Fetching the details of your new setup."
 msgstr "Obteniendo los detalles de tu nueva configuración."
 
+msgid "Fewer"
+msgstr "Menos"
+
 msgid "figure"
 msgstr "figura"
 
@@ -5479,6 +5482,9 @@ msgstr "Desde imagen de referencia..."
 
 msgid "from the pages"
 msgstr "según las páginas"
+
+msgid "from the PDF"
+msgstr "según el PDF"
 
 msgid "Front Cover"
 msgstr "Portada"
@@ -7998,6 +8004,9 @@ msgstr "Aún no hay comentarios"
 
 msgid "No content processing needed"
 msgstr "No se necesita procesamiento de contenido"
+
+msgid "No country matches."
+msgstr "Ningún país coincide."
 
 msgid "No cover available"
 msgstr "Portada no disponible"
@@ -11238,6 +11247,9 @@ msgstr "Buscar fuentes"
 
 msgid "Search fonts..."
 msgstr "Buscar fuentes..."
+
+msgid "Search for a country"
+msgstr "Buscar un país"
 
 msgid "Search headings, IDs, or style clusters..."
 msgstr "Buscar títulos, ID o grupos de estilos..."

@@ -5239,6 +5239,9 @@ msgstr "Gjenerimi i reagimit dështoi"
 msgid "Fetching the details of your new setup."
 msgstr "Marrja e detajeve të konfigurimit tuaj të ri."
 
+msgid "Fewer"
+msgstr "Më pak"
+
 msgid "figure"
 msgstr "figurë"
 
@@ -5481,6 +5484,9 @@ msgstr "Nga imazhi referues..."
 
 msgid "from the pages"
 msgstr "nga faqet"
+
+msgid "from the PDF"
+msgstr "nga PDF-ja"
 
 msgid "Front Cover"
 msgstr "Kapaku i Përparmë"
@@ -8000,6 +8006,9 @@ msgstr "Ende pa komente"
 
 msgid "No content processing needed"
 msgstr "Nuk nevojitet procesim i përmbajtjes"
+
+msgid "No country matches."
+msgstr "Asnjë vend nuk përputhet."
 
 msgid "No cover available"
 msgstr "Nuk ka kopertinë të disponueshme"
@@ -11240,6 +11249,9 @@ msgstr "Kërko fonte"
 
 msgid "Search fonts..."
 msgstr "Kërko fonte..."
+
+msgid "Search for a country"
+msgstr "Kërkoni një vend"
 
 msgid "Search headings, IDs, or style clusters..."
 msgstr "Kërkoni tituj, ID ose grupe stilesh..."

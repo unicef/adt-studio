@@ -5239,6 +5239,9 @@ msgstr "Échec de la génération du retour"
 msgid "Fetching the details of your new setup."
 msgstr "Récupération des détails de votre nouvelle configuration."
 
+msgid "Fewer"
+msgstr "Moins"
+
 msgid "figure"
 msgstr "figure"
 
@@ -5481,6 +5484,9 @@ msgstr "À partir de l'image de référence..."
 
 msgid "from the pages"
 msgstr "d'après les pages"
+
+msgid "from the PDF"
+msgstr "d'après le PDF"
 
 msgid "Front Cover"
 msgstr "Première de couverture"
@@ -8000,6 +8006,9 @@ msgstr "Pas encore de commentaires"
 
 msgid "No content processing needed"
 msgstr "Aucun traitement de contenu nécessaire"
+
+msgid "No country matches."
+msgstr "Aucun pays ne correspond."
 
 msgid "No cover available"
 msgstr "Pas de couverture disponible"
@@ -11240,6 +11249,9 @@ msgstr "Rechercher des polices"
 
 msgid "Search fonts..."
 msgstr "Rechercher des polices..."
+
+msgid "Search for a country"
+msgstr "Rechercher un pays"
 
 msgid "Search headings, IDs, or style clusters..."
 msgstr "Rechercher des titres, des ID ou des groupes de styles..."

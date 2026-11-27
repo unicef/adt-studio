@@ -5237,6 +5237,9 @@ msgstr "Falha ao gerar o feedback"
 msgid "Fetching the details of your new setup."
 msgstr "Buscando os detalhes da sua nova configuração."
 
+msgid "Fewer"
+msgstr "Menos"
+
 msgid "figure"
 msgstr "figura"
 
@@ -5479,6 +5482,9 @@ msgstr "A partir de imagem de referência..."
 
 msgid "from the pages"
 msgstr "pelas páginas"
+
+msgid "from the PDF"
+msgstr "pelo PDF"
 
 msgid "Front Cover"
 msgstr "Capa"
@@ -7998,6 +8004,9 @@ msgstr "Nenhum comentário ainda"
 
 msgid "No content processing needed"
 msgstr "Não é necessário processamento de conteúdo"
+
+msgid "No country matches."
+msgstr "Nenhum país corresponde."
 
 msgid "No cover available"
 msgstr "Capa não disponível"
@@ -11238,6 +11247,9 @@ msgstr "Buscar fontes"
 
 msgid "Search fonts..."
 msgstr "Buscar fontes..."
+
+msgid "Search for a country"
+msgstr "Buscar um país"
 
 msgid "Search headings, IDs, or style clusters..."
 msgstr "Buscar títulos, IDs ou grupos de estilos..."

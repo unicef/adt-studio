@@ -5,7 +5,7 @@ import spread from "../../engine/fixtures/spread-no-questions.json"
 import textbook from "../../engine/fixtures/textbook.json"
 import twoQuestions from "../../engine/fixtures/two-questions.json"
 import { proposedAnswers } from "../../engine/answers"
-import { bookLanguage, CHECK_START, checkScreens, moveCheck, screenFacts, screenOf, screenSure, shownScreen, type CheckState, type ScreenId } from "./screens"
+import { bookLanguage, CHECK_START, checkScreens, moveCheck, screenFacts, screenOf, screenSure, shownScreen, type CheckState, type ScreenId, confirmedVariety } from "./screens"
 
 // The macros aren't compiled under vitest; the preset constants use them.
 vi.mock("@lingui/core/macro", () => ({ msg: (strings: TemplateStringsArray) => ({ id: strings.join("") }) }))
@@ -96,5 +96,23 @@ describe("book language", () => {
     expect(bookLanguage({ ...as(spread), language: { code: "sq", source: "ai" } })).toBe("sq")
     expect(bookLanguage({ ...as(spread), language: { code: null, source: null } })).toBeNull()
     expect(bookLanguage({ ...as(spread), language: undefined, measured: { ...as(spread).measured, language: "pt" } })).toBe("pt")
+  })
+})
+
+describe("the found variety", () => {
+  const withLang = (code: string | null, source: "ai" | "text" | "pdf-tag" | null, measured: string | null) =>
+    ({ ...(textbook as unknown as SetupRecommendation), language: { code, source }, measured: { ...(textbook as unknown as SetupRecommendation).measured, language: measured } }) as SetupRecommendation
+
+  it("goes with the book when the reading and the PDF agree on the language", () => {
+    expect(confirmedVariety(withLang("es-UY", "ai", "es"))).toBe("es-UY")
+    expect(confirmedVariety(withLang("pt-BR", "ai", "pt-BR"))).toBe("pt-BR")
+    expect(confirmedVariety(withLang("es-UY", "text", "es-UY"))).toBe("es-UY")
+  })
+
+  it("stays out when only one signal says so, or there's no variety", () => {
+    expect(confirmedVariety(withLang("es-UY", "ai", "en-US"))).toBeNull()
+    expect(confirmedVariety(withLang("es-UY", "ai", null))).toBeNull()
+    expect(confirmedVariety(withLang("en-US", "pdf-tag", "en-US"))).toBeNull()
+    expect(confirmedVariety(withLang("es", "ai", "es"))).toBeNull()
   })
 })

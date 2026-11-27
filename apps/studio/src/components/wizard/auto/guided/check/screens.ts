@@ -70,6 +70,21 @@ export function bookLanguage(rec: SetupRecommendation): string | null {
   return rec.language ? rec.language.code : rec.measured.language
 }
 
+/**
+ * The variety found in the book ("es-UY") when it's safe to set it as the book's language without
+ * the user picking it: it carries a region, and two separate signals agree on the language (the
+ * AI's reading and the PDF's own text or tag; or the PDF's text and its tag). The same language in
+ * another variety is never translated, but a wrong language would be, so one signal isn't enough.
+ */
+export function confirmedVariety(rec: SetupRecommendation): string | null {
+  const found = rec.language?.code
+  if (!found || !found.includes("-")) return null
+  const base = (code: string | null | undefined) => (code ? code.toLowerCase().split(/[-_]/)[0] : null)
+  if (rec.language?.source === "ai") return base(rec.measured.language) === base(found) ? found : null
+  if (rec.language?.source === "text") return found
+  return null
+}
+
 /** Where the user is in Check: the screen on view, the ones passed, and where Continue goes after an Edit from the summary. */
 export type CheckState = { at: ScreenId; done: ScreenId[]; back: ScreenId | null }
 
