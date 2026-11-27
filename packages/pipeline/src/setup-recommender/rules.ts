@@ -2,7 +2,7 @@
  * Fixed rulebook: book facts -> settings. Same facts always give the same
  * settings. Every setting carries the id of the rule that fired, so the UI can
  * explain it in plain words (and translate it). Ported from
- * experiments/setup-recommender/rules.ts.
+ * experiments/setup-recommender/rules.ts (branch exp/333-setup-recommender).
  */
 import { SetupSettingId, type SetupSettings } from "@adt/types"
 import type { MeasuredFacts } from "./facts.js"

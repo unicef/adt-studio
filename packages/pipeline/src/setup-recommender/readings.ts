@@ -12,7 +12,7 @@
  *    own. Book facts are counted from the labels with fixed thresholds; the
  *    labels also give the pages to import.
  *
- * Ported from experiments/setup-recommender (questions.ts, variants/e5, e10,
+ * Ported from experiments/setup-recommender on branch exp/333-setup-recommender (questions.ts, variants/e5, e10,
  * e12). Pure: the model and the page renderer come in as parameters.
  */
 import { z } from "zod"

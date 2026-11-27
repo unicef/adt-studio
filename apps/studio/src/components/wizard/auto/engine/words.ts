@@ -1,6 +1,6 @@
 /**
  * Plain words for auto mode (issue #333). Wording comes from the experiment's
- * round-3 prototypes (experiments/setup-recommender/prototype-words.ts) with
+ * round-3 prototypes (experiments/setup-recommender/prototype-words.ts (branch exp/333-setup-recommender)) with
  * the simulated user's fixes: no jargon names ("Starting template", "Reading
  * parts", "Facing pages"), and "Our guess / Other possibility" for disagreeing
  * readings.

@@ -1,7 +1,7 @@
 /**
  * Measured book facts (no AI), derived from the @adt/pdf book profile. Each
  * fact carries the numbers it came from and the pages that show it, so a
- * person can check it. Ported from experiments/setup-recommender/facts.ts.
+ * person can check it. Ported from experiments/setup-recommender/facts.ts (branch exp/333-setup-recommender).
  */
 import type { BookPageProfile, BookProfile } from "@adt/pdf"
 import { detectSpreads } from "../spread-detection.js"

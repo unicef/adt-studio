@@ -4,7 +4,7 @@
  * book exists: page geometry, visible vs invisible (OCR) text, image
  * placements, vector paths, ink, and the edge samples spread detection reads.
  *
- * Ported from experiments/setup-recommender/profile.ts. Spread detection
+ * Ported from experiments/setup-recommender/profile.ts (branch exp/333-setup-recommender). Spread detection
  * itself lives in @adt/pipeline (which depends on this package), so the
  * profile returns the raw edge samples and the caller runs `detectSpreads`.
  */
