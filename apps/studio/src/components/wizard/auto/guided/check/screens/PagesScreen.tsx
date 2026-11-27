@@ -29,8 +29,7 @@ function EndPage({ file, page, label }: { file: File | null; page: number; label
  * Screen · Pages to convert: the page picker is out from the start. The pages chosen in large type,
  * with From / To inputs beside it (as in the wizard), and the first and last pages either side of
  * a slider. Every page until the user moves them; Split sits underneath for sharing the work. The
- * assistant's line above asks a first-time user whether they're trying it out, and suggests a few
- * pages for a large book.
+ * assistant's line above suggests a few pages for a large book.
  */
 export function PagesScreen({ pageCount }: { pageCount: number }) {
   const { t } = useLingui()

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { ArrowLeft, Check as CheckIcon, Sparkles, Wrench } from "lucide-react"
+import { ArrowLeft, Check as CheckIcon, Sparkles } from "lucide-react"
 import type { SetupRecommendation } from "@adt/types"
 import { cn } from "@/lib/utils"
 import { useCreate } from "./nameField"
@@ -33,7 +33,6 @@ type Props = {
   pageCount: number
   locked: boolean
   onCreate: () => void
-  onManual: () => void
 }
 
 /**
@@ -42,7 +41,7 @@ type Props = {
  * when it asked) and "Skip to the end with my picks". The last screen creates the book. Focus
  * moves to the heading of each new screen; Enter presses the screen's button.
  */
-export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, onCreate, onManual }: Props) {
+export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, onCreate }: Props) {
   const { i18n } = useLingui()
   const derived = chat.derived!
   const facts = activityFacts(rec, derived.current)
@@ -146,17 +145,10 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
             </span>
           </div>
           <div className="flex items-center gap-2">
-            {last ? (
-              <button type="button" onClick={onManual} className="lc-link inline-flex min-h-11 items-center gap-1.5 px-3 text-[13.5px] font-medium">
-                <Wrench className="size-4" />
-                <Trans>Choose every setting myself</Trans>
+            {!last && !check.returning && (
+              <button type="button" onClick={check.end} className="hidden min-h-11 items-center rounded-full px-3 text-[13.5px] text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground sm:inline-flex">
+                <Trans>Skip to the end</Trans>
               </button>
-            ) : (
-              !check.returning && (
-                <button type="button" onClick={check.end} className="hidden min-h-11 items-center rounded-full px-3 text-[13.5px] text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground sm:inline-flex">
-                  <Trans>Skip to the end</Trans>
-                </button>
-              )
             )}
             {index > 0 && (
               <button type="button" onClick={check.back} className="gd-bar-in inline-flex min-h-11 items-center gap-1.5 rounded-[12px] px-3.5 text-[14.5px] font-medium ring-1 ring-border transition-colors hover:bg-[var(--lc-bubble)]">

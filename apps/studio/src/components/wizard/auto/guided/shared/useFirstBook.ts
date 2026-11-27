@@ -1,14 +1,5 @@
 import { useBooks } from "@/hooks/use-books"
 
-/**
- * Whether this is the user's first book: the library has no books yet (a library emptied later
- * counts as new again). False until the library has loaded.
- */
-export function useFirstBook(): boolean {
-  const { data: books, isSuccess } = useBooks()
-  return isSuccess && (books?.length ?? 0) === 0
-}
-
 const SEEN_KEY = "add-book:tour-seen"
 
 /** The tour was seen (finished or skipped) in this browser. */

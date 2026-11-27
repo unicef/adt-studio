@@ -918,9 +918,6 @@ msgstr "<0>Não consegui configurar o livro.</0> <1>Nada foi salvo e suas escolh
 msgid "<0>I start by reading.</0> Even a long book stays quick, because I only look at a sample of its pages."
 msgstr "<0>Eu começo lendo.</0> Mesmo um livro longo é rápido, porque só olho uma amostra das páginas."
 
-msgid "<0>Is this your first book?</0> If you're just trying ADT Studio, I'll suggest a few pages so it's quick. If you want the whole book, we keep all its pages."
-msgstr "<0>Este é o seu primeiro livro?</0> Se você só está experimentando o ADT Studio, sugiro algumas páginas para ser rápido. Se quiser o livro inteiro, mantemos todas as páginas."
-
 msgid "<0>Nothing here is final.</0> You can change the settings later in the editor, except the few I mark as fixed once the book is set up."
 msgstr "<0>Nada aqui é definitivo.</0> Você pode mudar as configurações depois no editor, exceto as poucas que eu marco como fixas depois que o livro é configurado."
 
@@ -938,9 +935,6 @@ msgstr "<0>Essa é a configuração.</0> Dê um nome ao livro e eu o configuro; 
 
 msgid "<0>The sharing service isn't answering.</0> Readers may not reach the link, and new feedback shows up once it's back."
 msgstr "<0>O serviço de compartilhamento não está respondendo.</0> Os leitores podem não conseguir acessar o link, e o feedback novo aparece quando ele voltar."
-
-msgid "<0>Then a few pages are enough.</0> Pick 5 to 10 pages below to see how the book comes out. Converting all of them takes longer and costs more."
-msgstr "<0>Então algumas páginas bastam.</0> Escolha de 5 a 10 páginas abaixo para ver como o livro fica. Converter todas demora mais e custa mais."
 
 msgid "<0>This is a big book: {pageCount} pages.</0> Converting all of them takes a while and uses more of your AI credit, so you may want to start with a few."
 msgstr "<0>Este é um livro grande: {pageCount} páginas.</0> Converter todas leva um tempo e gasta mais do seu crédito de IA, então talvez seja bom começar com algumas."
@@ -3121,9 +3115,6 @@ msgstr "Escolher outro arquivo"
 
 msgid "Choose another ZIP"
 msgstr "Escolher outro ZIP"
-
-msgid "Choose every setting myself"
-msgstr "Quero escolher cada configuração"
 
 msgid "Choose exactly one answer from several options."
 msgstr "Escolher exatamente uma resposta entre várias opções."
@@ -6135,9 +6126,6 @@ msgstr "Eu configuro o livro"
 msgid "I understand the part was processed with different prompts/models and want to merge it anyway."
 msgstr "Entendo que a parte foi processada com prompts/modelos diferentes e quero mesclá-la mesmo assim."
 
-msgid "I want the whole book"
-msgstr "Quero o livro inteiro"
-
 msgid "I'll translate the text into {name}."
 msgstr "Vou traduzir o texto para {name}."
 
@@ -6685,9 +6673,6 @@ msgstr "Ir para o questionário"
 
 msgid "just now"
 msgstr "agora mesmo"
-
-msgid "Just trying: a few pages"
-msgstr "Só testando: algumas páginas"
 
 msgid "Justify"
 msgstr "Justificar"

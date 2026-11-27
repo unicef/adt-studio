@@ -920,9 +920,6 @@ msgstr "<0>Nuk munda ta konfiguroj librin.</0> <1>Asgjë nuk u ruajt dhe zgjedhj
 msgid "<0>I start by reading.</0> Even a long book stays quick, because I only look at a sample of its pages."
 msgstr "<0>Nis duke lexuar.</0> Edhe një libër i gjatë shkon shpejt, sepse shikoj vetëm një mostër të faqeve të tij."
 
-msgid "<0>Is this your first book?</0> If you're just trying ADT Studio, I'll suggest a few pages so it's quick. If you want the whole book, we keep all its pages."
-msgstr "<0>A është ky libri juaj i parë?</0> Nëse vetëm po e provoni ADT Studio, do t'ju sugjeroj pak faqe që të shkojë shpejt. Nëse doni gjithë librin, i mbajmë të gjitha faqet."
-
 msgid "<0>Nothing here is final.</0> You can change the settings later in the editor, except the few I mark as fixed once the book is set up."
 msgstr "<0>Asgjë këtu nuk është përfundimtare.</0> Cilësimet mund t'i ndryshoni më vonë në redaktor, përveç disave që i shënoj si të pandryshueshme pasi libri të konfigurohet."
 
@@ -940,9 +937,6 @@ msgstr "<0>Ky është konfigurimi.</0> Jepini librit një emër dhe unë do ta k
 
 msgid "<0>The sharing service isn't answering.</0> Readers may not reach the link, and new feedback shows up once it's back."
 msgstr "<0>Shërbimi i ndarjes nuk po përgjigjet.</0> Lexuesit mund të mos arrijnë te lidhja, dhe komentet e reja shfaqen sapo ai të rikthehet."
-
-msgid "<0>Then a few pages are enough.</0> Pick 5 to 10 pages below to see how the book comes out. Converting all of them takes longer and costs more."
-msgstr "<0>Atëherë mjaftojnë pak faqe.</0> Zgjidhni 5 deri në 10 faqe më poshtë për të parë si del libri. Konvertimi i të gjithave zgjat më shumë dhe kushton më shumë."
 
 msgid "<0>This is a big book: {pageCount} pages.</0> Converting all of them takes a while and uses more of your AI credit, so you may want to start with a few."
 msgstr "<0>Ky është një libër i madh: {pageCount} faqe.</0> Konvertimi i të gjithave zgjat një kohë dhe harxhon më shumë nga krediti juaj i AI-së, ndaj mund të doni të nisni me pak faqe."
@@ -3123,9 +3117,6 @@ msgstr "Zgjidh një skedar tjetër"
 
 msgid "Choose another ZIP"
 msgstr "Zgjidhni një ZIP tjetër"
-
-msgid "Choose every setting myself"
-msgstr "Do t'i zgjedh vetë të gjitha cilësimet"
 
 msgid "Choose exactly one answer from several options."
 msgstr "Zgjidh saktësisht një përgjigje nga disa opsione."
@@ -6137,9 +6128,6 @@ msgstr "Konfiguroj librin"
 msgid "I understand the part was processed with different prompts/models and want to merge it anyway."
 msgstr "E kuptoj se pjesa u përpunua me prompte/modele të ndryshme dhe dua ta bashkoj gjithsesi."
 
-msgid "I want the whole book"
-msgstr "Dua gjithë librin"
-
 msgid "I'll translate the text into {name}."
 msgstr "Do ta përkthej tekstin në {name}."
 
@@ -6687,9 +6675,6 @@ msgstr "Kalo te kuizi"
 
 msgid "just now"
 msgstr "sapo"
-
-msgid "Just trying: a few pages"
-msgstr "Vetëm po provoj: pak faqe"
 
 msgid "Justify"
 msgstr "Justify"

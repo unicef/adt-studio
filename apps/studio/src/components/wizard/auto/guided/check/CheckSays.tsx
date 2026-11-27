@@ -13,9 +13,9 @@ import { useBookLanguage } from "./screens/LanguageScreen"
 /**
  * The assistant's one line about the decision on screen: what it found and why (the rulebook's
  * reason), or why it asks. The first screen opens with the kind of book it found. On Pages it
- * asks a first-time user whether they're just trying it out.
+ * suggests a few pages for a big book.
  */
-type Props = { rec: SetupRecommendation; derived: Derived; screen: ScreenId; file: File | null | undefined; pageCount: number; firstBook: boolean; trying: boolean | null; onTrying: (trying: boolean) => void }
+type Props = { rec: SetupRecommendation; derived: Derived; screen: ScreenId; file: File | null | undefined; pageCount: number }
 
 export function CheckSays(props: Props) {
   return (
@@ -77,7 +77,7 @@ function LanguageSays({ rec }: { rec: SetupRecommendation }) {
   )
 }
 
-function Says({ rec, derived, screen, file, pageCount, firstBook, trying, onTrying }: Props) {
+function Says({ rec, derived, screen, file, pageCount }: Props) {
   const { i18n } = useLingui()
   const asked = screenFacts(rec, derived.current, screen).find((f) => f.ask)
   const ask = asked?.askReason ? ASK_WHY[asked.askReason] : undefined
@@ -115,32 +115,6 @@ function Says({ rec, derived, screen, file, pageCount, firstBook, trying, onTryi
   }
   if (screen === "spreads") return <SpreadsSays derived={derived} />
   if (screen === "pages") {
-    if (firstBook && trying === null)
-      return (
-        <div className="flex flex-col gap-3">
-          <p>
-            <Trans>
-              <strong className="font-semibold">Is this your first book?</strong> If you&apos;re just trying ADT Studio, I&apos;ll suggest a few pages so it&apos;s quick. If you want the whole book, we keep all its pages.
-            </Trans>
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Chip onClick={() => onTrying(true)}>
-              <Trans>Just trying: a few pages</Trans>
-            </Chip>
-            <Chip onClick={() => onTrying(false)}>
-              <Trans>I want the whole book</Trans>
-            </Chip>
-          </div>
-        </div>
-      )
-    if (trying)
-      return (
-        <p>
-          <Trans>
-            <strong className="font-semibold">Then a few pages are enough.</strong> Pick 5 to 10 pages below to see how the book comes out. Converting all of them takes longer and costs more.
-          </Trans>
-        </p>
-      )
     if (pageCount > LARGE_BOOK)
       return (
         <p>
