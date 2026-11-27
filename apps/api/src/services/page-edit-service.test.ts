@@ -715,7 +715,14 @@ describe("page-edit-service", () => {
     let promptHtml = ""
     llmMocks.generateObject.mockImplementation(async (opts: unknown) => {
       promptHtml = (opts as { context: { current_html: string } }).context.current_html
-      return { object: { reasoning: "ok", content: `<section data-id="first">Canción ¡Hola!</section>` } } as never
+      return {
+        object: {
+          reasoning: "ok",
+          feasible: true,
+          unsupported_reason: "",
+          content: `<section data-id="first">Canción ¡Hola!</section>`,
+        },
+      } as never
     })
     await aiEditSection({ label, pageId, sectionIndex: 0, instruction: "Keep it", booksDir: tmpDir, promptsDir: tmpDir, configPath, apiKey: "test-key" })
     expect(promptHtml).toContain("Canción ¡Hola!")

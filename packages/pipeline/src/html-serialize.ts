@@ -79,7 +79,8 @@ function decodeTextareaText(roots: AnyNode): Array<[TextLike, string]> {
 export function serializeHtml(node: AnyNode, options?: SerializeOptions): string {
   const restore = decodeTextareaText(node)
   try {
-    return makeReadable(DomUtils.getOuterHTML(node, options))
+    const html = DomUtils.getOuterHTML(node, options)
+    return options?.xmlMode ? html : makeReadable(html)
   } finally {
     for (const [child, original] of restore) child.data = original
   }
@@ -88,7 +89,8 @@ export function serializeHtml(node: AnyNode, options?: SerializeOptions): string
 export function serializeInnerHtml(node: Parameters<typeof DomUtils.getInnerHTML>[0], options?: SerializeOptions): string {
   const restore = decodeTextareaText(node as AnyNode)
   try {
-    return makeReadable(DomUtils.getInnerHTML(node, options))
+    const html = DomUtils.getInnerHTML(node, options)
+    return options?.xmlMode ? html : makeReadable(html)
   } finally {
     for (const [child, original] of restore) child.data = original
   }

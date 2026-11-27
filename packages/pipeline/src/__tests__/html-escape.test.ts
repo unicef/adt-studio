@@ -104,7 +104,7 @@ describe("HTML serialization call sites (#907)", () => {
           if (name !== "__tests__" && name !== "node_modules") walk(file)
           continue
         }
-        if (!name.endsWith(".ts") || name.endsWith(".test.ts") || name === "html-escape.ts") continue
+        if (!name.endsWith(".ts") || name.endsWith(".test.ts") || name === "html-serialize.ts") continue
         const source = readFileSync(file, "utf8")
         const where = (index: number) => `${path.relative(repoRoot, file)}:${source.slice(0, index).split("\n").length}`
         for (const call of source.matchAll(/get(?:Outer|Inner)HTML\s*\(([^)]*)\)/g)) {
