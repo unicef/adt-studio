@@ -3241,6 +3241,12 @@ describe("rewriteImageUrls", () => {
 })
 
 describe("convertLatexToMathml", () => {
+  it("leaves accented prose with an undelimited LaTeX marker as prose around the math", () => {
+    const result = convertLatexToMathml("<p>Calcula además también área total: x^2 + 3x</p>")
+    expect(result).toContain("Calcula además también área total")
+    expect(result).not.toMatch(/^<p><math/)
+  })
+
   it("converts inline $...$ LaTeX to MathML", () => {
     const result = convertLatexToMathml("<p>The equation $x^2$ is simple.</p>")
     expect(result).toContain("<math")
