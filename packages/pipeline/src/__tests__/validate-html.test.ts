@@ -1795,3 +1795,46 @@ describe("[placeholder:...] marker stripping", () => {
     expect(result.sectionHtml).not.toContain("[placeholder:")
   })
 })
+
+describe("validateSectionHtml — misplaced wrapper and elements (#1259)", () => {
+  it("keeps the whole section when the model nests id=\"content\" inside it", () => {
+    // weather-climate pg001: the wrapper closed after the first figure, so the
+    // cleaned HTML lost everything after it, including the "Reader" heading.
+    const html = `
+      <section data-section-type="front_cover" data-section-id="pg001_sec001">
+        <div id="content" class="container mx-auto">
+          <h1 class="adt-h1"><span data-id="title">Weather and Climate</span></h1>
+        </div>
+        <h3 class="adt-h3" data-id="reader">Reader</h3>
+        <p data-id="caption">Severe weather</p>
+      </section>
+    `
+    const result = validateSectionHtml(html, ["title", "reader", "caption"], [], undefined, {
+      expectedSectionType: "front_cover",
+      expectedSectionId: "pg001_sec001",
+    })
+    expect(result.errors).toEqual([])
+    expect(result.sectionHtml?.startsWith("<section")).toBe(true)
+    expect(result.sectionHtml).toContain('data-id="reader"')
+    expect(result.sectionHtml).toContain('data-id="caption"')
+    expect(result.sectionHtml).not.toContain('id="content"')
+    expect(result.sectionHtml).toContain('class="container mx-auto"')
+  })
+
+  it("says a required data-id is outside the section instead of missing", () => {
+    // Cuaderno 2 pg048: two text elements placed after </section>.
+    const html = `
+      <div id="content" class="container">
+        <section data-section-type="separator" data-section-id="pg048_sec001">
+          <h1 class="adt-h1" data-id="unit">Unidad 2</h1>
+        </section>
+        <p data-id="note">Cuaderno de aprendizaje</p>
+      </div>
+    `
+    const result = validateSectionHtml(html, ["unit", "note", "gone"], [])
+    expect(result.errors).toContain(
+      'Text data-id "note" is outside the <section>. Put every element inside the one <section>; only the <div id="content"> wrapper may surround it.'
+    )
+    expect(result.errors).toContain('Missing required text data-id: "gone"')
+  })
+})
