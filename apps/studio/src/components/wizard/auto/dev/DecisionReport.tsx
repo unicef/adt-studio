@@ -240,7 +240,7 @@ export default function DecisionReport(input: ReportInput) {
           <div className="flex flex-wrap items-center gap-2 border-b border-border px-5 py-4 pr-12">
             <div className="min-w-0 flex-1">
               <SheetTitle className="text-[16px]">Decision report</SheetTitle>
-              <SheetDescription className="text-[12.5px]">Dev mode · every decision of this run, live. Turn off with ?dev=0.</SheetDescription>
+              <SheetDescription className="text-[12.5px]">Dev mode · every decision of this run, live. Hide with ?dev=0, show again with ?dev.</SheetDescription>
             </div>
             <button type="button" onClick={copy} className="h-8 rounded-full px-3 text-[12.5px] font-medium ring-1 ring-border hover:bg-muted">
               {copied ? "Copied" : "Copy as Markdown"}
