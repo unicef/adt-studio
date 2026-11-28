@@ -4,6 +4,7 @@ import { Trans } from "@lingui/react/macro"
 import { FileUp, LogOut } from "lucide-react"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { useCloseIntent } from "@/components/close-guard/CloseGuard"
+import { useReturnFocus } from "./useReturnFocus"
 
 type Kind = "change" | "leave"
 
@@ -32,6 +33,8 @@ export function useLeaveGuard(active: boolean): { confirm: (kind: Kind, go: () =
   }
   const asking: Kind | null = leaving.status === "blocked" ? "leave" : changing ? "change" : null
   const change = asking === "change"
+  // Back to the button that asked (the top bar's back, the PDF picker), not the page body.
+  const returnFocus = useReturnFocus(asking !== null)
   // Stay, Escape or a click outside: the navigation is cancelled (after Leave it has already gone ahead).
   const close = () => {
     if (leaving.status === "blocked") leaving.reset()
@@ -46,7 +49,7 @@ export function useLeaveGuard(active: boolean): { confirm: (kind: Kind, go: () =
   }
   const dialog = (
     <AlertDialog open={asking !== null} onOpenChange={(o) => !o && close()}>
-      <AlertDialogContent className="max-w-[440px] rounded-[20px]">
+      <AlertDialogContent onCloseAutoFocus={returnFocus} className="max-w-[440px] rounded-[20px]">
         <div className="flex items-start gap-3">
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400">{change ? <FileUp className="size-5" /> : <LogOut className="size-5" />}</span>
           <div className="flex min-w-0 flex-col gap-1.5">

@@ -4,7 +4,7 @@ import { CircleHelp } from "lucide-react"
 import { useExplainable } from "../shared/ExplainProvider"
 import { useLanguageName } from "../shared/languageName"
 import type { SetupRecommendation } from "@adt/types"
-import { RULE_WHY, SETTING_VALUE } from "../../engine/words"
+import { FACT_SHORT, RULE_WHY, SETTING_VALUE } from "../../engine/words"
 import { useWizardForm } from "../../../core/wizardForm"
 import { useBookCreation } from "../../../core/useBookCreation"
 import type { Derived } from "../shared/useAnswers"
@@ -88,6 +88,19 @@ function Says({ rec, derived, screen, file, pageCount }: Props) {
   const why = (rule: string | undefined) => (rule && RULE_WHY[rule] ? i18n._(RULE_WHY[rule]!) : null)
 
   if (screen === "kind") {
+    // Another kind than the guess, picked by hand: say so, as Look and Facing pages do.
+    const kind = derived.current.genre
+    const kindName = kind !== derived.proposed.genre && FACT_SHORT.genre[String(kind)]
+    if (kindName) {
+      const name = i18n._(kindName)
+      return (
+        <p>
+          <Trans>
+            <strong className="font-semibold">Your pick: {name}.</strong> I&apos;ll set the book up for that.
+          </Trans>
+        </p>
+      )
+    }
     return (
       <p>
         {asked ? (

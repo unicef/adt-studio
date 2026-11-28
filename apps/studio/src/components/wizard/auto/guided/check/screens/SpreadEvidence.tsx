@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { BookOpen } from "lucide-react"
+import { useReturnFocus } from "../../shared/useReturnFocus"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { usePageThumb } from "@/components/wizard/core/pdf/usePageThumb"
 import { cn } from "@/lib/utils"
@@ -68,6 +69,7 @@ function Opening({ file, pages, wide }: { file: File; pages: number[]; wide: boo
 export function SpreadEvidence({ file, pages, rule, wide }: { file: File | null | undefined; pages: number[]; rule: string | undefined; wide: boolean }) {
   const { i18n } = useLingui()
   const [open, setOpen] = useState(false)
+  const returnFocus = useReturnFocus(open)
   const groups = openings(pages, wide)
   if (!file || groups.length === 0) return null
   // The made-up book that shows the case (public/add-book/grouping-*.png).
@@ -85,7 +87,7 @@ export function SpreadEvidence({ file, pages, rule, wide }: { file: File | null 
         {groups.length === 1 && groups[0]!.length === 1 ? <Trans>Page {names}</Trans> : <Trans>Pages {names}</Trans>}
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="flex max-h-[90vh] max-w-[min(94vw,820px)] flex-col gap-5 overflow-y-auto rounded-[24px] p-5 sm:p-6">
+        <DialogContent onCloseAutoFocus={returnFocus} className="flex max-h-[90vh] max-w-[min(94vw,820px)] flex-col gap-5 overflow-y-auto rounded-[24px] p-5 sm:p-6">
           {/* The case on a made-up book first, so it's clear what to look for; then the user's own pages. */}
           <div className="grid items-center gap-5 pr-8 sm:grid-cols-[240px_minmax(0,1fr)]">
             <span aria-hidden className="grid h-[150px] place-items-center">

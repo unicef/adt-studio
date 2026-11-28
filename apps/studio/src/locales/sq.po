@@ -1009,6 +1009,9 @@ msgstr "<0>PDF-ja juaj i ka tashmë faqet përballë krah për krah</0> në një
 msgid "<0>Your pick: {name}.</0> I'll make every page this way."
 msgstr "<0>Zgjedhja juaj: {name}.</0> Do t'i bëj të gjitha faqet kështu."
 
+msgid "<0>Your pick: {name}.</0> I'll set the book up for that."
+msgstr "<0>Zgjedhja juaj: {name}.</0> Do ta përgatis librin për këtë."
+
 msgid "<0>Your pick: facing pages joined.</0> Each pair of pages becomes one wide screen. Pages that don't belong together are joined too."
 msgstr "<0>Zgjedhja juaj: faqet përballë të bashkuara.</0> Çdo çift faqesh bëhet një ekran i gjerë. Bashkohen edhe faqet që nuk shkojnë bashkë."
 

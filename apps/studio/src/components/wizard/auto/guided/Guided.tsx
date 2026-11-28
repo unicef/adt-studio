@@ -178,7 +178,7 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
   } else if (shown === "reading") {
     if (failure) {
       swap = `failed-${attempt}`
-      says = <EngineError failure={failure} current onRetry={() => setAttempt((a) => a + 1)} onManual={manual} />
+      says = <EngineError failure={failure} current={active} onRetry={() => setAttempt((a) => a + 1)} onManual={manual} />
     } else {
       swap = `reading-${attempt}`
       says = <ReadingMessage run={run} rec={rec} onManual={manual} />
@@ -230,7 +230,7 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
           <FileDropOverlay overlay={flow.overlay} dropLabel={<Trans>Drop PDF here</Trans>} errorLabel={<Trans>Only PDF files are supported</Trans>} accent="blue" />
           <input ref={flow.inputRef} type="file" accept="application/pdf" className="hidden" onChange={flow.onInputChange} />
 
-          <div ref={scroller} className="relative flex-1 overflow-y-auto overflow-x-hidden">
+          <div ref={scroller} data-gd-scroller className="relative flex-1 overflow-y-auto overflow-x-hidden">
             {/* One column per step, and the stepper takes the same width, so its ends line up with the
                 bubble and the content. On big windows the whole page scales up (zoom) instead of
                 floating small in the middle; on short ones the spacing tightens. */}

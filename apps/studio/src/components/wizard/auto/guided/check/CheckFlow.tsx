@@ -98,6 +98,8 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, a
       return
     }
     heading.current?.focus({ preventScroll: true })
+    // Each screen opens at its top (the assistant's line first), wherever the last one was scrolled to.
+    heading.current?.closest<HTMLElement>("[data-gd-scroller]")?.scrollTo({ top: 0 })
     heading.current?.scrollIntoView({ block: "nearest" })
   }, [at])
 

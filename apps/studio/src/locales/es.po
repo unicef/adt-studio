@@ -1007,6 +1007,9 @@ msgstr "<0>Tu PDF ya tiene las páginas enfrentadas una al lado de la otra</0> e
 msgid "<0>Your pick: {name}.</0> I'll make every page this way."
 msgstr "<0>Tu elección: {name}.</0> Haré todas las páginas así."
 
+msgid "<0>Your pick: {name}.</0> I'll set the book up for that."
+msgstr "<0>Tu elección: {name}.</0> Configuraré el libro para eso."
+
 msgid "<0>Your pick: facing pages joined.</0> Each pair of pages becomes one wide screen. Pages that don't belong together are joined too."
 msgstr "<0>Tu elección: páginas enfrentadas unidas.</0> Cada par de páginas será una pantalla ancha. También se unen las páginas que no van juntas."
 

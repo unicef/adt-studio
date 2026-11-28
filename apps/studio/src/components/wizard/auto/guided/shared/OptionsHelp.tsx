@@ -184,7 +184,7 @@ function CardBody({ o, options, rec, page, file, show }: BodyProps) {
           </div>
           <DialogDescription className="text-[15.5px] leading-relaxed text-muted-foreground">{o.more ?? o.line}</DialogDescription>
           {o.why && (
-            <div className="rounded-[12px] bg-brand-50 px-4 py-2.5 text-[14px] text-brand-900 dark:bg-brand-500/10 dark:text-brand-100">
+            <div className="rounded-[12px] bg-brand-50 px-4 py-2.5 text-[14px] text-brand-900 dark:bg-brand-500/10">
               <span className="font-semibold">{o.guess ? <Trans>Why I suggested it:</Trans> : <Trans>Why it could be this one:</Trans>}</span> {o.why}
             </div>
           )}

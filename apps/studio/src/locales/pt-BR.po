@@ -1007,6 +1007,9 @@ msgstr "<0>Seu PDF já traz cada página dupla inteira</0> numa página larga, e
 msgid "<0>Your pick: {name}.</0> I'll make every page this way."
 msgstr "<0>Sua escolha: {name}.</0> Vou fazer todas as páginas assim."
 
+msgid "<0>Your pick: {name}.</0> I'll set the book up for that."
+msgstr "<0>Sua escolha: {name}.</0> Vou configurar o livro para isso."
+
 msgid "<0>Your pick: facing pages joined.</0> Each pair of pages becomes one wide screen. Pages that don't belong together are joined too."
 msgstr "<0>Sua escolha: páginas duplas unidas.</0> Cada par de páginas vira uma tela larga. Até páginas que não formam uma dupla são unidas."
 
