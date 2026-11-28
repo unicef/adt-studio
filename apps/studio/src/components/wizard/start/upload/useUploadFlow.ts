@@ -61,26 +61,32 @@ export function useUploadFlow({ active = true, guard }: { active?: boolean; /** 
     setRejected(0)
   }, [form])
 
+  const seen = useRef(file)
   useEffect(() => {
     if (!file) {
+      seen.current = null
       setCounted({ file: null, count: 0 })
       setError(null)
       return
     }
-    const cached = getCachedPdfPageCount(file)
-    if (cached !== undefined) {
-      setCounted({ file, count: cached })
-      return
+    // A new PDF starts clean: no error left from the last one, and every page chosen (a PDF that
+    // was already here when this mounted keeps the pages picked for it).
+    const fresh = seen.current !== file
+    seen.current = file
+    setError(null)
+    const counted = (count: number) => {
+      setCounted({ file, count })
+      if (!fresh && form.state.values.endPage) return
+      form.setFieldValue("startPage", "1")
+      form.setFieldValue("endPage", String(count))
     }
+    const cached = getCachedPdfPageCount(file)
+    if (cached !== undefined) return counted(cached)
     let cancelled = false
     setCounted({ file, count: 0 })
-    setError(null)
     getPdfPageCount(file)
       .then((count) => {
-        if (cancelled) return
-        setCounted({ file, count })
-        form.setFieldValue("startPage", "1")
-        form.setFieldValue("endPage", String(count))
+        if (!cancelled) counted(count)
       })
       .catch((e: unknown) => {
         if (cancelled) return
