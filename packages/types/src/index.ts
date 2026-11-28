@@ -835,4 +835,6 @@ export {
   SetupReadings,
   SetupRecommendation,
   setupFactsKey,
+  SETUP_RECOMMENDATION_ERROR_CODES,
+  type SetupRecommendationErrorCode,
 } from "./setup-recommendation.js"

@@ -14,12 +14,12 @@ import path from "node:path"
 import { createHash, randomUUID } from "node:crypto"
 import { Hono } from "hono"
 import { bodyLimit } from "hono/body-limit"
-import { HTTPException } from "hono/http-exception"
+import type { ContentfulStatusCode } from "hono/utils/http-status"
 import { z } from "zod"
-import { createLLMModel, formatProviderError, type LlmLogEntry } from "@adt/llm"
+import { AiProviderError, createLLMModel, formatProviderError, type LlmLogEntry } from "@adt/llm"
 import { profileBookAsync, renderBookPagesAsync } from "@adt/pdf"
 import { loadConfig, recommendSetup } from "@adt/pipeline"
-import { DEFAULT_LLM_MODEL_ID, type SetupRecommendation } from "@adt/types"
+import { DEFAULT_LLM_MODEL_ID, type SetupRecommendation, type SetupRecommendationErrorCode } from "@adt/types"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
 
 interface Held {
@@ -81,13 +81,16 @@ export function createSetupRecommendationRoutes(booksDir: string, configPath?: s
   // POST /setup-recommendation — multipart `pdf`. Returns the recommendation.
   const setupBodyLimit = bodyLimit({
     maxSize: SETUP_PDF_MAX_BYTES + 1024 * 1024,
-    onError: (c) => c.json({ error: `The PDF is larger than ${SETUP_PDF_MAX_BYTES / 1024 / 1024} MiB` }, 413),
+    onError: (c) => c.json({ error: `The PDF is larger than ${SETUP_PDF_MAX_BYTES / 1024 / 1024} MiB`, code: "pdf-too-large" satisfies SetupRecommendationErrorCode }, 413),
   })
 
   app.post("/setup-recommendation", setupBodyLimit, async (c) => {
+    /** Every failure answers with a `code` (SetupRecommendationErrorCode), so Studio never guesses from the words. */
+    const failed = (status: ContentfulStatusCode, code: SetupRecommendationErrorCode, error: string) => c.json({ error, code }, status)
+
     const formData = await c.req.formData()
     const form = SetupRecommendationForm.safeParse({ pdf: formData.get("pdf") })
-    if (!form.success) throw new HTTPException(400, { message: form.error.issues[0]?.message ?? "pdf file is required" })
+    if (!form.success) return failed(400, "pdf-invalid", form.error.issues[0]?.message ?? "pdf file is required")
     const buffer = new Uint8Array(await form.data.pdf.arrayBuffer())
 
     const config = loadConfig(configPath)
@@ -107,8 +110,10 @@ export function createSetupRecommendationRoutes(booksDir: string, configPath?: s
     } catch (err) {
       // The client went away (a new PDF, or the page closed): nothing to answer.
       if (c.req.raw.signal.aborted) throw err
-      throw new HTTPException(400, { message: `Could not read the PDF: ${err instanceof Error ? err.message : String(err)}` })
+      return failed(400, "pdf-unreadable", `Could not read the PDF: ${err instanceof Error ? err.message : String(err)}`)
     }
+    // Nothing to show the AI: don't call it with no pages.
+    if (profile.pageCount === 0) return failed(422, "pdf-no-pages", "The PDF has no pages")
 
     try {
       const recommendation = await recommendSetup({
@@ -130,8 +135,10 @@ export function createSetupRecommendationRoutes(booksDir: string, configPath?: s
       if (c.req.raw.signal.aborted) throw err
       // Both readings failed. Pages that couldn't be drawn are the PDF's fault; anything else came
       // from the AI service (an error, a timeout, or answers that never fit the expected shape).
-      if (err instanceof PdfRenderError) throw new HTTPException(422, { message: `Could not read the PDF's pages: ${err.message}` })
-      throw new HTTPException(502, { message: formatProviderError(err) })
+      if (err instanceof PdfRenderError) return failed(422, "pdf-pages-unreadable", `Could not read the PDF's pages: ${err.message}`)
+      // A provider that isn't set up (no key, unknown model): the shared handler answers 400/422 with its code.
+      if (AiProviderError.is(err)) throw err
+      return failed(502, "ai-provider-failed", formatProviderError(err))
     }
   })
 

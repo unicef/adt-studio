@@ -4,9 +4,10 @@ import os from "node:os"
 import path from "node:path"
 import { Hono } from "hono"
 import type { RecommendSetupOptions } from "@adt/pipeline"
+import { AiProviderError } from "@adt/llm"
 import { errorHandler } from "../middleware/error-handler.js"
 import { createBookRoutes } from "./books.js"
-import { createSetupRecommendationRoutes } from "./setup-recommendation.js"
+import { createSetupRecommendationRoutes, SETUP_PDF_MAX_BYTES } from "./setup-recommendation.js"
 
 // The AI readings are replaced: each test says what recommendSetup does with the PDF it is given.
 const recommend = vi.hoisted(() => ({ impl: async (o: RecommendSetupOptions): Promise<unknown> => ({ id: o.id }) }))
@@ -69,9 +70,61 @@ const createBook = async (label: string, bytes: Uint8Array, id: string) => {
 }
 
 describe("POST /setup-recommendation", () => {
+  const failure = async (res: Response) => ({ status: res.status, ...((await res.json()) as { code?: string; error: string }) })
+
   it("refuses a file that isn't a PDF", async () => {
     const res = await app.request("/setup-recommendation", { method: "POST", body: pdfForm(new TextEncoder().encode("hello"), "notes.txt", "text/plain") })
-    expect(res.status).toBe(400)
+    expect(await failure(res)).toMatchObject({ status: 400, code: "pdf-invalid" })
+  })
+
+  it("refuses a PDF over the size cap before reading it (413)", async () => {
+    let called = false
+    recommend.impl = async (o) => {
+      called = true
+      return { id: o.id }
+    }
+    const res = await app.request("/setup-recommendation", {
+      method: "POST",
+      body: pdfForm(blankPdf(1)),
+      headers: { "content-length": String(SETUP_PDF_MAX_BYTES + 2 * 1024 * 1024) },
+    })
+    expect(await failure(res)).toMatchObject({ status: 413, code: "pdf-too-large" })
+    expect(called).toBe(false)
+  })
+
+  it("refuses a PDF with no pages without calling the AI (422)", async () => {
+    let called = false
+    recommend.impl = async (o) => {
+      called = true
+      return { id: o.id }
+    }
+    const res = await app.request("/setup-recommendation", { method: "POST", body: pdfForm(blankPdf(0)) })
+    expect(await failure(res)).toMatchObject({ status: 422, code: "pdf-no-pages" })
+    expect(called).toBe(false)
+  })
+
+  it("stops the readings when the client goes away, and keeps nothing", async () => {
+    const controller = new AbortController()
+    let seen: AbortSignal | undefined
+    recommend.impl = (o) =>
+      new Promise((_, reject) => {
+        seen = o.signal
+        o.signal?.addEventListener("abort", () => reject(o.signal?.reason))
+        controller.abort()
+      })
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {})
+    const res = await app.request("/setup-recommendation", { method: "POST", body: pdfForm(blankPdf(1)), signal: controller.signal })
+    errors.mockRestore()
+    expect(seen?.aborted).toBe(true)
+    expect(res.status).not.toBe(200)
+  })
+
+  it("passes a missing provider key on with its code (400), not as a 502", async () => {
+    recommend.impl = async () => {
+      throw new AiProviderError("missing-credential", "OpenAI needs an API key.", { providerId: "openai", credentialKey: "apiKey" })
+    }
+    const res = await app.request("/setup-recommendation", { method: "POST", body: pdfForm(blankPdf(2)) })
+    expect(await failure(res)).toMatchObject({ status: 400, code: "missing-credential" })
   })
 
   it("says the PDF is at fault (422, not a provider error) when its pages can't be drawn", async () => {
@@ -80,7 +133,7 @@ describe("POST /setup-recommendation", () => {
       return { id: o.id }
     }
     const res = await app.request("/setup-recommendation", { method: "POST", body: pdfForm(blankPdf(2)) })
-    expect(res.status).toBe(422)
+    expect(await failure(res)).toMatchObject({ status: 422, code: "pdf-pages-unreadable" })
   })
 
   it("reports an AI service failure as 502", async () => {
@@ -88,7 +141,7 @@ describe("POST /setup-recommendation", () => {
       throw new Error("HTTP 500 from the provider")
     }
     const res = await app.request("/setup-recommendation", { method: "POST", body: pdfForm(blankPdf(2)) })
-    expect(res.status).toBe(502)
+    expect(await failure(res)).toMatchObject({ status: 502, code: "ai-provider-failed", error: "HTTP 500 from the provider" })
   })
 })
 

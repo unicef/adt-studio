@@ -196,3 +196,19 @@ export type SetupRecommendation = z.infer<typeof SetupRecommendation>
 
 export const setupFactsKey = (f: Record<SetupBookFactId, string>) =>
   `${f.genre}|${f.exercises}|${f.composition}|${f.diagrams}`
+
+/**
+ * Why POST /setup-recommendation failed, sent as the error body's `code` so Studio can tell the
+ * user what to do without guessing from the message. The `pdf-*` codes are the PDF's problem;
+ * `ai-provider-failed` is the AI service's (an error, a timeout, or answers that never fit).
+ * A provider that is missing or not set up answers with its own AiProviderError code instead.
+ */
+export const SETUP_RECOMMENDATION_ERROR_CODES = [
+  "pdf-invalid",
+  "pdf-too-large",
+  "pdf-unreadable",
+  "pdf-no-pages",
+  "pdf-pages-unreadable",
+  "ai-provider-failed",
+] as const
+export type SetupRecommendationErrorCode = (typeof SETUP_RECOMMENDATION_ERROR_CODES)[number]
