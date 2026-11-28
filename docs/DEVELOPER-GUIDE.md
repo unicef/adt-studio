@@ -238,6 +238,7 @@ Key sections:
 | `section_types` | Named categories for page sections (e.g., `text_only`, `activity_multiple_choice`) |
 | `metadata`, `page_sectioning`, etc. | Per-step LLM model and prompt override |
 | `render_strategies` | Named strategies for web rendering (template-based or LLM-based) |
+| `render_context` | Optional book context (summary, outline position, neighbouring pages) added to the page-rendering and visual-review prompts; off unless `enabled: true` |
 | `image_filters` | Min/max pixel dimensions; meaningfulness and cropping toggles |
 | `concurrency` | Max parallel LLM calls |
 | `pruned_role_types` | Leaf role types excluded from rendering (e.g., headers, footers, page numbers) |
@@ -281,8 +282,36 @@ render_strategies:
 ```
 
 Notes:
-- The visual-review model is currently fixed in code (`DEFAULT_VISUAL_REVIEW_MODEL_ID` in `packages/pipeline/src/visual-review.ts`).
+- The visual-review model comes from `visual_review.model`, then `default_model`, then `DEFAULT_VISUAL_REVIEW_MODEL_ID` (`resolveVisualReviewModelId` in `packages/pipeline/src/visual-review.ts`). Its effort comes from `visual_review.reasoning_effort`, then the strategy's `visual_refinement.reasoning_effort`, then `default_reasoning_effort`.
 - Debug screenshots referenced from LLM logs are stored as files in `books/{label}/.debug-images/`.
+
+### Book context for rendering (`render_context`)
+
+By default each section is rendered from its own content tree and page image only. With `render_context.enabled: true`, the page-rendering and visual-review prompts also receive a `<book_context>` block (`prompts/_book_context.liquid`) so the model can keep tone, heading hierarchy and continuity with the rest of the book. The block is reference data: the prompt tells the model never to copy its text into the HTML, and the usual fidelity checks still apply to every rendered word.
+
+```yaml
+render_context:
+  enabled: true          # default: off
+  summary: true          # include the book summary (default: true)
+  outline_position: true # include the outline headings around this page (default: true)
+  neighbor_pages: 1      # pages before and after to digest, 0–3 (default: 1)
+  neighbor_chars: 600    # text budget per neighbouring page, 0–4000 (default: 600)
+```
+
+What the block contains (`packages/pipeline/src/render-book-context.ts`):
+
+| Part | Source | Page render | Visual review |
+|------|--------|:-----------:|:-------------:|
+| Book title, authors, language | `metadata` step | yes | yes |
+| Book summary (`summary`) | `book-summary` step | yes | yes |
+| Outline headings that contain the page, and headings that start on it (`outline_position`) | `book-outline` step | yes | yes |
+| Every section on the page in reading order, the current one marked, ~160 characters of text each | page sectioning | yes | no |
+| Neighbouring pages' sections, up to `neighbor_chars` per page (`neighbor_pages`) | page sectioning | yes | no |
+
+- Only `web_generation_html` (base and the Sol/Luna variants), `visual_review` and `visual_review_flexible` include `_book_context`. Activity render prompts do not use it.
+- Pruned leaves and image leaves are left out of the section text. A part whose source step has not run is simply omitted.
+- `render_context` is part of the per-page prompt settings (`PER_PAGE_PROMPT_KEYS` in `packages/types/src/fingerprint.ts`). Turning it on or changing a value changes the rendering prompts, so every rendered section misses its LLM cache on the next run.
+- Like any key, it can be set per book in `books/{label}/config.yaml`.
 
 ### LLM Prompt Templates (`prompts/*.liquid`)
 

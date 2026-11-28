@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { AiModality, ProviderId, StructuredOutputStrategy } from "./model-id.js"
+import { ReasoningEffortSupport } from "./reasoning-effort.js"
 
 export const SUPPORTED_PROVIDER_LOCALES = ["en", "pt-BR", "es", "fr", "sq"] as const
 export const SupportedProviderLocale = z.enum(SUPPORTED_PROVIDER_LOCALES)
@@ -122,6 +123,7 @@ export const StructuredTextCapabilities = z.object({
   imageInput: z.boolean(),
   temperature: z.boolean(),
   maxOutputTokens: z.number().int().positive().optional(),
+  reasoningEfforts: z.array(ReasoningEffortSupport).optional(),
 })
 export type StructuredTextCapabilities = z.infer<typeof StructuredTextCapabilities>
 

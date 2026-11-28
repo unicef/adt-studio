@@ -122,6 +122,14 @@ export {
 } from "./web-rendering.js"
 export { renderSectionLlm, type VisualRefinementDeps } from "./render-llm.js"
 export {
+  bookContextPromptValue,
+  buildRenderBookContext,
+  createRenderBookContextReader,
+  resolveRenderContextOptions,
+  type RenderBookContext,
+  type RenderContextOptions,
+} from "./render-book-context.js"
+export {
   inspectOrderingActivityHtml,
   inspectOrderingSection,
   type OrderingContract,
@@ -129,6 +137,7 @@ export {
 } from "./ordering-contract.js"
 export {
   DEFAULT_VISUAL_REVIEW_MODEL_ID,
+  resolveVisualReviewModelId,
   runVisualReviewLoop,
   type VisualReviewDeps,
   type RunVisualReviewLoopOptions,
@@ -385,7 +394,7 @@ export {
   type FontAssignmentInput,
 } from "./font-assignment.js"
 export { applyFontToHtml, type FontScope } from "./font-apply.js"
-export { loadConfig, loadBookConfig, loadBookConfigOverrides, normalizePersistedSectioningMode, BookConfigError, deepMerge } from "./config.js"
+export { loadConfig, loadConfigAsWritten, loadBookConfig, loadBookConfigOverrides, normalizePersistedSectioningMode, BookConfigError, deepMerge } from "./config.js"
 export { runFullPipeline, type FullPipelineOptions } from "./pipeline-dag.js"
 export {
   runDAG,

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from "react"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { ProviderDescriptor } from "@adt/types"
 
@@ -51,8 +51,29 @@ const PROVIDERS = [
   descriptor("openai", ["structured-text", "agent", "image"]),
   descriptor("anthropic", ["structured-text", "agent"]),
 ]
+PROVIDERS[0].manifest.capabilities["structured-text"]!.reasoningEfforts = [
+  { models: "gpt-5.*", efforts: ["low", "medium", "high"], default: "medium" },
+]
 
 const updateDefaultModel = vi.fn(async (model: string) => ({ model }))
+const taskModelsResponse = () => ({
+  defaultModel: apiState.defaultModel,
+  defaultReasoningEffort: null,
+  tasks: [
+    { id: "metadata", kind: "step", configKey: "metadata", step: "metadata", prompts: ["metadata_extraction"], model: null, reasoningEffort: null, inheritsFrom: [] },
+    { id: "page_sectioning", kind: "step", configKey: "page_sectioning", step: "page-sectioning", prompts: ["page_sectioning"], model: null, reasoningEffort: null, inheritsFrom: [] },
+    { id: "glossary", kind: "step", configKey: "glossary", step: "glossary", prompts: ["glossary"], model: null, reasoningEffort: null, inheritsFrom: ["page_sectioning"] },
+    { id: "book_outline", kind: "step", configKey: "book_outline", step: "book-outline", prompts: ["book_outline"], model: null, reasoningEffort: null, inheritsFrom: [] },
+    { id: "render_strategies.llm", kind: "render-strategy", configKey: "llm", prompts: ["web_generation_html"], model: "openai:gpt-5.4", reasoningEffort: apiState.renderingEffort, inheritsFrom: [] },
+  ],
+})
+const updateTaskModel = vi.fn(async (_id: string, _change: Record<string, unknown>) => taskModelsResponse())
+const apiState: {
+  defaultModel: string
+  promptModels: string[]
+  prompts: Array<{ name: string; variants: string[] }>
+  renderingEffort: string | null
+} = { defaultModel: SAVED_LLM, promptModels: [SAVED_LLM], prompts: [], renderingEffort: null }
 
 vi.mock("@lingui/core/macro", () => ({
   msg: (strings: TemplateStringsArray, ...values: unknown[]) => ({
@@ -63,7 +84,7 @@ vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   Plural: () => null,
   useLingui: () => ({
-    i18n: { locale: "en" },
+    i18n: { locale: "en", _: (descriptor: { id: string }) => descriptor.id },
     t: (strings: TemplateStringsArray, ...values: unknown[]) =>
       strings.reduce((text, part, i) => text + part + String(values[i] ?? ""), ""),
   }),
@@ -73,6 +94,7 @@ vi.mock("@tanstack/react-router", () => ({
 }))
 vi.mock("@/components/pipeline/pipeline-i18n", () => ({
   getStepLabelI18n: (name: string) => name,
+  getStageLabelI18n: (name: string) => name,
 }))
 vi.mock("@/components/ui/sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 vi.mock("@/hooks/use-discovered-models", () => ({
@@ -83,26 +105,30 @@ vi.mock("@/hooks/use-provider-credentials", () => ({
 }))
 vi.mock("@/api/client", () => ({
   api: {
-    getDefaultModel: async () => ({ model: SAVED_LLM }),
-    listPromptModels: async () => ({ models: [SAVED_LLM] }),
+    getDefaultModel: async () => ({ model: apiState.defaultModel }),
+    listPromptModels: async () => ({ models: apiState.promptModels }),
+    listPrompts: async () => ({ prompts: apiState.prompts }),
     getSpecializedModelDefaults: async () => ({
       imageGeneration: SAVED_IMAGE,
       speechGeneration: "gpt-4o-mini-tts",
     }),
     updateDefaultModel,
     updateSpecializedModelDefaults: async (value: unknown) => value,
+    getTaskModels: async () => taskModelsResponse(),
+    updateTaskModel,
   },
 }))
 
 const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
+const { FloatingSaveProvider } = await import("@/components/pipeline/components/floating-save")
 const { ModelsSection } = await import("./ModelsSection")
+const { useTaskModelDrafts } = await import("./taskModels/useTaskModelDrafts")
 
-const defaultLlmInput = () => screen.getByLabelText("LLM model") as HTMLInputElement
-const imageInput = () =>
-  screen.getByLabelText("Platform default", {
-    selector: "#app-image-generation-model",
-  }) as HTMLInputElement
-const saveButtons = () => screen.getAllByRole("button", { name: "Save changes" })
+const byId = (id: string) => document.getElementById(id) as HTMLInputElement
+const defaultLlmInput = () => byId("app-default-model")
+const imageInput = () => byId("app-image-generation-model")
+const saveButton = () => screen.getByRole("button", { name: "Save" })
+const searchInput = () => screen.getByRole("searchbox", { name: "Search tasks, prompts or models" })
 
 /**
  * Both settings queries have to land before typing — until they do, the drafts
@@ -112,15 +138,23 @@ async function renderLoaded() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={client}>
-      <ModelsSection />
+      <FloatingSaveProvider>
+        <ModelsSection />
+      </FloatingSaveProvider>
     </QueryClientProvider>,
   )
   await waitFor(() => expect(defaultLlmInput().value).toBe(SAVED_LLM))
   await waitFor(() => expect(imageInput().value).toBe(SAVED_IMAGE))
+  await waitFor(() => expect(byId("task-model-metadata")).toBeTruthy())
 }
 
 beforeEach(() => {
   updateDefaultModel.mockClear()
+  updateTaskModel.mockClear()
+  apiState.defaultModel = SAVED_LLM
+  apiState.promptModels = [SAVED_LLM]
+  apiState.prompts = []
+  apiState.renderingEffort = null
 })
 
 afterEach(cleanup)
@@ -130,8 +164,8 @@ describe("ModelsSection — provider-aware model defaults", () => {
     await renderLoaded()
 
     fireEvent.change(defaultLlmInput(), { target: { value: "anthropic:claude-opus-4" } })
-    await waitFor(() => expect(saveButtons()[0].hasAttribute("disabled")).toBe(false))
-    fireEvent.click(saveButtons()[0])
+    await waitFor(() => expect(saveButton().hasAttribute("disabled")).toBe(false))
+    fireEvent.click(saveButton())
 
     await waitFor(() =>
       expect(updateDefaultModel).toHaveBeenCalledWith("anthropic:claude-opus-4"),
@@ -150,7 +184,7 @@ describe("ModelsSection — provider-aware model defaults", () => {
         ),
       ).toBeTruthy(),
     )
-    expect(saveButtons()[0].hasAttribute("disabled")).toBe(true)
+    expect(saveButton().hasAttribute("disabled")).toBe(true)
     expect(updateDefaultModel).not.toHaveBeenCalled()
   })
 
@@ -164,7 +198,7 @@ describe("ModelsSection — provider-aware model defaults", () => {
         screen.getByText('Provider "anthropic" does not support image generation.'),
       ).toBeTruthy(),
     )
-    expect(saveButtons()[1].hasAttribute("disabled")).toBe(true)
+    expect(saveButton().hasAttribute("disabled")).toBe(true)
   })
 
   it("offers discovered models in the default LLM picker", async () => {
@@ -176,6 +210,132 @@ describe("ModelsSection — provider-aware model defaults", () => {
     await waitFor(() =>
       expect(screen.getAllByText(/claude-from-discovery/).length).toBeGreaterThan(0),
     )
+  })
+})
+
+describe("ModelsSection — model per task", () => {
+  it("saves a task override and clears another back to the default", async () => {
+    await renderLoaded()
+    expect(byId("task-model-metadata").placeholder).toBe(SAVED_LLM)
+    expect(byId("task-model-render_strategies-llm").value).toBe("openai:gpt-5.4")
+
+    fireEvent.change(byId("task-model-metadata"), { target: { value: "anthropic:claude-opus-4" } })
+    fireEvent.click(screen.getByRole("button", { name: "Use the default LLM for Web Rendering" }))
+    await waitFor(() => expect(saveButton().hasAttribute("disabled")).toBe(false))
+    fireEvent.click(saveButton())
+
+    await waitFor(() => expect(updateTaskModel).toHaveBeenCalledTimes(2))
+    expect(updateTaskModel).toHaveBeenNthCalledWith(1, "metadata", { model: "anthropic:claude-opus-4" })
+    expect(updateTaskModel).toHaveBeenNthCalledWith(2, "render_strategies.llm", { model: null })
+  })
+})
+
+describe("ModelsSection — reasoning effort", () => {
+  const effortTrigger = (id: string) => document.getElementById(`${id}-effort`) as HTMLElement
+
+  it("shows the inherited effort for the effective model", async () => {
+    await renderLoaded()
+    expect(effortTrigger("task-model-metadata").textContent).toContain("Default · Medium")
+    expect(document.getElementById("app-default-reasoning-effort")?.textContent).toContain("Model default")
+  })
+
+  it("marks the effort as unsupported when the task model has no effort setting", async () => {
+    await renderLoaded()
+    fireEvent.change(byId("task-model-metadata"), { target: { value: "anthropic:claude-opus-4" } })
+    await waitFor(() => expect(effortTrigger("task-model-metadata").textContent).toBe("Not supported"))
+  })
+
+  it("blocks saving an effort the task model does not support", async () => {
+    apiState.renderingEffort = "xhigh"
+    await renderLoaded()
+    expect(screen.getByText("openai:gpt-5.4 does not support the Extra high effort. Choose another level.")).toBeTruthy()
+
+    fireEvent.change(byId("task-model-metadata"), { target: { value: "anthropic:claude-opus-4" } })
+    await waitFor(() => expect(saveButton().hasAttribute("disabled")).toBe(true))
+  })
+})
+
+describe("ModelsSection — inherited models", () => {
+  it("shows the model each task really inherits and where it comes from", async () => {
+    await renderLoaded()
+    expect(byId("task-model-book_outline").placeholder).toBe(SAVED_LLM)
+    expect(byId("task-model-glossary").placeholder).toBe(SAVED_LLM)
+    expect(screen.queryByText("Inherited from page-sectioning")).toBeNull()
+
+    fireEvent.change(byId("task-model-page_sectioning"), { target: { value: "anthropic:claude-opus-4" } })
+    await waitFor(() => expect(byId("task-model-glossary").placeholder).toBe("anthropic:claude-opus-4"))
+    expect(screen.getByText("Inherited from page-sectioning")).toBeTruthy()
+  })
+
+  it("follows the default model when the outline has no model of its own", async () => {
+    await renderLoaded()
+    fireEvent.change(defaultLlmInput(), { target: { value: "anthropic:claude-opus-4" } })
+    await waitFor(() => expect(byId("task-model-book_outline").placeholder).toBe("anthropic:claude-opus-4"))
+  })
+})
+
+describe("ModelsSection — search", () => {
+  it("filters rows by prompt name and by model", async () => {
+    await renderLoaded()
+
+    fireEvent.change(searchInput(), { target: { value: "web_generation" } })
+    expect(byId("task-model-render_strategies-llm")).toBeTruthy()
+    expect(byId("task-model-metadata")).toBeNull()
+    expect(byId("app-default-model")).toBeNull()
+
+    fireEvent.change(searchInput(), { target: { value: "gpt-5.4" } })
+    expect(byId("task-model-render_strategies-llm")).toBeTruthy()
+    expect(byId("task-model-metadata")).toBeNull()
+
+    fireEvent.change(searchInput(), { target: { value: SAVED_LLM } })
+    expect(byId("task-model-metadata")).toBeTruthy()
+    expect(byId("app-default-model")).toBeTruthy()
+  })
+
+  it("shows an empty state that clears the search", async () => {
+    await renderLoaded()
+
+    fireEvent.change(searchInput(), { target: { value: "nothing-matches-this" } })
+    expect(screen.getByText("No tasks, prompts or models match “nothing-matches-this”.")).toBeTruthy()
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Clear search" }).at(-1)!)
+    expect(searchInput().value).toBe("")
+    expect(byId("task-model-metadata")).toBeTruthy()
+  })
+})
+
+describe("ModelsSection — tuned prompt warning", () => {
+  const SOL = "openai:gpt-6.1-sol"
+  const shippedSolPrompts = [
+    { name: "web_generation_html", variants: ["web_generation_html__openai_gpt_6_1_sol"] },
+  ]
+
+  async function renderWithDefault(model: string) {
+    apiState.defaultModel = model
+    apiState.promptModels = []
+    apiState.prompts = shippedSolPrompts
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={client}>
+        <FloatingSaveProvider>
+          <ModelsSection />
+        </FloatingSaveProvider>
+      </QueryClientProvider>,
+    )
+    await waitFor(() => expect(defaultLlmInput().value).toBe(model))
+  }
+
+  it("does not ask for new prompts when the model's variants ship in a model folder", async () => {
+    await renderWithDefault(SOL)
+
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(screen.queryByText("Generate global prompts")).toBeNull()
+  })
+
+  it("still asks for new prompts when the model has no tuned variants", async () => {
+    await renderWithDefault("anthropic:claude-opus-4")
+
+    expect(await screen.findByText("Generate global prompts")).toBeTruthy()
   })
 })
 
@@ -213,5 +373,41 @@ describe("ModelsSection — speech model (i) tooltip", () => {
     await waitFor(() => expect(isOpen()).toBe(true))
     fireEvent.click(infoButton())
     await waitFor(() => expect(isOpen()).toBe(false))
+  })
+})
+
+describe("ModelsSection — OpenAI task models under another provider's default", () => {
+  const NOTE = "Tasks set to GPT-6 Luna or GPT-6.1 Sol use this model instead while it isn't an OpenAI model."
+
+  it("explains the rule only while the default LLM is not an OpenAI model", async () => {
+    await renderLoaded()
+    expect(screen.queryByText(NOTE)).toBeNull()
+    fireEvent.change(defaultLlmInput(), { target: { value: "anthropic:claude-opus-4" } })
+    await waitFor(() => expect(screen.getByText(NOTE)).toBeTruthy())
+  })
+
+  it("shows a book on another provider's default following that default, not the global OpenAI pin", () => {
+    const task = { kind: "step" as const, prompts: [], reasoningEffort: null, inheritsFrom: [] as string[] }
+    const platform = {
+      defaultModel: "openai:gpt-6-luna",
+      defaultReasoningEffort: null,
+      tasks: [
+        { ...task, id: "page_sectioning", configKey: "page_sectioning", model: "openai:gpt-6.1-sol" },
+        { ...task, id: "glossary", configKey: "glossary", model: null, inheritsFrom: ["page_sectioning"] },
+        { ...task, id: "metadata", configKey: "metadata", model: "anthropic:claude-opus-4" },
+      ],
+    }
+    const book = { ...platform, tasks: platform.tasks.map((entry) => ({ ...entry, model: null })) }
+    const state = { data: book, inherited: platform, isLoading: false, isError: false, isSaving: false, save: () => {} }
+    const client = new QueryClient()
+    const wrapper = ({ children }: { children: React.ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>
+
+    const onClaude = renderHook(() => useTaskModelDrafts("anthropic:claude-sonnet-4-5", state), { wrapper }).result.current
+    expect(onClaude.inheritedOf("page_sectioning").model).toBe("anthropic:claude-sonnet-4-5")
+    expect(onClaude.inheritedOf("glossary").model).toBe("anthropic:claude-sonnet-4-5")
+    expect(onClaude.inheritedOf("metadata").model).toBe("anthropic:claude-opus-4")
+
+    const onOpenAi = renderHook(() => useTaskModelDrafts("", state), { wrapper }).result.current
+    expect(onOpenAi.inheritedOf("page_sectioning").model).toBe("openai:gpt-6.1-sol")
   })
 })

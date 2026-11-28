@@ -244,6 +244,7 @@ export function createQuizRoutes(
       const llmModel = createLLMModel({
         signal: c.req.raw.signal,
         modelId: quizConfig.modelId,
+        reasoningEffort: appConfig.quiz_generation?.reasoning_effort ?? appConfig.default_reasoning_effort,
         cacheDir,
         promptEngine,
         onLog: (entry) => storage.appendLlmLog(entry),

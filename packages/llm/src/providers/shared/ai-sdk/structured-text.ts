@@ -117,6 +117,7 @@ async function generateWithParseRepair<T>(
     }
     if (request.maxTokens) options.maxTokens = request.maxTokens
     if (request.temperature !== undefined) options.temperature = request.temperature
+    if (request.providerOptions) options.providerOptions = request.providerOptions
 
     const generated = (await (generateText as Function)(options)) as Awaited<
       ReturnType<typeof generateText>

@@ -43,6 +43,7 @@ it("requires an explicit publication-guard decision for every new application se
     "split_mode",
     "spread_mode",
     "spread_pairs",
+    "styleguide_generation",
     "toc_generation",
     "toc_mode",
     "translation_evaluation",

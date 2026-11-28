@@ -18,7 +18,7 @@ import {
   type TextCatalogEntry,
   type OutputRunScope,
 } from "@adt/types"
-import { DEFAULT_LLM_MAX_RETRIES } from "@adt/types"
+import { DEFAULT_LLM_MAX_RETRIES, DEFAULT_LLM_MODEL_ID } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
 import type { Storage } from "@adt/storage"
 import { getBaseLanguage, normalizeLocale } from "./language-context.js"
@@ -60,7 +60,7 @@ export function buildCoreTtsPreparationConfig(
       appConfig.core_tts?.model ??
       appConfig.translation?.model ??
       appConfig.default_model ??
-      "openai:gpt-5.4",
+      DEFAULT_LLM_MODEL_ID,
     promptName: appConfig.core_tts?.prompt ?? "core_tts_preparation",
     maxRetries:
       appConfig.core_tts?.max_retries ?? DEFAULT_LLM_MAX_RETRIES,

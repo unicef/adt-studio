@@ -164,8 +164,8 @@ msgid "{0, plural, one {# stage} other {# stages}}"
 msgstr "{0, plural, one {# fazë} other {# faza}}"
 
 #. placeholder {0}: llmSteps.length
-msgid "{0, plural, one {# task inherits this model} other {# tasks inherit this model}}"
-msgstr "{0, plural, one {# detyrë trashëgon këtë model} other {# detyra trashëgojnë këtë model}}"
+#~ msgid "{0, plural, one {# task inherits this model} other {# tasks inherit this model}}"
+#~ msgstr "{0, plural, one {# detyrë trashëgon këtë model} other {# detyra trashëgojnë këtë model}}"
 
 #. placeholder {0}: reader.commentCount
 msgid "{0, plural, one {comment} other {comments}}"
@@ -188,8 +188,8 @@ msgid "{0, plural, one {Review # comment} other {Review # comments}}"
 msgstr "{0, plural, one {Shqyrto # koment} other {Shqyrto # komente}}"
 
 #. placeholder {0}: steps.length
-msgid "{0, plural, one {Used by # task} other {Used by # tasks}}"
-msgstr "{0, plural, one {Përdorur nga # detyrë} other {Përdorur nga # detyra}}"
+#~ msgid "{0, plural, one {Used by # task} other {Used by # tasks}}"
+#~ msgstr "{0, plural, one {Përdorur nga # detyrë} other {Përdorur nga # detyra}}"
 
 #. placeholder {0}: lockedLang.name
 msgid "{0} — type country or Enter for base"
@@ -398,6 +398,10 @@ msgstr "{0} faqe"
 msgid "{0} pages · split into {1} parts"
 msgstr "{0} faqe · ndarë në {1} pjesë"
 
+#. placeholder {0}: adt.pageCount
+#~ msgid "{0} pages and {imageCount} images read"
+#~ msgstr "{0} faqe dhe {imageCount} imazhe u lexuan"
+
 #. placeholder {0}: section.criteria.length - reviewed
 msgid "{0} pending"
 msgstr "{0} në pritje"
@@ -437,6 +441,16 @@ msgstr "{0} tekste"
 #. placeholder {0}: outputLanguages.length
 msgid "{0} translations"
 msgstr "{0} përkthime"
+
+#. placeholder {0}: i18n._(recovered[0].label)
+#. placeholder {1}: i18n._(recovered[1].label)
+#. placeholder {2}: recoveredCount - 2
+#~ msgid "{0}, {1} and {2} more"
+#~ msgstr "{0}, {1} dhe {2} të tjera"
+
+#. placeholder {0}: adt.title
+#~ msgid "{0}, separate from your other projects"
+#~ msgstr "{0}, i ndarë nga projektet e tjera"
 
 #. placeholder {0}: newest.root.author_name
 #. placeholder {1}: newest.root.body
@@ -504,6 +518,9 @@ msgstr "{activityTotal} të gjetura, asnjë për t’u klasifikuar"
 
 msgid "{availableCount} more you can generate after import:"
 msgstr "Edhe {availableCount} që mund t’i gjeneroni pas importimit:"
+
+msgid "{changeCount, plural, one {# model change} other {# model changes}}"
+msgstr "{changeCount, plural, one {# ndryshim modeli} other {# ndryshime modeli}}"
 
 #. placeholder {0}: items.length
 msgid "{classifiedCount} of {0} classified"
@@ -629,6 +646,9 @@ msgstr "{imageCount, plural, one {# imazh do të përkthehet} other {# imazhe do
 msgid "{imageCount} images"
 msgstr "{imageCount} imazhe"
 
+msgid "{inheritCount, plural, one {# task inherits it} other {# tasks inherit it}}"
+msgstr "{inheritCount, plural, one {# detyrë e trashëgon} other {# detyra e trashëgojnë}}"
+
 msgid "{inProgress, plural, one {# in progress} other {# in progress}}"
 msgstr "{inProgress, plural, one {# në progres} other {# në progres}}"
 
@@ -673,6 +693,15 @@ msgstr "Mungojnë {missingForCurrentStage} rezultate gjuhësore. Ekzekutojeni s�
 
 msgid "{missingForCurrentStage} speech outputs are missing. Re-run to generate the missing items."
 msgstr "Mungojnë {missingForCurrentStage} rezultate të të folurit. Ekzekutojeni sërish për të gjeneruar elementet që mungojnë."
+
+msgid "{model} does not support a reasoning effort setting. Use the default."
+msgstr "{model} nuk mbështet cilësimin e përpjekjes së arsyetimit. Përdorni të parazgjedhurin."
+
+msgid "{model} does not support the {level} effort. Choose another level."
+msgstr "{model} nuk mbështet përpjekjen {level}. Zgjidhni një nivel tjetër."
+
+#~ msgid "{model} overrides the default LLM for this task"
+#~ msgstr "{model} zëvendëson LLM-në e parazgjedhur për këtë detyrë"
 
 msgid "{name}: {setTo}"
 msgstr "{name}: {setTo}"
@@ -792,6 +821,9 @@ msgstr "{set} nga {total}"
 msgid "{settled} of {total}"
 msgstr "{settled} nga {total}"
 
+msgid "{shown} of {total}"
+msgstr "{shown} nga {total}"
+
 msgid "{source} + {outputs} {outputs, plural, one {translation} other {translations}}"
 msgstr "{source} + {outputs} {outputs, plural, one {përkthim} other {përkthime}}"
 
@@ -874,6 +906,9 @@ msgstr "{toggleShortcut} për të ndërruar"
 
 msgid "{total, plural, one {# comment waiting} other {# comments waiting}}"
 msgstr "{total, plural, one {# koment në pritje} other {# komente në pritje}}"
+
+msgid "{total, plural, one {# model setting} other {# model settings}}"
+msgstr "{total, plural, one {# cilësim modeli} other {# cilësime modeli}}"
 
 msgid "{total} here"
 msgstr "{total} këtu"
@@ -1808,11 +1843,17 @@ msgstr "ADT STUDIO"
 msgid "ADT Studio accepts ZIP archives up to 1 GiB compressed. Choose a smaller bundle and try again."
 msgstr "ADT Studio pranon arkiva ZIP deri në 1 GiB të kompresuara. Zgjidhni një paketë më të vogël dhe provoni përsëri."
 
+#~ msgid "ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again."
+#~ msgstr "ADT Studio pranon arkiva ZIP deri në 512 MiB të kompresuara. Zgjidhni një paketë më të vogël dhe provoni sërish."
+
 msgid "ADT Studio can’t import this ZIP"
 msgstr "ADT Studio nuk mund ta importojë këtë ZIP"
 
 msgid "ADT Studio can’t tell whether its pages changed. They become the working source, so check generated features after import."
 msgstr "ADT Studio nuk mund ta dijë nëse faqet kanë ndryshuar. Ato bëhen burimi i punës, ndaj kontrolloni veçoritë e gjeneruara pas importimit."
+
+#~ msgid "ADT Studio checks it again right away."
+#~ msgstr "ADT Studio e kontrollon sërish menjëherë."
 
 msgid "ADT Studio compared every page with the fingerprints saved at export."
 msgstr "ADT Studio krahasoi çdo faqe me gjurmët e ruajtura gjatë eksportimit."
@@ -2322,6 +2363,9 @@ msgstr "Rendit të gjithë elementet në një varg të vetëm të saktë."
 
 msgid "Arrange extracted content into a structured storyboard with pages, sections, and layouts."
 msgstr "Organizoni përmbajtjen e nxjerrë në një storyboard të strukturuar me faqe, seksione dhe paraqitje."
+
+#~ msgid "Arrange items into an order or categories."
+#~ msgstr "Rendit elementet sipas një rendi ose kategorish."
 
 msgid "Article"
 msgstr "Artikull"
@@ -3099,6 +3143,9 @@ msgstr "Tabelë / Grafik"
 msgid "Check"
 msgstr "Kontrolli"
 
+#~ msgid "Check each page and choose how ADT Studio should treat it after import."
+#~ msgstr "Kontrolloni çdo faqe dhe zgjidhni si duhet ta trajtojë ADT Studio pas importimit."
+
 msgid "Check for new comments"
 msgstr "Kontrollo për komente të reja"
 
@@ -3159,6 +3206,12 @@ msgstr "zgjedhje"
 msgid "Choose a beta release to install."
 msgstr "Zgjidhni një version beta për ta instaluar."
 
+msgid "Choose a different model for each text task."
+msgstr "Zgjidhni një model tjetër për çdo detyrë teksti."
+
+msgid "Choose a model from a registered provider before saving."
+msgstr "Zgjidhni një model nga një ofrues i regjistruar para se të ruani."
+
 msgid "Choose a new name"
 msgstr "Zgjidhni një emër të ri"
 
@@ -3197,6 +3250,9 @@ msgstr "Zgjidhni një PDF tjetër"
 
 msgid "Choose another ZIP"
 msgstr "Zgjidhni një ZIP tjetër"
+
+#~ msgid "Choose classification"
+#~ msgstr "Zgjidhni klasifikimin"
 
 msgid "Choose exactly one answer from several options."
 msgstr "Zgjidh saktësisht një përgjigje nga disa opsione."
@@ -3237,6 +3293,9 @@ msgstr "Zgjidh faqen nga e cila do të presësh."
 msgid "Choose the part file that was shared with you, or export it again."
 msgstr "Zgjidhni skedarin e pjesës që ju është ndarë, ose eksportojeni përsëri."
 
+#~ msgid "Choose the repaired ZIP"
+#~ msgstr "Zgjidhni ZIP-in e riparuar"
+
 msgid "Choose the source pages and where the quiz lands in the page editor."
 msgstr "Zgjidhni faqet burimore dhe ku vendoset testi në redaktorin e faqeve."
 
@@ -3260,6 +3319,13 @@ msgstr "Ciências da Natureza - Ensino Fundamental"
 
 msgid "Classic Storybook"
 msgstr "Libër Klasik Tregimesh"
+
+#~ msgid "Classification"
+#~ msgstr "Klasifikimi"
+
+#. placeholder {0}: item.href
+#~ msgid "Classification for {0}"
+#~ msgstr "Klasifikimi për {0}"
 
 msgid "Classify every page"
 msgstr "Klasifikoni çdo faqe"
@@ -3817,6 +3883,12 @@ msgstr "Kopjo lidhjen te {0}"
 msgid "Copy the link to send"
 msgstr "Kopjo lidhjen për ta dërguar"
 
+#~ msgid "Copy the repair request"
+#~ msgstr "Kopjoni kërkesën për riparim"
+
+#~ msgid "Copy the repair request and give it, with the unzipped export, to an AI assistant such as Claude or Codex. Then choose the ZIP it returns."
+#~ msgstr "Kopjoni kërkesën për riparim dhe jepjani, së bashku me eksportin e shpaketuar, një asistenti AI si Claude ose Codex. Pastaj zgjidhni ZIP-in që ai kthen."
+
 msgid "Coral reefs cover less than 1% of the ocean floor, yet they support roughly 25% of all marine species. Often called the 'rainforests of the sea,' these underwater ecosystems are built by tiny animals called coral polyps."
 msgstr "Rifet koraliere mbulojnë më pak se 1% të dyshemesë së oqeanit, por mbështesin rreth 25% të të gjitha specieve detare. Shpesh të quajtura 'pyjet e shiut të detit', këto ekosisteme nënujore ndërtohen nga kafshë të vogla të quajtura polipe korali."
 
@@ -4162,6 +4234,10 @@ msgstr "parazgjedhje"
 msgid "Default"
 msgstr "Parazgjedhje"
 
+#. placeholder {0}: effortLabel(inherited)
+msgid "Default · {0}"
+msgstr "E parazgjedhur · {0}"
+
 msgid "Default (from prompt)"
 msgstr "Parazgjedhje (nga prompt-i)"
 
@@ -4200,6 +4276,9 @@ msgstr "Dosjet e parazgjedhura të prompteve nuk mund të fshihen."
 
 msgid "Default Provider"
 msgstr "Ofruesi parazgjedhës"
+
+msgid "Default reasoning effort"
+msgstr "Përpjekja e parazgjedhur e arsyetimit"
 
 msgid "Default Render Strategy"
 msgstr "Strategjia parazgjedhëse e renderimit"
@@ -4426,6 +4505,9 @@ msgstr "Zbulon dhe ndan ilustrimet e kompozuara në rajone të veçanta që çdo
 
 msgid "Detects exercises and quizzes embedded in the book and classifies them as their own sections so they can render as interactive elements downstream."
 msgstr "Zbulon ushtrimet dhe kuizet e ngulura në libër dhe i klasifikon si seksionet e tyre që të mund të renderohën si elementë interaktivë."
+
+#~ msgid "Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed."
+#~ msgstr "Zbulon tekstin e vulosur në mënyrë identike në të gjitha faqet — si një njoftim diagonal “vetëm për lexim në internet” — dhe e heq atë nga faqet e renderuara, figurat e nxjerra dhe teksti i librit. Çaktivizojeni për t’i ruajtur faqet saktësisht siç janë shtypur."
 
 msgid "Diagnostics"
 msgstr "Diagnostikime"
@@ -5237,6 +5319,9 @@ msgstr "Zëra TTS shprehës për rrëfimin."
 msgid "Extend"
 msgstr "Zgjat"
 
+msgid "Extra high"
+msgstr "Shumë e lartë"
+
 msgid "Extract"
 msgstr "Nxjerr"
 
@@ -5554,8 +5639,11 @@ msgstr "Font"
 msgid "Font Analysis"
 msgstr "Analiza e fonteve"
 
-msgid "Font assignment, styleguide generation, and visual review also use this default unless overridden."
-msgstr "Caktimi i fonteve, gjenerimi i udhëzuesit të stilit dhe shqyrtimi vizual e përdorin gjithashtu këtë model të parazgjedhur, përveç nëse zëvendësohet."
+msgid "Font Assignment"
+msgstr "Caktimi i shkronjave"
+
+#~ msgid "Font assignment, styleguide generation, and visual review also use this default unless overridden."
+#~ msgstr "Caktimi i fonteve, gjenerimi i udhëzuesit të stilit dhe shqyrtimi vizual e përdorin gjithashtu këtë model të parazgjedhur, përveç nëse zëvendësohet."
 
 msgid "Fonts"
 msgstr "Fontet"
@@ -6229,6 +6317,9 @@ msgstr "Si funksionon tabela e përmbajtjes"
 msgid "How to add quizzes"
 msgstr "Si të shtohen kuizet"
 
+#~ msgid "How to repair"
+#~ msgstr "Si ta riparoni"
+
 msgid "HTML"
 msgstr "HTML"
 
@@ -6576,8 +6667,14 @@ msgstr "Informacioni lexohet më mirë në një kolonë të vetme e të pastër.
 msgid "Information to look up, no tasks."
 msgstr "Informacion për t'u kërkuar, pa detyra."
 
+msgid "Inherited from {sourceLabel}"
+msgstr "Trashëguar nga {sourceLabel}"
+
 msgid "Inherited from a parent element. Choose a value here to override on this element."
 msgstr "Trashëguar nga një element prind. Zgjidhni një vlerë këtu për ta anuluar në këtë element."
+
+msgid "Inherited from Settings → Models"
+msgstr "Trashëguar nga Cilësimet → Modelet"
 
 msgid "Initial Page"
 msgstr "Faqja fillestare"
@@ -6725,6 +6822,9 @@ msgstr "Është kryesisht tekst, si një artikull ose raport."
 
 msgid "It is mostly words. Pictures are few or small."
 msgstr "Është kryesisht tekst. Figurat janë të pakta ose të vogla."
+
+#~ msgid "It lists the problems and the editing rules."
+#~ msgstr "Rendit problemet dhe rregullat e redaktimit."
 
 msgid "It may be damaged, have no pages, or be too large. Try another file, or set this book up yourself."
 msgstr "Mund të jetë i dëmtuar, pa faqe ose shumë i madh. Provoni një skedar tjetër ose konfigurojeni vetë këtë libër."
@@ -7110,6 +7210,9 @@ msgstr "Lëre agjentin të zgjedhë"
 msgid "Let the model write descriptive chapter titles based on each section's contents. Best for storybooks or when headings are missing."
 msgstr "Lëre modelin të shkruajë tituj përshkrues kapitujsh bazuar në përmbajtjen e çdo seksioni. Më i miri për libra tregimesh ose kur titujt mungojnë."
 
+#~ msgid "Let your AI assistant fix it"
+#~ msgstr "Lëreni asistentin IA ta rregullojë"
+
 msgid "Let's start"
 msgstr "Le të fillojmë"
 
@@ -7234,8 +7337,8 @@ msgstr "Segmentim i imazhit me LLM"
 msgid "LLM meaningfulness filter"
 msgstr "Filtër kuptimësie LLM"
 
-msgid "LLM model"
-msgstr "Modeli LLM"
+#~ msgid "LLM model"
+#~ msgstr "Modeli LLM"
 
 msgid "LLM positions text over background images"
 msgstr "LLM pozicionon tekstin mbi imazhet e sfondit"
@@ -7573,6 +7676,9 @@ msgstr "Përputhje"
 msgid "Math read aloud"
 msgstr "Leximi me zë i matematikës"
 
+msgid "Max"
+msgstr "Maksimale"
+
 msgid "Max height"
 msgstr "Lartësia maksimale"
 
@@ -7753,6 +7859,9 @@ msgstr "Madhësia Minimale (px)"
 msgid "Min width"
 msgstr "Gjerësia minimale"
 
+msgid "Minimal"
+msgstr "Minimale"
+
 msgid "Minimise onboarding and list-reorder animations."
 msgstr "Minimizo animacionet e hyrjes dhe riorganizimit të listës."
 
@@ -7828,8 +7937,14 @@ msgstr "Celular"
 msgid "Model"
 msgstr "Model"
 
+msgid "Model default"
+msgstr "E parazgjedhura e modelit"
+
 msgid "Model overrides"
 msgstr "Mbivendosjet e modeleve"
+
+msgid "Model per task"
+msgstr "Modeli për detyrë"
 
 msgid "Model reasoning"
 msgstr "Arsyetimi i modelit"
@@ -8033,6 +8148,9 @@ msgstr "Kërkon vëmendje"
 
 msgid "Needs changes"
 msgstr "Kërkon ndryshime"
+
+#~ msgid "Needs classification"
+#~ msgstr "Kërkon klasifikim"
 
 msgid "Needs fixing"
 msgstr "Kërkon rregullim"
@@ -8548,6 +8666,9 @@ msgstr "Nuk u gjetën seksione storyboard. Ekzekutoni Storyboard-in për të gje
 msgid "No suggestions are pending save in this view."
 msgstr "Nuk ka sugjerime në pritje të ruajtjes në këtë pamje."
 
+msgid "No tasks, prompts or models match “{search}”."
+msgstr "Asnjë detyrë, prompt apo model nuk përputhet me “{search}”."
+
 msgid "No terms match your search"
 msgstr "Asnjë term nuk përputhet me kërkimin tuaj"
 
@@ -8712,6 +8833,9 @@ msgstr "Nuk ka filluar"
 
 msgid "Not started yet"
 msgstr "Nuk ka filluar ende"
+
+msgid "Not supported"
+msgstr "Nuk mbështetet"
 
 msgid "Not sure"
 msgstr "Nuk jam i sigurt"
@@ -8933,6 +9057,9 @@ msgstr "Një shkallë e vetme teksti për të gjithë librin. Nis nga madhësit�
 
 msgid "One ZIP, up to 1 GiB"
 msgstr "Një ZIP, deri në 1 GiB"
+
+#~ msgid "One ZIP, up to 512 MiB"
+#~ msgstr "Një ZIP, deri në 512 MiB"
 
 msgid "Only a few pages have tasks."
 msgstr "Vetëm pak faqe kanë detyra."
@@ -9327,8 +9454,11 @@ msgstr "Rezultatet do të shfaqen këtu ndërsa i gjeneroni ato."
 msgid "Overall page note"
 msgstr "Shënim i përgjithshëm i faqes"
 
-msgid "Override the default LLM and specialized models for this book. Empty fields inherit the platform defaults."
-msgstr "Mbivendosni LLM-në e parazgjedhur dhe modelet e specializuara për këtë libër. Fushat bosh trashëgojnë parazgjedhjet e platformës."
+#~ msgid "Override the default LLM and specialized models for this book. Empty fields inherit the platform defaults."
+#~ msgstr "Mbivendosni LLM-në e parazgjedhur dhe modelet e specializuara për këtë libër. Fushat bosh trashëgojnë parazgjedhjet e platformës."
+
+msgid "Override the models and reasoning effort for this book, task by task. Empty fields inherit Settings → Models; a value set here wins over it, even when the global setting changes later."
+msgstr "Zëvendëso modelet dhe përpjekjen e arsyetimit për këtë libër, detyrë pas detyre. Fushat bosh trashëgojnë Cilësimet → Modelet; një vlerë e vendosur këtu ka përparësi, edhe kur cilësimi global ndryshon më vonë."
 
 msgid "Overview"
 msgstr "Përmbledhje"
@@ -9940,17 +10070,17 @@ msgstr "Po vendosen pinet…"
 msgid "Platform"
 msgstr "Platforma"
 
-msgid "Platform default"
-msgstr "Parazgjedhja e platformës"
+#~ msgid "Platform default"
+#~ msgstr "Parazgjedhja e platformës"
 
-msgid "Platform default: {platformImageModel}"
-msgstr "Parazgjedhja e platformës: {platformImageModel}"
+#~ msgid "Platform default: {platformImageModel}"
+#~ msgstr "Parazgjedhja e platformës: {platformImageModel}"
 
-msgid "Platform default: {platformLlmModel}"
-msgstr "Parazgjedhja e platformës: {platformLlmModel}"
+#~ msgid "Platform default: {platformLlmModel}"
+#~ msgstr "Parazgjedhja e platformës: {platformLlmModel}"
 
-msgid "Platform default: {platformSpeechModel}"
-msgstr "Parazgjedhja e platformës: {platformSpeechModel}"
+#~ msgid "Platform default: {platformSpeechModel}"
+#~ msgstr "Parazgjedhja e platformës: {platformSpeechModel}"
 
 msgid "Play a sound"
 msgstr "Luaj një tingull"
@@ -10637,6 +10767,12 @@ msgstr "Realist / Foto"
 msgid "Rearranging atoms of HTML..."
 msgstr "Duke riorganizuar atomet e HTML-it..."
 
+msgid "Reasoning effort"
+msgstr "Përpjekja e arsyetimit"
+
+msgid "Reasoning effort for {label}"
+msgstr "Përpjekja e arsyetimit për {label}"
+
 msgid "Rebuild"
 msgstr "Rindërto"
 
@@ -11172,6 +11308,15 @@ msgstr "Rishikoni {formatted} pas këtij ekzekutimi."
 msgid "Review {label} outputs"
 msgstr "Shqyrto rezultatet e {label}"
 
+#~ msgid "Review {unresolvedActivityCount} activities"
+#~ msgstr "Shqyrto {unresolvedActivityCount} aktivitete"
+
+#~ msgid "Review activities"
+#~ msgstr "Shqyrto aktivitetet"
+
+#~ msgid "Review activity pages"
+#~ msgstr "Shqyrto faqet e aktiviteteve"
+
 msgid "Review and refine each simplified block side-by-side with the original before packaging."
 msgstr "Rishikoni dhe rafinoni çdo bllok të thjeshtëzuar krahas origjinalit përpara paketimit."
 
@@ -11563,8 +11708,8 @@ msgstr "U ruajt. Ri-pako Parapamjen për ta aplikuar."
 msgid "Saving your book…"
 msgstr "Po ruaj librin tuaj…"
 
-msgid "Saving..."
-msgstr "Duke ruajtur..."
+#~ msgid "Saving..."
+#~ msgstr "Duke ruajtur..."
 
 msgid "Saving…"
 msgstr "Po ruhet…"
@@ -11703,6 +11848,12 @@ msgstr "Kërko te librat e ndarë"
 
 msgid "Search style guides..."
 msgstr "Kërko udhëzues stili..."
+
+msgid "Search tasks, prompts or models"
+msgstr "Kërko detyra, prompte ose modele"
+
+msgid "Search tasks, prompts or models…"
+msgstr "Kërko detyra, prompte ose modele…"
 
 msgid "Search terms or definitions…"
 msgstr "Kërko terma ose përkufizime…"
@@ -12465,6 +12616,9 @@ msgstr "Prerje Inteligjente"
 msgid "So only this computer can share or change your books."
 msgstr "Kështu vetëm ky kompjuter mund të ndajë ose të ndryshojë librat tuaj."
 
+#~ msgid "So you can keep working right away"
+#~ msgstr "Që të vazhdoni punën menjëherë"
+
 msgid "Software update"
 msgstr "Përditësim softueri"
 
@@ -12979,6 +13133,9 @@ msgstr "Stili:"
 msgid "Styleguide"
 msgstr "Udhëzues Stili"
 
+msgid "Styleguide Generation"
+msgstr "Gjenerimi i udhëzuesit të stilit"
+
 msgid "Styleguide Preview"
 msgstr "Parashikim i Udhëzuesit të Stilit"
 
@@ -13112,6 +13269,9 @@ msgstr "Gjuha e synuar"
 msgid "Target model"
 msgstr "Modeli i synuar"
 
+msgid "Task"
+msgstr "Detyrë"
+
 msgid "Task complete"
 msgstr "Detyra u krye"
 
@@ -13120,6 +13280,9 @@ msgstr "Detyra dështoi"
 
 msgid "Task failed: {taskError}"
 msgstr "Detyra dështoi: {taskError}"
+
+msgid "Task models updated."
+msgstr "Modelet për detyrë u përditësuan."
 
 msgid "Task Running"
 msgstr "Detyra po Ekzekutohet"
@@ -13135,6 +13298,9 @@ msgstr "Parazgjedhjet e modeleve sipas detyrës u përditësuan."
 
 msgid "Tasks Running"
 msgstr "Detyrat po Ekzekutohen"
+
+msgid "Tasks set to GPT-6 Luna or GPT-6.1 Sol use this model instead while it isn't an OpenAI model."
+msgstr "Detyrat e caktuara me GPT-6 Luna ose GPT-6.1 Sol përdorin këtë model për sa kohë që ai nuk është model OpenAI."
 
 msgid "Teaching the pixels new tricks..."
 msgstr "Duke i mësuar pikselëve truke të reja..."
@@ -13946,6 +14112,9 @@ msgstr "tema pamja e errët e ndritshme mënyra"
 msgid "theme appearance system automatic"
 msgstr "tema pamja sistemi automatik"
 
+#~ msgid "Then zip the folder again."
+#~ msgstr "Pastaj ngjeshni sërish dosjen në ZIP."
+
 msgid "There are lines or boxes to write answers in."
 msgstr "Ka rreshta ose kuti për të shkruar përgjigje."
 
@@ -13991,11 +14160,11 @@ msgstr "Këto faqe të PDF-së tregojnë tashmë dy faqe përballë krah për kr
 msgid "These stages are optional. They don't depend on each other — run any of them in any order once the core pipeline is complete."
 msgstr "Këto faza janë opsionale. Ato nuk varen nga njëra-tjetra — ekzekuto cilëndo prej tyre në çfarëdo rendi pasi të jetë plotësuar tubi kryesor."
 
-msgid "These tasks inherit the default LLM unless their own settings specify another model."
-msgstr "Këto detyra trashëgojnë LLM-në e parazgjedhur, përveç nëse cilësimet e tyre përcaktojnë një model tjetër."
+#~ msgid "These tasks inherit the default LLM unless their own settings specify another model."
+#~ msgstr "Këto detyra trashëgojnë LLM-në e parazgjedhur, përveç nëse cilësimet e tyre përcaktojnë një model tjetër."
 
-msgid "These tasks require specialized models and do not inherit the default LLM above."
-msgstr "Këto detyra kërkojnë modele të specializuara dhe nuk e trashëgojnë LLM-në e parazgjedhur më sipër."
+#~ msgid "These tasks require specialized models and do not inherit the default LLM above."
+#~ msgstr "Këto detyra kërkojnë modele të specializuara dhe nuk e trashëgojnë LLM-në e parazgjedhur më sipër."
 
 msgid "These values reflect either the saved book override or the latest packaged defaults."
 msgstr "Këto vlera pasqyrojnë ose anashkalimin e ruajtur të librit ose parazgjedhjeve më të fundit të paketuara."
@@ -14734,11 +14903,14 @@ msgstr "Nuk mund të ngarkohen cilësimet e listës së kontrollit të rishikues
 msgid "Unable to load the default LLM."
 msgstr "LLM-ja e parazgjedhur nuk mund të ngarkohej."
 
-msgid "Unable to load the model settings."
-msgstr "Cilësimet e modeleve nuk mund të ngarkoheshin."
+#~ msgid "Unable to load the model settings."
+#~ msgstr "Cilësimet e modeleve nuk mund të ngarkoheshin."
 
 msgid "Unable to load the provider list. Check that the local API is running, then refresh."
 msgstr "Lista e ofruesve nuk u ngarkua dot. Kontrollo që API-ja lokale po funksionon, pastaj rifresko."
+
+msgid "Unable to load the task models."
+msgstr "Modelet për detyrë nuk mund të ngarkoheshin."
 
 msgid "Unable to load the task-specific model defaults."
 msgstr "Parazgjedhjet e modeleve sipas detyrës nuk mund të ngarkoheshin."
@@ -14769,6 +14941,9 @@ msgstr "Mbivendosjet e modeleve të librit nuk mund të përditësoheshin."
 
 msgid "Unable to update the default LLM."
 msgstr "LLM-ja e parazgjedhur nuk mund të përditësohej."
+
+msgid "Unable to update the task models."
+msgstr "Modelet për detyrë nuk mund të përditësoheshin."
 
 msgid "Unable to update the task-specific model defaults."
 msgstr "Parazgjedhjet e modeleve sipas detyrës nuk mund të përditësoheshin."
@@ -15048,6 +15223,12 @@ msgstr "Përdor Spread për libra të shtypur me paraqitje faqesh ballë për ba
 
 msgid "Use the + between pages to place the quiz"
 msgstr "Përdor + ndërmjet faqeve për të vendosur kuizin"
+
+msgid "Use the default LLM"
+msgstr "Përdor LLM-në e parazgjedhur"
+
+msgid "Use the default LLM for {label}"
+msgstr "Përdor LLM-në e parazgjedhur për {label}"
 
 msgid "Use the entire latest saved activity instead of this draft."
 msgstr "Përdorni të gjithë aktivitetin e fundit të ruajtur në vend të këtij drafti."
@@ -15385,6 +15566,9 @@ msgstr "Publikim web"
 msgid "Web Rendering"
 msgstr "Renderim web"
 
+msgid "Web Rendering (overlay)"
+msgstr "Paraqitja në ueb (mbivendosje)"
+
 msgid "WebPub"
 msgstr "WebPub"
 
@@ -15552,6 +15736,9 @@ msgstr "Pse e sugjerova:"
 
 msgid "Why it could be this one:"
 msgstr "Pse mund të jetë ky:"
+
+#~ msgid "Why this needs review"
+#~ msgstr "Pse kjo ka nevojë për shqyrtim"
 
 msgid "Wide multilingual coverage with neural voices for many locales."
 msgstr "Mbulim i gjerë shumëgjuhësh me zëra neural për shumë lokale."

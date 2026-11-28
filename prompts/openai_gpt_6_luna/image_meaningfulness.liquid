@@ -1,0 +1,99 @@
+{% chat role: "system" %}
+You are an expert in analyzing visual assets extracted from books and textbooks.
+
+LOOK AT EACH CANDIDATE BEFORE APPLYING ANY RULE. A kept image is shown to the reader as a picture, next to the page's text rendered as real HTML. So for each candidate, first answer from the pixels: is this a picture (photo, drawing, diagram, chart, map), or is it a piece of the page — paragraphs, an exercise statement, a heading, a sidebar label, a page number — that happens to include or surround some small pictures? Compare it with the full page image to see what it is a crop of. A piece of the page is never kept, because its words would appear twice: once inside the picture and once as text. The rules below refine that judgement; none of them overrides what the candidate visibly is.
+
+{% if figure_extraction_mode == "auto" %}
+Figure Extraction is in AUTO mode. For composite figure candidates, decide whether the content is better preserved as one image or recreated as semantic HTML.
+
+KEEP AS AN IMAGE (`is_meaningful: true`) when visual or spatial relationships are important and HTML recreation would be difficult or unreliable. When you are uncertain whether a real picture is meaningful, keep it. That caution applies to pictures only: it is never a reason to keep a crop that is mostly running text.
+
+Always keep:
+1. Charts, graphs, plots, maps, timelines, scientific or mathematical diagrams
+2. Labeled photographs or illustrations where exact label placement matters
+3. Complex infographics, flow diagrams, annotated screenshots, or visual instructions
+4. Graphics composed mainly of raster artwork and vectors with supporting text
+5. Content whose meaning depends on arrows, connectors, coordinates, relative position, or visual grouping
+6. Scanned or pixel-only content when there is no reliable selectable-text duplicate
+
+PREFER HTML (`is_meaningful: false`) only when the supplied extraction evidence says the candidate contains selectable PDF text and the same content can be faithfully represented with ordinary semantic HTML. Examples:
+1. A styled heading, title band, or section label with a background shape or small icon
+2. A callout consisting mainly of selectable text in a simple box
+3. A conventional data table whose rows, columns, and text should be an accessible HTML table
+4. A text-heavy exercise card or paragraph fragment with simple borders or decoration
+5. A duplicate crop of text already present in the page's selectable text
+
+Important safeguards:
+- A table-like grid is not automatically HTML-friendly: keep it if it is really a chart, matrix diagram, visual organizer, or if spatial styling carries meaning.
+- Do not reject a candidate merely because it contains text. Labels are an essential part of many genuine figures.
+- Evaluate the supplied images as a set, not independently. Cross-references are provided: a composite candidate lists the standalone image(s) whose artwork it contains, and a standalone notes which composite it appears in. For each cross-referenced pair keep the one best representation and reject the other. Reject both only when the artwork itself is purely decorative.
+- Prefer the larger composite only when the surrounding text/vectors are intrinsic labels, arrows, connectors, annotations, or other spatially meaningful parts of the figure.
+- Prefer the standalone artwork when the larger crop merely adds a heading, caption, exercise instruction, speech/thought prompt, callout background, or other text that should remain semantic HTML.
+- A composite that places several pictures beside their own descriptive paragraphs (character profiles, captioned photo cards, an exercise with its illustration, a page region covering most of the page) is page layout, not a figure. "It preserves the placement" is not a reason to keep it: the layout is rebuilt in HTML. Reject the composite and keep each standalone picture it covers.
+- A composite made of a running side label, a page number, an instruction line or a paragraph, with no artwork of its own, is rejected.
+- A tiny decorative icon does not make a heading or text-first callout into a figure. Reject both the decorative icon and duplicate callout crop when neither carries independent educational or narrative meaning.
+- If `hasRasterContent` is true, strongly favor keeping the candidate unless the raster is only a tiny decorative icon, another supplied candidate is the better canonical version, or most of the candidate's area is selectable page text around that raster.
+- If `hasSelectableText` is false or figure extraction evidence is absent, do not reject content merely for being text-heavy; it may be scanned content with no HTML-safe copy.
+- Decorative fragments with no educational or narrative value may still be rejected.
+{% else %}
+Determine whether each extracted image contributes meaningful educational, narrative, or visual content.
+
+NOT meaningful:
+1. Awkward fragments with no coherent content
+2. Background shadows, empty shapes, or tiny decorative elements
+3. Pure decoration with no educational or narrative purpose
+4. Empty table backgrounds
+5. Duplicate word shadows or visual artifacts
+
+Meaningful:
+1. Mathematical, scientific, or spatial diagrams
+2. Photographs, illustrations, maps, charts, graphs, and infographics
+3. Labeled images and annotated visual content
+4. Complex decorative artwork that conveys a concept or supports the story
+5. Scanned or pixel-only content that may not have a selectable-text copy
+
+When uncertain, keep the image.
+{% endif %}
+
+IMPORTANT:
+- Provide your reasoning before your determination for each image.
+- The image_id in the response must exactly match the supplied Image ID.
+- Evaluate every image provided.
+{% endchat %}
+
+{% chat role: "user" %}
+This is the full page from the book for context.
+{% image page_image_base64 %}
+
+{% if figure_extraction_mode == "auto" %}
+Selectable text extracted from the PDF page (may be empty):
+{{ page_text }}
+{% endif %}
+
+Please evaluate the following images.
+
+{% for image in images %}
+Image ID: {{ image.imageId }}
+Dimensions: {{ image.width }}px x {{ image.height }}px
+Render method: {{ image.renderMethod | default: "unknown" }}
+{% if figure_extraction_mode == "auto" %}
+{% if image.figureContext %}
+Composite figure candidate: yes
+Selectable text participated: {{ image.figureContext.hasSelectableText }}
+Contains raster artwork: {{ image.figureContext.hasRasterContent }}
+Total grouped shapes: {{ image.figureContext.shapeCount }}
+Text shapes: {{ image.figureContext.textShapeCount }}
+Vector shapes: {{ image.figureContext.vectorShapeCount }}
+{% if image.figureContext.coveredImageIds %}
+Contains the same artwork as standalone image(s): {{ image.figureContext.coveredImageIds | join: ", " }}
+{% endif %}
+{% else %}
+Composite figure candidate: no extraction evidence available
+{% endif %}
+{% if image.containedInFigureId %}
+This artwork also appears inside composite candidate {{ image.containedInFigureId }}.
+{% endif %}
+{% endif %}
+{% image image.imageBase64 %}
+{% endfor %}
+{% endchat %}

@@ -4,6 +4,7 @@ import {
   ProvidersResponse,
   type LocalizedText,
   type ProviderManifest,
+  DEFAULT_LLM_MODEL_ID,
 } from "@adt/types"
 import { createProviderRegistry } from "../registry.js"
 import { AiProviderError } from "../ports/errors.js"
@@ -297,21 +298,24 @@ describe("built-in provider registry", () => {
     for (const providerId of ["claude-agent", "codex", "custom", "ollama"]) {
       expect(registry.get(providerId).manifest.minimumRequestTimeoutMs).toBe(600_000)
     }
-    expect(registry.get("openai").manifest.minimumRequestTimeoutMs).toBeUndefined()
+    // Hosted OpenAI declares a shorter floor: the GPT-6 Responses adapter has
+    // its own internal fallback, which the client could not see or retry.
+    expect(registry.get("openai").manifest.minimumRequestTimeoutMs).toBe(180_000)
   })
 
-  it("produces a descriptor payload that validates and carries no secrets", () => {
+  it("AC-1: produces a descriptor payload with the default model that validates and carries no secrets", () => {
     const registry = createDefaultProviderRegistry()
     const payload = {
       providers: registry.descriptors(),
       defaults: {
-        "structured-text": "openai:gpt-5.4",
+        "structured-text": `openai:${registry.defaultModelFor("openai", "structured-text")}`,
         image: "openai:gpt-image-2",
       },
     }
 
     const parsed = ProvidersResponse.safeParse(payload)
     expect(parsed.success).toBe(true)
+    expect(payload.defaults["structured-text"]).toBe(DEFAULT_LLM_MODEL_ID)
     expect(JSON.stringify(payload)).not.toMatch(/sk-[a-zA-Z0-9]{10,}/)
   })
 

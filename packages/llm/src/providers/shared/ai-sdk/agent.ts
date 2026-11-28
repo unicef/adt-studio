@@ -23,6 +23,7 @@ export function createAiSdkAgentBackend(model: LanguageModel): AgentBackend {
         messages: toCoreMessages(request.messages),
         tools: toCoreTools(request.tools),
         temperature: request.temperature,
+        providerOptions: request.providerOptions as Parameters<typeof generateText>[0]["providerOptions"],
         maxTokens: request.maxTokens,
         abortSignal,
       })

@@ -116,7 +116,7 @@ export async function sectionPage(
   // Initial generation (with built-in validation retry).
   const initial = await generateInitial(input, config, validatorContext, llmModel)
   let candidate = initial
-  applyAutoRepairs(candidate)
+  applyAutoRepairs(candidate, validatorContext)
 
   // Refinement loop — up to maxRefinements reviewer passes.
   const priorNotes: string[] = []
@@ -133,7 +133,7 @@ export async function sectionPage(
 
     // The reviewer proposed a replacement. Validate it before adopting.
     if (review.nodes_and_sections) {
-      applyAutoRepairs(review.nodes_and_sections)
+      applyAutoRepairs(review.nodes_and_sections, validatorContext)
       const err = runValidator(review.nodes_and_sections, validatorContext)
       if (err.valid) {
         candidate = review.nodes_and_sections
@@ -151,6 +151,11 @@ async function generateInitial(
   validatorContext: ValidatorContext,
   llmModel: LLMModel
 ): Promise<LLMStructuringResult> {
+  const maxFidelityRejections = Math.min(
+    MAX_FIDELITY_REJECTIONS,
+    Math.max(0, config.maxRetries - 1),
+  )
+  let fidelityRejections = 0
   const result = await llmModel.generateObject<LLMStructuringResult>({
     schema: buildPageSectioningLLMSchema(),
     recursiveSchema: true,
@@ -173,8 +178,13 @@ async function generateInitial(
       page_direction: input.pageDirection ?? "",
     },
     validate: (raw) => {
-      applyAutoRepairs(raw as LLMStructuringResult | null)
-      return runValidator(raw, validatorContext)
+      applyAutoRepairs(raw as LLMStructuringResult | null, validatorContext)
+      const structural = runValidator(raw, validatorContext)
+      if (!structural.valid || fidelityRejections >= maxFidelityRejections) return structural
+      const fidelityIssues = findSourceFidelityIssues(input.text, raw as LLMStructuringResult)
+      if (fidelityIssues.length === 0) return structural
+      fidelityRejections += 1
+      return { valid: false, errors: fidelityIssues }
     },
     maxRetries: config.maxRetries,
     maxTokens: 16384,
@@ -251,14 +261,74 @@ async function generateReview(
  *     synthetic leading `role: "text"` leaf.
  *  4. A leaf whose text is a row of single-letter tokens separated by spaces
  *     (crossword/letter-grid pattern) → split into one leaf per letter.
+ *  5. A `role` that is only a structure key, on a node with children and no
+ *     text → move it to `structure`.
+ *  6. A `structure` that is only a role key → move it to `role`; a lone
+ *     text-leaf child collapses into that leaf.
+ *  7. A heading leaf linked to a known outline entry → take role, level and
+ *     style cluster from the entry; an unknown outline id is dropped.
  */
-export function applyAutoRepairs(raw: LLMStructuringResult | null | undefined): void {
+export function applyAutoRepairs(
+  raw: LLMStructuringResult | null | undefined,
+  ctx?: RepairContext,
+): void {
   if (!raw || !Array.isArray(raw.sections)) return
   for (const section of raw.sections) {
     if (Array.isArray(section.nodes)) {
-      section.nodes = repairChildren(section.nodes)
+      section.nodes = repairChildren(section.nodes, ctx)
     }
   }
+}
+
+type RepairContext = Pick<ValidatorContext, "structureKeys" | "roleKeys" | "outlineEntries">
+
+const HEADING_ROLES = new Set(["chapter_title", "section_heading", "subheading", "heading"])
+
+function roleForOutlineLevel(level: number): string {
+  if (level === 1) return "chapter_title"
+  if (level === 2) return "section_heading"
+  if (level === 3) return "subheading"
+  return "heading"
+}
+
+function repairVocabulary(node: LLMNode, ctx: RepairContext): LLMNode {
+  const children = Array.isArray(node.children) ? node.children : []
+  const hasText = typeof node.text === "string" && node.text.length > 0
+  if (typeof node.role === "string" && !node.structure && ctx.structureKeys.has(node.role)) {
+    if (children.length > 0 && !hasText) {
+      return { ...node, structure: node.role, role: null }
+    }
+    if (children.length === 0 && hasText && !ctx.roleKeys.has(node.role) && ctx.roleKeys.has("text")) {
+      return { structure: node.role, children: [{ role: "text", text: node.text }] }
+    }
+  }
+  if (
+    typeof node.structure === "string" &&
+    !node.role &&
+    !ctx.structureKeys.has(node.structure) &&
+    ctx.roleKeys.has(node.structure)
+  ) {
+    const role = node.structure
+    if (children.length === 0) return { ...node, role, structure: null, children: null }
+    const only = children.length === 1 ? children[0] : null
+    if (!hasText && only && !only.structure && typeof only.text === "string" && only.text.length > 0) {
+      return { ...only, role, children: null }
+    }
+  }
+  return node
+}
+
+function repairOutlineLink(node: LLMNode, ctx: RepairContext): void {
+  if (typeof node.outline_entry_id !== "string" || node.outline_entry_id.length === 0) return
+  const entry = ctx.outlineEntries?.get(node.outline_entry_id)
+  if (!entry) {
+    node.outline_entry_id = null
+    return
+  }
+  if (typeof node.role !== "string" || !HEADING_ROLES.has(node.role)) return
+  node.role = roleForOutlineLevel(entry.level)
+  node.heading_level = entry.level
+  node.heading_style_cluster_id = entry.styleClusterId
 }
 
 const SINGLE_LETTER_ROW = /^[A-Za-zÀ-ÿ](\s+[A-Za-zÀ-ÿ])+$/
@@ -272,7 +342,7 @@ const STRUCTURE_ALIASES: Record<string, string> = {
   boxed_text: "panel",
 }
 
-function repairChildren(children: LLMNode[]): LLMNode[] {
+function repairChildren(children: LLMNode[], ctx?: RepairContext): LLMNode[] {
   const out: LLMNode[] = []
   for (const original of children) {
     if (!original || typeof original !== "object") {
@@ -283,7 +353,12 @@ function repairChildren(children: LLMNode[]): LLMNode[] {
 
     // Recurse first so deeper repairs propagate up.
     if (Array.isArray(child.children)) {
-      child.children = repairChildren(child.children)
+      child.children = repairChildren(child.children, ctx)
+    }
+
+    if (ctx) {
+      child = repairVocabulary(child, ctx)
+      repairOutlineLink(child, ctx)
     }
 
     // Canonicalize known invented structure synonyms (e.g. "boxed_text" → "panel")
@@ -571,14 +646,7 @@ function validateNode(
           `${path}: outline entry "${node.outline_entry_id}" requires heading level ${outlineEntry.level}.`,
         )
       }
-      const expectedRole =
-        outlineEntry.level === 1
-          ? "chapter_title"
-          : outlineEntry.level === 2
-            ? "section_heading"
-            : outlineEntry.level === 3
-              ? "subheading"
-              : "heading"
+      const expectedRole = roleForOutlineLevel(outlineEntry.level)
       if (node.role !== expectedRole) {
         errors.push(
           `${path}: outline level ${outlineEntry.level} requires role "${expectedRole}".`,
@@ -641,6 +709,108 @@ function validateNode(
       `${path}: a leaf node must not have "children". Use a container (structure) instead.`
     )
   }
+}
+
+const MAX_FIDELITY_REJECTIONS = 2
+const FIDELITY_MIN_SOURCE_WORDS = 60
+const FIDELITY_WINDOW_WORDS = 30
+const FIDELITY_MIN_WINDOW_HIT_RATE = 0.25
+const FIDELITY_MIN_DUPLICATE_WORDS = 8
+const FIDELITY_SNIPPET_WORDS = 12
+
+function fidelityWords(text: string): string[] {
+  return (
+    text
+      .normalize("NFKC")
+      .toLowerCase()
+      .replace(/(\p{L})[-­]\s*\n\s*(\p{L})/gu, "$1$2")
+      .match(/\p{L}{3,}/gu) ?? []
+  )
+}
+
+function collectLeafTexts(nodes: LLMNode[] | null | undefined, out: string[]): void {
+  if (!Array.isArray(nodes)) return
+  for (const node of nodes) {
+    if (!node || typeof node !== "object") continue
+    if (typeof node.text === "string" && node.text.length > 0) out.push(node.text)
+    collectLeafTexts(node.children, out)
+  }
+}
+
+function findMissingPassage(sourceWords: string[], treeWords: string[]): string | null {
+  if (sourceWords.length < FIDELITY_MIN_SOURCE_WORDS) return null
+  const treeBigrams = new Set<string>()
+  for (let index = 0; index + 1 < treeWords.length; index++) {
+    treeBigrams.add(`${treeWords[index]} ${treeWords[index + 1]}`)
+  }
+  const covered = sourceWords.map(
+    (word, index) =>
+      (index + 1 < sourceWords.length && treeBigrams.has(`${word} ${sourceWords[index + 1]}`)) ||
+      (index > 0 && treeBigrams.has(`${sourceWords[index - 1]} ${word}`)),
+  )
+  let hits = 0
+  for (let index = 0; index < FIDELITY_WINDOW_WORDS; index++) hits += covered[index] ? 1 : 0
+  let worstHits = hits
+  let worstStart = 0
+  for (let start = 1; start + FIDELITY_WINDOW_WORDS <= sourceWords.length; start++) {
+    hits += (covered[start + FIDELITY_WINDOW_WORDS - 1] ? 1 : 0) - (covered[start - 1] ? 1 : 0)
+    if (hits < worstHits) {
+      worstHits = hits
+      worstStart = start
+    }
+  }
+  if (worstHits / FIDELITY_WINDOW_WORDS >= FIDELITY_MIN_WINDOW_HIT_RATE) return null
+  const coveredShare = Math.round(
+    (covered.filter(Boolean).length / sourceWords.length) * 100,
+  )
+  const snippet = sourceWords
+    .slice(worstStart, worstStart + FIDELITY_SNIPPET_WORDS)
+    .join(" ")
+  return (
+    `The tree is missing text that is printed on the page: only about ${coveredShare}% of the page text is present, ` +
+    `and a passage containing the words "${snippet}" is absent. Transcribe every sentence, table row, table cell and ` +
+    `list item exactly as printed. Do not summarize, shorten, sample or stop early, however long the page is.`
+  )
+}
+
+function findDuplicatedLeafText(sourceWords: string[], leafTexts: string[]): string | null {
+  const sourceText = ` ${sourceWords.join(" ")} `
+  const hasSourceText = sourceWords.length >= FIDELITY_MIN_SOURCE_WORDS
+  const occurrences = new Map<string, number>()
+  for (const leafText of leafTexts) {
+    if (leafText.includes("\\")) continue
+    const words = fidelityWords(leafText)
+    if (words.length < FIDELITY_MIN_DUPLICATE_WORDS) continue
+    const key = words.join(" ")
+    occurrences.set(key, (occurrences.get(key) ?? 0) + 1)
+  }
+  for (const [key, treeCount] of occurrences) {
+    if (treeCount < 2) continue
+    const sourceCount = hasSourceText ? sourceText.split(` ${key} `).length - 1 : 1
+    if (treeCount <= Math.max(1, sourceCount)) continue
+    const snippet = key.split(" ").slice(0, FIDELITY_SNIPPET_WORDS).join(" ")
+    return (
+      `The text "${snippet}…" appears ${treeCount} times in the tree but is printed ${Math.max(1, sourceCount)} time(s) on the page. ` +
+      `Emit each printed sentence once. Do not repeat text as the caption or label of an image that merely shows the same words.`
+    )
+  }
+  return null
+}
+
+export function findSourceFidelityIssues(
+  sourceText: string,
+  raw: LLMStructuringResult | null | undefined,
+): string[] {
+  if (!raw || !Array.isArray(raw.sections)) return []
+  const leafTexts: string[] = []
+  for (const section of raw.sections) collectLeafTexts(section.nodes, leafTexts)
+  const sourceWords = fidelityWords(sourceText)
+  const issues: string[] = []
+  const missing = findMissingPassage(sourceWords, fidelityWords(leafTexts.join("\n")))
+  if (missing) issues.push(missing)
+  const duplicated = findDuplicatedLeafText(sourceWords, leafTexts)
+  if (duplicated) issues.push(duplicated)
+  return issues
 }
 
 // ── Finalization ────────────────────────────────────────────────

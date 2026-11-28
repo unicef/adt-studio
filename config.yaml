@@ -1,10 +1,24 @@
 # Fallback LLM for text generation and visual analysis. Image generation and
 # speech use their own task-specific defaults; step-level `model` values still
 # override this one. This can also be changed in Studio under Settings > Models.
-default_model: "openai:gpt-5.4"
+default_model: "openai:gpt-6-luna"
 
+# Visual review, activity rendering, book outline and page sectioning run on
+# GPT-6.1 Sol; every other text task uses default_model unless it sets its own
+# model (Settings > Models). The GPT-6 Luna and GPT-6.1 Sol pins below apply
+# only while default_model is an OpenAI model: with another provider as the
+# default, those tasks follow default_model (withApplicableTaskModels in
+# @adt/types). A task set to any other model keeps it.
+visual_review:
+  model: "openai:gpt-6.1-sol"
+  reasoning_effort: "medium"
+
+# Sol recovers stacked unit/lesson headings that Luna demotes or
+# drops; the outline sets every heading level that page sectioning uses.
 book_outline:
   prompt: book_outline
+  model: "openai:gpt-6.1-sol"
+  reasoning_effort: "medium"
   timeout: 300
 
 default_image_generation_model: "openai:gpt-image-2.6-flare"
@@ -191,15 +205,41 @@ section_types:
 metadata:
   prompt: metadata_extraction
 
+# Sol reads non-Latin and scanned pages far more accurately than Luna (Urdu:
+# 3-5 misread words in 9 pages vs 28-34) and keeps more tables as tables;
+# section and activity types were equally accurate (blind tests on #964).
 page_sectioning:
   prompt: page_sectioning
+  model: "openai:gpt-6.1-sol"
+  reasoning_effort: "medium"
   max_refinements: 0
+
+# These tasks follow page_sectioning's model when they set none. Pin them to
+# Luna so moving sectioning to Sol changes only sectioning. Easy Read and
+# speech preparation follow translation.
+translation:
+  model: "openai:gpt-6-luna"
+
+image_captioning:
+  model: "openai:gpt-6-luna"
+
+glossary:
+  model: "openai:gpt-6-luna"
+
+toc_generation:
+  model: "openai:gpt-6-luna"
 
 image_meaningfulness:
   prompt: image_meaningfulness
 
+# Splitting and trimming images are mechanical decisions. At medium effort Luna
+# spent most of its output on reasoning there and ran out of output tokens.
+image_segmentation:
+  reasoning_effort: "low"
+
 image_cropping:
   prompt: image_cropping
+  reasoning_effort: "low"
 
 default_render_strategy: two_column
 
@@ -238,90 +278,110 @@ render_strategies:
     render_type: activity
     config:
       prompt: activity_multiple_choice
+      model: "openai:gpt-6.1-sol"
       answer_prompt: activity_multiple_choice_answers
       max_retries: 5
       timeout: 180
       visual_refinement:
         enabled: true
+      reasoning_effort: "medium"
   activity_multi_select:
     render_type: activity
     config:
       prompt: activity_multi_select
+      model: "openai:gpt-6.1-sol"
       answer_prompt: activity_multi_select_answers
       max_retries: 5
       timeout: 180
       visual_refinement:
         enabled: true
+      reasoning_effort: "medium"
   activity_underline_text:
     render_type: activity
     config:
       prompt: activity_underline_text
+      model: "openai:gpt-6.1-sol"
       answer_prompt: activity_underline_text_answers
       max_retries: 5
       timeout: 180
       visual_refinement:
         enabled: true
+      reasoning_effort: "medium"
   activity_true_false:
     render_type: activity
     config:
       prompt: activity_true_false
+      model: "openai:gpt-6.1-sol"
       answer_prompt: activity_true_false_answers
       max_retries: 5
       timeout: 180
       visual_refinement:
         enabled: true
+      reasoning_effort: "medium"
   activity_fill_in_the_blank:
     render_type: activity
     config:
       prompt: activity_fill_in_the_blank
+      model: "openai:gpt-6.1-sol"
       answer_prompt: activity_fill_in_the_blank_answers
       max_retries: 5
       timeout: 180
       visual_refinement:
         enabled: true
+      reasoning_effort: "medium"
   activity_fill_in_a_table:
     render_type: activity
     config:
       prompt: activity_fill_in_a_table
+      model: "openai:gpt-6.1-sol"
       answer_prompt: activity_fill_in_a_table_answers
       max_retries: 5
       timeout: 180
       visual_refinement:
         enabled: true
+      reasoning_effort: "medium"
   activity_matching:
     render_type: activity
     config:
       prompt: activity_matching
+      model: "openai:gpt-6.1-sol"
       answer_prompt: activity_matching_answers
       max_retries: 5
       timeout: 180
       visual_refinement:
         enabled: true
+      reasoning_effort: "medium"
   activity_sorting:
     render_type: activity
     config:
       prompt: activity_sorting
+      model: "openai:gpt-6.1-sol"
       answer_prompt: activity_sorting_answers
       max_retries: 5
       timeout: 180
       visual_refinement:
         enabled: true
+      reasoning_effort: "medium"
   activity_ordering:
     render_type: activity
     config:
       prompt: activity_ordering
+      model: "openai:gpt-6.1-sol"
       max_retries: 5
       timeout: 180
       visual_refinement:
         enabled: true
+      reasoning_effort: "medium"
   activity_open_ended_answer:
     render_type: activity
     config:
       prompt: activity_open_ended_answer
+      model: "openai:gpt-6.1-sol"
       max_retries: 5
       timeout: 180
       visual_refinement:
         enabled: true
+      reasoning_effort: "medium"
 
 section_render_strategies:
   activity_multiple_choice: activity_multiple_choice
@@ -336,6 +396,7 @@ section_render_strategies:
   activity_open_ended_answer: activity_open_ended_answer
 
 quiz_generation:
+  model: "openai:gpt-6-luna"
   # Style quizzes to match the book (typography + colors derived from the book).
   match_book_style: true
   quiz_section_types:

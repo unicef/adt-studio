@@ -24,6 +24,7 @@ import {
   SpeechGenerationModelId,
   AdtActivityImportDecision,
   AppConfig,
+  withApplicableTaskModels,
   type BookConfigSaveReceipt,
   type AiModality,
 } from "@adt/types"
@@ -35,7 +36,7 @@ import {
 } from "@adt/llm"
 import { CURRENT_VERSION_ORDER, openBookDb, createBookStorage } from "@adt/storage"
 import { countPdfPages, renderPdfCover } from "@adt/pdf"
-import { normalizeLocale, getBaseLanguage, loadBookConfig, loadConfig, deepMerge, markSourceGenerationNeedsUpdate } from "@adt/pipeline"
+import { normalizeLocale, getBaseLanguage, loadBookConfig, loadConfigAsWritten, deepMerge, markSourceGenerationNeedsUpdate } from "@adt/pipeline"
 import {
   listBooksAsync,
   getBook,
@@ -538,7 +539,7 @@ export function createBookRoutes(
       // turn a successful disk write into an error response. Use the same
       // preset merge/validation as the run and debug readers, not a UI merge.
       const merged = body.includeEffectiveConfig
-        ? AppConfig.parse(deepMerge(loadConfig(configPath), config))
+        ? withApplicableTaskModels(AppConfig.parse(deepMerge(loadConfigAsWritten(configPath), config)))
         : undefined
       updateBookConfig(label, booksDir, config, configPath)
       const updated = getBookConfig(label, booksDir)

@@ -185,6 +185,7 @@ export function createEasyReadRoutes(
       const model = createLLMModel({
         signal: c.req.raw.signal,
         modelId: easyReadConfig.modelId,
+        reasoningEffort: config.easy_read?.reasoning_effort ?? config.default_reasoning_effort,
         cacheDir,
         promptEngine,
         rateLimiter,

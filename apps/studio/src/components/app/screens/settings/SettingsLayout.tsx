@@ -7,7 +7,8 @@ import { SettingsContent } from "./SettingsContent"
 
 export function SettingsLayout() {
   const { pathname } = useLocation()
-  const fullWidth = activeSettingsTab(pathname).fullWidth === true
+  const tab = activeSettingsTab(pathname)
+  const fullWidth = tab.fullWidth === true
   useSettingsAnchor()
 
   return (
@@ -15,7 +16,7 @@ export function SettingsLayout() {
       <SettingsSidebar />
       <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
         <TopBar className="shrink-0 drag-region" />
-        <SettingsContent fullWidth={fullWidth} />
+        <SettingsContent fullWidth={fullWidth} wide={tab.wide === true} />
       </div>
     </div>
   )

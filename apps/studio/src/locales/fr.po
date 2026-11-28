@@ -164,8 +164,8 @@ msgid "{0, plural, one {# stage} other {# stages}}"
 msgstr "{0, plural, one {# étape} other {# étapes}}"
 
 #. placeholder {0}: llmSteps.length
-msgid "{0, plural, one {# task inherits this model} other {# tasks inherit this model}}"
-msgstr "{0, plural, one {# tâche hérite de ce modèle} other {# tâches héritent de ce modèle}}"
+#~ msgid "{0, plural, one {# task inherits this model} other {# tasks inherit this model}}"
+#~ msgstr "{0, plural, one {# tâche hérite de ce modèle} other {# tâches héritent de ce modèle}}"
 
 #. placeholder {0}: reader.commentCount
 msgid "{0, plural, one {comment} other {comments}}"
@@ -188,8 +188,8 @@ msgid "{0, plural, one {Review # comment} other {Review # comments}}"
 msgstr "{0, plural, one {Lire # commentaire} other {Lire # commentaires}}"
 
 #. placeholder {0}: steps.length
-msgid "{0, plural, one {Used by # task} other {Used by # tasks}}"
-msgstr "{0, plural, one {Utilisé par # tâche} other {Utilisé par # tâches}}"
+#~ msgid "{0, plural, one {Used by # task} other {Used by # tasks}}"
+#~ msgstr "{0, plural, one {Utilisé par # tâche} other {Utilisé par # tâches}}"
 
 #. placeholder {0}: lockedLang.name
 msgid "{0} — type country or Enter for base"
@@ -398,6 +398,10 @@ msgstr "{0} pages"
 msgid "{0} pages · split into {1} parts"
 msgstr "{0} pages · divisé en {1} parties"
 
+#. placeholder {0}: adt.pageCount
+#~ msgid "{0} pages and {imageCount} images read"
+#~ msgstr "{0} pages et {imageCount} images lues"
+
 #. placeholder {0}: section.criteria.length - reviewed
 msgid "{0} pending"
 msgstr "{0} en attente"
@@ -437,6 +441,16 @@ msgstr "{0} textes"
 #. placeholder {0}: outputLanguages.length
 msgid "{0} translations"
 msgstr "{0} traductions"
+
+#. placeholder {0}: i18n._(recovered[0].label)
+#. placeholder {1}: i18n._(recovered[1].label)
+#. placeholder {2}: recoveredCount - 2
+#~ msgid "{0}, {1} and {2} more"
+#~ msgstr "{0}, {1} et {2} autres"
+
+#. placeholder {0}: adt.title
+#~ msgid "{0}, separate from your other projects"
+#~ msgstr "{0}, séparé de vos autres projets"
 
 #. placeholder {0}: newest.root.author_name
 #. placeholder {1}: newest.root.body
@@ -504,6 +518,9 @@ msgstr "{activityTotal} trouvées, aucune à classer"
 
 msgid "{availableCount} more you can generate after import:"
 msgstr "{availableCount} autres à générer après l’import :"
+
+msgid "{changeCount, plural, one {# model change} other {# model changes}}"
+msgstr "{changeCount, plural, one {# modification de modèle} other {# modifications de modèle}}"
 
 #. placeholder {0}: items.length
 msgid "{classifiedCount} of {0} classified"
@@ -629,6 +646,9 @@ msgstr "{imageCount, plural, one {# image sera traduite} other {# images seront 
 msgid "{imageCount} images"
 msgstr "{imageCount} images"
 
+msgid "{inheritCount, plural, one {# task inherits it} other {# tasks inherit it}}"
+msgstr "{inheritCount, plural, one {# tâche en hérite} other {# tâches en héritent}}"
+
 msgid "{inProgress, plural, one {# in progress} other {# in progress}}"
 msgstr "{inProgress, plural, one {# en cours} other {# en cours}}"
 
@@ -673,6 +693,15 @@ msgstr "Il manque {missingForCurrentStage} résultats linguistiques. Relancez po
 
 msgid "{missingForCurrentStage} speech outputs are missing. Re-run to generate the missing items."
 msgstr "Il manque {missingForCurrentStage} résultats vocaux. Relancez pour générer les éléments manquants."
+
+msgid "{model} does not support a reasoning effort setting. Use the default."
+msgstr "{model} ne prend pas en charge le réglage de l'effort de raisonnement. Utilisez la valeur par défaut."
+
+msgid "{model} does not support the {level} effort. Choose another level."
+msgstr "{model} ne prend pas en charge l'effort {level}. Choisissez un autre niveau."
+
+#~ msgid "{model} overrides the default LLM for this task"
+#~ msgstr "{model} remplace le LLM par défaut pour cette tâche"
 
 msgid "{name}: {setTo}"
 msgstr "{name} : {setTo}"
@@ -792,6 +821,9 @@ msgstr "{set} sur {total}"
 msgid "{settled} of {total}"
 msgstr "{settled} sur {total}"
 
+msgid "{shown} of {total}"
+msgstr "{shown} sur {total}"
+
 msgid "{source} + {outputs} {outputs, plural, one {translation} other {translations}}"
 msgstr "{source} + {outputs} {outputs, plural, one {traduction} other {traductions}}"
 
@@ -874,6 +906,9 @@ msgstr "{toggleShortcut} pour basculer"
 
 msgid "{total, plural, one {# comment waiting} other {# comments waiting}}"
 msgstr "{total, plural, one {# commentaire en attente} other {# commentaires en attente}}"
+
+msgid "{total, plural, one {# model setting} other {# model settings}}"
+msgstr "{total, plural, one {# paramètre de modèle} other {# paramètres de modèle}}"
 
 msgid "{total} here"
 msgstr "{total} ici"
@@ -1808,11 +1843,17 @@ msgstr "ADT STUDIO"
 msgid "ADT Studio accepts ZIP archives up to 1 GiB compressed. Choose a smaller bundle and try again."
 msgstr "ADT Studio accepte les archives ZIP jusqu'à 1 Gio compressés. Choisissez un paquet plus petit et réessayez."
 
+#~ msgid "ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again."
+#~ msgstr "ADT Studio accepte les archives ZIP jusqu'à 512 Mio compressés. Choisissez un paquet plus petit et réessayez."
+
 msgid "ADT Studio can’t import this ZIP"
 msgstr "ADT Studio ne peut pas importer ce ZIP"
 
 msgid "ADT Studio can’t tell whether its pages changed. They become the working source, so check generated features after import."
 msgstr "ADT Studio ne peut pas savoir si ses pages ont changé. Elles deviennent la source de travail : vérifiez les fonctionnalités générées après l’import."
+
+#~ msgid "ADT Studio checks it again right away."
+#~ msgstr "ADT Studio le vérifie à nouveau immédiatement."
 
 msgid "ADT Studio compared every page with the fingerprints saved at export."
 msgstr "ADT Studio a comparé chaque page aux empreintes enregistrées lors de l’export."
@@ -2322,6 +2363,9 @@ msgstr "Placer tous les éléments dans un seul ordre correct."
 
 msgid "Arrange extracted content into a structured storyboard with pages, sections, and layouts."
 msgstr "Organisez le contenu extrait en un scénarimage structuré avec des pages, des sections et des mises en page."
+
+#~ msgid "Arrange items into an order or categories."
+#~ msgstr "Classer des éléments dans un ordre ou des catégories."
 
 msgid "Article"
 msgstr "Article"
@@ -3099,6 +3143,9 @@ msgstr "Graphique / Diagramme"
 msgid "Check"
 msgstr "Vérification"
 
+#~ msgid "Check each page and choose how ADT Studio should treat it after import."
+#~ msgstr "Vérifiez chaque page et choisissez comment ADT Studio doit la traiter après l'import."
+
 msgid "Check for new comments"
 msgstr "Vérifier les nouveaux commentaires"
 
@@ -3159,6 +3206,12 @@ msgstr "choix"
 msgid "Choose a beta release to install."
 msgstr "Choisissez une version bêta à installer."
 
+msgid "Choose a different model for each text task."
+msgstr "Choisissez un modèle différent pour chaque tâche de texte."
+
+msgid "Choose a model from a registered provider before saving."
+msgstr "Choisissez un modèle d'un fournisseur enregistré avant d'enregistrer."
+
 msgid "Choose a new name"
 msgstr "Choisissez un nouveau nom"
 
@@ -3197,6 +3250,9 @@ msgstr "Choisir un autre PDF"
 
 msgid "Choose another ZIP"
 msgstr "Choisir un autre ZIP"
+
+#~ msgid "Choose classification"
+#~ msgstr "Choisir la classification"
 
 msgid "Choose exactly one answer from several options."
 msgstr "Choisir exactement une réponse parmi plusieurs options."
@@ -3237,6 +3293,9 @@ msgstr "Choisissez la page à recadrer."
 msgid "Choose the part file that was shared with you, or export it again."
 msgstr "Choisissez le fichier de partie qui vous a été partagé, ou exportez-le à nouveau."
 
+#~ msgid "Choose the repaired ZIP"
+#~ msgstr "Choisissez le ZIP réparé"
+
 msgid "Choose the source pages and where the quiz lands in the page editor."
 msgstr "Choisissez les pages sources et l'emplacement du quiz dans l'éditeur de pages."
 
@@ -3260,6 +3319,13 @@ msgstr "Ciências da Natureza - Ensino Fundamental"
 
 msgid "Classic Storybook"
 msgstr "Classic Storybook"
+
+#~ msgid "Classification"
+#~ msgstr "Classification"
+
+#. placeholder {0}: item.href
+#~ msgid "Classification for {0}"
+#~ msgstr "Classification pour {0}"
 
 msgid "Classify every page"
 msgstr "Classer chaque page"
@@ -3817,6 +3883,12 @@ msgstr "Copier le lien vers {0}"
 msgid "Copy the link to send"
 msgstr "Copier le lien à envoyer"
 
+#~ msgid "Copy the repair request"
+#~ msgstr "Copiez la demande de réparation"
+
+#~ msgid "Copy the repair request and give it, with the unzipped export, to an AI assistant such as Claude or Codex. Then choose the ZIP it returns."
+#~ msgstr "Copiez la demande de réparation et donnez-la, avec l’export décompressé, à un assistant IA comme Claude ou Codex. Choisissez ensuite le ZIP qu’il renvoie."
+
 msgid "Coral reefs cover less than 1% of the ocean floor, yet they support roughly 25% of all marine species. Often called the 'rainforests of the sea,' these underwater ecosystems are built by tiny animals called coral polyps."
 msgstr "Les récifs coralliens couvrent moins de 1 % du fond océanique, mais ils abritent environ 25 % de toutes les espèces marines. Souvent appelés les « forêts tropicales de la mer », ces écosystèmes sous-marins sont construits par de minuscules animaux appelés polypes coralliens."
 
@@ -4162,6 +4234,10 @@ msgstr "par défaut"
 msgid "Default"
 msgstr "Par défaut"
 
+#. placeholder {0}: effortLabel(inherited)
+msgid "Default · {0}"
+msgstr "Par défaut · {0}"
+
 msgid "Default (from prompt)"
 msgstr "Par défaut (from invite)"
 
@@ -4200,6 +4276,9 @@ msgstr "Les dossiers de prompts par défaut ne peuvent pas être supprimés."
 
 msgid "Default Provider"
 msgstr "Fournisseur par défaut"
+
+msgid "Default reasoning effort"
+msgstr "Effort de raisonnement par défaut"
 
 msgid "Default Render Strategy"
 msgstr "Par défaut Render Strategy"
@@ -4426,6 +4505,9 @@ msgstr "Détecte et sépare les illustrations composées en régions distinctes 
 
 msgid "Detects exercises and quizzes embedded in the book and classifies them as their own sections so they can render as interactive elements downstream."
 msgstr "Détecte les exercices et les quiz intégrés dans le livre et les classe comme leurs propres sections afin qu'ils puissent être rendus comme des éléments interactifs en aval."
+
+#~ msgid "Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed."
+#~ msgstr "Détecte le texte estampillé à l’identique sur toutes les pages — comme une mention diagonale « pour lecture en ligne uniquement » — et le supprime des rendus de pages, des figures extraites et du texte du livre. Désactivez pour conserver les pages exactement telles qu’imprimées."
 
 msgid "Diagnostics"
 msgstr "Diagnostics"
@@ -5237,6 +5319,9 @@ msgstr "Voix TTS expressives pour la narration."
 msgid "Extend"
 msgstr "Prolonger"
 
+msgid "Extra high"
+msgstr "Très élevé"
+
 msgid "Extract"
 msgstr "Extraire"
 
@@ -5554,8 +5639,11 @@ msgstr "Police"
 msgid "Font Analysis"
 msgstr "Analyse des polices"
 
-msgid "Font assignment, styleguide generation, and visual review also use this default unless overridden."
-msgstr "L’attribution des polices, la génération du guide de style et la révision visuelle utilisent également ce modèle par défaut, sauf remplacement."
+msgid "Font Assignment"
+msgstr "Attribution des polices"
+
+#~ msgid "Font assignment, styleguide generation, and visual review also use this default unless overridden."
+#~ msgstr "L’attribution des polices, la génération du guide de style et la révision visuelle utilisent également ce modèle par défaut, sauf remplacement."
 
 msgid "Fonts"
 msgstr "Polices"
@@ -6229,6 +6317,9 @@ msgstr "Comment fonctionne la table des matières"
 msgid "How to add quizzes"
 msgstr "Comment ajouter des quiz"
 
+#~ msgid "How to repair"
+#~ msgstr "Comment réparer"
+
 msgid "HTML"
 msgstr "HTML"
 
@@ -6576,8 +6667,14 @@ msgstr "Un documentaire se lit mieux en une seule colonne claire."
 msgid "Information to look up, no tasks."
 msgstr "Des informations à consulter, sans tâches."
 
+msgid "Inherited from {sourceLabel}"
+msgstr "Hérité de {sourceLabel}"
+
 msgid "Inherited from a parent element. Choose a value here to override on this element."
 msgstr "Hérité d'un élément parent. Choisissez une valeur ici pour remplacer sur cet élément."
+
+msgid "Inherited from Settings → Models"
+msgstr "Hérité de Paramètres → Modèles"
 
 msgid "Initial Page"
 msgstr "Page initiale"
@@ -6725,6 +6822,9 @@ msgstr "C'est surtout du texte, comme un article ou un rapport."
 
 msgid "It is mostly words. Pictures are few or small."
 msgstr "C'est surtout du texte. Les images sont rares ou petites."
+
+#~ msgid "It lists the problems and the editing rules."
+#~ msgstr "Elle liste les problèmes et les règles d’édition."
 
 msgid "It may be damaged, have no pages, or be too large. Try another file, or set this book up yourself."
 msgstr "Il est peut-être endommagé, sans pages ou trop volumineux. Essayez un autre fichier ou configurez ce livre vous-même."
@@ -7110,6 +7210,9 @@ msgstr "Laisser l'agent choisir"
 msgid "Let the model write descriptive chapter titles based on each section's contents. Best for storybooks or when headings are missing."
 msgstr "Laissez le modèle écrire des titres de chapitres descriptifs basés sur le contenu de chaque section. Idéal pour les livres d'histoires ou lorsque les titres manquent."
 
+#~ msgid "Let your AI assistant fix it"
+#~ msgstr "Laissez votre assistant IA le corriger"
+
 msgid "Let's start"
 msgstr "Commençons"
 
@@ -7234,8 +7337,8 @@ msgstr "Segmentation d'image par LLM"
 msgid "LLM meaningfulness filter"
 msgstr "Filtre de pertinence LLM"
 
-msgid "LLM model"
-msgstr "Modèle LLM"
+#~ msgid "LLM model"
+#~ msgstr "Modèle LLM"
 
 msgid "LLM positions text over background images"
 msgstr "Le LLM positionne le texte sur les images d'arrière-plan"
@@ -7573,6 +7676,9 @@ msgstr "Association"
 msgid "Math read aloud"
 msgstr "Lecture des mathématiques à voix haute"
 
+msgid "Max"
+msgstr "Maximum"
+
 msgid "Max height"
 msgstr "Hauteur max"
 
@@ -7753,6 +7859,9 @@ msgstr "Taille min (px)"
 msgid "Min width"
 msgstr "Largeur min"
 
+msgid "Minimal"
+msgstr "Minimal"
+
 msgid "Minimise onboarding and list-reorder animations."
 msgstr "Minimiser les animations d'intégration et de réorganisation de liste."
 
@@ -7828,8 +7937,14 @@ msgstr "Mobile"
 msgid "Model"
 msgstr "Modèle"
 
+msgid "Model default"
+msgstr "Valeur par défaut du modèle"
+
 msgid "Model overrides"
 msgstr "Remplacements de modèles"
+
+msgid "Model per task"
+msgstr "Modèle par tâche"
 
 msgid "Model reasoning"
 msgstr "Raisonnement du modèle"
@@ -8033,6 +8148,9 @@ msgstr "Nécessite une attention"
 
 msgid "Needs changes"
 msgstr "Modifications nécessaires"
+
+#~ msgid "Needs classification"
+#~ msgstr "Nécessite une classification"
 
 msgid "Needs fixing"
 msgstr "Besoin de correction"
@@ -8548,6 +8666,9 @@ msgstr "Aucune section de storyboard trouvée. Exécutez le Storyboard pour gén
 msgid "No suggestions are pending save in this view."
 msgstr "Aucune suggestion n'est en attente d'enregistrement dans cette vue."
 
+msgid "No tasks, prompts or models match “{search}”."
+msgstr "Aucune tâche, aucun prompt ni modèle ne correspond à « {search} »."
+
 msgid "No terms match your search"
 msgstr "Aucun terme ne correspond à votre recherche"
 
@@ -8712,6 +8833,9 @@ msgstr "Non démarré"
 
 msgid "Not started yet"
 msgstr "Pas encore commencé"
+
+msgid "Not supported"
+msgstr "Non pris en charge"
 
 msgid "Not sure"
 msgstr "Je ne sais pas"
@@ -8933,6 +9057,9 @@ msgstr "Une seule échelle de texte pour tout le livre. Elle part des tailles d�
 
 msgid "One ZIP, up to 1 GiB"
 msgstr "Un ZIP, jusqu’à 1 Gio"
+
+#~ msgid "One ZIP, up to 512 MiB"
+#~ msgstr "Un ZIP, jusqu’à 512 Mio"
 
 msgid "Only a few pages have tasks."
 msgstr "Seules quelques pages ont des tâches."
@@ -9327,8 +9454,11 @@ msgstr "Les sorties apparaîtront ici au fur et à mesure que vous les générez
 msgid "Overall page note"
 msgstr "Note globale de la page"
 
-msgid "Override the default LLM and specialized models for this book. Empty fields inherit the platform defaults."
-msgstr "Remplacez le LLM par défaut et les modèles spécialisés pour ce livre. Les champs vides héritent des valeurs par défaut de la plateforme."
+#~ msgid "Override the default LLM and specialized models for this book. Empty fields inherit the platform defaults."
+#~ msgstr "Remplacez le LLM par défaut et les modèles spécialisés pour ce livre. Les champs vides héritent des valeurs par défaut de la plateforme."
+
+msgid "Override the models and reasoning effort for this book, task by task. Empty fields inherit Settings → Models; a value set here wins over it, even when the global setting changes later."
+msgstr "Remplacez les modèles et l’effort de raisonnement de ce livre, tâche par tâche. Les champs vides héritent de Paramètres → Modèles ; une valeur définie ici l’emporte, même si le réglage global change ensuite."
 
 msgid "Overview"
 msgstr "Aperçu"
@@ -9940,17 +10070,17 @@ msgstr "Placement des épingles…"
 msgid "Platform"
 msgstr "Plateforme"
 
-msgid "Platform default"
-msgstr "Valeur par défaut de la plateforme"
+#~ msgid "Platform default"
+#~ msgstr "Valeur par défaut de la plateforme"
 
-msgid "Platform default: {platformImageModel}"
-msgstr "Valeur par défaut de la plateforme : {platformImageModel}"
+#~ msgid "Platform default: {platformImageModel}"
+#~ msgstr "Valeur par défaut de la plateforme : {platformImageModel}"
 
-msgid "Platform default: {platformLlmModel}"
-msgstr "Valeur par défaut de la plateforme : {platformLlmModel}"
+#~ msgid "Platform default: {platformLlmModel}"
+#~ msgstr "Valeur par défaut de la plateforme : {platformLlmModel}"
 
-msgid "Platform default: {platformSpeechModel}"
-msgstr "Valeur par défaut de la plateforme : {platformSpeechModel}"
+#~ msgid "Platform default: {platformSpeechModel}"
+#~ msgstr "Valeur par défaut de la plateforme : {platformSpeechModel}"
 
 msgid "Play a sound"
 msgstr "Jouer un son"
@@ -10637,6 +10767,12 @@ msgstr "Réaliste / Photo"
 msgid "Rearranging atoms of HTML..."
 msgstr "Réarrangement des atomes de HTML..."
 
+msgid "Reasoning effort"
+msgstr "Effort de raisonnement"
+
+msgid "Reasoning effort for {label}"
+msgstr "Effort de raisonnement pour {label}"
+
 msgid "Rebuild"
 msgstr "Reconstruire"
 
@@ -11172,6 +11308,15 @@ msgstr "Vérifiez {formatted} après cette exécution."
 msgid "Review {label} outputs"
 msgstr "Vérifier les résultats de {label}"
 
+#~ msgid "Review {unresolvedActivityCount} activities"
+#~ msgstr "Vérifier {unresolvedActivityCount} activités"
+
+#~ msgid "Review activities"
+#~ msgstr "Vérifier les activités"
+
+#~ msgid "Review activity pages"
+#~ msgstr "Vérifier les pages d'activités"
+
 msgid "Review and refine each simplified block side-by-side with the original before packaging."
 msgstr "Examinez et peaufinez chaque bloc simplifié côte à côte avec l'original avant l'emballage."
 
@@ -11563,8 +11708,8 @@ msgstr "Enregistré. Ré-empaquetez l'aperçu pour appliquer."
 msgid "Saving your book…"
 msgstr "Enregistrement de votre livre…"
 
-msgid "Saving..."
-msgstr "Enregistrement..."
+#~ msgid "Saving..."
+#~ msgstr "Enregistrement..."
 
 msgid "Saving…"
 msgstr "Enregistrement…"
@@ -11703,6 +11848,12 @@ msgstr "Rechercher dans les livres partagés"
 
 msgid "Search style guides..."
 msgstr "Rechercher des guides de style..."
+
+msgid "Search tasks, prompts or models"
+msgstr "Rechercher des tâches, prompts ou modèles"
+
+msgid "Search tasks, prompts or models…"
+msgstr "Rechercher des tâches, prompts ou modèles…"
 
 msgid "Search terms or definitions…"
 msgstr "Rechercher des termes ou des définitions…"
@@ -12465,6 +12616,9 @@ msgstr "Recadrage intelligent"
 msgid "So only this computer can share or change your books."
 msgstr "Ainsi, seul cet ordinateur peut partager ou modifier vos livres."
 
+#~ msgid "So you can keep working right away"
+#~ msgstr "Pour continuer à travailler tout de suite"
+
 msgid "Software update"
 msgstr "Mise à jour logicielle"
 
@@ -12979,6 +13133,9 @@ msgstr "Style :"
 msgid "Styleguide"
 msgstr "Guide de style"
 
+msgid "Styleguide Generation"
+msgstr "Génération du guide de style"
+
 msgid "Styleguide Preview"
 msgstr "Aperçu du guide de style"
 
@@ -13112,6 +13269,9 @@ msgstr "Langue cible"
 msgid "Target model"
 msgstr "Modèle cible"
 
+msgid "Task"
+msgstr "Tâche"
+
 msgid "Task complete"
 msgstr "Tâche terminée"
 
@@ -13120,6 +13280,9 @@ msgstr "Échec de la tâche"
 
 msgid "Task failed: {taskError}"
 msgstr "Échec de la tâche : {taskError}"
+
+msgid "Task models updated."
+msgstr "Modèles par tâche mis à jour."
 
 msgid "Task Running"
 msgstr "Tâche En cours"
@@ -13135,6 +13298,9 @@ msgstr "Les modèles par défaut propres à chaque tâche ont été mis à jour.
 
 msgid "Tasks Running"
 msgstr "Tâches En cours"
+
+msgid "Tasks set to GPT-6 Luna or GPT-6.1 Sol use this model instead while it isn't an OpenAI model."
+msgstr "Les tâches réglées sur GPT-6 Luna ou GPT-6.1 Sol utilisent ce modèle tant qu’il ne s’agit pas d’un modèle OpenAI."
 
 msgid "Teaching the pixels new tricks..."
 msgstr "On apprend de nouveaux tours aux pixels..."
@@ -13946,6 +14112,9 @@ msgstr "thème apparence sombre clair mode"
 msgid "theme appearance system automatic"
 msgstr "thème apparence système automatique"
 
+#~ msgid "Then zip the folder again."
+#~ msgstr "Puis recompressez le dossier en ZIP."
+
 msgid "There are lines or boxes to write answers in."
 msgstr "Il y a des lignes ou des cases pour écrire les réponses."
 
@@ -13991,11 +14160,11 @@ msgstr "Ces pages du PDF montrent déjà deux pages en vis-à-vis côte à côte
 msgid "These stages are optional. They don't depend on each other — run any of them in any order once the core pipeline is complete."
 msgstr "Ces étapes sont facultatives. Elles ne dépendent pas les unes des autres — exécutez-les dans n'importe quel ordre une fois le pipeline principal terminé."
 
-msgid "These tasks inherit the default LLM unless their own settings specify another model."
-msgstr "Ces tâches héritent du LLM par défaut, sauf si leurs propres paramètres indiquent un autre modèle."
+#~ msgid "These tasks inherit the default LLM unless their own settings specify another model."
+#~ msgstr "Ces tâches héritent du LLM par défaut, sauf si leurs propres paramètres indiquent un autre modèle."
 
-msgid "These tasks require specialized models and do not inherit the default LLM above."
-msgstr "Ces tâches nécessitent des modèles spécialisés et n’héritent pas du LLM par défaut ci-dessus."
+#~ msgid "These tasks require specialized models and do not inherit the default LLM above."
+#~ msgstr "Ces tâches nécessitent des modèles spécialisés et n’héritent pas du LLM par défaut ci-dessus."
 
 msgid "These values reflect either the saved book override or the latest packaged defaults."
 msgstr "Ces valeurs reflètent soit le remplacement enregistré du livre, soit les valeurs par défaut du dernier empaquetage."
@@ -14734,11 +14903,14 @@ msgstr "Impossible de charger les paramètres de la liste de contrôle du révis
 msgid "Unable to load the default LLM."
 msgstr "Impossible de charger le LLM par défaut."
 
-msgid "Unable to load the model settings."
-msgstr "Impossible de charger les paramètres des modèles."
+#~ msgid "Unable to load the model settings."
+#~ msgstr "Impossible de charger les paramètres des modèles."
 
 msgid "Unable to load the provider list. Check that the local API is running, then refresh."
 msgstr "Impossible de charger la liste des fournisseurs. Vérifiez que l'API locale est en cours d'exécution, puis actualisez."
+
+msgid "Unable to load the task models."
+msgstr "Impossible de charger les modèles par tâche."
 
 msgid "Unable to load the task-specific model defaults."
 msgstr "Impossible de charger les modèles par défaut propres à chaque tâche."
@@ -14769,6 +14941,9 @@ msgstr "Impossible de mettre à jour les remplacements de modèles du livre."
 
 msgid "Unable to update the default LLM."
 msgstr "Impossible de mettre à jour le LLM par défaut."
+
+msgid "Unable to update the task models."
+msgstr "Impossible de mettre à jour les modèles par tâche."
 
 msgid "Unable to update the task-specific model defaults."
 msgstr "Impossible de mettre à jour les modèles par défaut propres à chaque tâche."
@@ -15048,6 +15223,12 @@ msgstr "Utilisez l'étalement pour les livres imprimés avec des mises en page e
 
 msgid "Use the + between pages to place the quiz"
 msgstr "Utilisez le + entre les pages pour placer le quiz"
+
+msgid "Use the default LLM"
+msgstr "Utiliser le LLM par défaut"
+
+msgid "Use the default LLM for {label}"
+msgstr "Utiliser le LLM par défaut pour {label}"
 
 msgid "Use the entire latest saved activity instead of this draft."
 msgstr "Utilisez la dernière activité enregistrée complète à la place de ce brouillon."
@@ -15385,6 +15566,9 @@ msgstr "Publication Web"
 msgid "Web Rendering"
 msgstr "Rendu web"
 
+msgid "Web Rendering (overlay)"
+msgstr "Rendu web (superposition)"
+
 msgid "WebPub"
 msgstr "WebPub"
 
@@ -15552,6 +15736,9 @@ msgstr "Pourquoi je la propose :"
 
 msgid "Why it could be this one:"
 msgstr "Pourquoi ce pourrait être celle-ci :"
+
+#~ msgid "Why this needs review"
+#~ msgstr "Pourquoi cela nécessite une vérification"
 
 msgid "Wide multilingual coverage with neural voices for many locales."
 msgstr "Large couverture multilingue avec des voix neuronales pour de nombreux lieux."
