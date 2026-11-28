@@ -53,3 +53,15 @@ export type WizardFormValues = typeof defaultWizardValues
 export function useWizardForm() {
   return useTypedAppFormContext({ defaultValues: defaultWizardValues })
 }
+
+/**
+ * Once a PDF's pages are counted: a page range already chosen for it that fits the book stays (Add
+ * Book's assistant may set it first); anything else, or none, becomes every page.
+ */
+export function fitPageRange(form: ReturnType<typeof useWizardForm>, count: number) {
+  const start = parseInt(form.state.values.startPage)
+  const end = parseInt(form.state.values.endPage)
+  if (start >= 1 && end >= start && end <= count) return
+  form.setFieldValue("startPage", "1")
+  form.setFieldValue("endPage", String(count))
+}

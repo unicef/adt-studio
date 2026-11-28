@@ -5,7 +5,7 @@ import { Upload, RefreshCw } from "lucide-react"
 import { useStore } from "@tanstack/react-form"
 import { Button } from "@/components/ui/button"
 import { FileDropOverlay, useFileDropZone } from "@/components/ui/file-drop-overlay"
-import { useWizardForm } from "@/components/wizard/core/wizardForm"
+import { fitPageRange, useWizardForm } from "@/components/wizard/core/wizardForm"
 import { useBooks } from "@/hooks/use-books"
 import { getPdfPageCount } from "@/components/wizard/core/pdf/pdfMetadata"
 import { getPresetAccent } from "@/components/wizard/core/constants"
@@ -70,14 +70,7 @@ export function usePdfField() {
         pdfCache.file = file
         pdfCache.totalPages = count
         setTotalPages(count)
-        // Keep a range already chosen for this file (Add Book's auto mode sets the engine's range
-        // before the page picker first mounts); otherwise the range is the whole book.
-        const start = parseInt(form.state.values.startPage)
-        const end = parseInt(form.state.values.endPage)
-        if (!(start >= 1 && end >= start && end <= count)) {
-          form.setFieldValue("startPage", "1")
-          form.setFieldValue("endPage", String(count))
-        }
+        fitPageRange(form, count)
       } catch {
         if (cancelled) return
         pdfCache.file = null

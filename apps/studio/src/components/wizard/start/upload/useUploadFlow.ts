@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react"
 import { useStore } from "@tanstack/react-form"
 import { useFileDropZone } from "@/components/ui/file-drop-overlay"
-import { useWizardForm } from "@/components/wizard/core/wizardForm"
+import { fitPageRange, useWizardForm } from "@/components/wizard/core/wizardForm"
 import { suggestLabel, suggestUniqueLabel } from "@/components/wizard/core/fields/PdfField"
 import { getCachedPdfPageCount, getPdfPageCount } from "@/components/wizard/core/pdf/pdfMetadata"
 import { usePdfPreviewPages } from "@/components/wizard/core/pdf/usePdfPreviewPages"
@@ -70,15 +70,18 @@ export function useUploadFlow({ active = true, guard }: { active?: boolean; /** 
       return
     }
     // A new PDF starts clean: no error left from the last one, and every page chosen (a PDF that
-    // was already here when this mounted keeps the pages picked for it).
+    // was already here when this mounted keeps the pages picked for it while they fit, as in the
+    // wizard's PDF field).
     const fresh = seen.current !== file
     seen.current = file
     setError(null)
+    if (fresh) {
+      form.setFieldValue("startPage", "")
+      form.setFieldValue("endPage", "")
+    }
     const counted = (count: number) => {
       setCounted({ file, count })
-      if (!fresh && form.state.values.endPage) return
-      form.setFieldValue("startPage", "1")
-      form.setFieldValue("endPage", String(count))
+      fitPageRange(form, count)
     }
     const cached = getCachedPdfPageCount(file)
     if (cached !== undefined) return counted(cached)
