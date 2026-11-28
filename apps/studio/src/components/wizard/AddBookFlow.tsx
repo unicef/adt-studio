@@ -1,8 +1,9 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useWizard } from "@/components/wizard/core/WizardProvider"
 import { BookCreationWizard } from "@/components/wizard/manual/BookCreationWizard"
 import { ModeChoice } from "@/components/wizard/start/ModeChoice"
 import { cn } from "@/lib/utils"
+import { releasePageThumbs } from "@/components/wizard/core/pdf/usePageThumb"
 import { Guided } from "@/components/wizard/auto/guided/Guided"
 import "./core/look.css"
 
@@ -21,6 +22,8 @@ export function AddBookFlow() {
   // Guided stays mounted (hidden) under a wizard opened from it, so coming back keeps its state.
   const [guided, setGuided] = useState(false)
   const [manualFrom, setManualFrom] = useState<"choose" | "auto">("choose")
+  // The PDF's pages are drawn from one open document; leaving Add Book releases it.
+  useEffect(() => releasePageThumbs, [])
 
   if (mode === "choose")
     return (

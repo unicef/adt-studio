@@ -4,11 +4,14 @@ import { useFileDropZone } from "@/components/ui/file-drop-overlay"
 import { fitPageRange, useWizardForm } from "@/components/wizard/core/wizardForm"
 import { suggestLabel, suggestUniqueLabel } from "@/components/wizard/core/fields/PdfField"
 import { getCachedPdfPageCount, getPdfPageCount } from "@/components/wizard/core/pdf/pdfMetadata"
-import { usePdfPreviewPages } from "@/components/wizard/core/pdf/usePdfPreviewPages"
+import { usePageThumb } from "@/components/wizard/core/pdf/usePageThumb"
 import { useBooks } from "@/hooks/use-books"
 
 /** Why a PDF can't be used: it's locked with a password, or pdf.js can't read it. */
 export type UploadError = "password" | "damaged"
+
+/** The cover's width in CSS px (drawn at twice that: 960 px, as before). */
+const COVER_WIDTH = 480
 
 function isPdfFile(f: File) {
   return f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf")
@@ -108,13 +111,14 @@ export function useUploadFlow({ active = true, guard }: { active?: boolean; /** 
 
   const { overlay } = useFileDropZone({ accept: isPdfFile, onAccept: (f: File) => (file && guard ? guard(() => accept(f)) : accept(f)), enabled: active })
 
-  const { pages } = usePdfPreviewPages({ file, mode: "first", width: 960, height: 1280 })
+  // The cover, drawn by the same renderer (and the same open document) as every other page.
+  const cover = usePageThumb(file, 1, COVER_WIDTH)
   return {
     file,
     fileKey: file ? `${file.name}:${file.size}:${file.lastModified}` : "",
     title: file ? suggestLabel(file) || file.name : "",
     pageCount,
-    cover: pages[0] as string | undefined,
+    cover,
     error,
     rejectedAt: rejected,
     overlay,

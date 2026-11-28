@@ -19,6 +19,13 @@ function openDoc(file: File): Promise<Doc> {
   return doc
 }
 
+/** Releases the open document (Add Book closing); the next thumbnail opens its PDF again. */
+export function releasePageThumbs() {
+  const previous = open
+  open = null
+  void previous?.doc.then((d) => d.destroy()).catch(() => {})
+}
+
 function renderThumb(file: File, n: number, width: number): Promise<string> {
   let cache = thumbs.get(file)
   if (!cache) {
@@ -48,30 +55,42 @@ function renderThumb(file: File, n: number, width: number): Promise<string> {
       return url
     })
     cache.set(key, src)
+    // A failed render (a damaged PDF, a document released mid-render) isn't kept: the next ask tries again.
+    const failed = src
+    const entries = cache
+    failed.catch(() => {
+      if (entries.get(key) === failed) entries.delete(key)
+    })
     if (cache.size > MAX_THUMBS) cache.delete(cache.keys().next().value as string)
   }
   return src
 }
 
 /**
- * One page of the PDF as a small image, for showing which pages a range starts and ends on. Renders
- * are debounced while a slider is dragged and the most recent ones are kept; the last image stays
- * until the next one is ready, so nothing flickers.
+ * One page of the PDF as an image (`width` CSS px, drawn at twice that), for the cover, the pages a
+ * range starts and ends on, the PDF viewer and the screens' previews: one renderer and one open
+ * document for all of them. Renders are debounced while a slider is dragged and the most recent
+ * ones are kept; the last image of the same PDF stays until the next one is ready, so nothing
+ * flickers (another PDF starts with none).
  */
 export function usePageThumb(file: File | null | undefined, page: number, width = 64): string | undefined {
-  const [src, setSrc] = useState<string>()
+  const [shown, setShown] = useState<{ file: File; src: string }>()
   useEffect(() => {
     if (!file || page < 1) return
     let cancelled = false
     const id = window.setTimeout(() => {
-      void renderThumb(file, page, width).then((next) => {
-        if (!cancelled && next) setSrc(next)
-      })
+      renderThumb(file, page, width).then(
+        (src) => {
+          if (!cancelled && src) setShown({ file, src })
+        },
+        // Nothing to show: the page keeps its placeholder (the PDF's own error is shown elsewhere).
+        () => {},
+      )
     }, 120)
     return () => {
       cancelled = true
       window.clearTimeout(id)
     }
   }, [file, page, width])
-  return src
+  return file && shown?.file === file ? shown.src : undefined
 }
