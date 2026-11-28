@@ -227,8 +227,8 @@ export function buildRuntimeTimecodeMap(
 // Folded into the packaging cache hash so already-packaged books regenerate
 // when renderPageHtml's output format changes (which book inputs don't capture).
 // Bump on any such change.
-// Regenerate bundles with round-trip metadata and staged imported presentation.
-const PACKAGING_FORMAT_VERSION = 19
+// Regenerate bundles: empty attributes written as name="" (#1109), textarea text no longer re-escaped (#1108).
+const PACKAGING_FORMAT_VERSION = 20
 
 export interface ComputePackagingInputHashOptions {
   storage: Storage
@@ -2196,8 +2196,10 @@ export function rewriteImageUrls(
     }
   }
 
-  const normalizedHtml = serializeHtml(doc).replace(/(<img\b[^>]*?)\salt(?=[\s>])/g, "$1 alt=\"\"")
-  return { html: normalizedHtml, referencedImages }
+  // `emptyAttrs` writes an empty value as `alt=""` rather than a bare `alt`.
+  // Patching the serialized string instead cannot tell an attribute name from
+  // the same word inside another attribute's value or a script (#1109).
+  return { html: serializeHtml(doc, { emptyAttrs: true }), referencedImages }
 }
 
 /**

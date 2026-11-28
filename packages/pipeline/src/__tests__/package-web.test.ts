@@ -3371,6 +3371,18 @@ describe("rewriteImageUrls", () => {
     expect(out).not.toContain("A caption that should be ignored")
   })
 
+  it("leaves the word alt inside other attribute values and scripts untouched (#1109)", () => {
+    const html = [
+      '<img src="/api/books/mybook/images/abc123" title="press the alt key" aria-label="the alt text">',
+      "<script>const tag = '<img alt >'</script>",
+    ].join("")
+    const { html: out } = rewriteImageUrls(html, "mybook", new Map([["abc123", "photo.jpg"]]))
+    expect(out).toBe(
+      '<img src="images/photo.jpg" title="press the alt key" aria-label="the alt text" alt="">' +
+        "<script>const tag = '<img alt >'</script>",
+    )
+  })
+
   it("does not include unreferenced images in referencedImages", () => {
     const html = `<img src="/api/books/mybook/images/unknown">`
     const imageMap = new Map([["abc123", "photo.jpg"]])
