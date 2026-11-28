@@ -311,9 +311,9 @@ function useSqueeze(scroller: RefObject<HTMLElement | null>, page: RefObject<HTM
       const slack = sc.clientHeight - el.getBoundingClientRect().height
       // eslint-disable-next-line lingui/no-unlocalized-strings -- a CSS variable
       const now = parseFloat(el.style.getPropertyValue("--gd-squeeze")) || 0
-      if (slack >= -1 && (slack < 24 || now === 0)) return
+      if (slack >= 0 && (slack < 24 || now === 0)) return
       const set = (v: number) => el.style.setProperty("--gd-squeeze", `${v}px`)
-      const fits = () => sc.scrollHeight - sc.clientHeight <= 1
+      const fits = () => sc.scrollHeight - sc.clientHeight <= 0
       /** The least squeeze that fits; false when even the smallest pictures don't. */
       const search = (): boolean => {
         let q = 0
@@ -349,7 +349,7 @@ function useSqueeze(scroller: RefObject<HTMLElement | null>, page: RefObject<HTM
     let timer = 0
     const onResize = () => {
       window.clearTimeout(timer)
-      if (sc.scrollHeight - sc.clientHeight > 1) fit()
+      if (sc.scrollHeight - sc.clientHeight > 0) fit()
       else timer = window.setTimeout(fit, 160)
     }
     fit()
