@@ -6,6 +6,7 @@ import { useLingui } from "@lingui/react"
 import { msg, plural } from "@lingui/core/macro"
 import { AlertTriangle, ArrowLeftRight, CheckCircle2, EyeOff, FileText, HelpCircle, Loader2, MessageSquare, Monitor, Puzzle } from "lucide-react"
 import { useVirtualizer } from "@tanstack/react-virtual"
+import { useStoryboardThumbnail } from "./storyboard-thumbnails"
 import { cn } from "@/lib/utils"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useBook } from "@/hooks/use-books"
@@ -192,6 +193,7 @@ export function StoryboardIndex({
                   page={item.page}
                   section={item.section}
                   isActive={isActive}
+                  isVisible={virtualRow.end > (virtualizer.scrollOffset ?? 0) && virtualRow.start < (virtualizer.scrollOffset ?? 0) + (virtualizer.scrollRect?.height ?? 0)}
                   activeColor={storyboardStageDef?.bgLight}
                   activeText={storyboardStageDef?.textColor}
                   onSelect={() =>
@@ -286,6 +288,7 @@ function SectionRow({
   onSelect,
   stageRunning,
   hasSourcePdf,
+  isVisible,
   waiting = 0,
 }: {
   bookLabel: string
@@ -297,11 +300,11 @@ function SectionRow({
   onSelect: () => void
   stageRunning?: boolean
   hasSourcePdf: boolean
+  isVisible: boolean
   /** Reader comments waiting on this section. */
   waiting?: number
 }) {
   const { i18n } = useLingui()
-  const { data: pageImageData, isLoading: pageImageLoading } = usePageImage(bookLabel, page.pageId)
   const rowRef = useRef<HTMLButtonElement>(null)
 
   // Pruned sections are intentionally excluded from rendering, so the
@@ -315,13 +318,25 @@ function SectionRow({
         })
       : null
 
+  const hover = useHoverPreview(rowRef)
+  const priority = hover.show ? 0 : isActive ? 1 : isVisible ? 2 : 3
+  const screenshot = useStoryboardThumbnail(renderedThumb, priority)
+  const sourceImage = useStoryboardThumbnail(
+    !renderedThumb || (hasSourcePdf && hover.show) ? JSON.stringify([bookLabel, page.pageId, "image"]) : null,
+    priority,
+  )
+  const { data: pageImageData, isLoading: pageImageLoading, isFetching: pageImageFetching } = usePageImage(bookLabel, page.pageId, { enabled: sourceImage.enabled })
+  useEffect(() => {
+    if (sourceImage.enabled && !pageImageFetching) sourceImage.finish()
+  }, [sourceImage.enabled, sourceImage.finish, pageImageFetching])
+
   const pdfThumb = pageImageData?.imageBase64
     ? `data:image/png;base64,${pageImageData.imageBase64}`
     : null
 
-  const sectionPending = stageRunning && !page.hasRendering
-
-  const hover = useHoverPreview(rowRef)
+  // A blank page can have a saved result with no rendered sections. Only an
+  // absent active result is still waiting for its first publication in this run.
+  const sectionPending = stageRunning && page.renderingVersion == null
 
   const previewLabel = section.textPreview?.trim() || i18n._(msg`Section ${section.sectionIndex + 1}`)
 
@@ -348,16 +363,19 @@ function SectionRow({
       )}
     >
       <div className="relative shrink-0 w-24 aspect-[4/3]">
-        {renderedThumb ? (
+        {renderedThumb && screenshot.enabled ? (
           <img
+            key={renderedThumb}
             src={renderedThumb}
+            onLoad={screenshot.finish}
+            onError={screenshot.finish}
             alt=""
             className={cn(
               "w-full h-full rounded-md object-cover object-top ring-1 ring-border bg-white shadow-sm transition-opacity",
               section.isPruned && "grayscale",
             )}
           />
-        ) : pageImageLoading || !pdfThumb ? (
+        ) : renderedThumb || pageImageLoading || !pdfThumb ? (
           <div className="w-full h-full bg-muted rounded-md ring-1 ring-border" />
         ) : (
           <img
@@ -412,7 +430,9 @@ function SectionRow({
           <ComparisonPreview
             pos={hover.pos}
             pdfThumb={pdfThumb}
-            renderedThumb={renderedThumb}
+            renderedThumb={screenshot.enabled ? renderedThumb : null}
+            pdfPending={!pdfThumb && (!sourceImage.enabled || pageImageFetching)}
+            screenshotPending={!!renderedThumb && !screenshot.enabled}
             pageNumber={page.pageNumber}
             sectionIndex={section.sectionIndex}
             sectionType={section.sectionType}
@@ -622,6 +642,8 @@ function useHoverPreview(
 
 function ComparisonPreview({
   pos,
+  pdfPending,
+  screenshotPending,
   pdfThumb,
   renderedThumb,
   pageNumber,
@@ -633,6 +655,8 @@ function ComparisonPreview({
 }: {
   pos: { top: number; left: number }
   pdfThumb: string | null
+  pdfPending: boolean
+  screenshotPending: boolean
   renderedThumb: string | null
   pageNumber: number
   sectionIndex: number
@@ -685,6 +709,7 @@ function ComparisonPreview({
         <div className="flex items-stretch p-3 gap-3 bg-background">
           <PreviewPanel
             src={pdfThumb}
+            pending={pdfPending}
             icon={<FileText className="w-3 h-3" />}
             label={<Trans>Source PDF</Trans>}
             fallback={<Trans>No source image</Trans>}
@@ -696,6 +721,7 @@ function ComparisonPreview({
           </div>
           <PreviewPanel
             src={renderedThumb}
+            pending={screenshotPending}
             icon={<Monitor className="w-3 h-3" />}
             label={<Trans>Generated section</Trans>}
             fallback={
@@ -715,12 +741,14 @@ function ComparisonPreview({
 
 function PreviewPanel({
   src,
+  pending = false,
   icon,
   label,
   fallback,
   tint,
 }: {
   src: string | null
+  pending?: boolean
   icon: React.ReactNode
   label: React.ReactNode
   fallback?: React.ReactNode
@@ -733,6 +761,7 @@ function PreviewPanel({
         {label}
       </div>
       <div
+        aria-busy={pending}
         className={cn(
           "h-[400px] w-[340px] rounded-lg bg-muted/40 ring-1 ring-border overflow-hidden flex items-center justify-center",
           tint === "amber" && "ring-amber-200 bg-amber-50/40",
@@ -741,6 +770,8 @@ function PreviewPanel({
       >
         {src ? (
           <img src={src} alt="" className="max-h-full max-w-full object-contain" />
+        ) : pending ? (
+          <Loader2 aria-hidden="true" className="h-5 w-5 animate-spin text-muted-foreground" />
         ) : (
           <span className="text-xs text-muted-foreground px-3 text-center">
             {fallback ?? <Trans>No preview available</Trans>}

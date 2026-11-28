@@ -28,7 +28,7 @@ All agents must follow the project guidelines in [`GUIDELINES.md`](GUIDELINES.md
 
 **Responsibilities**:
 - Write pure pipeline functions — no side effects, all dependencies passed as parameters
-- Follow entity versioning: never overwrite, always create new versions with incremented version numbers
+- Follow entity versioning: create new versions for ordinary edits. Only the explicit, scoped, audited recovery transaction may restore independently proven exact bytes to a damaged historical row; never use it for arbitrary historical edits.
 - Use the cached LLM client from `@adt/llm` for all LLM calls — never call LLM APIs directly
 - Define all data structures as Zod schemas in `packages/types/`
 - Implement progress reporting using the standard `{ step, percent }` pattern

@@ -1,14 +1,16 @@
 import { createHash, randomUUID } from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
+import { withBookWriter } from "@adt/storage"
 
 import {
+  PROJECT_IDENTITY_FILE,
   PROJECT_IDENTITY_VERSION,
   ProjectIdentity,
   type ProjectSourceKind,
 } from "@adt/types"
 
-export const PROJECT_IDENTITY_FILE = ".adt-project.json"
+export { PROJECT_IDENTITY_FILE } from "@adt/types"
 
 export class ProjectIdentityError extends Error {
   constructor(message: string) {
@@ -113,7 +115,9 @@ function unsavedProjectId(bookDir: string): string {
  */
 export function projectIdentityForListing(bookDir: string): ProjectIdentity {
   try {
-    return ensureProjectIdentity(bookDir)
+    // Reading an existing identity is cheap and needs no write admission. A
+    // legacy book's first Library read must not write into a busy/copying source.
+    return readProjectIdentity(bookDir) ?? withBookWriter(bookDir, () => ensureProjectIdentity(bookDir))
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error)
     console.warn(`[books] ${path.basename(bookDir)}: project identity unavailable (${reason}); listed without one`)

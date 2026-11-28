@@ -31,6 +31,7 @@ function bundle(
   return {
     root: "",
     sourceFormat: "round-trip",
+    hasManifest: true,
     manifest: AdtRoundTripManifest.parse({
       formatVersion: 1,
       editingContract,
@@ -46,11 +47,13 @@ function bundle(
     pages: [{ section_id: sectionId, href: "index.html" }],
     pageHtml: { "index.html": html },
     runtimeFeatures: {},
+    runtimeConfig: null,
     toc: [],
     glossaries: {},
     texts: { en: { "text-1": "Text" } },
     ignoredEdits: { sourceTextsChanged: false, pageHtmlChanged: [], pageHtmlMissing: [] },
     agentGuides: { agentsMd: null, claudeMd: null },
+    fontsCss: null,
   }
 }
 

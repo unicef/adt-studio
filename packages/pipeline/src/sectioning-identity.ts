@@ -1,7 +1,6 @@
 import type { Storage } from "@adt/storage"
 import { PageSectioningOutput, type ContentNodeData } from "@adt/types"
-import { createSectionIdFactory } from "./section-ids.js"
-import { collectSpentContentIds } from "./content-ids.js"
+import { createSectioningIdFactories } from "./section-ids.js"
 export { collectSpentContentIds } from "./content-ids.js"
 
 function nodeKey(node: ContentNodeData): string {
@@ -40,18 +39,11 @@ export function reconcileSectioningIdentities(
   const priorIds = uniqueByKey(priorNodes, (node) => node.nodeId)
   const uniqueOld = uniqueByKey(priorNodes, nodeKey)
   const uniqueNew = uniqueByKey(newNodes, nodeKey)
-  const spent = collectSpentContentIds(storage)
-  let next = 1
-  const allocate = () => {
-    let id: string
-    do { id = `${pageId}_n${String(next++).padStart(4, "0")}` } while (spent.has(id))
-    spent.add(id)
-    return id
-  }
+  const { allocateNode, allocateSection } = createSectioningIdFactories(storage, pageId)
   const assign = (node: ContentNodeData): ContentNodeData => {
     const key = nodeKey(node)
     const match = uniqueNew.has(key) ? uniqueOld.get(key) : undefined
-    return { ...node, nodeId: node.role === "image" ? node.nodeId : (match && priorIds.has(match.nodeId) ? match.nodeId : allocate()),
+    return { ...node, nodeId: node.role === "image" ? node.nodeId : (match && priorIds.has(match.nodeId) ? match.nodeId : allocateNode()),
       ...(node.children ? { children: node.children.map(assign) } : {}) }
   }
   const sectionKey = (section: PageSectioningOutput["sections"][number]) =>
@@ -59,7 +51,6 @@ export function reconcileSectioningIdentities(
   const priorSectionIds = uniqueByKey(previous?.sections ?? [], (section) => section.sectionId)
   const oldSections = uniqueByKey(previous?.sections ?? [], sectionKey)
   const newSections = uniqueByKey(generated.sections, sectionKey)
-  const allocateSection = createSectionIdFactory(storage, pageId)
   return { ...generated, sections: generated.sections.map((section) => {
     const key = sectionKey(section)
     const match = newSections.has(key) ? oldSections.get(key) : undefined

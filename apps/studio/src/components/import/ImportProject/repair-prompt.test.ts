@@ -38,6 +38,14 @@ describe("buildUnreadableRepairPrompt", () => {
     expect(prompt).toContain("Do not overwrite the input ZIP, and do not put the new ZIP inside the bundle folder.")
   })
 
+  // Studio can't tell here whether the bundle has a manifest.json: a legacy
+  // export has none, and the assistant must not create one.
+  it("asks for manifest.json at the ZIP root only if the bundle has one", () => {
+    const prompt = buildUnreadableRepairPrompt("book.zip", "Legacy ADT export is missing assets/config.json")
+    expect(prompt).toContain("with the bundle's contents at the root of the ZIP, and manifest.json at the root if the bundle has one")
+    expect(prompt).toContain("If it has none, do not create one, and say so in your reply.")
+  })
+
   it("explains the editing contract rules when the error is in it", () => {
     const prompt = buildUnreadableRepairPrompt(
       "book.zip",

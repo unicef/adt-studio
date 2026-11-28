@@ -3,16 +3,201 @@ import fs from "node:fs"
 import path from "node:path"
 import os from "node:os"
 import { Hono } from "hono"
-import { createBookStorage, openBookDb } from "@adt/storage"
+import { createBookStorage, openBookDb, writeSectioningLifecycle } from "@adt/storage"
+import * as storageModule from "@adt/storage"
 import { errorHandler } from "../middleware/error-handler.js"
 import { createPageRoutes } from "./pages.js"
 import type { TaskExecutor, TaskService } from "../services/task-service.js"
+import { resolveReadingOrder, storyboardCoverage, renderingOwnershipWarnings } from "@adt/pipeline"
+import { aiEditSection } from "../services/page-edit-service.js"
+
+vi.mock("../services/page-edit-service.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/page-edit-service.js")>()
+  return { ...actual, aiEditSection: vi.fn(actual.aiEditSection) }
+})
 
 describe("Page routes", () => {
   let tmpDir: string
   let globalConfigPath: string
   let app: Hono
   const label = "test-book"
+
+  it.each(["latest", "restored", "legacy", "dangling", "SQL-null", "JSON-null", "malformed", "raw-update"])(
+    "keeps page summaries identical to historical bulk selection for %s rows", async state => {
+      const pageId = `${label}_p1`
+      const storage = createBookStorage(label, tmpDir)
+      storage.putNodeData("image-captioning", pageId, { captions: [] })
+      storage.putNodeData("image-filtering", pageId, { images: [] })
+      storage.close()
+      const db = openBookDb(path.join(tmpDir, label, `${label}.db`))
+      const nodes = ["web-rendering", "page-sectioning", "image-captioning", "image-filtering"]
+      try {
+        for (const node of nodes) {
+          const row = db.get("SELECT version,data FROM node_data WHERE node=? AND item_id=? ORDER BY version DESC LIMIT 1", [node, pageId]) as { version: number; data: string }
+          const version = row.version + 1
+          const data = state === "SQL-null" ? null : state === "JSON-null" ? " \nnull " : state === "malformed" ? "{broken" : row.data
+          db.run("INSERT INTO node_data (node,item_id,version,data) VALUES (?,?,?,?)", [node, pageId, version, data])
+          db.run("DELETE FROM node_current WHERE node=? AND item_id=?", [node, pageId])
+          if (state !== "legacy") db.run("INSERT INTO node_current (node,item_id,version) VALUES (?,?,?)", [node, pageId, state === "restored" ? row.version : state === "dangling" ? version + 10 : version])
+          if (state === "raw-update") db.run("UPDATE node_data SET data=? WHERE node=? AND item_id=? AND version=?", [row.data + " ", node, pageId, version])
+        }
+        const before = db.all("SELECT * FROM node_data ORDER BY node,item_id,version")
+        const optimized = await app.request(`/api/books/${label}/pages`)
+        const actual = await optimized.json()
+        const spy = vi.spyOn(storageModule, "readCurrentNodeRows").mockImplementation((raw, node) => raw.all(
+          `SELECT nd.item_id,nd.version,nd.data FROM node_data nd
+           LEFT JOIN node_current nc ON nc.node=nd.node AND nc.item_id=nd.item_id
+           WHERE nd.node=? ORDER BY nd.item_id, ${storageModule.CURRENT_VERSION_ORDER}`, [node],
+        ) as ReturnType<typeof storageModule.readCurrentNodeRows>)
+        try {
+          const legacy = await app.request(`/api/books/${label}/pages`)
+          expect(optimized.status).toBe(legacy.status)
+          expect(actual).toEqual(await legacy.json())
+          expect(spy).toHaveBeenCalled()
+          expect(db.all("SELECT * FROM node_data ORDER BY node,item_id,version")).toEqual(before)
+        } finally { spy.mockRestore() }
+      } finally { db.close() }
+    },
+  )
+
+  it.each(["storyboard", "rendering", "ai-edit", "ai-instruction"])("returns a localizable 400 for invalid %s requests without changing history or starting work", async kind => {
+    const pageId = `${label}_p1`
+    const storage = createBookStorage(label, tmpDir)
+    const before = ["page-sectioning", "web-rendering"].map(node => storage.getAllNodeVersions(node, pageId))
+    const rendering = storage.getLatestNodeData("web-rendering", pageId)!
+    storage.close()
+    const tasks = { submitTask: vi.fn(), getActiveTasks: () => [] } as unknown as TaskService
+    const guarded = new Hono().route("/api", createPageRoutes(tmpDir, "", "", globalConfigPath, tasks)).onError(errorHandler)
+    const endpoint = kind.startsWith("ai-") ? "sections/0/ai-edit" : kind
+    const body = kind === "storyboard" ? { rendering: rendering.data } : kind === "rendering" ? rendering.data
+      : kind === "ai-edit" ? { baseVersion: 1, instruction: "Edit" } : { baseVersion: 1, renderingBaseVersion: rendering.version, instruction: " " }
+    const response = await guarded.request(`/api/books/${label}/pages/${pageId}/${endpoint}`, { method: kind.startsWith("ai-") ? "POST" : "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+    expect(response.status).toBe(400)
+    expect(await response.json()).toMatchObject({ code: "STORYBOARD_REQUEST_INVALID" })
+    expect(tasks.submitTask).not.toHaveBeenCalled()
+    const after = createBookStorage(label, tmpDir)
+    expect(["page-sectioning", "web-rendering"].map(node => after.getAllNodeVersions(node, pageId))).toEqual(before)
+    after.close()
+  })
+
+  it.each([false, true])("rejects a second page claiming an existing public ID and omits ambiguous imported owners (case alias=%s)", async caseAlias => {
+    const s = createBookStorage(label, tmpDir)
+    const source = s.getLatestNodeData("page-sectioning", `${label}_p1`)!
+    const rendering = s.getLatestNodeData("web-rendering", `${label}_p1`)!
+    const claim = structuredClone(source.data) as import("@adt/types").PageSectioningOutput
+    const claimedRendering = structuredClone(rendering.data) as import("@adt/types").WebRenderingOutput
+    if (caseAlias) for (const section of claim.sections) {
+      const previous = section.sectionId
+      section.sectionId = previous.toUpperCase()
+      for (const rendered of claimedRendering.sections) {
+        if (rendered.sectionId === previous) rendered.sectionId = section.sectionId
+        rendered.html = rendered.html.replaceAll(previous, section.sectionId)
+      }
+    }
+    const id = `${label}_p2`
+    const before = s.getAllNodeVersions("page-sectioning", id)
+    const version = s.getSelectedNodeVersion("page-sectioning", id) ?? 0
+    s.close()
+    const request = await app.request(`/api/books/${label}/pages/${id}/sectioning`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...claim, baseVersion: version }) })
+    expect(request.status).toBe(409)
+    const after = createBookStorage(label, tmpDir)
+    expect(after.getAllNodeVersions("page-sectioning", id)).toEqual(before)
+    // An imported book can bypass HTTP validation. Both public claims must be
+    // omitted and disclosed, never silently picked by Map insertion order.
+    after.putNodeData("page-sectioning", id, claim)
+    after.putNodeData("web-rendering", id, claimedRendering)
+    expect(storyboardCoverage(after).complete).toBe(false)
+    expect(resolveReadingOrder(after).items).toHaveLength(0)
+    expect(renderingOwnershipWarnings(after).map(warning => warning.pageId)).toEqual(expect.arrayContaining([`${label}_p1`, id]))
+    expect(after.getLatestNodeData("web-rendering", `${label}_p1`)).toEqual(rendering)
+    after.close()
+  })
+
+  it.each(["full", "sparse", "null-id"])("reserves readable legacy quiz IDs without document metadata (%s)", async shape => {
+    const storage = createBookStorage(label, tmpDir)
+    storage.putNodeData("quiz-generation", "book", { quizzes: [{ ...(shape === "full" ? { quizIndex: 0, reasoning: "" } : {}), ...(shape === "null-id" ? { quizId: null } : {}), afterPageId: `${label}_p1`, pageIds: [`${label}_p1`], question: "Saved quiz", answerIndex: 0, options: ["A", "B", "C"].map(text => ({ text, explanation: text })) }] })
+    const priorQuiz = storage.getAllNodeVersions("quiz-generation", "book")
+    expect(resolveReadingOrder(storage).items.map(item => item.id)).toContain("qz001")
+    const row = storage.getLatestNodeData("page-sectioning", `${label}_p1`)!
+    const prior = structuredClone(row)
+    const tree = row.data as import("@adt/types").PageSectioningOutput
+    tree.sections[0].sectionId = "qz001"
+    storage.close()
+    const response = await app.request(`/api/books/${label}/pages/${label}_p1/sectioning`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...tree, baseVersion: row.version }) })
+    expect(response.status).toBe(409)
+    const after = createBookStorage(label, tmpDir)
+    expect(after.getLatestNodeData("page-sectioning", `${label}_p1`)).toEqual(prior)
+    expect(after.getAllNodeVersions("quiz-generation", "book")).toEqual(priorQuiz)
+    after.close()
+  })
+
+  it.each(["page-sectioning", "fixed-layout-sectioning"])("isolates an unreadable %s page from healthy page list/detail reads", async node => {
+    const bad = `${label}_p2`
+    const db = openBookDb(path.join(tmpDir, label, `${label}.db`))
+    db.run("INSERT INTO node_data (node,item_id,version,data) VALUES (?,?,99,?)", [node, bad, "{broken"])
+    db.run("INSERT OR REPLACE INTO node_current (node,item_id,version) VALUES (?,?,99)", [node, bad])
+    const before = db.all("SELECT * FROM node_data ORDER BY node,item_id,version")
+    db.close()
+    const response = await app.request(`/api/books/${label}/pages`)
+    expect(response.status, await response.clone().text()).toBe(200)
+    const pages = await response.json()
+    expect(pages.find((page: { pageId: string }) => page.pageId === `${label}_p1`)).toMatchObject({ hasRendering: true })
+    expect(pages.find((page: { pageId: string }) => page.pageId === bad)).toMatchObject({ hasRendering: false })
+    const detail = await app.request(`/api/books/${label}/pages/${label}_p1`)
+    expect(detail.status, await detail.clone().text()).toBe(200)
+    const verify = openBookDb(path.join(tmpDir, label, `${label}.db`))
+    expect(verify.all("SELECT * FROM node_data ORDER BY node,item_id,version")).toEqual(before)
+    verify.close()
+  })
+
+  it("keeps healthy saved page reads available when an unrelated quiz record is unreadable", async () => {
+    const sql = openBookDb(path.join(tmpDir, label, `${label}.db`))
+    sql.run("INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, ?)", ["quiz-generation", "book", 1, "{broken"])
+    sql.close()
+    const response = await app.request(`/api/books/${label}/pages`)
+    expect(response.status).toBe(200)
+    expect((await response.json()).find((page: { pageId: string }) => page.pageId === `${label}_p1`)).toMatchObject({ hasRendering: true })
+    const verify = openBookDb(path.join(tmpDir, label, `${label}.db`))
+    expect(verify.get("SELECT data FROM node_data WHERE node=? AND item_id=?", ["quiz-generation", "book"])).toMatchObject({ data: "{broken" })
+    verify.close()
+  })
+
+  it.each(["storyboard", "rendering"])("rejects a stale %s draft after reset, preserves history, then accepts a fresh save", async endpoint => {
+    const pageId = `${label}_p1`
+    const storage = createBookStorage(label, tmpDir)
+    const original = storage.getLatestNodeData("web-rendering", pageId)!
+    const source = storage.getLatestNodeData("page-sectioning", pageId)!
+    const reset = storage.putNodeData("web-rendering", pageId, null)
+    const history = storage.getAllNodeVersions("web-rendering", pageId)
+    storage.close()
+    const save = (version?: number) => app.request(`/api/books/${label}/pages/${pageId}/${endpoint}`, {
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(endpoint === "storyboard"
+        ? { rendering: original.data, baseVersion: source.version, renderingBaseVersion: version }
+        : { ...(original.data as object), baseVersion: version }),
+    })
+    expect((await save()).status).toBe(400)
+    expect((await save(original.version)).status).toBe(409)
+    const after = createBookStorage(label, tmpDir)
+    expect(after.getAllNodeVersions("web-rendering", pageId)).toEqual(history)
+    expect(after.getLatestNodeData("page-sectioning", pageId)).toEqual(source)
+    after.close()
+    expect((await save(reset)).status).toBe(200)
+  })
+
+  it.each(["../outside", "..\\outside", "index", "CON", "NUL.txt", "trailing.", "%2e%2e%2foutside"])("rejects unsafe public section identity %s without changing saved versions", async unsafe => {
+    const pageId = `${label}_p1`
+    const storage = createBookStorage(label, tmpDir)
+    const row = storage.getLatestNodeData("page-sectioning", pageId)!
+    const original = structuredClone(row)
+    storage.close()
+    const data = row.data as { sections: Array<{ sectionId: string }> }
+    data.sections[0].sectionId = unsafe
+    const response = await app.request(`/api/books/${label}/pages/${pageId}/sectioning`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...data, baseVersion: row.version }) })
+    expect(response.status).toBe(409)
+    const after = createBookStorage(label, tmpDir)
+    expect(after.getLatestNodeData("page-sectioning", pageId)).toEqual(original)
+    after.close()
+  })
 
   // These regression cases test structural/restore semantics. Emulate the
   // editor's version read; missing/stale/racing guards are exercised without
@@ -23,15 +208,15 @@ describe("Page routes", () => {
     let body: Record<string, unknown>
     try { body = init?.body ? JSON.parse(String(init.body)) : {} } catch { return app.request(url, init) }
     const restore = url.match(/\/versions\/([^/]+)\/([^/]+)\/restore/)
-    const page = url.match(/\/pages\/([^/]+)\/(sectioning|storyboard|sections\/\d+(?:\/(?:clone|split|merge|merge-cross-page|ai-edit))?)(?:\?|$)/)
+    const page = url.match(/\/pages\/([^/]+)\/(sectioning|rendering|storyboard|sections\/\d+(?:\/(?:clone|split|merge|merge-cross-page|ai-edit))?)(?:\?|$)/)
     if (!restore && !page) return app.request(url, init)
-    if (page?.[2] === "storyboard" && !body.sectioning) return app.request(url, init)
     const requestLabel = url.match(/\/books\/([^/]+)/)?.[1] ?? label
     const exists = fs.existsSync(path.join(tmpDir, requestLabel, `${requestLabel}.db`))
     const storage = exists ? createBookStorage(requestLabel, tmpDir) : null
     try {
-      const node = restore?.[1] ?? "page-sectioning", id = restore?.[2] ?? page![1]
-      body.baseVersion ??= storage?.getCurrentNodeVersion(node, id) ?? 0
+      const node = restore?.[1] ?? (page?.[2] === "rendering" ? "web-rendering" : "page-sectioning"), id = restore?.[2] ?? page![1]
+      body.baseVersion ??= storage?.getSelectedNodeVersion(node, id) ?? 0
+      if ((page?.[2] === "storyboard" && body.rendering) || url.includes("/ai-edit")) body.renderingBaseVersion ??= storage?.getSelectedNodeVersion("web-rendering", id) ?? 0
       if (url.includes("merge-cross-page") && storage) {
         const pages = storage.getPages()
         const index = pages.findIndex((p) => p.pageId === id)
@@ -114,6 +299,7 @@ describe("Page routes", () => {
         sections: [
           {
             sectionIndex: 0,
+            sectionId: `${label}_p1_sec001`,
             sectionType: "content",
             reasoning: "rendered",
             sectionId: `${label}_p1_sec001`,
@@ -176,21 +362,48 @@ describe("Page routes", () => {
       expect(fs.existsSync(path.join(tmpDir, "missing-book"))).toBe(false)
     })
 
+    it("distinguishes a saved blank Storyboard result from absent output in page summaries", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      const pageId = `${label}_p1`
+      const tree = storage.getLatestNodeData("page-sectioning", pageId)!.data as import("@adt/types").PageSectioningOutput
+      for (const section of tree.sections) {
+        for (const node of section.nodes) node.isPruned = true
+      }
+      storage.putNodeData("page-sectioning", pageId, tree)
+      const version = storage.putNodeData("web-rendering", pageId, { sections: [] })
+      const before = storage.getAllNodeVersions("web-rendering", pageId)
+      const coverage = storyboardCoverage(storage)
+      storage.close()
+
+      const response = await app.request(`/api/books/${label}/pages`)
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual(expect.arrayContaining([
+        expect.objectContaining({ pageId, hasRendering: false, renderingVersion: version }),
+        expect.objectContaining({ pageId: `${label}_p2`, hasRendering: false, renderingVersion: null }),
+      ]))
+      const after = createBookStorage(label, tmpDir)
+      expect(after.getAllNodeVersions("web-rendering", pageId)).toEqual(before)
+      expect(storyboardCoverage(after)).toEqual(coverage)
+      after.close()
+    })
+
     it.each(["SQL", "JSON"])("does not resurrect %s NULL rendering or its activity flags, and respects a restored pointer", async (kind) => {
       const storage = createBookStorage(label, tmpDir)
       const pageId = `${label}_p1`
-      const version = storage.putNodeData("web-rendering", pageId, { sections: [{ sectionIndex: 0, sectionType: "content", html: "<p>Old activity</p>", activityAnswers: { answer: "old" } }] })
+      const version = storage.putNodeData("web-rendering", pageId, { sections: [{ sectionIndex: 0, sectionId: `${pageId}_sec001`, sectionType: "content", reasoning: "rendered", html: "<p>Old activity</p>", activityAnswers: { answer: "old" } }] })
       if (kind === "SQL") storage.clearNodesByType(["web-rendering"])
       else storage.putNodeData("web-rendering", pageId, null)
       storage.close()
       const pages = await (await app.request(`/api/books/${label}/pages`)).json()
       expect(pages[0].hasRendering).toBe(false)
+      expect(pages[0].renderingVersion).toBeNull()
       expect(pages[0].sections[0].isActivity).toBe(false)
       const restore = createBookStorage(label, tmpDir)
       restore.setCurrentNodeVersion("web-rendering", pageId, version)
       restore.close()
       const restored = await (await app.request(`/api/books/${label}/pages`)).json()
       expect(restored[0].hasRendering).toBe(true)
+      expect(restored[0].renderingVersion).toBe(version)
       expect(restored[0].sections[0].isActivity).toBe(true)
     })
 
@@ -549,7 +762,7 @@ describe("Page routes", () => {
       })
       expect(res.status).toBe(200)
       // Both fixtures are at v1, so one save advances each exactly once.
-      expect(await res.json()).toEqual({ sectioningVersion: 2, renderingVersion: 2 })
+      expect(await res.json()).toMatchObject({ sectioningVersion: 2, renderingVersion: 2 })
 
       const after = createBookStorage(label, tmpDir)
       try {
@@ -2202,6 +2415,82 @@ describe("Page routes", () => {
       }
     })
 
+    it("preserves a legacy image id ending _audio across a cross-page merge", async () => {
+      seedBothPages()
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        const row = storage.getLatestNodeData("page-sectioning", `${label}_p1`)!
+        const data = row.data as { sections: Array<{ nodes: Array<Record<string, unknown>> }> }
+        data.sections[0].nodes.push({
+          nodeId: `${label}_p1_im999_audio`,
+          isPruned: false,
+          role: "image",
+          text: "",
+        })
+        storage.putNodeData("page-sectioning", `${label}_p1`, data)
+      } finally {
+        storage.close()
+      }
+
+      const res = await requestPageEdit(
+        `/api/books/${label}/pages/${label}_p1/sections/0/merge-cross-page?direction=next`,
+        { method: "POST" }
+      )
+      expect(res.status).toBe(200)
+    })
+
+    it("preserves an extracted legacy image id ending _audio on a page save", async () => {
+      seedBothPages()
+      const targetId = `${label}_p1_im999_audio`
+      const seed = createBookStorage(label, tmpDir)
+      try {
+        seed.putExtractedPage({
+          pageId: `${label}_p1`,
+          pageNumber: 1,
+          text: "Page one",
+          pageImage: {
+            imageId: `${label}_p1_page`,
+            buffer: Buffer.from("page"),
+            format: "png",
+            hash: "page",
+            width: 1,
+            height: 1,
+          },
+          images: [
+            {
+              imageId: targetId,
+              buffer: Buffer.from("image"),
+              format: "png",
+              hash: "image",
+              width: 1,
+              height: 1,
+            },
+          ],
+        })
+      } finally {
+        seed.close()
+      }
+
+      const storage = createBookStorage(label, tmpDir)
+      let data: { sections: Array<{ nodes: Array<Record<string, unknown>> }> }
+      try {
+        data = storage.getLatestNodeData("page-sectioning", `${label}_p1`)!.data as typeof data
+        data.sections[0].nodes.push({ nodeId: targetId, isPruned: false, role: "image", text: "" })
+      } finally {
+        storage.close()
+      }
+
+      const res = await requestPageEdit(
+        `/api/books/${label}/pages/${label}_p1/sectioning`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        }
+      )
+      expect(res.status).toBe(200)
+    })
+
     it("cannot claim the Storyboard is complete while both renderings are empty", async () => {
       seedBothPages()
       const storage = createBookStorage(label, tmpDir)
@@ -2226,7 +2515,145 @@ describe("Page routes", () => {
     })
   })
 
+  describe("POST /api/books/:label/pages/:pageId/sections/:sectionIndex/ai-edit", () => {
+    async function submitAiEdit(instruction: string) {
+      let submittedExecutor: TaskExecutor | undefined
+      const taskService: TaskService = {
+        submitTask(_label, kind, _description, executor) {
+          expect(kind).toBe("ai-edit")
+          submittedExecutor = executor
+          return { taskId: "task-ai-edit" }
+        },
+        getActiveTasks: () => [],
+      }
+      const routes = createPageRoutes(tmpDir, tmpDir, tmpDir, globalConfigPath, taskService)
+      const taskApp = new Hono()
+      taskApp.onError(errorHandler)
+      taskApp.route("/api", routes)
+
+      const storage = createBookStorage(label, tmpDir)
+      const { baseVersion, renderingBaseVersion } = (() => {
+        try {
+          return {
+            baseVersion: storage.getCurrentNodeVersion("page-sectioning", `${label}_p1`) ?? 0,
+            renderingBaseVersion: storage.getSelectedNodeVersion("web-rendering", `${label}_p1`) ?? 0,
+          }
+        } finally { storage.close() }
+      })()
+      const res = await taskApp.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/ai-edit`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-OpenAI-Key": "sk-test" },
+          body: JSON.stringify({ instruction, baseVersion, renderingBaseVersion }),
+        }
+      )
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({ taskId: "task-ai-edit", status: "submitted" })
+      return submittedExecutor!(() => {})
+    }
+
+    function latestRendering() {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        return storage.getLatestNodeData("web-rendering", `${label}_p1`)
+      } finally {
+        storage.close()
+      }
+    }
+
+    it("does not save a new rendering version when the edit is not possible", async () => {
+      const before = latestRendering()
+      vi.mocked(aiEditSection).mockResolvedValueOnce({
+        status: "unsupported",
+        reason: "AI editing cannot change images. Use the image tools instead.",
+        reasoning: "The instruction asks to redraw every image.",
+      })
+
+      const result = await submitAiEdit("Modify all the images on this page")
+
+      expect(result).toEqual({
+        status: "unsupported",
+        reason: "AI editing cannot change images. Use the image tools instead.",
+        reasoning: "The instruction asks to redraw every image.",
+        sectionIndex: 0,
+      })
+      expect(latestRendering()?.version).toBe(before?.version)
+    })
+
+    it("saves the edited section and reports the verification outcome", async () => {
+      const before = latestRendering()
+      vi.mocked(aiEditSection).mockResolvedValueOnce({
+        status: "applied",
+        html: `<section data-id="edited">Edited</section>`,
+        reasoning: "Made the text blue.",
+        verification: { applied: false, reason: "The text color did not change." },
+      })
+
+      const result = await submitAiEdit("Make the text blue")
+
+      expect(result).toMatchObject({
+        status: "applied",
+        sectionIndex: 0,
+        verification: { applied: false, reason: "The text color did not change." },
+      })
+      const after = latestRendering()
+      expect(after?.version).toBe((before?.version ?? 0) + 1)
+      expect(JSON.stringify(after?.data)).toContain("Edited")
+    })
+  })
+
+  describe("GET /api/books/:label/pages/:pageId/sections/:sectionIndex/ai-edit-history", () => {
+    const text = (value: unknown) => [{ type: "text", text: typeof value === "string" ? value : JSON.stringify(value) }]
+    const edit = (feasible: boolean, reasoning: string, unsupported_reason = "") => ({ reasoning, feasible, unsupported_reason, content: feasible ? "<section></section>" : "" })
+
+    function logEditTurn(attempts: unknown[], verify?: { applied: boolean; reason: string }) {
+      const db = openBookDb(path.join(tmpDir, label, `${label}.db`))
+      const insert = (promptName: string, messages: unknown[], timestamp: string) =>
+        db.run("INSERT INTO llm_log (timestamp, step, item_id, success, data) VALUES (?, ?, ?, 1, ?)", [
+          timestamp, "ai-edit", `${label}_p1`, JSON.stringify({ correlationId: "turn-1", sectionIndex: 0, promptName, cacheHit: false, messages }),
+        ])
+      try {
+        insert("html_edit", [
+          { role: "user", content: text("## Edit instruction\nReplace the photos\n") },
+          ...attempts.flatMap((attempt, i) => [
+            { role: "assistant", content: text(attempt) },
+            ...(i < attempts.length - 1 ? [{ role: "user", content: text("Fix these validation errors") }] : []),
+          ]),
+        ], "2026-01-01T00:00:00.000Z")
+        if (verify) insert("html_edit_verify", [{ role: "user", content: text("Verify") }, { role: "assistant", content: text(verify) }], "2026-01-01T00:00:01.000Z")
+      } finally {
+        db.close()
+      }
+    }
+
+    async function history() {
+      const res = await app.request(`/api/books/${label}/pages/${label}_p1/sections/0/ai-edit-history`)
+      expect(res.status).toBe(200)
+      return ((await res.json()) as { history: Array<Record<string, unknown>> }).history
+    }
+
+    it("labels the turn from the final attempt when a rejected attempt says it is not possible", async () => {
+      logEditTurn([edit(true, "Swapped in new photos"), edit(false, "Needs new images", "AI editing can't change images.")])
+
+      expect(await history()).toEqual([expect.objectContaining({
+        instruction: "Replace the photos",
+        attempts: [expect.objectContaining({ reasoning: "Needs new images" })],
+        unsupported: { reason: "AI editing can't change images." },
+      })])
+    })
+
+    it("keeps an applied turn and its verification when a rejected attempt was not feasible", async () => {
+      logEditTurn([edit(false, "Not possible"), edit(true, "Made the text blue")], { applied: true, reason: "The text is blue." })
+
+      const [turn] = await history()
+      expect(turn).toMatchObject({ attempts: [{ reasoning: "Made the text blue" }], verify: { applied: true, reason: "The text is blue." } })
+      expect(turn).not.toHaveProperty("unsupported")
+    })
+  })
+
   describe("POST /api/books/:label/pages/re-render", () => {
+    beforeEach(() => writeSectioningLifecycle(path.join(tmpDir, label), "dynamic", true))
     it("marks the Storyboard running before submitting one task for all pages", async () => {
       const storage = createBookStorage(label, tmpDir)
       try {
@@ -2287,6 +2714,7 @@ describe("Page routes", () => {
   })
 
   describe("POST /api/books/:label/pages/:pageId/re-render", () => {
+    beforeEach(() => writeSectioningLifecycle(path.join(tmpDir, label), "dynamic", true))
     it("validates the request without requiring an unconditional OpenAI key", async () => {
       const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/re-render?sectionIndex=99`,

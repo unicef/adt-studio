@@ -6,6 +6,9 @@ export function useBooks() {
   return useQuery({
     queryKey: ["books"],
     queryFn: api.getBooks,
+    // Book access can verify a summary that was unknown on a cold listing.
+    // Refresh on SPA return even within the application's five-minute cache.
+    refetchOnMount: "always",
   })
 }
 

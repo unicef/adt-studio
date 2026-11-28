@@ -161,8 +161,65 @@ describe("update-issue-template-versions", () => {
     ]);
   });
 
+  it.each([
+    [
+      null,
+      ["v0.9.0-beta.3", "v0.9.0-beta.2", "v0.9.0-beta.1"],
+      ["v0.9.0", "v0.8.0", "v0.7.0"],
+    ],
+    [
+      "v0.9.1-beta.1",
+      ["v0.9.1-beta.1", "v0.9.0-beta.3", "v0.9.0-beta.2"],
+      ["v0.9.0", "v0.8.0", "v0.7.0"],
+    ],
+    [
+      "v0.9.1",
+      ["v0.9.0-beta.3", "v0.9.0-beta.2", "v0.9.0-beta.1"],
+      ["v0.9.1", "v0.9.0", "v0.8.0"],
+    ],
+  ])(
+    "excludes PR previews from every version dropdown (extra tag: %s)",
+    (extraTag, betas, officials) => {
+      gitTag(
+        "v0.7.0",
+        "v0.8.0",
+        "v0.9.0",
+        "v0.9.0-beta.1",
+        "v0.9.0-beta.2",
+        "v0.9.0-beta.3",
+        "0.9.1-beta-pr-803",
+        "v0.9.1-beta-pr-804",
+      );
+      const templates = ["bug_report.yml", "accessibility.yml", "question.yml"];
+      for (const name of templates) {
+        writeTemplate(
+          name,
+          versionTemplate(["0.9.1-beta-pr-803", "Older / unsure"]),
+        );
+      }
+
+      const result = run(...(extraTag ? [extraTag] : []), "--require-full-history");
+
+      expect(result.status).toBe(0);
+      for (const name of templates) {
+        expect(versionOptions(name)).toEqual([
+          ...betas,
+          ...officials,
+          "Older / unsure",
+        ]);
+      }
+    },
+  );
+
   it("fails closed when release automation cannot see a complete version set", () => {
-    gitTag("v0.7.0-beta.2", "v0.6.0");
+    gitTag(
+      "v0.7.0-beta.1",
+      "v0.7.0-beta.2",
+      "0.7.1-beta-pr-803",
+      "v0.4.0",
+      "v0.5.0",
+      "v0.6.0",
+    );
     const original = versionTemplate([
       "v0.7.0-beta.2",
       "v0.7.0-beta.1",
@@ -178,6 +235,7 @@ describe("update-issue-template-versions", () => {
     expect(result.stderr).toContain(
       "Refusing to update issue templates from an incomplete tag set",
     );
+    expect(result.stderr).toContain("found 2/3 beta and 3/3 official versions");
     expect(readTemplate("bug_report.yml")).toBe(original);
   });
 

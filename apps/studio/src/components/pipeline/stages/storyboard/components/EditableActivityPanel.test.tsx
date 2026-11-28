@@ -3,9 +3,10 @@ import React from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import type { EditableActivity } from "@adt/types"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
 const mocks = vi.hoisted(() => ({
-  save: vi.fn().mockResolvedValue(undefined),
+  save: vi.fn().mockResolvedValue({ version: 2 }),
 }))
 
 vi.mock("@lingui/react/macro", () => ({
@@ -70,7 +71,7 @@ const activity: EditableActivity = {
 describe("EditableActivityPanel", () => {
   it("registers draft edits with the shared unsaved-changes save system", async () => {
     render(
-      <FloatingSaveProvider>
+      <QueryClientProvider client={new QueryClient()}><FloatingSaveProvider>
         <EditableActivityPanel
           open
           onClose={vi.fn()}
@@ -78,10 +79,11 @@ describe("EditableActivityPanel", () => {
           pageId="page-1"
           sectionIndex={0}
           activity={activity}
+          version={1}
           activities={{ "0": activity }}
           paletteAccent="#2563EB"
         />
-      </FloatingSaveProvider>,
+      </FloatingSaveProvider></QueryClientProvider>,
     )
 
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull()
@@ -95,7 +97,8 @@ describe("EditableActivityPanel", () => {
 
     await waitFor(() => {
       expect(mocks.save).toHaveBeenCalledWith({
-        "0": expect.objectContaining({ title: { text: "Unsaved title" } }),
+        activities: { "0": expect.objectContaining({ title: { text: "Unsaved title" } }) },
+        baseVersion: 1,
       })
     })
   })

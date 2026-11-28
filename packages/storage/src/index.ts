@@ -4,12 +4,25 @@ export {
   resolveBookPaths,
   type BookPaths,
 } from "./book-storage.js"
-export { openBookDb, cleanupInterruptedSteps, readBookSchemaVersion } from "./db.js"
-export { readCurrentNodeRow, CURRENT_VERSION_ORDER } from "./node-current.js"
+export { assertRecoveryCopyReady, openBookDb, cleanupInterruptedSteps, readBookSchemaVersion } from "./db.js"
+export { isCorruptBookDatabase } from "./database-admission.js"
+export { recoverBookCopy, BookRecoveryCopyError } from "./book-recovery-copy.js"
+export { readCurrentNodeRow, readCurrentNodeRows, CURRENT_VERSION_ORDER } from "./node-current.js"
+export { HistoryIntegrityError } from "./history-integrity.js"
 
 export { storeImmutableAsset, readBookAsset, UnsafeAssetPathError } from "./immutable-assets.js"
-export { withBookWriter, withNewBookWriter, ownsBookWriter, assertBookWriter, BookBusyError } from "./book-writer.js"
+export { withBookWriter, withNewBookWriter, ownsBookWriter, assertBookWriter, isBookWriterArtifact, BookBusyError } from "./book-writer.js"
 
 export { publishSpeechOutput, publishSpeechTimings, restoreSpeechOutput, withSpeechAudioIdentity } from "./speech-history.js"
 
 export { bookAssetExists } from "./immutable-assets.js"
+export { retainInvalidBookConfig, atomicBookFile, configHash, readConfigText, readSectioningLifecycle, writeSectioningLifecycle, invalidateSectioningLifecycle, recoverSectioningTransition, publishSectioningTransition, SECTIONING_JOURNAL, SECTIONING_LIFECYCLE } from "./sectioning-transition.js"
+
+export { ExtractionAdmissionError } from "./extraction-error.js"
+export { EXTRACTION_MANIFEST_FILE, extractionHash, readExtractionManifest, writeExtractionManifest, hashExtractionAsset, flushExtractionAsset, syncDirectory, inspectExtractionDestination, verifyExtractionInventory, assertExtractionReadable } from "./extraction-manifest.js"
+export { getStorageBookDir } from "./book-storage.js"
+
+export { insertNodeVersion, readIdentityHistory, importHistoryReservations, historyBookId } from "./history-evidence.js"
+export { HistoryRecoveryError, inspectHistoryRecovery, inspectHistoryRecoveryAsync, checkpointHistory, repairHistory, readHistoryRecoveryAudit } from "./history-recovery.js"
+
+export { readBookContentIdentity } from "./book-content-identity.js"

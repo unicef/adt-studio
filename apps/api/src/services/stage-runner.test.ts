@@ -4,7 +4,7 @@ import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { PIPELINE, type AppConfig, type ProgressEvent } from "@adt/types"
 import { computeSpeechCacheKey, stripEmojis, retireSectionIds, outputEvidence } from "@adt/pipeline"
-import { createBookStorage, openBookDb } from "@adt/storage"
+import { createBookStorage, openBookDb, writeSectioningLifecycle } from "@adt/storage"
 import {
   buildStageRunnerImageClassifyConfig,
   createStageRunner,
@@ -903,6 +903,7 @@ describe("createStageRunner storyboard render-only", () => {
     for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     writeBaseConfig(configPath)
     seedStoryboardBook(booksDir, "render-only")
+    writeSectioningLifecycle(path.join(booksDir, "render-only"), "dynamic", true)
 
     const events: ProgressEvent[] = []
     const controller = new AbortController()
@@ -1691,6 +1692,72 @@ speech:
     }
   })
 
+
+  describe("OpenAI TTS transport failures (#1067)", () => {
+    const spies: Array<{ mockRestore: () => void }> = []
+    afterEach(() => { for (const spy of spies.splice(0)) spy.mockRestore() })
+    const openAiConfig = `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: openai
+`
+    const setup = (label: string) => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+      const booksDir = path.join(tmpDir, "books")
+      const promptsDir = path.join(tmpDir, "prompts")
+      const configPath = path.join(tmpDir, "config.yaml")
+      fs.mkdirSync(promptsDir, { recursive: true })
+      for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
+      fs.writeFileSync(configPath, openAiConfig)
+      seedTextAndSpeechBook(booksDir, label)
+      return { booksDir, promptsDir, configPath }
+    }
+    const run = (label: string, dirs: { booksDir: string; promptsDir: string; configPath: string }, events: ProgressEvent[]) =>
+      createStageRunner().run(
+        label,
+        { ...dirs, credentials: { openai: { apiKey: "sk-test" } }, fromStage: "translate", toStage: "speech" },
+        { emit: (event) => events.push(event) },
+      )
+
+    it("retries a dropped connection instead of losing the entry on its first attempt", async () => {
+      const dirs = setup("openai-tts-dropped")
+      spies.push(vi.spyOn(Math, "random").mockReturnValue(0)) // shortest jittered backoff
+      spies.push(vi.spyOn(console, "warn").mockImplementation(() => {}))
+      generateSpeechFileMock
+        .mockRejectedValueOnce(new Error("fetch failed (UND_ERR_SOCKET: other side closed)"))
+        .mockResolvedValueOnce(undefined)
+
+      const events: ProgressEvent[] = []
+      await run("openai-tts-dropped", dirs, events)
+
+      expect(generateSpeechFileMock).toHaveBeenCalledTimes(2)
+      expect(events.some((event) => event.type === "step-complete" && event.step === "tts")).toBe(true)
+      // A recovered attempt is invisible: Studio raises its "pages failed in
+      // Speech" toast, error sound and failed-stage state off `step-error`.
+      expect(events.filter((event) => event.type === "step-error")).toEqual([])
+      const storage = createBookStorage("openai-tts-dropped", dirs.booksDir)
+      try {
+        const ttsOutput = storage.getLatestNodeData("tts", "en")?.data as { failed?: unknown[] } | undefined
+        expect(ttsOutput?.failed ?? []).toEqual([])
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("does not retry a permanent OpenAI error", async () => {
+      const dirs = setup("openai-tts-permanent")
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+      spies.push(warn)
+      generateSpeechFileMock.mockRejectedValueOnce(new Error("TTS request failed (400): Invalid voice"))
+
+      await run("openai-tts-permanent", dirs, []).catch(() => {})
+
+      expect(generateSpeechFileMock).toHaveBeenCalledTimes(1)
+      expect(warn.mock.calls.some((call) => String(call[0]).includes("OpenAI TTS"))).toBe(false)
+    })
+  })
   it("fails the speech step before any synthesis when a provider credential is missing", async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
     const booksDir = path.join(tmpDir, "books")
@@ -3324,5 +3391,100 @@ describe("processWithConcurrency launch ramp", () => {
     await expect(done).rejects.toBeInstanceOf(RunCancelledError)
     // The remaining wave never launched — no need to advance the ramp timer.
     expect(started).toEqual([0])
+  })
+})
+
+describe("createStageRunner element-audio TTS", () => {
+  let tmpDir = ""
+
+  afterEach(() => {
+    if (tmpDir) {
+      fs.rmSync(tmpDir, { recursive: true, force: true })
+      tmpDir = ""
+    }
+  })
+
+  it("AC-17/21: generates authored audio and skips a legacy _audio caption", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-element-audio-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: gemini
+  providers:
+    gemini:
+      languages:
+        - en
+  excluded_categories:
+    - captions
+`,
+    )
+    seedTextAndSpeechBook(booksDir, "element-audio-tts")
+
+    const storage = createBookStorage("element-audio-tts", booksDir)
+    try {
+      storage.putNodeData("element-audio", "pg001", {
+        entries: [{ nodeId: "pg001_im001", text: "Mago" }],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+      storage.putNodeData("web-rendering", "pg001", {
+        sections: [{
+          sectionIndex: 0,
+          sectionId: "pg001_sec001",
+          sectionType: "content",
+          reasoning: "",
+          html: '<p data-id="pg001_t001">Hello world</p><p data-id="pg001_im001_audio">Mago</p><p data-id="pg003_im007_audio">Legacy caption</p>',
+        }],
+      })
+      storage.putNodeData("text-catalog", "book", {
+        entries: [
+          { id: "pg001_t001", text: "Hello world" },
+          { id: "pg001_im001_audio", text: "Mago" },
+          { id: "pg003_im007_audio", text: "Legacy caption" },
+        ],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+      storage.putNodeData("core-tts-catalog", "en", {
+        language: "en",
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        entries: [
+          readyCoreTtsEntry("pg001_t001", "Hello world"),
+          readyCoreTtsEntry("pg001_im001_audio", "Mago"),
+          readyCoreTtsEntry("pg003_im007_audio", "Legacy caption"),
+        ],
+      })
+    } finally {
+      storage.close()
+    }
+
+    generateSpeechFileMock.mockReset()
+    generateSpeechFileMock.mockResolvedValue(undefined)
+    const runner = createStageRunner()
+    await runner.run(
+      "element-audio-tts",
+      {
+        booksDir,
+        credentials: { gemini: { apiKey: "gm-test" }, openai: { apiKey: "sk-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "speech",
+        toStage: "speech",
+      },
+      { emit: () => undefined },
+    )
+
+    const ids = generateSpeechFileMock.mock.calls.map(
+      ([input]) => (input as { textId: string }).textId,
+    )
+    expect(ids).toContain("pg001_im001_audio")
+    expect(ids).not.toContain("pg003_im007_audio")
   })
 })

@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 export const PROJECT_IDENTITY_VERSION = 1 as const
+export const PROJECT_IDENTITY_FILE = ".adt-project.json"
 
 export const ProjectSourceKind = z.enum(["pdf", "imported-adt", "unknown"])
 export type ProjectSourceKind = z.infer<typeof ProjectSourceKind>

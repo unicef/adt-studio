@@ -372,7 +372,7 @@ it.each(["editor", "assistant"])("leaf-only activity reads preserve versions; %s
   expect(buildEasyReadSourceBlocks(read, read.getPages()).some(block => block.sectionId === owner)).toBe(true)
   read.close()
   if (mode === "editor") {
-  const save = await app.request(`/books/${label}/pages/pg001/rendering`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(detail.rendering) })
+  const save = await app.request(`/books/${label}/pages/pg001/rendering`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...detail.rendering, baseVersion: detail.versions.rendering }) })
   expect(save.status).toBe(200)
   }
   const updated = storage()

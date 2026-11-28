@@ -1,3 +1,4 @@
+import { serializeHtml } from "./html-serialize.js"
 import type { LeafText } from "./web-rendering.js"
 import { DomUtils, parseDocument } from "htmlparser2"
 
@@ -268,7 +269,7 @@ export function repairTableOfContentsLayout(html: string, leafTexts: LeafText[])
   }
 
   changed = removeDuplicateDecorations(doc, pageNumbers) || changed
-  return changed ? DomUtils.getOuterHTML(doc) : html
+  return changed ? serializeHtml(doc) : html
 }
 
 /** Rendering calls repair first, so a second pass must be a no-op. */

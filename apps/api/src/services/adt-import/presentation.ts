@@ -271,7 +271,7 @@ function refreshPageHtmlFingerprints(adtDir: string, hrefs: string[]): void {
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2))
 }
 
-export function restoreImportedAdtPresentation(label: string, booksDir: string): boolean {
+export function restoreImportedAdtPresentation(label: string, booksDir: string, outputDir?: string): boolean {
   const safeLabel = parseBookLabel(label)
   const bookDir = path.join(path.resolve(booksDir), safeLabel)
   if (!isImportedAdtProject(bookDir)) return false
@@ -279,7 +279,7 @@ export function restoreImportedAdtPresentation(label: string, booksDir: string):
   // Every cheap disqualifier runs before the source archive is read: this is
   // called on the packaging cache-hit path, where expanding an archive up to
   // the compressed size limit only to find nothing to do is pure waste.
-  const adtDir = path.join(bookDir, "adt")
+  const adtDir = outputDir ?? path.join(bookDir, "adt")
   if (!fs.existsSync(adtDir)) return false
   let sourceZip: Buffer
   try {

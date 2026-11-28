@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  CATALOG_OUTPUT_NODES,
   IMAGE_SET_CHANGE_CLEAR_NODE_TYPES,
   IMAGE_SET_CHANGE_CLEAR_STAGES,
   IMAGE_SET_CHANGE_CLEAR_STEPS,
@@ -9,6 +10,7 @@ import {
   getCacheResourcesForStageOutput,
   getCacheResourcesForStageClear,
 } from "../pipeline-effects.js"
+import { STAGE_ORDER } from "../pipeline.js"
 
 describe("pipeline effects", () => {
   it("keeps image-set reset nodes, steps, and warning stages aligned", () => {
@@ -84,5 +86,17 @@ describe("pipeline effects", () => {
 
   it("maps metadata node to book/list resources", () => {
     expect(getCacheResourcesForNode("metadata")).toEqual(["books", "book"])
+  })
+
+  it("AC-7: element-audio is registered but never a catalog output or clear list", () => {
+    expect(getCacheResourcesForNode("element-audio")).toEqual([])
+    expect(CATALOG_OUTPUT_NODES).not.toContain("element-audio")
+    expect(IMAGE_SET_CHANGE_CLEAR_NODE_TYPES).not.toContain("element-audio")
+    for (const stage of STAGE_ORDER) {
+      expect(getStageClearNodes(stage)).not.toContain("element-audio")
+      for (const to of STAGE_ORDER) {
+        expect(getStageRerunClearNodes(stage, to)).not.toContain("element-audio")
+      }
+    }
   })
 })

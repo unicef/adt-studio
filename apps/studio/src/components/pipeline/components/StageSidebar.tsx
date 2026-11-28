@@ -90,7 +90,7 @@ export function StageSidebar({
   const { i18n } = useLingui()
   const matchRoute = useMatchRoute()
   const search = useSearch({ strict: false }) as { tab?: string }
-  const { stageState, cancelRun, isCancelling, sourceUpdateStages = [] } = useBookRun()
+  const { stageState, cancelRun, isCancelling, sourceUpdateStages = [], storyboardCoverage } = useBookRun()
   const { data: accessibilityAssessment } = useAccessibilityAssessment(bookLabel)
   const { data: signLanguageData } = useSignLanguageVideos(bookLabel)
   const { data: packageStatus } = usePackageAdtStatus(bookLabel)
@@ -161,10 +161,11 @@ export function StageSidebar({
     flex1:     "flex-1",
   }
 
-  const validationCompleted = Boolean(accessibilityAssessment?.assessment)
+  const outputComplete = packageStatus?.complete !== false
+  const validationCompleted = outputComplete && Boolean(accessibilityAssessment?.assessment)
   const signLanguageCompleted = signLanguageData?.videos?.some((v) => v.sectionId !== null) ?? false
-  const previewCompleted = packageStatus?.hasAdt ?? false
-  const exportCompleted = tasks.some((t) => t.kind === "prepare-export" && t.status === "completed")
+  const previewCompleted = outputComplete && (packageStatus?.hasAdt ?? false)
+  const exportCompleted = outputComplete && tasks.some((t) => t.kind === "prepare-export" && t.status === "completed")
 
   const completionOverrides: Record<string, boolean> = {
     "sign-language": signLanguageCompleted,
@@ -252,7 +253,10 @@ export function StageSidebar({
 
     // Expose stage status to screen readers — the visual ring/color carries it
     // for sighted users, but the link's accessible name must say it too.
-    const statusKey = step.slug === "book" ? undefined : activeAttempt || state === "error" ? state : stageNeedsRerun ? "needs-update" : content?.current ? "done" : state
+    const retainedStoryboardStatus = step.slug === "storyboard" && state === "idle" && hasRenderings
+      ? storyboardCoverage?.complete === false ? "needs-update" : "output-available"
+      : undefined
+    const statusKey = step.slug === "book" ? undefined : activeAttempt || state === "error" ? state : stageNeedsRerun ? "needs-update" : content?.current ? "done" : retainedStoryboardStatus ?? state
     const stepAriaLabel = stageNotNeeded
       ? i18n._(msg`${stepLabel}: not needed for imported ADTs`)
       : statusKey
@@ -554,7 +558,6 @@ export function StageSidebar({
                 onSelectPage={onSelectPage}
                 sectionIndex={sectionIndex}
                 onSelectSection={onSelectSection}
-                stageRunning={currentState === "running"}
               />
             )}
           </div>
@@ -820,7 +823,6 @@ function PageIndex({
   onSelectPage,
   sectionIndex,
   onSelectSection,
-  stageRunning,
 }: {
   bookLabel: string
   activeStep: string
@@ -828,7 +830,6 @@ function PageIndex({
   onSelectPage?: (pageId: string) => void
   sectionIndex?: number
   onSelectSection?: (index: number) => void
-  stageRunning?: boolean
 }) {
   const { data: pages } = usePages(bookLabel)
   const activeStepDef = STAGES.find((s) => s.slug === activeStep)
@@ -893,7 +894,6 @@ function PageIndex({
                 onSelect={() => onSelectPage?.(page.pageId)}
                 sectionIndex={isActive ? sectionIndex : undefined}
                 onSelectSection={isActive ? onSelectSection : undefined}
-                stageRunning={stageRunning}
               />
             </div>
           )
@@ -913,17 +913,14 @@ function PageRow({
   onSelect,
   sectionIndex,
   onSelectSection,
-  stageRunning,
 }: {
   bookLabel: string
-  page: { pageId: string; textPreview: string; pageNumber: number; sectionCount: number; hasRendering?: boolean; prunedSections?: number[] }
+  page: { pageId: string; textPreview: string; pageNumber: number; sectionCount: number; prunedSections?: number[] }
   isActive: boolean
   activeStepDef?: (typeof STAGES)[number]
   onSelect: () => void
   sectionIndex?: number
   onSelectSection?: (index: number) => void
-  /** Whether the parent stage is currently running */
-  stageRunning?: boolean
 }) {
   const { i18n } = useLingui()
   const { data, isLoading } = usePageImage(bookLabel, page.pageId)
@@ -968,9 +965,6 @@ function PageRow({
 
   const imgSrc = data?.imageBase64 ? `data:image/png;base64,${data.imageBase64}` : null
 
-  // Page is still being processed during a storyboard run
-  const pageProcessing = stageRunning && !page.hasRendering
-
   const showSections = isActive && page.sectionCount > 1 && onSelectSection
 
   return (
@@ -997,11 +991,6 @@ function PageRow({
               onMouseLeave={handleLeave}
               className="w-full h-full rounded object-cover object-center ring-1 ring-border"
             />
-          )}
-          {pageProcessing && (
-            <div className="absolute inset-0 flex items-center justify-center rounded bg-black/30">
-              <Loader2 className="w-4 h-4 animate-spin text-white" />
-            </div>
           )}
         </div>
         <div className="flex flex-col gap-0.5 min-w-0 flex-1 pt-0.5">

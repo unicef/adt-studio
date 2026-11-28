@@ -21,7 +21,7 @@ vi.mock("@/hooks/use-api-key", () => ({ useApiKey: () => ({ apiKey: "test-only" 
 vi.mock("@/components/pipeline/pipeline-i18n", () => ({ getStageLabelI18n: (slug: string) => slug }))
 vi.mock("@/components/pipeline/settings-tabs", () => ({ getSettingsTabLabel: (_stage: string, tab: string) => tab }))
 vi.mock("@/components/pipeline/components/PromptViewer", () => ({ PromptViewer: ({ onModelChange, maxRetries, onMaxRetriesChange }: { onModelChange: (value: string) => void; maxRetries: string; onMaxRetriesChange: (value: string) => void }) => <><button onClick={() => { state.edits(); onModelChange("fixture:new-model") }}>Change model</button><input aria-label="Retries" value={maxRetries} onChange={event => onMaxRetriesChange(event.target.value)} /></>, savePromptDraft: vi.fn(), toPromptDraft: vi.fn() }))
-vi.mock("@/api/client", () => ({ api: { getStepStatus: vi.fn(), getBookConfig: vi.fn(), getActiveConfig: vi.fn(), updateBookConfigWithReceipt: vi.fn() } }))
+vi.mock("@/api/client", () => ({ api: { getStepStatus: vi.fn(), getBookConfig: vi.fn(), getActiveConfig: vi.fn(), getSectioningModeState: vi.fn(), getTasks: vi.fn(), updateBookConfigWithReceipt: vi.fn() } }))
 const { i18n } = await import("@lingui/core")
 i18n.load("en", {})
 i18n.activate("en")
@@ -35,7 +35,7 @@ const { TooltipProvider } = await import("@/components/ui/tooltip")
 let client: QueryClient
 const record = (stage: string, version = 7) => ({ node: stage === "toc" ? "toc-generation" : "page-sectioning", itemId: stage === "toc" ? "book" : "pg003", version, pageNumber: 3 })
 function deferred<T>() { let resolve!: (value: T) => void; let reject!: (reason: Error) => void; const promise = new Promise<T>((done, fail) => { resolve = done; reject = fail }); return { promise, resolve, reject } }
-beforeEach(() => { vi.clearAllMocks(); state.config = { config: {} }; state.active = { merged: {} }; state.blocked = false; state.running = false; state.provider = true; state.save.mockResolvedValue({}); client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } }) })
+beforeEach(() => { vi.clearAllMocks(); vi.mocked(api.getTasks).mockResolvedValue({ tasks: [] } as never); vi.mocked(api.getSectioningModeState).mockResolvedValue({ effectiveMode: "dynamic", hasOutput: false } as never); state.config = { config: {} }; state.active = { merged: {} }; state.blocked = false; state.running = false; state.provider = true; state.save.mockResolvedValue({}); client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } }) })
 afterEach(() => { cleanup(); client.clear() })
 async function mount(stage: "toc" | "sectioning", editModel = true) {
   vi.mocked(api.getStepStatus).mockResolvedValue({ protectedWork: [record(stage)] } as never)
@@ -114,6 +114,7 @@ it("Sectioning next Save retains the acknowledged map removal, independent addit
   await act(async () => { await client.invalidateQueries({ queryKey: ["debug", "config", "a"] }) })
   expect(await screen.findByDisplayValue("Independent addition")).toBeTruthy()
   show("a", "section-types")
+  await waitFor(() => expect(screen.getByRole("radio", { name: /By Page/ }).getAttribute("data-disabled")).toBeNull())
   fireEvent.click(screen.getByRole("radio", { name: /By Page/ }))
   show("a", "sectioning-prompt")
   const lateBook = deferred<never>(), lateActive = deferred<never>()

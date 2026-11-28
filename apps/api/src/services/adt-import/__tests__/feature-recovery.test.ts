@@ -227,20 +227,51 @@ describe("TOC entries without a title", () => {
 
 // F24: stray files can't crowd real problems out of the capped report.
 describe("compatibility report", () => {
-  it("lists real problems first, one stray entry per folder, and counts what it left out", () => {
+  const brokenArchive = () => {
     const files = unzipSync(makeBundleWithUnchangedHtmlCatalog())
     for (let i = 0; i < 60; i++) files[`node_modules/pkg/file-${i}.js`] = strToU8("x")
     for (let i = 0; i < 60; i++) files[`stray-${i}.txt`] = strToU8("x")
     delete files["images/pg001_im001.png"]
-    const { compatibility } = previewAdtRecoveryImport(Buffer.from(zipSync(files)))
+    return Buffer.from(zipSync(files))
+  }
+
+  it("lists real problems first, one stray entry per folder, and counts what it left out", () => {
+    const { compatibility } = previewAdtRecoveryImport(brokenArchive())
     const codes = compatibility.issues.map((issue) => issue.code)
     expect(codes).toContain("missing-asset")
     expect(codes.indexOf("missing-asset")).toBeLessThan(codes.indexOf("unexpected-bundle-entry"))
     expect(compatibility.issues.filter((issue) => issue.detail === "node_modules")).toHaveLength(1)
-    expect(compatibility.issues).toHaveLength(50)
     expect(compatibility.omittedIssueCount).toBeGreaterThan(0)
   })
+
+  // One widespread problem can't hide the others behind a global cap.
+  it("reports up to ten examples of each problem type, with every type's total", () => {
+    const { compatibility } = previewAdtRecoveryImport(brokenArchive())
+    const counts = compatibility.issueCounts ?? {}
+    const shown = (code: string) => compatibility.issues.filter((issue) => issue.code === code).length
+
+    expect(shown("unexpected-bundle-entry")).toBe(10)
+    expect(counts["unexpected-bundle-entry"]).toBeGreaterThanOrEqual(61)
+    expect(shown("missing-asset")).toBe(counts["missing-asset"])
+    const total = Object.values(counts).reduce((sum, count) => sum + (count ?? 0), 0)
+    expect(compatibility.omittedIssueCount).toBe(total - compatibility.issues.length)
+    // Each type's examples sit together, so the review can group them.
+    const firstSeen = [...new Set(codes(compatibility.issues))]
+    expect(codes(compatibility.issues)).toEqual(firstSeen.flatMap((code) => Array(shown(code)).fill(code)))
+  })
+
+  it("tells the repair assistant every type's total and every affected file", () => {
+    const { compatibility, agentGuide } = previewAdtRecoveryImport(brokenArchive())
+    const strays = compatibility.issueCounts?.["unexpected-bundle-entry"] ?? 0
+    expect(agentGuide.repairPrompt).toContain(`found ${strays} times; the first 10:`)
+    expect(agentGuide.repairPrompt).not.toContain("stray-0.txt: stray-0.txt")
+    expect(agentGuide.repairPrompt).toMatch(/also in: .*stray-59\.txt/)
+    expect(agentGuide.repairPrompt).toMatch(/^ {3}problem: .*\(unexpected-bundle-entry\)$/m)
+    expect(agentGuide.repairPrompt.match(/\(unexpected-bundle-entry\)$/gm)).toHaveLength(1)
+  })
 })
+
+const codes = (issues: Array<{ code: string }>) => issues.map((issue) => issue.code)
 
 describe("imported feature recovery", () => {
   it("does not promise features whose editable data the archive cannot carry", () => {
