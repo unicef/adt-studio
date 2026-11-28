@@ -198,7 +198,7 @@ function PreviewContainer({
 
 export function BookCreationWizard({ onBackFromPresets }: { onBackFromPresets?: () => void } = {}) {
   const { t, i18n } = useLingui()
-  const { phase, currentStep, setCurrentStep, stepDirection, previewFocus } = useWizard()
+  const { currentStep, setCurrentStep, stepDirection, previewFocus } = useWizard()
   const form = useWizardForm()
   const { createBook, willExtract, startExtract, openBook } = useBookCreation()
   const { data: books, isPending: booksLoading } = useBooks()
@@ -223,18 +223,13 @@ export function BookCreationWizard({ onBackFromPresets }: { onBackFromPresets?: 
   const hint = hintDescriptor ? i18n._(hintDescriptor) : undefined
 
   // Orientation for screen-reader users moving through the wizard.
-  const pageTitle =
-    phase === "upload"
-      ? t`Add Book: Upload PDF`
-      : currentStep === 0
-        ? t`Add Book: Choose a preset`
-        : stepDef
-          ? i18n._(stepDef.title)
-          : t`Add Book`
-  // For the multi-step phase we move focus to the step heading (below), which
-  // reads the title, so don't also announce it; for upload/preset there is no
-  // such heading, so announce instead.
-  usePageTitle(pageTitle, { announce: phase === "upload" || currentStep === 0 })
+  // (There is no upload step any more: the PDF is chosen in Basic Information, so the wizard's
+  // phase doesn't name what's on screen.)
+  const pageTitle = currentStep === 0 ? t`Add Book: Choose a preset` : stepDef ? i18n._(stepDef.title) : t`Add Book`
+  // For the steps we move focus to the step heading (below), which reads the
+  // title, so don't also announce it; the presets have no such heading, so
+  // announce instead.
+  usePageTitle(pageTitle, { announce: currentStep === 0 })
 
   // The footer and step container remount on step change (key={currentStep}),
   // dropping keyboard focus to <body>. Move it to the new step's heading so a
