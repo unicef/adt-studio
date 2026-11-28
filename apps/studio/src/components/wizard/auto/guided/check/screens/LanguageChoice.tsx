@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 
 import { Trans, useLingui } from "@lingui/react/macro"
 import { ArrowLeft, Check, ChevronRight, Search } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
-import { getBaseLanguage, getCountriesForLanguage, SUPPORTED_LANGUAGES } from "@/lib/languages"
+import { getBaseLanguage, getCountriesForLanguage, matchesSearch, SUPPORTED_LANGUAGES } from "@/lib/languages"
 import { cn } from "@/lib/utils"
 import { languageName, regionName } from "../../shared/languageName"
 import { useReturnFocus } from "../../shared/useReturnFocus"
@@ -92,7 +92,7 @@ function LanguagePanel({ start, current, found, foundNote, onPick, onDone }: { s
     const foundBase = found ? getBaseLanguage(found) : null
     const currentBase = current ? getBaseLanguage(current) : foundBase
     const list = SUPPORTED_LANGUAGES.map((l) => ({ code: l.code, name: nameOf(l.code), own: endonym(l.code), countries: l.countries?.length ?? 0 }))
-      .filter((l) => !q || l.name.toLocaleLowerCase(i18n.locale).includes(q) || l.own.toLocaleLowerCase().includes(q) || l.code === q)
+      .filter((l) => matchesSearch(q, [l.name, l.own], i18n.locale) || l.code === q)
       .sort((a, b) => Number(b.code === foundBase) - Number(a.code === foundBase) || a.name.localeCompare(b.name, i18n.locale))
     return (
       <div className="flex flex-col gap-3">
@@ -141,7 +141,7 @@ function LanguagePanel({ start, current, found, foundNote, onPick, onDone }: { s
   const varieties = getCountriesForLanguage(lang).suggested
   const now = current && getBaseLanguage(current) === lang ? region(current) : null
   const fromBook = found && getBaseLanguage(found) === lang ? region(found) : null
-  const list = varieties.filter((c) => !q || regionName(c.code, i18n.locale).toLocaleLowerCase(i18n.locale).includes(q) || c.name.toLowerCase().includes(q))
+  const list = varieties.filter((c) => matchesSearch(q, [regionName(c.code, i18n.locale), c.name], i18n.locale))
   return (
     <div className="flex flex-col gap-3">
       <div className="-mb-1 -mt-1 flex items-center gap-1">
