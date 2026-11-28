@@ -87,7 +87,7 @@ function LookCard({ rec, option, page, narrow, compact = false, chosen, first, o
       data-q-first={first ? "" : undefined}
       style={vtName ? { viewTransitionName: vtName.replace(/[^a-zA-Z0-9_-]/g, "_") } : undefined}
       onClick={(e) => onPick(e.currentTarget)}
-      aria-label={option.art ? t`${label}. ${line}.` : t`${label}. ${line}. ${looks}`}
+      aria-label={option.guess ? (option.art ? t`My guess: ${label}. ${line}.` : t`My guess: ${label}. ${line}. ${looks}`) : option.art ? t`${label}. ${line}.` : t`${label}. ${line}. ${looks}`}
       className={cn("opt-card group relative flex min-w-0 p-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500", row ? "flex-row items-center gap-3" : "flex-col", chosen && "is-sel")}
       data-grow={grow}
     >
