@@ -571,7 +571,10 @@ and, for Retry and Replace, the book content it was made against. Step status
 reports a content token with the discard counts it was computed from; the token
 changes with any Extract node version, any image row (including an upload) and
 the extraction record, so it also binds a legacy book that has no record. How
-the token is computed is an implementation choice.
+the token is computed is an implementation choice. One Extract node is left out
+of it: SPEC-0021's source assessment, which is derived from the extraction, is
+never edited and is written again by every new attempt
+([SPEC-0021](SPEC-0021-source-pdf-assessment.md), decision 34).
 
 A request without the `extraction` field is refused exactly as today, with
 today's codes, so existing callers see no change. A request whose action is not

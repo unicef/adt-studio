@@ -5,10 +5,10 @@ status: approved
 owner: "@gbergengruen"
 approvers: ["@ksokolovic"] # maintainer + product sign-off, 2026-11-17 (#1017 comment 6946992457)
 issues: ["#1016", "#1008", "#1012", "#901", "#676", "#985", "#326", "#749", "#957"]
-prs: ["#1009", "#1013", "#1015"] # PR 0 adopted 2026-10-29; #1013 implements §Step warnings; #1015 emits summary-missing
+prs: ["#1009", "#1013", "#1141", "#1015"] # PR 0 adopted 2026-10-29; #1013 implements §Step warnings; #1141 carries the #1012 fix; #1015 emits summary-missing
 adr: ""
 created: 2026-10-27
-updated: 2026-11-17
+updated: 2026-11-27
 ---
 
 **After the `extract` step, every book gets one persisted, deterministic, LLM-free
@@ -70,6 +70,39 @@ guard and admitted by SPEC-0010's outcomes (verified reuse or rejection) once it
 (decision 25). The watermark-removal counts are flat parameters. The `duplicate-images`
 membership is built from extraction-time evidence only, so later pruning does not change it
 (decision 26).
+Amended on 2026-11-23, before implementation started, against develop at 680c8ce33. #884
+(SPEC-0003) landed an extraction manifest and an extraction admission inside `extractPDF`.
+That is the common boundary this spec was waiting for, so the interim guard is dropped and
+AC-31 asserts the admission's outcomes (decision 25). A failure inside the extraction block now
+marks the extraction as failed. The assessment is therefore written after the
+manifest is complete and can never fail an extraction, and every `packages/pdf` signal pass is
+isolated in the same way (decisions 27 and 28, AC-38). A password-required PDF is refused at
+admission with its own code (decision 29). The `page-sectioning` outcome that #884 records as
+free text becomes a typed step warning (decision 30). The metadata step joins the triggers,
+because the editing language is usually unknown when Extract runs (decision 31). The
+`clearExtractedRows` fix is no longer needed, PR 4 is split in three, and the code anchors of
+the amended sections were re-verified.
+The same amendment follows the Extract re-run amendment to SPEC-0003 (#1214, #1215,
+RAC-20–24), which lets Studio and the API resume, retry or replace the extraction of a book
+that holds nothing but Extract output. An assessment belongs to one extraction. A resume
+leaves it as it is. A retry or a replace discards it together with the extraction, and the
+new attempt writes a new first version (decision 32, AC-31). The node is written in the
+attempt body that a first extraction and a reset share, so AC-38 covers both. Every other
+rerun is refused by `prepareSectioningRun`, so PR 2d changes nothing in `makeBeforeRun`. A
+recommendation that needs another extraction setting names Replace while the book can still
+be replaced (decision 33, AC-41). #1215 merged on 2026-11-27. PR 1 merges after #1216, which
+computes the content token, and PR 2d after the retry PR (#1219).
+Revised on 2026-11-27, after #1215 was approved with changes and its implementation
+(#1216, #1218, #1219, #1220) was updated to match. A retry or a replace is now bound to the
+book content it was made against, by a content token over the Extract nodes. The assessment
+is derived, no edit produces it and every new attempt rewrites it, so it stays outside that
+token: otherwise a Reassess, or the version a settings save appends, would refuse the very
+re-run the user asked for (decision 34, AC-42). A reset is also refused, before it discards
+anything, for a part whose extraction settings no longer match the book it was split from.
+AC-31 names that refusal and the token mismatch, and on a part the panel says that such a
+setting is changed in that book (decision 33, AC-41). The deletion of the assessment history
+by a reset is the exception to entity versioning that SPEC-0003 recorded in ADR 025 and
+invariant 10; this spec adds none of its own.
 
 ## Problem (with evidence)
 
@@ -86,7 +119,7 @@ later as poor output, or as pruned images with an opaque free-text reason.
 | Duplicate images | qa784: 1,049 extracted images, 761 distinct hashes, 288 byte-identical copies (27 %). | Only the read-only `extract-report` CLI counts them (#1009, adopted here as PR 0). |
 | Signals seen and thrown away | Unmapped glyphs (`packages/pdf/src/page-stream-recorder.ts:494-497` returns on `ucs <= 0`), undecodable paragraphs (`extract.ts:1728-1732`), image decode, figure render and crop failures that drop content (`console.warn` at `extract.ts:2184, 3883, 3928`) and orientation transforms that were not applied (`extract.ts:1380`, `flip-utils.ts:212`), `producer`/`creator`/`format`/`encryption` from `extractPdfMetadata` (`extract.ts:883`, dropped by `toBookMetadata`), page boxes and `/Rotate` (#676), raster DPI at placed size (`stampRasterPlacementsFromOps`, `extract.ts:1334`, has native and placed sizes), colour-space class (`classifyImageColorSpace`, `extract.ts:643`), text and image watermark signatures (only when removal is on, `extract.ts:347-354`), spread suggestions (stored by `detectSpreads`, never compared with the mode). | Never persisted or shown. |
 | Encodings that silently lose, duplicate or leak content | The taxonomy (@Elias, 2026-10-28) lists 81 print encodings with a structural detection signal each; its V1 triage ranks tiled images, stacked/MRC layers, scanned-or-mixed pages and covered figures as high or medium severity. Probed on mupdf 1.27.0 (2026-10-29): text drawn in render mode 3 (the hidden OCR layer of a scanned PDF) **is** returned by `toStructuredText()`, so it enters the page text, counts towards `text-layer-empty`'s 20 chars and is read aloud, while the device reports it through `ignoreText` (`page-stream-recorder.ts:289`), which discards it; `page.toPixmap()` draws annotations by default (`showExtras = true`), so review stamps are baked into page renders and page-crop figures; `doc.countLayers()` and `doc.wasRepaired()` are available. Nothing in `packages/pdf` reads `/OCProperties`, `/AcroForm`/`/XFA`, `/EmbeddedFiles`/`/Collection` or `TrimBox`. | Tiles (abutting, not nested) escape the overlay rule; occlusion is only checked raster-on-raster; the rest is never looked at. |
-| Qualified completion | The `extract` step ends with no message (`pdf-extraction.ts:164`), so a fully scanned book shows a plain green pill. | SPEC-0013 calls a plain green completion insufficient when work is qualified. |
+| Qualified completion | The `extract` step ends with no message (`pdf-extraction.ts:87`), so a fully scanned book shows a plain green pill. | SPEC-0013 calls a plain green completion insufficient when work is qualified. |
 
 Cost context: Extract is 4–6 % of a conversion's LLM tokens, but it decides what every
 later stage sees. A user who learns on day one that the PDF is a scan, or that figures are
@@ -154,7 +187,7 @@ Binding. Each has an owner elsewhere so adjacent work is not blocked.
 
 | Option | Where the assessment is computed | Cost | Why not |
 |---|---|---|---|
-| A — end of the `extract` step, a sub-product node like `positioned-text`, `spread-suggestions` and `font-profile` (`pdf-extraction.ts:117-164`) | During the page loop, from data already in memory; one pass | ~1,330 lines in `packages/pipeline` (four PRs) + ~890 in `packages/pdf` (three PRs) | **Chosen.** 14 of the 25 v1 kinds (plus the text profile) are pure functions of what `ExtractedPage` already carries in every figure mode (§Where it is computed); the node is derived from the pages it describes, and every write appends a version (§Lifecycle). |
+| A — end of the `extract` step, a sub-product node like `positioned-text`, `spread-suggestions` and `font-profile` (`pdf-extraction.ts:92-208`) | During the page loop, from data already in memory; one pass | ~1,330 lines in `packages/pipeline` (four PRs) + ~890 in `packages/pdf` (three PRs) | **Chosen.** 14 of the 25 v1 kinds (plus the text profile) are pure functions of what `ExtractedPage` already carries in every figure mode (§Where it is computed); the node is derived from the pages it describes, and every write appends a version (§Lifecycle). |
 | B — a new `source-assessment` PIPELINE step after `image-cropping` | After the image passes, so it could record "the overlay was then pruned" | Same plus a step in `PIPELINE`, `STAGE_ORDER`, the runner, Studio pills | Depends on LLM verdicts (non-deterministic, skippable), arrives minutes later, adds a pill users must learn. |
 | C — computed on read, like `extractionWarning` today | Nothing stored | ~150 lines in the API | Loses history, repeats O(pages) work per request, no CLI parity, no step note. |
 
@@ -178,10 +211,11 @@ the extract step, the spreads re-apply route, a change to a downstream setting t
 and an explicit Reassess (§Lifecycle, §Snapshot and current settings); (16) every per-page
 pass whose cost grows faster than the page's op count has a fixed work budget, and an exceeded
 budget is reported as incomplete, never as "no findings" (§Work budget); (17) preserved
-assessment history requires that an extraction rerun never clears an existing extraction:
-PR 2d's interim guard refuses it at the common extraction boundary, and SPEC-0010's admission
-later either reuses a verified, unchanged extraction or rejects the rerun before mutation
-(§Lifecycle, decision 25); (18) coverage is
+assessment history requires that an extraction rerun never clears an existing extraction.
+The extraction admission that #884 landed in `extractPDF` decides this at the common
+boundary: it reuses a verified, unchanged extraction or rejects the rerun before mutation
+(§Lifecycle, decision 25). An explicit Extract reset is not such a rerun: it discards the
+extraction itself, and the assessment with it (decision 32); (18) coverage is
 independent of severity: a partial assessment turns the `extract` pill amber and is carried
 on the sidebar, `BookSummary` and the CLI, while `extract-report` still exits 0 when no
 evaluated check found a warning or critical (§Work budget, §CLI); (19) a completion written by
@@ -200,14 +234,52 @@ because learning a stamp baked into page images costs seconds (#1106) and is not
 assessment. With removal on, the same kind reports at `info` what was removed (§Where it is
 computed); (24) a stored step-warnings envelope keeps the warning evidence apart from its
 provenance. A book assembled from recorded and legacy parts keeps every typed warning and
-records how many parts were legacy, which reads as `"mixed"` (§Step warnings); (25) the
-interim guard refuses every extraction rerun on a book with pages or a node. Once SPEC-0010's
-admission lands, its outcomes apply instead: verified reuse of an identical, intact extraction
-or rejection before mutation. Both keep the assessment history and the extraction assets
-(§Lifecycle, AC-31); (26) `duplicate-images` counts membership from extraction-time evidence
+records how many parts were legacy, which reads as `"mixed"` (§Step warnings); (25) an
+extraction rerun follows the admission that #884 landed. A direct `extractPDF` call over an
+identical, intact extraction is a verified reuse that writes nothing, and every other rerun is
+rejected before mutation. The API refuses a run from Extract on a book that has pages or an
+incomplete extraction in `prepareSectioningRun`, before anything is cleared, unless the
+request names an Extract re-run action (decision 32). No interim guard is added, and
+`makeBeforeRun` is not changed. Each of these outcomes keeps the assessment history and
+the extraction assets (§Lifecycle, AC-31); (26) `duplicate-images` counts membership from extraction-time evidence
 (inventory images, their hashes, the figure ids in the extraction debug). It never reads image
 classification or pruning, so a later pass cannot change it. Image Meaningfulness's downstream
-deduplication count is a separate metric and may differ (§Where it is computed, AC-37).
+deduplication count is a separate metric and may differ (§Where it is computed, AC-37);
+(27) the extract step writes the node after the extraction manifest is complete and verified,
+outside the block whose failure marks the extraction as failed. A failed assessment write
+leaves a complete extraction with no node. The node never enters the manifest, and
+`assessedExtraction` holds the manifest's `attemptId` (§Where it is computed, AC-38); (28) every
+`packages/pdf` signal pass is failure-isolated: a throw gives `signals: null` for that page,
+which reads as `no-signals`. PRs 3a to 3c change no persisted extraction output, so
+`EXTRACTION_CONTRACT_VERSION` stays 1 (§Where it is computed, AC-38); (29) a password-required
+PDF is refused at admission with the code `EXTRACTION_PASSWORD_REQUIRED`, before a manifest, a
+step row or a node exists (AC-10); (30) a `page-sectioning` step that completes with unreadable
+input pages carries the typed step warning `sectioning-unreadable`. A skipped step keeps its
+free-text message, because only a done step carries warnings (§Step warnings, AC-39); (31) the
+metadata step appends a `settings-change` version when it changes the effective editing
+language of a book that has a node (§Snapshot and current settings, AC-40); (32) an
+assessment belongs to one extraction, the one `assessedExtraction` names. SPEC-0003's Extract
+re-run actions (RAC-20–24: Studio and API only, on a book that holds nothing but Extract
+output) follow from that. A resume runs no extraction and leaves every version as it is. A
+retry or a replace discards the extraction and, with the other Extract-owned nodes, every
+assessment version, and the new attempt writes a first version for its own `attemptId`. A
+refused request changes nothing (§Lifecycle, AC-31). The deletion is covered by the exception
+SPEC-0003 recorded for Extract's own nodes (ADR 025, invariant 10, `AGENTS.md` principle 2);
+(33) a recommendation or a panel state
+that needs the book extracted again names the action that step status offers for the book:
+Replace while the book holds only Extract output, Retry after a failed extraction, and a
+new book otherwise. On a part book it says that the setting is fixed by the book the part
+was split from, because a part extracted with another value could not be merged back and
+SPEC-0003 refuses that retry (§Studio, AC-41); (34) the assessment is not part of the content
+a retry or a replace is bound to. SPEC-0003 binds those requests to a content token over the
+Extract nodes, the image rows and the extraction record, so that an edit made after the
+request was built refuses it. The assessment is no such edit: it is derived, the user cannot
+change it, the Replace confirmation does not describe it, and the new attempt writes it
+again. The token therefore leaves out the `source-assessment` node, and no assessment
+version, whatever its trigger, makes a re-run request stale. The edit behind a trigger still
+does where it changes the book: a metadata edit and a spreads re-apply change the token
+through the nodes, pages and images they write (§Lifecycle, §Snapshot and current settings,
+AC-42).
 
 ### Data contract
 
@@ -304,7 +376,7 @@ export const SourceAssessment = z.object({
   generatedAt: z.string(),   // passed in through SourceAssessmentInput, never read from the clock inside assessSource
   rulesVersion: z.number().int(),   // SOURCE_RULES_VERSION when written; bumped by any rule, threshold or recommendation change (§Lifecycle)
   trigger: z.enum(["extract", "spreads-reapply", "settings-change", "reassess"]),
-  assessedExtraction: z.string().nullable(),   // the SPEC-0010 extraction-manifest fingerprint the input was built from; null before SPEC-0010 or for a book without a manifest
+  assessedExtraction: z.string().nullable(),   // the `attemptId` of the extraction manifest (`extraction.json`, #884) the input was built from; null for a book without a manifest (extracted before #884, or assembled from parts)
   source: z.object({ producer: z.string().nullable(), creator: z.string().nullable(), format: z.string().nullable(), encryption: z.string().nullable(), totalPagesInPdf: z.number().int(), bytes: z.number().int(),
                      producerFamily: z.enum(["indesign", "illustrator", "office", "web-design", "scanner", "inpage", "other"]),   // from producer/creator, the taxonomy's producer table
                      permissions: z.object({ copy: z.boolean(), accessibility: z.boolean(), print: z.boolean() }).nullable(),
@@ -334,7 +406,8 @@ export const SourceAssessment = z.object({
 ```
 
 Constants Studio may import from `@adt/types` (constants only, per the layer rule):
-`SOURCE_FINDING_KINDS`, `SOURCE_SEVERITY_ORDER`, `MIN_TEXT_LAYER_CHARS = 20` and `TextProfile`
+`SOURCE_FINDING_KINDS`, `SOURCE_SEVERITY_ORDER` (least to most severe: `info`, `warning`,
+`critical`), `MIN_TEXT_LAYER_CHARS = 20` and `TextProfile`
 (moved here in PR 1 from `extract-report.ts`, which PR 0 / #1009 introduces, so both agree). Severity rules and numeric
 thresholds live in `packages/pipeline/src/source-assessment.ts` as one exported
 `SOURCE_THRESHOLDS` constant:
@@ -356,7 +429,7 @@ thresholds live in `packages/pipeline/src/source-assessment.ts` as one exported
 | `image-decode-failed` (page, `params.images`, `params.figures`) | warning | `none` |
 | `duplicate-images` (book) | info; warning ≥ 20 %. Membership comes from extraction-time evidence only (decision 26): inventory images (`source IN ('page', 'extract')`) with a hash, less the ids the page's extraction debug ties to a figure (`figureInvolvedImageIds`, `image-meaningfulness.ts`), counted when one hash appears on ≥ `MIN_PAGES_TO_SHARE` pages (the same constant). It never reads image classification, so pruning by a later pass (Image Filtering, Image Meaningfulness's dedup `planHashDedup`, #1011) does not change it on Reassess (AC-37). That downstream count is a separate metric and can differ. After watermark removal the hashes are those of the cleaned images, which extraction writes | `none` (#1011, merged, judges exact duplicates once) |
 | `page-geometry` (book, `pageIds` = deviating pages) | warning for size, orientation or `/Rotate` deviation; info when only the page boxes differ (bleed and slug are the normal state of a print export) | action `normalise-pages` |
-| `spreads-unmarked` (book, `params.leads`) | info | action `mark-spreads` with the leads — the apply route (`POST /books/:label/spreads/apply`, `pages.ts:1416`) re-extracts only those pairs; naming `spread_mode` would imply a full re-extract |
+| `spreads-unmarked` (book, `params.leads`) | info | action `mark-spreads` with the leads — the apply route (`POST /books/:label/spreads/apply`, `pages.ts:1394`) re-extracts only those pairs; naming `spread_mode` would imply a full re-extract |
 | `watermark-detected` (book) | removal off: warning when text-layer signatures are found. A stamp baked into page images is not detected (decision 23). Removal on: info, with the page counts as two scalar parameters (`SourceParam` holds no objects), `params.removedText` and `params.removedImage`, from `extractionDebug.watermarks` and `extractionDebug.rasterWatermark.cleanedImageStrengths` (`extract.ts:1120-1125`), because removal can also take out repeated faint decorations (`docs/ARCHITECTURE.md`, watermark limits) | removal off: setting `remove_watermarks: true` (in `EXTRACTION_CONFIG_KEYS`: under SPEC-0010 a changed value is a new book, and the panel says so; the message adds that removal re-encodes extracted images and can take seconds per book); removal on: `none` |
 | `pdf-encrypted` | info (restricted permissions) | `none` |
 | `optional-content` (book, `params.layers`, `params.off`, `params.names`) | warning: only the default-visible configuration is rendered and extracted, so an alternate language layer is silently dropped and a print-only layer may be kept | `none` (the message lists `params.names`; choosing a layer is a follow-up, OQ9) |
@@ -397,7 +470,7 @@ one-line enum change plus its rule and message.
 
 ### Where it is computed: reuse first, one input shape, two builders
 
-**What the extractor already hands the pipeline.** When `extractPDF` (`pdf-extraction.ts:117`)
+**What the extractor already hands the pipeline.** When the page loop of `extractInitialPDF` (`pdf-extraction.ts:154`)
 receives an `ExtractedPage`, it already holds — in *every* figure-extraction mode, because
 `stampRasterPlacementsFromOps` runs unconditionally (`extract.ts:1057`) — `text`;
 `images[]` with native `width`/`height`, placed `bounds` (page pt), `hash`, `renderMethod`,
@@ -405,7 +478,7 @@ receives an `ExtractedPage`, it already holds — in *every* figure-extraction m
 `extractionDebug` with `groups[].{imageId, groupIndex, groupBbox, renderMethod,
 coveredRasterImageIds}` and the shape counters; `fontStats`. `pdfMetadata` carries
 `producer`, `format`, `encryption` (`extract.ts:883`; dropped today by `toBookMetadata`), and
-the spread suggestions are computed in the same function (`pdf-extraction.ts:147`). So these
+the spread suggestions are computed in the same function (`pdf-extraction.ts:192-194`). So these
 14 kinds are pure pipeline code with **no extractor change**: `text-layer-empty`,
 `script-mismatch`, `raster-overlay-split`, `raster-tiles`, `mixed-page-types` (its ink-blank
 half waits for `signals`), `figure-render-holes`, `whole-page-figure`,
@@ -426,10 +499,10 @@ spread `xOffset` that `groupBbox` lacks, `extract.ts:4167` vs `4200-4205` — co
 suggestions, settings). `pageInputFromExtractedPage(page)` builds it from memory inside
 `extractPDF`; `pageInputFromStorage(storage, pageId, previousSignals)` builds the same shape
 from the `pages` and `images` tables, `positioned-text` and `extraction-debug`, so the
-spreads re-apply route (`pages.ts:1416`) and `extract-report` recompute without re-extracting.
+spreads re-apply route (`pages.ts:1394`) and `extract-report` recompute without re-extracting.
 It reads only the rows extraction wrote, `images.source IN ('page', 'extract')`
-(`packages/storage/src/db.ts:48`), because the table also holds crops, segments, uploads and
-translated images added later, and `getPageImages` (`book-storage.ts:193`) does not filter
+(`packages/storage/src/db.ts:50`), because the table also holds crops, segments, uploads and
+translated images added later, and `getPageImages` (`book-storage.ts:218`) does not filter
 by source (decision 22).
 Per-raster evidence is therefore never persisted twice; only `signals` (the numbers no table
 holds) travel in the node. A test proves both builders agree on a raven page.
@@ -439,14 +512,30 @@ is part of the input; deep-equal on identical input): one rule function per kind
 `sourceAssessmentWarning(a)` returns the step warning `{ kind: "source-assessment", warning: N,
 critical: M, incompletePages: P }` only when `counts.warning + counts.critical > 0` or
 `summary.coverage` is `"partial"` (§Step warnings, §Work budget).
-`pdf-extraction.ts` writes the node after `font-profile` with `putNodeData` (`trigger:
-"extract"`; every write appends a version, §Lifecycle), then emits `step-complete` for
-`extract` with that warning. The warning is not persisted: `GET step-status` derives it from
-the latest node (§Step warnings).
-The settings the rules need (`editing_language`, the image-filter flags, spread pairs) are not
-visible to `extractPDF` today, so `ExtractOptions` gains an
-`assessmentSettings` field filled by both callers — the stage runner
-(`apps/api/src/services/stage-runner.ts:1142`) and the CLI DAG (`pipeline-dag.ts:271-288`).
+`extractPDF` (`pdf-extraction.ts:46-90`) collects the page inputs while `extractInitialPDF`
+loops over the pages. It writes the node only after the extraction manifest is `complete` and
+verified (`pdf-extraction.ts:76-78`), still inside the writer lease and before it emits
+`step-complete` for `extract`. The write sits outside the block whose failure marks the
+extraction `failed` (`pdf-extraction.ts:63-86`), because an assessment must never cost the
+user an extraction. The retry PR of the Extract re-run work (#1219) moves this body into one
+attempt function that a first extraction and a reset both call. The collector and the write
+live there, once, so a retry and a replace write the node exactly as a first extraction does
+(decision 32). Collecting a page and writing the node are both guarded: a failure is
+logged, the extraction stays complete, and the book has no node, which reads as "Not
+assessed" (§Lifecycle, decision 27). The node is written with plain `putNodeData` (`trigger:
+"extract"`; every write appends a version, §Lifecycle) and never through `putExtractionNode`
+(`pdf-extraction.ts:97-100`), so it does not enter `manifest.nodes` and verified reuse never
+depends on it. `assessedExtraction` is the manifest's `attemptId`. PR 2d emits `step-complete`
+without the warning, and PR 4c adds it to the event. The warning is not persisted: `GET
+step-status` derives it from the latest node (§Step warnings).
+The extraction half of `settings` is taken from the admitted inputs (`admission.inputs`,
+`extraction-admission.ts:51-61`), which hold the normalised page range and the effective spread
+pairs. The downstream settings the rules need (`editing_language`, the image-filter flags) are
+not visible to `extractPDF` today, so `ExtractOptions` gains an `assessmentSettings` field,
+filled by both callers through one resolver beside `extractionOptionsFromConfig`
+(`extraction-admission.ts:12-23`): the stage runner
+(`apps/api/src/services/stage-runner.ts:1167`) and the CLI DAG (`pipeline-dag.ts:314-333`).
+It is never added to `ExtractionInputs`, so it cannot change the extraction fingerprint.
 
 **What only the extractor can see** (`ExtractedPage.sourceSignals`, transient like
 `fontStats`, filled in `extractPage` (`extract.ts:1004-1137`) and `extractSpreadPage` (1797)):
@@ -457,7 +546,7 @@ visible to `extractPDF` today, so `ExtractOptions` gains an
   (`raster-watermarks.ts:1911`), `renderPageWithoutWatermarks` (`watermarks.ts:322-328`, a
   wrapper of `renderPageFiltered`, 349-509), or `page.toPixmap(…).asPNG()`. The pixmap is
   never kept, while
-  `samplePageEdges` (`pdf-extraction.ts:132` → `packages/pdf/src/png-utils.ts:37-57`) fully decodes that PNG
+  `samplePageEdges` (`pdf-extraction.ts:177` → `packages/pdf/src/png-utils.ts:37-57`) fully decodes that PNG
   again with pngjs on every page just to read two columns × 48 rows. The restructure keeps the
   pixmap, runs `scanPagePixmap` over `getPixels()` at a 4-px step (ink fraction = share of
   samples darker than 240/255; the 48 edge samples computed with the `png-utils.ts:47-55`
@@ -467,7 +556,7 @@ visible to `extractPDF` today, so `ExtractOptions` gains an
   `renderPageFiltered` hands its pixmap back before `asPNG` (`watermarks.ts:493`) instead of
   bytes. The pixel pass therefore measures the page as extracted, after any watermark removal.
   `samplePageEdges` stays exported: the API still uses it as the fallback for books extracted
-  before inline detection (`pages.ts:1374`).
+  before inline detection (`pages.ts:1379`).
 - **Counters at existing sites, zero cost**: `collectGlyphs` (`page-stream-recorder.ts:482-506`)
   returns the `ucs <= 0` count it drops today; the recorder's `ignoreText` callback
   (`page-stream-recorder.ts:289`, a no-op today) counts the render-mode-3 glyphs mupdf still
@@ -506,9 +595,28 @@ visible to `extractPDF` today, so `ExtractOptions` gains an
   (`docs/ARCHITECTURE.md`), which would break G7. With removal off, `watermark-detected`
   therefore sees text-layer stamps only. With removal on, it reports what was removed from the
   debug record the extractor already writes (decision 23).
-- **Password-required PDFs**: `loadPage` throws before any page exists, so no node can be
-  written; `openPdfFromBuffer` throws a typed `PdfPasswordRequiredError` whose message reaches
-  the `step-error` event and the UI as-is.
+- **Password-required PDFs**: no page can be loaded, so no node can be written.
+  `openPdfFromBuffer` throws a typed `PdfPasswordRequiredError`. It surfaces first in
+  admission, which counts the pages before anything is written
+  (`extraction-admission.ts:33`). Admission maps it to the extraction error code
+  `EXTRACTION_PASSWORD_REQUIRED` instead of the generic `EXTRACTION_INPUT_INVALID`
+  (`extraction-admission.ts:64-67`), and the CLI pre-check does the same
+  (`pipeline-dag.ts:190-192`). The run is refused before a manifest, a step row or a node
+  exists. A retry and a replace resolve their inputs through the same admission code before
+  they discard anything (SPEC-0003 RAC-22), so the mapping lives in that shared resolver and
+  they refuse such a PDF with the same code, leaving the book untouched. That resolver
+  reads the PDF before it compares a part's settings with its coordinator's (SPEC-0003,
+  reset step 2), so a password-required PDF is reported as such on a part too. The API returns a 409 with that code, like the other admission errors, and Studio
+  localises it with them (`apps/studio/src/lib/sectioning-error.ts`). `GET source-pdf/info`
+  (`books.ts:216`), the earliest place Studio opens the file, returns the same code
+  (decision 29).
+- **Failure isolation**: since #884 a throw anywhere between the manifest's `extracting` and
+  `complete` states marks the extraction `failed`. The whole extraction must then be retried
+  (SPEC-0003 RAC-22) or, where no retry is offered, the book created again.
+  Every signal pass in this list therefore catches its own errors. A failed pass gives
+  `sourceSignals: null` for that page, which the rules read as `no-signals` (§Work budget), and
+  extraction continues. None of these passes changes what extraction persists (pages, images,
+  text, debug), so `EXTRACTION_CONTRACT_VERSION` stays 1 (decision 28, AC-38).
 
 ### Work budget
 
@@ -549,8 +657,9 @@ silently read as "no findings".
   - `extract-report` prints the line, and `--json` carries `summary.coverage` (§CLI).
 
   This stays advisory: nothing is blocked. A pre-spec book stays partial after a Reassess
-  (`no-signals` on every page) until it is re-extracted as a new book, which is what the
-  amber pill then says.
+  (`no-signals` on every page) until it is extracted again: by Replace while the book holds
+  only Extract output, and as a new book otherwise (decision 33). That is what the amber pill
+  then says.
 - **Missing input on a fresh extraction.** The same rule applies to an `extract` write
   (decision 20). PR 2d writes the node before the `packages/pdf` PRs supply `signals` and
   `source.structure`. An extraction in that window records every signal-fed kind per page,
@@ -595,10 +704,10 @@ there today; `stitchPngsHorizontally` keeps its own decode, listed under O5).
 
 The extraction inventory is what extraction wrote: the pages, the images with
 `source IN ('page', 'extract')`, positioned text and extraction debug. It is immutable once
-extracted. Under SPEC-0010 it is what the extraction manifest inventories and what verified
-reuse checks. The `images` table is not the inventory by itself: Extract now adds crops and
+extracted. It is what the extraction manifest (`extraction.json`, #884) inventories and what
+verified reuse checks. The `images` table is not the inventory by itself: Extract now adds crops and
 uploads to a page after extraction (#1104, `images.source` `crop`/`upload`), and segmentation
-and translation add rows too (`packages/storage/src/db.ts:48`). The assessment is **derived from** that inventory and is **not part of it**: it
+and translation add rows too (`packages/storage/src/db.ts:50`). The assessment is **derived from** that inventory and is **not part of it**: it
 references pages and images by id, the manifest never lists it, and writing a new assessment
 never invalidates reuse. It is listed in `EXTRA_STAGE_OUTPUT_NODES.extract` only so Studio
 and the cache registry treat it as an Extract output.
@@ -606,44 +715,73 @@ and the cache registry treat it as an Extract output.
 Every write appends a version with `putNodeData`; no version is ever overwritten, and the
 latest version is the current assessment. Each version records `rulesVersion` (`SOURCE_RULES_VERSION`, exported beside
 `SOURCE_THRESHOLDS` and bumped by any rule, threshold or recommendation change), `trigger`, and
-`assessedExtraction` (the SPEC-0010 manifest fingerprint, or null before SPEC-0010).
+`assessedExtraction` (the extraction manifest's `attemptId`, or null for a book without a
+manifest).
 
 | Situation | What is written | What the user sees |
 |---|---|---|
 | Initial extraction | the extract step writes a version (`trigger: "extract"`) after all pages and images are persisted | the assessment |
-| SPEC-0010 verified reuse of an unchanged extraction | nothing: reuse writes no extraction entity and no history | the existing latest version, unchanged |
+| Verified reuse of an unchanged extraction (a direct `extractPDF` call, #884's admission) | nothing: reuse writes no extraction entity and no history | the existing latest version, unchanged |
 | A book extracted before this spec (no node) | nothing automatically; no backfill | API `{ version: null, assessment: null }`; the panel says "Not assessed" and offers Reassess; no badges, no pill warning |
 | `rulesVersion` older than `SOURCE_RULES_VERSION` | nothing automatically | the assessment, marked "Assessed with older rules", with Reassess |
-| Spreads re-apply (`pages.ts:1416`), an in-place operation on develop | a version with `trigger: "spreads-reapply"` (§API) | the new assessment |
+| Spreads re-apply (`pages.ts:1394-1520`), an in-place operation on develop | a version with `trigger: "spreads-reapply"` (§API) | the new assessment |
 | An image is added to a page, recropped, segmented, or replaced by an accepted figure cleanup (#1104, SPEC-0020) | nothing: these images are not in the inventory (decision 22) | the existing assessment. A finding may already be fixed (for example a `raster-overlay-split` pair replaced by a cleaned crop); the finding stays, because it describes the source |
-| A book whose working source is not a PDF (`BookSummary.sourceKind` or `workingSource` is not `pdf`, an imported ADT bundle, #803) | nothing, and Reassess is refused with 409 (decision 21) | no Source quality panel, badge or pill warning. Extract is already locked for these books (`stages.ts:231-239`) |
+| A book whose working source is not a PDF (`BookSummary.sourceKind` or `workingSource` is not `pdf`, an imported ADT bundle, #803) | nothing, and Reassess is refused with 409 (decision 21) | no Source quality panel, badge or pill warning. Extract is already locked for these books (`stages.ts:236-245`) |
 | A downstream setting the rules read changes | a version with `trigger: "settings-change"` (§Snapshot and current settings) | the new assessment |
 | Reassess | a version with `trigger: "reassess"`, built from storage | the new assessment |
-| An attempted extraction rerun on a book with pages or a node | nothing: under the interim guard the rerun is refused before anything is cleared; under SPEC-0010 it is a verified reuse (row above) or a rejection before mutation (below) | the existing versions, unchanged |
+| An attempted extraction rerun that names no Extract re-run action, or on a book that is not Extract-only | nothing: the API refuses it before anything is cleared; the CLI and a direct call go through admission, which gives a verified reuse (row above) or a rejection before mutation (below) | the existing versions, unchanged |
+| Resume of an unfinished Extract stage (SPEC-0003 RAC-21) | nothing by the extraction, which does not run again. If the resumed `metadata` step changes the effective editing language, it appends a `settings-change` version (§Snapshot and current settings) | the existing versions. A book that had no node stays "Not assessed" with Reassess |
+| Retry of a failed extraction or Replace of a complete one (SPEC-0003 RAC-22, RAC-23) | the reset deletes every version together with the pages, the images and the other Extract-owned nodes. When the new attempt completes, it writes a first version (`trigger: "extract"`, `assessedExtraction`: the new `attemptId`) | the new assessment. The earlier versions described pages and images that no longer exist, and they are not kept (decision 32) |
+| An extraction that failed or was interrupted (manifest `failed` or `extracting`) | nothing: the node is written only after a complete extraction, and every later trigger is refused (below) | no assessment. The extraction is retried when step status offers Retry (SPEC-0003 RAC-22); otherwise the book is created again |
+| A book assembled from parts (`part-service.ts`) | nothing: the merge copies the pages and their per-page nodes, not the parts' assessments, and writes no manifest | "Not assessed" with Reassess. A Reassess has no signals, so coverage stays partial, and `assessedExtraction` is null |
 
 **What the history guarantee requires.** Versions survive only while nothing clears the
-node. `clearExtractedData` deletes every `source-assessment` version together with the pages
-(`clearExtractedRows`, `book-storage.ts:657-666`), and `extractPDF` still calls it
-unconditionally (`pdf-extraction.ts:105`). Since v0.9.0-beta.2 (#879), both orchestrators on
-develop refuse to extract over a book that has pages, before anything is cleared: the API's
-`makeBeforeRun` (409 `UNSAFE_RESUME_UNAVAILABLE`, `apps/api/src/routes/stages.ts:139-142`)
-and the CLI DAG (`pipeline-dag.ts:187`). A direct `extractPDF` call still bypasses both, and
-both test pages only, so on a book with a node but no pages `makeBeforeRun` still clears
-(`stages.ts:162-164`) before `extractPDF` runs. The
-guarantee therefore requires that no rerun clears an existing extraction, decided at the
-common extraction boundary. SPEC-0010 owns that boundary ("a direct `extractPDF` call must
-not bypass it", §Writer coordination), and this spec requires its extraction admission, not
-the rest of SPEC-0010. Its admission has two outcomes for an occupied book: verified reuse
-of an identical, intact extraction, which writes nothing, or rejection before mutation. If
-that boundary has not landed when PR 2d ships, PR 2d adds an equivalent interim guard with one
-condition, "the book has pages or a `source-assessment` node", shared by all three entry
-points: `extractPDF` throws the same `UNSAFE_RESUME_UNAVAILABLE` error before
-`clearExtractedData`, and the `makeBeforeRun` and CLI DAG checks use the same condition
-instead of pages alone. The interim guard refuses every rerun, including one SPEC-0010 would
-reuse. SPEC-0010's admission later replaces all three checks, and its reuse outcome then
-applies (decision 25). Until PR 2d ships the guard, the spec does not claim preserved history. Even
-with it, an app older than v0.9.0-beta.2 has neither guard and can still clear the node,
-which a newer app cannot detect afterwards. AC-31 covers the guard (a) and the admission (b).
+node. Two operations clear it, and both remove the extraction it describes. The first is
+`clearExtractedData`, which deletes every `source-assessment` version together with the pages
+(`clearExtractedRows`, `book-storage.ts:689-703`). Its only caller is the API's
+`makeBeforeRun` (`apps/api/src/routes/stages.ts:167-169`), which reaches it only for a book
+without pages (below). The second is the reset of an Extract retry or replace (SPEC-0003
+RAC-22 and RAC-23), which deletes every Extract-owned node. The node is one of them, because
+it is listed in `EXTRA_STAGE_OUTPUT_NODES.extract`, and for the same reason the Extract-only
+check counts it as Extract output and not as downstream work. That deletion is the one
+exception to entity versioning SPEC-0003 recorded for Extract's own nodes (ADR 025,
+invariant 10): confirmed, bound to the content the user saw, and limited to an Extract-only
+book. In one respect the node is not treated like the other Extract-owned nodes: it is left
+out of the content token that binds a retry or a replace (decision 34). `readExtractContentToken`
+(`packages/storage/src/extract-only.ts`, from #1216) hashes the versions of the Extract-owned
+nodes, and PR 1, which registers the node, excludes it there. `extractPDF` no longer clears
+anything. Since #884 it runs the extraction admission itself (`prepareExtractionAdmission`,
+`extraction-admission.ts:25-68`), under the writer lease and before it writes. An identical,
+intact extraction is a verified reuse that returns without writing. Every other occupied book
+is rejected with a typed `ExtractionAdmissionError`: a changed source or changed inputs, an
+incomplete or damaged extraction, or `EXTRACTION_LEGACY` for a book that has rows but no
+manifest. A direct call therefore cannot bypass it. The CLI runs the same admission before it
+opens the book (`pipeline-dag.ts:194-207`) and turns a reuse into `UNSAFE_RESUME_UNAVAILABLE`.
+That is the common boundary this spec required, so no interim guard is added (decision 25).
+
+The API needs no change for this. Before `makeBeforeRun` clears anything it calls
+`prepareSectioningRun` (`packages/pipeline/src/sectioning-lifecycle.ts:31-43`), which refuses
+every run from Extract on a book that has a page (409 `SECTIONING_REGENERATION_BLOCKED`) or
+an incomplete extraction (409 `EXTRACTION_INCOMPLETE`). The later 409
+`UNSAFE_RESUME_UNAVAILABLE` in `makeBeforeRun` (`stages.ts:144-148`) is therefore never
+reached, and `clearExtractedData` runs only on a book without pages. The writers keep a book
+without pages free of versions. Reassess, the settings-change hooks, the spreads re-apply
+version and `assess-source` write only when the book has at least one page and its
+extraction is readable (`assertExtractionReadable`, `extraction-manifest.ts:222-225`: no
+manifest, or a `complete` one). Otherwise the explicit triggers refuse with 409
+`EXTRACTION_INCOMPLETE`, and the hooks do nothing. A node therefore implies pages.
+
+With the Extract re-run amendment, a run from Extract that carries the `extraction` field is
+admitted only for an Extract-only book and only for the action and `attemptId` that step
+status reported, and a retry or a replace only with the content token reported with them
+(otherwise 409 `EXTRACTION_RERUN_STALE`, or today's refusal for a book that
+is not Extract-only). No assessment write changes that token (decision 34). A resume then
+runs only the unfinished Extract steps, and a retry or a
+replace resets the book as described above, unless its inputs are refused first: a missing or
+changed PDF, an invalid page window, a password-required PDF, or a part whose extraction
+settings no longer match its coordinator (`EXTRACTION_PART_SETTINGS_CHANGED`). An app older than v0.9.0-beta.2 has no guard and
+can still clear the node, which a newer app cannot detect afterwards. AC-31 covers each entry
+point and each action.
 
 **Reassess** builds the input with `pageInputFromStorage`, reusing each page's `signals` from
 the latest version when one exists, and appends a version. A book that has no node, or whose
@@ -652,21 +790,26 @@ pages have `signals: null`, is assessed without the signal-fed kinds, which land
 provider. Surfaces: `POST /books/:label/source-assessment/reassess` (a Reassess button on the
 panel) and a new `pnpm pipeline assess-source <books-dir> --label <label>` subcommand.
 `extract-report` stays read-only, as PR 0 promises. Reassess is refused with 409 for a book
-whose working source is not a PDF (decision 21).
+whose working source is not a PDF (decision 21), and for a book without pages or with an
+incomplete extraction (above).
 
 **Writers.** Develop already has one per-book writer lease, `withBookWriter`
-(`packages/storage/src/book-writer.ts:174`). Stage runs, tasks and the CLI DAG take it, and
+(`packages/storage/src/book-writer.ts:514`). Stage runs, tasks and the CLI DAG take it, and
 `bookWriterMiddleware` (`apps/api/src/middleware/book-writer.ts`) takes it for every non-GET
 `/books/:label` route. Every write of this node runs inside it:
 - the `extract` write, inside the stage run or the CLI DAG;
-- Reassess, through the route, and `assess-source`, which takes it itself;
-- the `settings-change` hook, inside `PUT config` and `PUT metadata`;
-- the `spreads-reapply` version, inside the same lease and inside the route's per-book
-  `oneSpreadApplyPerBook` queue (`pages.ts:1397`), after the splice and its
-  `withSourceGenerationTracking` writes.
+- Reassess, through the route, and `assess-source`, which takes it itself and first recovers
+  a pending sectioning transition, as `runFullPipeline` does (`pipeline-dag.ts:197`);
+- the `settings-change` hook, inside `PUT config`, `PUT metadata` and the `metadata` step's
+  stage run;
+- the `spreads-reapply` version, inside the same lease, where the middleware's per-book
+  queue serialises spread applies (`spreadApplies`,
+  `apps/api/src/middleware/book-writer.ts:42-56`), after the splice and its
+  `withSourceGenerationTracking` writes. The route is not atomic, so the append is
+  best-effort: a failure is logged, and the panel offers Reassess.
 
-So no assessment write races an extraction or another assessment. SPEC-0010's admission later
-builds on the same lease.
+So no assessment write races an extraction or another assessment. The extraction admission
+runs under the same lease.
 
 ### Snapshot and current settings
 
@@ -674,19 +817,47 @@ The rules read two kinds of settings, recorded in the node's `settings`:
 
 - **Extraction inputs**: `figure_extraction_mode`, `remove_watermarks`, spread mode and pairs,
   page range. They produced the inventory, so the snapshot stays true for the life of the
-  book. Under SPEC-0010 changing one means a new book, and the panel already says so for a
-  `setting` recommendation. The spreads re-apply route is the one in-place operation on them
+  extraction. Saving a different value without running Extract does not change it: the
+  snapshot still describes the extraction the pages came from. Changing one for real means
+  extracting again, by a Replace while the book holds only Extract output (SPEC-0003 RAC-23),
+  which writes a new assessment, and as a new book otherwise (SPEC-0010). The panel says
+  which of the two applies for a `setting` recommendation (decision 33). The spreads re-apply route is the one in-place operation on them
   today; how SPEC-0010 classifies it is SPEC-0010's decision, and this spec only appends a
-  version when it runs.
+  version when it runs. The route does not update the extraction manifest, so a later
+  admission rejects the book as changed. The assessment history is kept either way.
 - **Downstream settings**: `editing_language` (`script-mismatch`) and
   `image_filters.segmentation` (the `whole-page-figure` recommendation). They change in place
   on an existing book and do not touch the extraction. When `PUT /books/:label/config`
-  (`apps/api/src/routes/books.ts:459`) changes either one on a book that has a node, the route
-  appends a reassessed version (`trigger: "settings-change"`). The effective `editing_language`
-  falls back to the book's `language_code` when the config sets none (`books.ts:557-558`), so
-  `PUT /books/:label/metadata` (`books.ts:504`) runs the same hook when it changes the
+  (`apps/api/src/routes/books.ts:501`) changes either one on a book that has a node, the route
+  appends a reassessed version (`trigger: "settings-change"`). Every Studio save goes through
+  that route, including the Save without a run that the Extract re-run work adds to the
+  Extract settings (SPEC-0003 RAC-24), so no save path needs a hook of its own. "Save &
+  Re-run" saves through it too, after Studio has checked that the re-run is still offered,
+  and sends the run request next. The version the hook appends in between does not change
+  the content token (decision 34), so it cannot make that request stale; if the run is a
+  Replace, the reset deletes the version with the others and the new attempt assesses with
+  the saved settings. The effective `editing_language`
+  falls back to the book's `language_code` when the config sets none (`books.ts:598-600`), so
+  `PUT /books/:label/metadata` (`books.ts:547`) runs the same hook when it changes the
   effective editing language. This is pure and takes milliseconds. A downstream setting change is never treated as a changed extraction input,
   and it never triggers SPEC-0010's new-book rule.
+
+The hooks run after the configuration or metadata write has returned, never inside it:
+`updateBookConfig` (`apps/api/src/services/book-service.ts:502-533`) writes a file or a
+sectioning transition journal, not a database row. A hook compares the latest node's
+`settings` with the new effective values and appends a version when they differ, so it also
+repairs an earlier miss. The hooks are best-effort. A failure is logged and never fails or
+rolls back the save, and the panel's "Assessed with different settings" state covers it. They
+do nothing for a book without a database, a node, a PDF working source or a readable
+extraction, so they never create rows in a book that has not been extracted.
+
+The `metadata` step is a third trigger (decision 31). When Extract runs, the effective editing
+language is usually unknown: extraction sets no `language_code`, and the wizard stores an
+editing language only when the user chose one. The `metadata` step then sets the book
+language. When that step changes the effective editing language of a book that has a node,
+its runner (the API stage runner and the CLI DAG) runs the same hook (`trigger:
+"settings-change"`). `script-mismatch` is then evaluated against the real language, and the
+panel does not open on "Assessed with different settings" (AC-40).
 
 The panel header reads "Assessed <date> · <trigger>". If the node's `settings` disagree with
 the book's current downstream settings (changed by a path that does not run the hook, for
@@ -718,6 +889,9 @@ export const StepWarning = z.discriminatedUnion("kind", [
   }),
   // Book Summary: the model call failed and no summary was stored (#1014, PR #1015).
   z.object({ kind: z.literal("summary-missing"), error: z.string() }),
+  // Page Sectioning: these input pages could not be read, so they were not sectioned (#884).
+  // `pageIds` holds at most 20 ids in page order; `total` counts every unreadable page.
+  z.object({ kind: z.literal("sectioning-unreadable"), pageIds: z.array(z.string()).max(20), total: z.number().int().positive() }),
   // Extract: the source assessment found warnings or criticals, or could not evaluate every
   // check (this spec, PR 2c). Derived from
   // the latest source-assessment node on read; never written to step_runs.
@@ -755,8 +929,8 @@ Adding a kind is a change to this contract and goes through this spec.
   an envelope, with `items: []` for a clean completion, so this app's clean completion is
   recorded evidence rather than an absence. It also always sets `message`, to NULL for a clean
   completion: develop's `markStepCompleted` without a message keeps the previous one
-  (`book-storage.ts:454-458`), and steps that routes complete directly, without a start, would
-  otherwise carry a stale message forward. The part merge (`part-service.ts:888-895`), which today
+  (`book-storage.ts:474-488`), and steps that routes complete directly, without a start, would
+  otherwise carry a stale message forward. The part merge (`part-service.ts:907-915`), which today
   copies only `status`, copies `completed_at`, `message` and the envelope together from the
   part row, so a recorded part stays recorded in the assembled book. When parts disagree, it
   writes a fresh `completed_at` with an envelope stamped to it. The envelope keeps the warning
@@ -766,7 +940,9 @@ Adding a kind is a change to this contract and goes through this spec.
   none). Its `legacyParts` counts the parts that read as legacy, and is absent when there are
   none. `message` is `formatStepWarnings(items)`. A legacy part therefore neither discards a
   recorded part's warnings nor lets the merged row pass as fully recorded. This app's
-  `markStepStarted`, `markStepSkipped` and `recordStepError` also clear the column. An older
+  `markStepStarted`, `markStepSkipped` and `recordStepError` also clear the column. Every one
+  of these writes goes through `telemetryRun` (`book-storage.ts:76-82`), like develop's step
+  writers, so a step event does not change the book's content identity. An older
   app does not know the column, so its writes leave the envelope in place. The stamp is what
   keeps such an envelope from being read as current: an older start sets `completed_at = NULL`,
   an older complete or skip writes a new timestamp, and an older error sets `status = 'error'`.
@@ -780,7 +956,7 @@ Adding a kind is a change to this contract and goes through this spec.
     last completed by an app that does not write the column, so there is no current
     structured evidence. A stale envelope is never revived. A bounded adapter reads the one
     warning-bearing outcome a released writer records, the skip message from
-    `skipMessage` (`apps/api/src/services/stage-runner.ts:376-382`). A `message` that matches
+    `skipMessage` (`apps/api/src/services/stage-runner.ts:380-386`). A `message` that matches
     exactly `^Completed — ([1-9]\d*) page\(s\) skipped$` reads as `{ kind: "pages-skipped", count }`.
     The adapter is frozen to that literal and gains no new patterns: newer outcomes are typed
     from the start. Any other message gives no warnings, and the step is marked as a legacy
@@ -789,13 +965,15 @@ Adding a kind is a change to this contract and goes through this spec.
     completion's stored outcomes, only the skip adapts and turns the pill amber. A legacy
     `extract` step still gets the derived `source-assessment` warning, which comes from the
     node, not from `step_runs` (§API). Every step of a pre-spec book is a legacy completion
-    until it is rerun. Extract cannot be rerun on an existing book (§Lifecycle), so a pre-spec
-    book's `extract` step keeps the legacy line for the life of the book. That is accurate,
+    until it is rerun. The `extract` step of an existing book runs again only through a retry
+    or a replace (§Lifecycle), and a resume skips it because it is done. So a pre-spec book's
+    `extract` step keeps the legacy line until the book is replaced. That is accurate,
     because an older app completed it, and the line sits in the popover only: it does not
     turn the pill amber.
 
-  A step that is not `done` returns no warnings. New books get the column from `SCHEMA_SQL`. On opening a book for writing, an
-  existing book gains it through `ALTER TABLE step_runs ADD COLUMN warnings TEXT` when
+  A step that is not `done` returns no warnings. New books get the column from `SCHEMA_SQL`. An existing book gains it when this
+  app opens it (`initSchema` also runs for reads, and the change follows #884's
+  `initHistoryEvidence`, `packages/storage/src/history-schema.ts:85-107`), through `ALTER TABLE step_runs ADD COLUMN warnings TEXT` when
   `PRAGMA table_info` lacks it, **without bumping `SCHEMA_VERSION`**. A bump would make every
   older app refuse the book ("Schema version mismatch", `db.ts`). An older app names its
   columns explicitly, so it reads and writes the book unchanged and ignores the column.
@@ -837,7 +1015,25 @@ Adding a kind is a change to this contract and goes through this spec.
   SPEC-0017. Stage cards show the first warning. Studio does not show a finished
   step's free-text `message` (for example `"13 headings"`), as on develop before #1013;
   `step-notes.ts` and its prefix test are not added.
-- **CLI.** The console sinks print `<step>: <message>` (#1013), unchanged.
+- **Unreadable sectioning input (#884).** Since #884 `page-sectioning` can finish with the
+  message `SECTIONING_INPUT_UNREADABLE: <page ids>; total=N` (`stage-runner.ts:1442`). For a
+  done step this is the typed `sectioning-unreadable` warning (decision 30). Its English
+  rendering keeps that literal, so text an older Studio or a script matches is unchanged.
+  `finishPageStep` (`stage-runner.ts:391-411`) keeps only one of the two messages today when
+  pages were also skipped. With typed warnings the step carries both. A **skipped** step keeps
+  the free-text message in `step_runs.message`, as on develop: a step that is not `done`
+  returns no warnings, so `markStepSkipped(step, message?)` keeps its message parameter and
+  `stepMessages` keeps returning it. No released app writes this message, because no release
+  contains #884. The legacy adapter therefore gains no pattern, on the condition that #1013
+  ships in the first release that contains #884. If a release is cut without it, the adapter
+  gains exactly this one frozen pattern before #1013 merges.
+- **CLI.** The console sinks print `<step>: <message>` (#1013), unchanged. The CLI DAG has
+  persisted `step_runs` since #884 (`pipeline-dag.ts:1422-1427`), but an executor cannot attach
+  anything to `step-complete` today: `dag.ts:137` emits a bare event, and `progressOnly`
+  (`pipeline-dag.ts:145-153`) drops the one `extractPDF` emits. A `StepExecutor` may therefore
+  return `{ message?, warnings? }`, and the DAG puts them on the event. The CLI and the API
+  runner persist a completion through one shared helper, which writes the envelope and leaves
+  out derived kinds. Otherwise every CLI completion would be recorded as clean.
 
 ### Studio
 
@@ -849,8 +1045,15 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   translated title and description with `params`, page links into `ExtractPageDetail`, and a
   recommendation line. A `setting` recommendation renders as "Set *<control label>* to
   **<value>**" using the same label the control shows on `ExtractLandingPage` /
-  `ExtractSettings` (value-less: "Check *<control label>*"), with the note that a changed
-  extraction setting is a new book under SPEC-0010. Actions link where a target exists:
+  `ExtractSettings` (value-less: "Check *<control label>*"), with a note on how to apply it,
+  chosen from `extractRerun.actions` in `GET step-status` (SPEC-0003 RAC-24). When `replace`
+  is offered, the note says that the book can be extracted again with the new setting and
+  links to the Extract settings, where Replace keeps its own confirmation. On a part book
+  (`BookSummary.part`) it says that the setting is fixed by the book the part was split from
+  and is changed there, before the parts are made: `figure_extraction_mode` and
+  `remove_watermarks` are part of the identity a part must share with that book. Otherwise it
+  says that a changed extraction setting needs a new book (decision 33, AC-41). The panel never
+  starts a run. Actions link where a target exists:
   `mark-spreads` scrolls to `SpreadReview`; `figure-cleanup` opens the page detail of the
   first evidence page (SPEC-0020's entry point); `get-text-pdf`, `trim-page-range` and
   `normalise-pages` are text only. Nothing is applied automatically.
@@ -869,7 +1072,7 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   user acts on a `whole-page-figure` or `raster-overlay-split` finding today. Adding or
   cropping an image there does not change the findings (decision 22).
 - A book whose working source is not a PDF shows no panel, badge or pill warning, because its
-  Extract stage is marked not needed (`StageSidebar.tsx:237`, decision 21).
+  Extract stage is marked not needed (`StageSidebar.tsx:252`, decision 21).
 - `StageSidebar`: the Extract badge becomes `counts.warning + counts.critical`. When
   `summary.coverage` is `"partial"`, it adds a partial marker with the tooltip "Not fully
   assessed on N pages", including when the count is zero (§Work budget).
@@ -884,24 +1087,28 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
 - `apps/api/src/routes/source-assessment.ts`: `GET /books/:label/source-assessment` →
   `{ version: number | null, assessment: SourceAssessment | null }`, `safeParse` on read like
   `debug.ts:250-256`. A user-facing route, not `/debug/*`.
-- `PageSummary` (`pages.ts:150`) gains `sourceFindings: { kinds: SourceFindingKind[];
+- `PageSummary` (`pages.ts:155`) gains `sourceFindings: { kinds: SourceFindingKind[];
   severity: SourceSeverity | null }` from one node read per request; `PageDetail` gains the
   page's `SourceFinding[]`.
-- The spreads re-apply route (`pages.ts:1413-1535`) reads the previous node before it splices
+- The spreads re-apply route (`pages.ts:1394-1520`) reads the previous node before it splices
   the pages, rebuilds the input with `pageInputFromStorage` (previous `signals` for untouched
   pages, fresh ones from `extractPages` for the re-extracted pair) and appends a version with
-  `trigger: "spreads-reapply"`, inside `oneSpreadApplyPerBook` (§Lifecycle, Writers). No step warning needs updating, because the `extract` pill
+  `trigger: "spreads-reapply"`, after the delete loop and before the response, best-effort
+  (§Lifecycle, Writers). No step warning needs updating, because the `extract` pill
   derives its count from the latest node (§Step warnings).
 - `POST /books/:label/source-assessment/reassess` appends a version from storage
   (`trigger: "reassess"`, §Lifecycle) under the per-book writer lease and returns it like the
-  GET. It returns 409 for a book whose working source is not a PDF (decision 21).
+  GET. It returns 409 for a book whose working source is not a PDF (decision 21), and 409
+  `EXTRACTION_INCOMPLETE` for a book without pages or with an incomplete extraction
+  (§Lifecycle).
   `PUT /books/:label/config` appends a `settings-change` version when `editing_language`
   or `image_filters.segmentation` changes on a book that has a node, and `PUT
   /books/:label/metadata` does the same when a `language_code` change moves the effective
-  editing language (§Snapshot and current settings).
+  editing language, and so does the `metadata` step (§Snapshot and current settings).
 - `BookSummary` (`packages/types/src/book.ts`) gains optional `sourceReadiness: { readiness,
   coverage }`, dropped if the books-list benchmark (#996) regresses. It never carries the
-  grade without the coverage, and it is absent for a book whose working source is not a PDF.
+  grade without the coverage, and it is absent for a book whose working source is not a PDF
+  or whose data cannot be read (`readUnavailable`).
 
 ### CLI
 
@@ -923,7 +1130,9 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
 - `packages/types`: `source-assessment.ts`, index export, registry rows in
   `pipeline-effects.ts` (`PipelineNodeName`, `EXTRA_STAGE_OUTPUT_NODES.extract`,
   `NODE_CACHE_RESOURCES["source-assessment"] = ["books", "book", "pages"]`, as for `extract`,
-  because `BookSummary.sourceReadiness` reads it), `BookSummary` field, `MIN_TEXT_LAYER_CHARS`
+  because `BookSummary.sourceReadiness` reads it; no code derives Studio's query invalidation
+  from this registry today, so each writer of the node invalidates those queries itself),
+  `BookSummary` field, `MIN_TEXT_LAYER_CHARS`
   and `TextProfile` moved from `extract-report.ts`.
 - `packages/pdf`: `ExtractedPage.sourceSignals`, the pixmap pass (`pixmap-signals.ts`) and
   the render restructure, counters at the warn and drop sites (including the recorder's
@@ -933,20 +1142,22 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   (`renderPageForExtraction`, `renderPageFiltered`, `renderPageWithoutRasterWatermark`)
   returning the pixmap. No change to grouping or to any extraction output.
 - `packages/pipeline`: `source-assessment.ts`, `pdf-extraction.ts` (collect, aggregate,
-  write, note, use the pixmap edge samples instead of `samplePageEdges`, the interim "pages or
-  node" guard in `extractPDF`), the CLI DAG's matching guard and `assessmentSettings`
-  (`pipeline-dag.ts`), the `assess-source` subcommand (`cli.ts`), `extract-report.ts`
+  write, note, use the pixmap edge samples instead of `samplePageEdges`, the guarded write
+  after the manifest is complete), `assessmentSettings` and the step-warning return of
+  executors in the CLI DAG (`pipeline-dag.ts`, `dag.ts`), the `EXTRACTION_PASSWORD_REQUIRED`
+  mapping in admission (`extraction-admission.ts`), the `assess-source` subcommand (`cli.ts`), `extract-report.ts`
   and the rest of PR 0 (#1009: `book-inspection.ts`, `cli.ts`, `cli-args.ts`), plus
   `packages/llm/src/pricing.ts` and `openBookDbReadOnly` in `packages/storage` from PR 0.
 - `packages/storage`: none for the node (`node_data` is generic and every write appends a
-  version, §Lifecycle). The additive `step_runs.warnings` column for step warnings (§Step warnings, #1013), holding the completion-stamped envelope. One independent fast-lane fix: `clearExtractedRows` (`book-storage.ts:657-666`)
-  deletes every `step_runs` row, including the `extract` row whose `started_at` was just
-  written, so extract wall time cannot be measured from the DB today; the fix keeps the
-  `extract` row and lands before AC-18 is measured.
+  version, §Lifecycle). The additive `step_runs.warnings` column for step warnings (§Step warnings, #1013), holding the completion-stamped envelope. The `EXTRACTION_PASSWORD_REQUIRED` reason text (`extraction-error.ts`). The
+  `clearExtractedRows` fix an earlier revision listed is not needed: since #884 the clear runs
+  in `makeBeforeRun`, before the `extract` step starts, so the API's `extract` row keeps its
+  `started_at`.
 - `apps/api`: the `source-assessment` route (GET and reassess) and tests,
   `PageSummary`/`PageDetail`/`BookSummary`, the derived `source-assessment` entry in `GET
-  step-status`, the `settings-change` hook in `PUT config` and `PUT metadata` (`books.ts`),
-  the spreads re-apply recompute (`pages.ts`), the `makeBeforeRun` guard (`stages.ts`),
+  step-status`, the `settings-change` hook in `PUT config` and `PUT metadata` (`books.ts`) and in the
+  `metadata` step (`stage-runner.ts`),
+  the spreads re-apply recompute (`pages.ts`),
   `assessmentSettings` passed by `stage-runner.ts` (PR 2d), and the step-warning part merge
   in `part-service.ts` (#1013).
 - `apps/studio`: panel, messages map, page badges, page detail, sidebar count, shared
@@ -959,19 +1170,20 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   (§Step warnings).
 - Concurrent work: SPEC-0010 (#886: the node stays **out** of the extraction manifest's
   inventory; verified reuse writes no version; reassessment takes its writer gate;
-  `assessedExtraction` records its fingerprint, §Lifecycle), SPEC-0013 (#889: its per-page
+  `assessedExtraction` records the manifest's `attemptId`, §Lifecycle), SPEC-0013 (#889: its per-page
   recovery records stay the source of truth for skipped pages), SPEC-0017 (#950: disclosure of
   provider error text in step warnings), SPEC-0020 (#993: recommendation target; R-h is a
   proposed extension), SPEC-0016 (#932: a future consumer of the node, not a dependency: its
   first slice runs before Create, this node after extraction); §Prerequisites and related work for #1009 (adopted),
   #1013 (implements §Step warnings), #1015 (adds the `summary-missing` kind), and the merged
-  #1011, #1104, #1106 and #803 that this spec now accounts for.
+  #1011, #1104, #1106, #803 and #884 that this spec now accounts for.
 
 ## Acceptance criteria
 
 - [ ] AC-1: After `extract` completes, exactly one `source-assessment` node (item `book`)
   exists for that run, parses with `SourceAssessment`, and `pages.length === pageCount`
-  (`tests/fixtures/raven.pdf`).
+  (`tests/fixtures/raven.pdf`). The node is not listed in `extraction.json`, and its
+  `assessedExtraction` equals the manifest's `attemptId`.
 - [ ] AC-2: `text-layer-empty` grades the corpus as: qa784 critical with
   `textProfile: image-only` (100/100 empty); cuaderno4 critical (31/38); Uruguay_Ceibal
   info (5/25); `prac_math_vol2` no finding.
@@ -999,8 +1211,10 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
 - [ ] AC-9: `image-decode-failed` counts the content-dropping sites only; a fixture with one
   corrupt image XObject yields `params.images = 1` and extraction still completes; an
   unsupported orientation increments `signals.orientationNotApplied` and raises no finding.
-- [ ] AC-10: A password-required fixture fails the `extract` step with the message
-  "PDF requires a password to open" (typed error, no node); a fixture with an owner password
+- [ ] AC-10: A password-required fixture is refused at admission with the code
+  `EXTRACTION_PASSWORD_REQUIRED` through the API, the CLI and a direct `extractPDF` call. No
+  manifest, no `extract` row and no node are written, and Studio shows the localised message.
+  A fixture with an owner password
   and restricted permissions extracts normally and yields `pdf-encrypted` info with
   `params.copy`, `params.accessibility`, `params.print`.
 - [ ] AC-11: The `extract` step completes with a `source-assessment` step warning iff
@@ -1030,11 +1244,12 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   book without the node.
 - [ ] AC-18: False-positive and cost bounds: `prac_math_vol2` has zero critical and ≤ 2
   warning findings; extract wall time on `prac_math_vol2` and qa784 is within +5 % of the
-  pre-spec run on develop at or after 8f34af99b (#1106), with the same `remove_watermarks`
+  pre-spec run on develop at or after 42f25a21c (#884, which added hashing, flushing and
+  verification to the step, and contains #1106), with the same `remove_watermarks`
   value in both runs, because the wizard turns removal on by default and image-watermark
-  learning then dominates an image-only book's time (same machine, three runs each, measured from `step_runs.started_at /
-  completed_at` once the `clearExtractedRows` fix has landed; until then from a non-committed
-  timing script around `extractPdfStream`). Spread suggestions on cuaderno3 are deep-equal
+  learning then dominates an image-only book's time (same machine, three runs each
+  through the API, measured from the `extract` row's `step_runs.started_at / completed_at`;
+  the CLI does not record the step's start). Spread suggestions on cuaderno3 are deep-equal
   before and after the pixmap pass.
 - [ ] AC-19: `raster-tiles` is reported for a synthetic page whose figure is four abutting
   tiles (2 × 2, gaps ≤ 1 pt, equal native ppi) with all four in evidence, `warning`; two
@@ -1116,8 +1331,8 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   and `extract-report` all agree. A downstream-setting change does not trigger SPEC-0010's
   changed-extraction-input path. A book with no node returns `{ version: null, assessment:
   null }`, shows "Not assessed", and has no `source-assessment` pill warning. A node with
-  `rulesVersion` below the current one shows "Assessed with older rules". Under SPEC-0010
-  verified reuse (once #886 lands), no version is written.
+  `rulesVersion` below the current one shows "Assessed with older rules". Under a verified
+  reuse (AC-31 (c)), no version is written.
 - [ ] AC-29: Work budget. A synthetic page with 20,000 opaque fills and 201 rasters (one above
   the pairwise cap, so the pairwise rules are skipped) completes
   the occlusion pass and the pairwise rules within the budget's time bound (≤ 50 ms per page on
@@ -1131,20 +1346,34 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   OutputReview lists the same pages from SPEC-0013's recovery records. The OutputReview half
   depends on SPEC-0013 (#889) landing; until then only the popover half is asserted, and the AC
   stays open.
-- [ ] AC-31: History survives an attempted rerun. A book with assessment v1 (`extract`) and v2
-  (`reassess`) gets an ordinary extraction rerun through each of the API
-  (`fromStage: "extract"`), the CLI DAG and a direct `extractPDF` call. In every outcome, v1,
-  v2, the pages and the images are all still present and unchanged.
-  (a) Under PR 2d's interim guard, each entry point refuses with `UNSAFE_RESUME_UNAVAILABLE`
-  before anything is cleared. The same holds for a book that has a node but no pages.
-  (b) Once SPEC-0010's admission replaces the guard, the outcome follows its admission table.
-  A rerun with identical PDF bytes, effective extraction inputs and contract over an intact
-  extraction is a verified reuse: it writes no extraction entity and no assessment version, and
-  the latest version stays current (as in AC-28). A changed source or extraction setting, a book
-  without a trustworthy manifest (which includes a node with no pages) and an incomplete
-  extraction are each rejected before mutation, with SPEC-0010's mismatch class.
-  (b) is asserted in the SPEC-0010 implementation PR, or here if this spec's PR 2d lands after
-  it.
+- [ ] AC-31: The assessment follows its extraction. A book with assessment v1 (`extract`) and
+  v2 (`reassess`) gets an extraction rerun through each entry point and each Extract re-run
+  action. In outcomes (a) to (d), v1, v2, the pages, the images and `extraction.json` are all
+  still present and unchanged.
+  (a) An API run from Extract (`fromStage: "extract"`) that names no re-run action is refused
+  with 409 `SECTIONING_REGENERATION_BLOCKED` before anything is cleared. A request that names
+  one is refused the same way on a book that is not Extract-only, and with 409
+  `EXTRACTION_RERUN_STALE` when its action, its `attemptId` or, for a retry or a replace, its
+  content token no longer matches the book.
+  (b) The CLI DAG refuses with `UNSAFE_RESUME_UNAVAILABLE` when the PDF bytes and the effective
+  extraction inputs are identical, and with the admission's mismatch code when the source or
+  an extraction setting changed.
+  (c) A direct `extractPDF` call with identical bytes and inputs over the intact extraction
+  returns `"reused"`. It emits no step event and writes no extraction entity and no assessment
+  version, so the latest version stays current (as in AC-28). With a changed source or
+  setting, or on a book whose manifest is missing, failed or damaged, it throws the
+  admission's typed error before any write.
+  (d) A resume (SPEC-0003 RAC-21) runs no extraction and writes no version with `trigger:
+  "extract"`.
+  (e) A retry or a replace (RAC-22, RAC-23) that is refused before its reset, for a missing or
+  changed PDF, an invalid page window, a password-required PDF (AC-10) or a part whose
+  extraction settings no longer match its coordinator (`EXTRACTION_PART_SETTINGS_CHANGED`),
+  leaves everything as in (a). An admitted one deletes
+  v1 and v2 together with the pages and the images. When the new attempt completes, the node
+  has exactly one version, with `trigger: "extract"` and `assessedExtraction` equal to the new
+  `attemptId`. When the new attempt fails, the book has no node and can be retried.
+  All five are asserted in PR 2d, which merges after the Extract re-run PRs (#1216, #1218,
+  #1219, #1220).
 - [ ] AC-32: Partial coverage with zero findings. A synthetic book with no warning or critical
   finding of any kind, reassessed without `signals` (so `incomplete` lists the signal-fed
   kinds with `no-signals`) gives:
@@ -1189,6 +1418,40 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   marks copies pruned in the classification, a Reassess built from storage reports the same
   finding with the same counts. An image whose id the extraction debug ties to a figure is
   left out both times.
+- [ ] AC-38: The assessment cannot fail an extraction. (i) When a `packages/pdf` signal pass
+  throws on a page, that page has `signals: null`, its signal-fed kinds are listed as
+  `no-signals`, and extraction completes with the same pages, images and text as without the
+  pass. (ii) When collecting a page input or writing the node throws, `extraction.json` is
+  `complete`, the `extract` step is done, and the book has no node (`GET source-assessment`
+  returns nulls). The same holds for the attempt that a retry or a replace starts.
+  (iii) Extracting the same PDF with and without PRs 3a to 3c gives identical
+  page, image and asset hashes in the manifest.
+- [ ] AC-39: Unreadable sectioning input is a typed warning. A `page-sectioning` step that
+  completes with unreadable input pages persists `{ kind: "sectioning-unreadable", pageIds,
+  total }`. `GET step-status` returns it, the pill is amber, the popover names up to five
+  pages, and `message` still contains `SECTIONING_INPUT_UNREADABLE: …; total=N`. When pages
+  were also skipped, the step carries both warnings. A `page-sectioning` step that is skipped
+  for the same reason has no warnings and keeps the message in `stepMessages`.
+- [ ] AC-40: The metadata step refreshes the assessment. A book is extracted with no editing
+  language, so its node records `editingLanguage: null`. The `metadata` step sets the book
+  language, and a new version with `trigger: "settings-change"` records it. `script-mismatch`
+  is evaluated against that language, and the panel does not show "Assessed with different
+  settings". When the step leaves the effective editing language unchanged, no version is
+  written. A failing hook does not fail the step.
+- [ ] AC-41: The panel names the way to extract again. For a `setting` recommendation on a
+  book for which `GET step-status` offers `replace`, the note says that the book can be
+  extracted again with the new setting and links to the Extract settings. On a part book the
+  note says that the setting is fixed by the book the part was split from and is changed
+  there. When `replace` is not offered for another reason (the book has Sectioning or later
+  output), the note says that a changed extraction setting needs a new book. The panel starts
+  no run, and the three notes are in the five catalogs.
+- [ ] AC-42: An assessment write never refuses a re-run. On an Extract-only book with a
+  node, the `contentToken` that `GET step-status` reports is the same before and after a
+  Reassess, and before and after a `PUT config` whose hook appends a `settings-change`
+  version. A replace built before a `PUT config` that changes `editing_language`, and sent
+  after it, is accepted: this is the order "Save & Re-run" uses. The edits that change the
+  book still change the token: a metadata edit (whose hook also appends a version), an image
+  decision, an upload and a spreads re-apply.
 
 ## Test plan
 
@@ -1207,7 +1470,7 @@ findings are asserted in `packages/pipeline` tests.
 | AC-7 | unit + integration | `packages/pipeline/src/__tests__/source-assessment.test.ts` (rule), `packages/pdf/src/__tests__/source-signals.test.ts` (box and rotate signals only) | `AC-7: reports page-geometry beyond 2 % deviation, rotation or differing page boxes` |
 | AC-8 | unit | `packages/pipeline/src/__tests__/source-assessment.test.ts` | `AC-8: reports spreads-unmarked only with suggestions and spread mode off` |
 | AC-9 | integration | `packages/pdf/src/__tests__/source-signals.test.ts` (counters), `packages/pipeline/src/__tests__/source-assessment.test.ts` (finding) | `AC-9: counts image decode failures without aborting extraction` |
-| AC-10 | integration | `packages/pdf/src/__tests__/source-signals.test.ts` (typed error, permissions read), `packages/pipeline/src/__tests__/source-assessment.test.ts` (`pdf-encrypted` finding) | `AC-10: fails clearly on a password-required PDF and reports pdf-encrypted on restricted permissions` |
+| AC-10 | integration | `packages/pdf/src/__tests__/source-signals.test.ts` (typed error, permissions read), `packages/pipeline/src/__tests__/extraction-admission.test.ts` and `cli-invalid-pdf.test.ts` (the admission code), `apps/studio/src/lib/sectioning-error.test.ts` (the message), `packages/pipeline/src/__tests__/source-assessment.test.ts` (`pdf-encrypted` finding) | `AC-10: fails clearly on a password-required PDF and reports pdf-encrypted on restricted permissions` |
 | AC-11 | unit + integration + browser | `packages/pipeline/src/__tests__/source-assessment.test.ts` (`sourceAssessmentWarning`, PR 2c), `apps/api/src/services/stage-runner.test.ts` (PR 4), `apps/studio/src/components/pipeline/components/SubStepPillRow.test.tsx` (PR 5b, after #1013) | `AC-11: extract step warning appears only with warning or critical findings or partial coverage` |
 | AC-12 | integration | `apps/api/src/routes/source-assessment.test.ts`, `apps/api/src/routes/pages.test.ts` | `AC-12: returns the latest assessment, nulls when absent, and page rollups` |
 | AC-13 | unit | `packages/pipeline/src/__tests__/source-assessment.test.ts` | `AC-13: assessment is deterministic and provider-free` |
@@ -1228,13 +1491,18 @@ findings are asserted in `packages/pipeline` tests.
 | AC-28 | integration + browser | `apps/api/src/routes/source-assessment.test.ts` (PR 4), `apps/studio/src/components/pipeline/stages/extract/ExtractView.source-assessment.test.tsx` (PR 5b), `packages/pipeline/src/__tests__/extract-report.test.ts` (PR 6) | `AC-28: every surface counts from the latest assessment after each trigger` |
 | AC-29 | unit + integration + browser | `packages/pdf/src/__tests__/source-signals.test.ts` (occlusion budget, PR 3b), `packages/pipeline/src/__tests__/source-assessment.test.ts` (pairwise cap and `incomplete`, PR 2b), `SourceQualityPanel.test.tsx` (the panel line, PR 5b), `packages/pipeline/src/__tests__/extract-report.test.ts` (the printed line, PR 6) | `AC-29: geometry passes stay within budget and report truncation` |
 | AC-30 | component + browser | `apps/studio/src/components/pipeline/components/SubStepPillRow.test.tsx` and `packages/pipeline/src/__tests__/step-warnings.test.ts` (the named pages, #1013); the reload and OutputReview half in a browser check once SPEC-0013 lands, recorded in `docs/verification/spec-0021.md` | `AC-30: skipped pages stay discoverable after reload` |
-| AC-31 | integration | `packages/pipeline/src/__tests__/pdf-extraction.source-assessment.test.ts` (direct `extractPDF`), `apps/api/src/routes/stages.test.ts` and `packages/pipeline/src/__tests__/pipeline-dag.test.ts` (orchestrators), all PR 2d | `AC-31: an attempted extraction rerun keeps every assessment version` |
+| AC-31 | integration | `packages/pipeline/src/__tests__/pdf-extraction.source-assessment.test.ts` (direct `extractPDF`), `apps/api/src/routes/stages.test.ts` (API), `packages/pipeline/src/__tests__/extraction-admission.test.ts` (CLI DAG), and `apps/api/src/services/extract-resume.test.ts`, `extract-retry.test.ts` and `extract-replace.test.ts` (the re-run actions), all PR 2d | `AC-31: a refused rerun and a resume keep every assessment version`, `AC-31: a retry or a replace starts the assessment again with the new extraction` |
 | AC-32 | unit + integration + browser | `packages/pipeline/src/__tests__/source-assessment.test.ts` (coverage, PR 2b; `sourceAssessmentWarning`, PR 2c), `apps/api/src/routes/source-assessment.test.ts` (`BookSummary`, PR 4), `packages/pipeline/src/__tests__/extract-report.test.ts` (exit code, PR 6), `apps/studio/src/components/pipeline/StageSidebar.test.tsx` and `SubStepPillRow.test.tsx` (PR 5b) | `AC-32: partial coverage with zero findings is amber everywhere and exits 0` |
 | AC-33 | unit + integration | `packages/pipeline/src/__tests__/source-assessment.test.ts` (rules, PR 2c), `packages/pipeline/src/__tests__/pdf-extraction.source-assessment.test.ts` (extract write equals Reassess, PR 2d) | `AC-33: an extraction without signals reports the missing checks as incomplete` |
 | AC-34 | integration | `apps/api/src/routes/source-assessment.test.ts` (PR 4) | `AC-34: images added after extraction write no version and do not enter a Reassess` |
 | AC-35 | integration | `apps/api/src/routes/source-assessment.test.ts` (PR 4), `packages/pipeline/src/__tests__/cli-args.test.ts` (`assess-source`, PR 6) | `AC-35: an imported ADT book is never assessed` |
 | AC-36 | integration + component | `apps/api/src/services/part-service.test.ts` (part merge), `packages/storage/src/__tests__/step-warnings.test.ts`, `apps/studio/src/components/pipeline/components/SubStepPillRow.test.tsx` (#1013) | `AC-36: merging recorded and legacy parts keeps typed warnings and reads as mixed` |
 | AC-37 | unit | `packages/pipeline/src/__tests__/source-assessment.test.ts` | `AC-37: duplicate-images membership ignores later pruning` |
+| AC-38 | integration | `packages/pdf/src/__tests__/source-signals.test.ts` (a failing pass, PRs 3a and 3b), `packages/pipeline/src/__tests__/pdf-extraction.source-assessment.test.ts` (a failing collect or write, and the manifest hashes, PR 2d) | `AC-38: a failing assessment never fails or changes an extraction` |
+| AC-39 | unit + integration + component | `packages/storage/src/__tests__/step-warnings.test.ts`, `apps/api/src/services/sectioning-existing-book.test.ts`, `apps/studio/src/components/pipeline/components/SubStepPillRow.test.tsx` (#1013) | `AC-39: unreadable sectioning input is a typed warning on a done step only` |
+| AC-40 | integration | `apps/api/src/services/stage-runner.test.ts` (PR 4b) | `AC-40: the metadata step appends a settings-change version` |
+| AC-41 | component | `apps/studio/src/components/pipeline/stages/extract/components/SourceQualityPanel.test.tsx` (PR 5b) | `AC-41: a setting recommendation names Replace only when the book offers it`, `AC-41: on a part the setting belongs to the book it was split from` |
+| AC-42 | integration | `apps/api/src/routes/step-status-extract-rerun.test.ts` (PR 1: the token ignores the node), `apps/api/src/routes/source-assessment.test.ts` and `apps/api/src/services/extract-replace.test.ts` (PR 4b: Reassess, the `PUT config` hook, and the save-then-replace order) | `AC-42: a new assessment version does not change the content token`, `AC-42: a replace sent after the settings save it was built before is accepted` |
 
 Fixtures: cuaderno4 pages 1, 6 and 12 and cuaderno3 page 9 extracted in the test (the
 PDFs are local corpus files, listed in `docs/verification/spec-0021.md`, not committed);
@@ -1264,9 +1532,8 @@ otherwise kept as local corpus files like cuaderno4.
 No feature flag: the assessment is additive, free and deterministic. An absent node means
 no findings, badges or pill warning; the panel shows only its "Not assessed" state with
 Reassess (§Lifecycle). Thresholds are exported constants so SPEC-0005 can tune them with corpus
-evidence. Each PR is revertable on its own. Reverting PR 2d removes the node, the note and the
-interim extraction guard, so history is no longer preserved (§Lifecycle), and every consumer
-tolerates the node's absence.
+evidence. Each PR is revertable on its own. Reverting PR 2d removes the node. The
+extraction admission stays, and every consumer tolerates the node's absence.
 
 **Release rule (decision 20).** PR 2d ships in the same release as PRs 3a and 3b (and 3c, unless
 3c lands first). They may merge to develop in the order below, but no release is cut between
@@ -1283,30 +1550,38 @@ on develop.
    it defines `MIN_TEXT_LAYER_CHARS` and `TextProfile`. Already open at ≈ 745 lines across 13
    files, within the review budget; reviewed as one self-contained, read-only PR.
 1. `packages/types`: schema, constants (moving `MIN_TEXT_LAYER_CHARS` and `TextProfile` from
-   PR 0), registry rows, `BookSummary` field (≈ 200).
+   PR 0), registry rows, `BookSummary` field, and the node left out of the content token
+   (`readExtractContentToken`, one list and one test; the token half of AC-42) (≈ 220).
+   Merges after #1216, which adds that function.
 2. `packages/pipeline`:
-   a) text and page-type rules: `text-layer-empty`, `script-mismatch`, `pageType`,
+   a) the skeleton that both later rule PRs register into (`PageAssessmentInput`,
+   `SourceAssessmentInput`, `assessSource` with its rule registry, aggregation, readiness,
+   `summary.incomplete`, `coverage` and `incompletePages`), then the text and page-type rules:
+   `text-layer-empty`, `script-mismatch`, `pageType`,
    `mixed-page-types`, `whole-page-figure`, `duplicate-images`, `spreads-unmarked`,
    `shape-flood`, `book-scale`; AC-2, AC-5, AC-6, AC-8, AC-13, AC-23, AC-37 (≈ 320);
    b) figure-geometry rules: `raster-overlay-split`, `raster-tiles`, `figure-render-holes`,
-   `low-resolution-raster`, `layered-artwork`; the 200-raster pairwise cap and
-   `summary.incomplete`, `coverage` and `incompletePages`; AC-3, AC-4, AC-19, the rule half of
+   `low-resolution-raster`, `layered-artwork`; the 200-raster pairwise cap; AC-3, AC-4, AC-19, the rule half of
    AC-29 and the coverage half of AC-32 on synthetic inputs (≈ 330);
    c) signal-fed and document rules, each recorded in `summary.incomplete` with `reason:
    "no-signals"` (book-scoped for the document kinds) while its input is null, never
    dropped: `ink-without-text`, `blank-page`, `text-unmapped-glyphs`, `hidden-text-layer`,
    `raster-occluded`, `image-decode-failed`, `needs-convert-colorspace`, `page-geometry`,
-   `watermark-detected`, `pdf-encrypted`, `optional-content`, `pdf-container`; aggregation,
-   readiness, rollups, `sourceAssessmentWarning`; the rule halves of AC-7, AC-9, AC-10, AC-11,
+   `watermark-detected`, `pdf-encrypted`, `optional-content`, `pdf-container`; rollups and
+   `sourceAssessmentWarning`, typed by `SourceAssessmentStepWarning` from PR 1, so that this PR
+   does not wait for #1013 and PRs 2b and 2c can be reviewed side by side; the rule halves of AC-7, AC-9, AC-10, AC-11,
    AC-20, AC-21, AC-22, AC-24 and AC-33 (≈ 380);
-   d) the write: `pdf-extraction.ts`, `assessmentSettings` from both callers (the CLI DAG and
+   d) the write: `pdf-extraction.ts` (the collector, and the guarded write after the manifest
+   is complete), `assessmentSettings` from both callers (the CLI DAG and
    `apps/api/src/services/stage-runner.ts`), `pageInputFromStorage` (extraction-written images
-   only), and the interim extraction guard (one "pages or node" condition in `extractPDF`,
-   `makeBeforeRun` and the CLI DAG) unless SPEC-0010's boundary has landed (§Lifecycle); AC-1,
-   the corpus halves of AC-3 and AC-4, AC-31, the write half of AC-33 (≈ 300). Ships in the
-   same release as PRs 3a and 3b (release rule above).
+   only). The write goes in the attempt body that #1219 shares between a first extraction and
+   a reset, so this PR merges after the Extract re-run PRs (#1216, #1218, #1219, #1220). No
+   guard is added to `extractPDF`, the CLI DAG or `makeBeforeRun` (§Lifecycle); AC-1, the
+   corpus halves of AC-3 and AC-4, AC-31, the write half of AC-33, AC-38 (ii) (≈ 300). Ships
+   in the same release as PRs 3a and 3b (release rule above).
 3. `packages/pdf` (signals only; reverting any of these degrades — its kinds become
-   `incomplete` with `no-signals`, the pngjs call returns — rather than removing the node):
+   `incomplete` with `no-signals`, the pngjs call returns — rather than removing the node;
+   every pass is failure-isolated and changes no extraction output, AC-38 (i) and (iii)):
    a) the pixmap pass: `renderPageForExtraction` and its three paths (the image-watermark
    render, `renderPageFiltered` and the plain render) return the pixmap alongside the cleaned
    rasters, and the spread path does the same; `inkFraction`, edge samples,
@@ -1315,26 +1590,35 @@ on develop.
    occlusion pass with its work budget and `truncated`, page boxes, annotations, per-raster
    colour class and masks; fixtures; AC-9, the signal halves of AC-7, AC-20, AC-22 and AC-29
    (≈ 370);
-   c) document reads: permissions, `PdfPasswordRequiredError`, `source.structure`,
+   c) document reads: permissions, `PdfPasswordRequiredError` and its
+   `EXTRACTION_PASSWORD_REQUIRED` mapping through admission, the API and Studio, `source.structure`,
    `producerFamily`, always-on text-watermark detection, and the removed-watermark record
    for `watermark-detected`; fixtures; AC-10, the signal half of AC-21 (≈ 220).
-4. `apps/api`: route, payload fields, spreads re-apply recompute, the reassess route (refused
-   for imported books), the `PUT config` and `PUT metadata` settings-change hooks, the derived
-   `source-assessment` entry in `GET step-status`, `BookSummary.sourceReadiness` with coverage;
-   AC-12, AC-34, AC-35, the API halves of AC-11, AC-16, AC-25 (the `extract` event versus `GET`),
-   AC-28 and AC-32 (≈ 420). Needs #1013's `stepWarnings` field.
+4. `apps/api`, in three PRs so that only the last one waits for #1013:
+   a) the read side: the GET route, the `PageSummary` and `PageDetail` fields,
+   `BookSummary.sourceReadiness` with coverage; AC-12, the API halves of AC-16 and AC-32
+   (≈ 180). Needs PR 1 only;
+   b) the writers: the reassess route (refused for imported books and unreadable
+   extractions), the spreads re-apply recompute, the `PUT config`, `PUT metadata` and
+   metadata-step hooks; AC-34, AC-35, AC-40, the trigger half of AC-42, the API half of
+   AC-28 (≈ 280). Needs PR 2d;
+   c) the derived `source-assessment` entry in `GET step-status` and on the `extract`
+   `step-complete` event; the API halves of AC-11 and AC-25 (≈ 100). Needs #1013 and PR 2c.
 5. `apps/studio` a) shared validation components, messages map, hook, catalogs (≈ 320);
    b) panel (with the not-assessed, outdated and incomplete states and the Reassess button),
-   page badges, page detail, sidebar with the partial marker; AC-14, AC-15, the pill half of
-   AC-11, the browser halves of AC-16, AC-28, AC-29 and AC-32 (≈ 420). Needs #1013.
+   page badges, page detail, sidebar with the partial marker, and the note on how to apply a
+   `setting` recommendation; AC-14, AC-15, AC-41, the pill half of AC-11, the browser halves
+   of AC-16, AC-28, AC-29 and AC-32 (≈ 450). Needs #1013 and, for AC-41, #1216. The panel
+   starts no run of its own: a Replace goes through the Extract settings and their
+   confirmation (#1220).
 
 6. CLI: `extract-report` source section on top of PR 0 (still read-only) with the incomplete
    line, the documented exit code and `summary.coverage` in `--json`; the `assess-source`
    subcommand (refused for imported books); AC-17 and the CLI halves of AC-28, AC-29, AC-32
    and AC-35 (≈ 230).
 
-**#1013 implements §Step warnings** next to its original fix (#1012, the image passes naming
-the pages left unchanged): `StepWarning`, the event field, the column, the API field, the
+**#1013 implements §Step warnings** (its original fix, #1012, the image passes naming the
+pages left unchanged, moved to #1141, which is stacked on it): `StepWarning`, the event field, the column, the API field, the
 Studio rendering, AC-25 to AC-27 and AC-30 (≈ 600 lines with tests and catalogs). The
 2026-11-04 revision changes what it implements: the completion-stamped envelope, parsing each
 element on its own with `unrecognized`, the `source-assessment` kind never persisted, and the
@@ -1353,12 +1637,13 @@ The 2026-11-17 revision adds the mixed-part merge: `legacyParts` on the envelope
 parts' adapted warnings combined into `items`, `"mixed"` in `stepWarningSources`, the
 older-version disclosure line for a mixed step, and AC-36.
 
-#1013 adopts these before it leaves draft. It is a
-draft until this spec is `approved`. #1015, stacked on it, then emits `summary-missing`.
+The 2026-11-23 revision adds: the `sectioning-unreadable` kind and AC-39; every `step_runs`
+write through `telemetryRun`; `markStepSkipped` keeping its message; the executor return and
+the shared persist helper for the CLI DAG; and the rule that #1013 ships in the first release
+that contains #884.
 
-Independent fast-lane fix, before AC-18 is measured: keep the `extract` row in `step_runs`
-when `clearExtractedRows` runs (`book-storage.ts:665`), with a test that `started_at`
-survives a re-extract.
+#1013 adopts these before it leaves draft. #1141 is stacked on it, and #1015, stacked on
+#1141, then emits `summary-missing`.
 
 ### Prerequisites and related work
 
@@ -1366,13 +1651,17 @@ survives a re-extract.
 |---|---|---|
 | #1009 `extract-report` CLI (#1008) | **Adopted as PR 0**, owned by this spec | The baseline report, `MIN_TEXT_LAYER_CHARS`, `TextProfile`, the exit-code convention, the `--compare` / `--json` surfaces PR 6 extends |
 | #1013 image-pass failures (#1012) | **Implements §Step warnings**; hard prerequisite of PR 2c, PR 4, PR 5b and AC-11 | The typed step-warning channel: `StepWarning`, the `step-complete` field, `step_runs.warnings`, `stepWarnings` in `GET step-status`, the translated amber pill, and the console sink printing `event.message` |
-| SPEC-0010 safe reruns (#886, in review) | **Prerequisite of the history guarantee only**: its extraction admission at the common boundary (verified reuse or rejection before mutation), or PR 2d's interim guard, which refuses every rerun, until then (§Lifecycle, AC-31). The rest of SPEC-0010 is not a dependency | §Lifecycle: the node is derived and stays out of the manifest inventory; verified reuse writes nothing; any other rerun is refused before `clearExtractedData` runs |
+| #1141 image-pass pages unchanged (#1012) | Stacked on #1013 | Emits the `pages-unchanged` step warning |
+| #884 SPEC-0003 sectioning lifecycle | Merged (42f25a21c) | The extraction manifest and the admission in `extractPDF` and the CLI DAG, which are the common boundary of the history guarantee (§Lifecycle, AC-31); `attemptId` for `assessedExtraction`; `telemetryRun`; the `sectioning-unreadable` outcome |
+| SPEC-0003 Extract re-run amendment (#1214; amendment #1215, merged 2026-11-27; PRs #1216, #1218, #1219, #1220, in review) | **Prerequisite of this amendment's re-run passages, of PR 1 (#1216), of PR 2d (#1219) and of AC-41 and AC-42** | Resume, retry and replace on an Extract-only book; the attempt body shared by a first extraction and a reset, where the node is written; `extractRerun` in `GET step-status`, which the panel reads; the Extract-owned node list that makes the reset delete the node and the Extract-only check accept it; the content token, which leaves the node out; the part-settings refusal (decisions 32 to 34, AC-31) |
+| "Save & Re-run" as one server operation (#1254) | Related, not a prerequisite | Today Studio checks, saves and then sends the run. If the server later saves the settings and admits the run in one operation, the `PUT config` hook runs inside it; decision 34 holds either way |
+| SPEC-0010 safe reruns (#886, in review) | Related, no longer a prerequisite: #884 landed the admission this spec needed | The node stays out of the manifest inventory, and verified reuse writes nothing. If SPEC-0010 later admits reruns of a book with downstream work through the API, its outcomes replace the `prepareSectioningRun` refusal |
 | SPEC-0013 page-failure recovery (#889, in review) | Owner of skipped-page records; AC-30's OutputReview half depends on it | `pages-skipped` is a count that links to SPEC-0013's per-page recovery records and OutputReview; it never replaces them (AC-30) |
 | SPEC-0017 connectivity handling (#950, in review) | Owner of error disclosure | Provider error text in `pages-unchanged` and `summary-missing` is shown through its technical-details disclosure; its classified wording replaces the generic line once it lands |
 | SPEC-0020 figure cleanup (#993, in review) | Recommendation target; shares `ExtractPageDetail` | `figure-cleanup` opens its entry point; an accepted cleanup writes no assessment version (§Lifecycle); R-h is a proposed extension that needs its owner's agreement |
 | SPEC-0016 AI setup recommender (#932) | Future consumer | None today: its first slice is pre-Create; consuming the node later is an integration, not a dependency |
 | #1011 identical images judged once (#1010) | Merged (725632947) | `duplicate-images` recommends `none` because #1011 already judges exact duplicates once. Its membership is built from extraction-time evidence and is independent of `planHashDedup`'s pruning-dependent count (decision 26) |
-| #1015 book summary for scanned books | Related; stacked on #1013 | Emits the `summary-missing` step warning (§Step warnings) when the summary call fails; it consumes page renders the same way a later vision text-recovery spec would route `text-layer-empty` pages |
+| #1015 book summary for scanned books | Related; stacked on #1141 | Emits the `summary-missing` step warning (§Step warnings) when the summary call fails; it consumes page renders the same way a later vision text-recovery spec would route `text-layer-empty` pages |
 | #1106 image-watermark removal (#1105) | Merged (8f34af99b) | The render paths PR 3a restructures; the cleaned images the checks measure; `watermark-detected`'s removal-on record; AC-18's baseline (decision 23) |
 | #1104 add images in Extract | Merged (8b454f658) | Images with `source` `crop`/`upload` are not inventory (decision 22); the page detail's "Crop from page" control next to the findings list |
 | #803 round-trip ADT import (#705) | Merged (38977d14e) | Imported books are not assessed (decision 21) |
@@ -1461,7 +1750,7 @@ Optimisations the assessment enables:
 5. `BookSummary.sourceReadiness` in the books list — keep if the list benchmark (#996)
    holds, otherwise read on demand. Owner: @gbergengruen, decided in PR 4.
 6. Resolved 2026-10-29: in spread mode `spread-suggestions` is always `[]`
-   (`pdf-extraction.ts:147`), so `spreads-unmarked` disappears once spreads are marked; no
+   (`pdf-extraction.ts:192-194`), so `spreads-unmarked` disappears once spreads are marked; no
    subtraction is needed.
 7. R-a: fast lane or its own spec — triage. Owner: the maintainer who triages R-a, after E8.
 8. `figure-render-holes` is defined on the figure's `bounds` joined by `imageId`, not on
