@@ -1,6 +1,6 @@
 import { useId, type ReactNode } from "react"
 import { useLingui } from "@lingui/react"
-import { t } from "@lingui/core/macro"
+import { msg } from "@lingui/core/macro"
 import { Trans } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
@@ -63,7 +63,7 @@ export function ProjectNameField({
           e.preventDefault()
           onEnter()
         }}
-        placeholder={i18n._(t`my-book-slug`)}
+        placeholder={i18n._(msg`my-book-slug`)}
         className={hasError ? "border-destructive" : ""}
         aria-invalid={hasError}
         aria-describedby={hasError ? errorId : hintId}
