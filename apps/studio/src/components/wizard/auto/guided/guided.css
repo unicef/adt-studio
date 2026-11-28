@@ -1,0 +1,157 @@
+/*
+ * Guided: calm single surfaces, soft shadows and a small orb, in ADT Studio's
+ * own theme colours. It sits inside `.lc-root`, so it uses the tokens of shared/look.css (--lc-bubble,
+ * --lc-accent…); this file adds the step colour.
+ *
+ *   --gd-step      the colour of the step on screen (stepper dots, ticks)
+ *   --gd-step-ink  the same colour as text on the page
+ * The root's data-tone is the step on screen (upload / reading / check / create), or done / error.
+ */
+.gd-root {
+  --gd-step: var(--brand-500); --gd-step-ink: var(--brand-700);
+}
+.gd-root[data-tone="upload"] { --gd-step: var(--brand-400); --gd-step-ink: var(--brand-600); }
+.gd-root[data-tone="reading"] { --gd-step: var(--brand-500); --gd-step-ink: var(--brand-700); }
+.gd-root[data-tone="check"] { --gd-step: var(--brand-600); --gd-step-ink: var(--brand-700); }
+.gd-root[data-tone="create"] { --gd-step: var(--brand-700); --gd-step-ink: var(--brand-700); }
+.gd-root[data-tone="done"] { --gd-step: var(--color-emerald-500, #10b981); --gd-step-ink: var(--color-emerald-700, #047857); }
+.gd-root[data-tone="error"] { --gd-step: var(--brand-500); --gd-step-ink: var(--destructive); }
+
+
+
+/* The drop zone breathes in the step colour while a file is dragged over the page. */
+.gd-drop:focus-visible { outline: 2px solid var(--gd-step); outline-offset: 3px; }
+
+
+/* Morphs between steps, screens and picks (shared/motion.ts): named places move and resize, the rest crossfades. */
+::view-transition-group(*) { animation-duration: 0.45s; animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1); }
+/* The top bar stays put: no slide, resize or crossfade when the step changes. */
+::view-transition-group(gd-topbar), ::view-transition-old(gd-topbar), ::view-transition-new(gd-topbar) { animation: none; }
+::view-transition-image-pair(*) { overflow: clip; }
+::view-transition-old(*), ::view-transition-new(*) { height: 100%; object-fit: none; object-position: top left; }
+/* Old and new crossfade together (same timing), so the screen never looks washed out halfway. */
+::view-transition-old(*), ::view-transition-new(*) { animation-duration: 0.3s; animation-timing-function: ease; }
+/* The step dot and the rail's highlight are shapes, not content: they stretch as they move. */
+::view-transition-old(gd-step-dot), ::view-transition-new(gd-step-dot) { height: 100%; width: 100%; object-fit: fill; }
+/* Words that change in place (the pick's name, the language's bubbles and stamp; shared/motion.ts
+   swapName): words that stay keep their name and just move (a plain crossfade of the same image),
+   new words rise in and the old ones lift away, softly blurred. */
+/* Their snapshots aren't cropped, so a bubble keeps its tail and shadow while it moves. */
+::view-transition-image-pair(.gd-swap) { overflow: visible; }
+::view-transition-old(.gd-swap), ::view-transition-new(.gd-swap) { height: auto; object-fit: fill; }
+::view-transition-old(.gd-swap):only-child { animation: gd-swap-out 0.22s ease-in both; }
+::view-transition-new(.gd-swap):only-child { animation: gd-swap-in 0.45s cubic-bezier(0.32, 0.72, 0, 1) 0.08s both; }
+@keyframes gd-swap-out { to { opacity: 0; transform: translateY(-6px) scale(0.96); filter: blur(3px); } }
+@keyframes gd-swap-in { from { opacity: 0; transform: translateY(8px) scale(0.96); filter: blur(3px); } }
+/* A picked card grows into the pick: its picture scales rather than crops. */
+[data-vt-off] { view-transition-name: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}
+
+/* The assistant (shared/Assistant.tsx): the book wizard's avatar, in a ring that ripples while it talks or thinks. */
+.gd-ai { width: var(--ai); height: var(--ai); }
+/* The book wizard in full size (pictures): a gentle bob while it talks. */
+@keyframes gd-pose-talk { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-3px) rotate(-1deg); } }
+.gd-pose[data-talking] { animation: gd-pose-talk 0.9s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .gd-pose { animation: none !important; } }
+.gd-ai-ring { position: absolute; inset: 6%; border-radius: 9999px; opacity: 0; box-shadow: 0 0 0 2px color-mix(in oklab, var(--brand-500) 55%, transparent); }
+.gd-ai[data-mood="talking"] .gd-ai-ring { animation: gd-ai-ripple 1.3s ease-out infinite; }
+.gd-ai[data-mood="thinking"] .gd-ai-ring { animation: gd-ai-ripple 2.2s ease-out infinite; }
+@keyframes gd-ai-ripple { 0% { transform: scale(1); opacity: 0.35; } 100% { transform: scale(1.25); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .gd-ai * { animation: none !important; }
+}
+
+/* The PDF being read, where it was dropped: an indeterminate bar slides under the pages. */
+.gd-reading-bar > span { display: block; height: 100%; width: 35%; border-radius: inherit; background: var(--gd-step); animation: gd-bar 1.4s ease-in-out infinite; }
+@keyframes gd-bar { 0% { transform: translateX(-110%); } 100% { transform: translateX(310%); } }
+@media (prefers-reduced-motion: reduce) {
+  .gd-reading-bar > span { animation: none; }
+}
+
+/* The drop zone checking a PDF: the badge breathes; when it's fine, the check pops once. */
+@keyframes gd-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+.gd-breathe { animation: gd-breathe 1.4s ease-in-out infinite; }
+@keyframes gd-pop { 0% { transform: scale(0.6); } 60% { transform: scale(1.12); } 100% { transform: none; } }
+.gd-pop { animation: gd-pop 0.45s var(--lc-pop, cubic-bezier(0.34, 1.56, 0.64, 1)) both; }
+@media (prefers-reduced-motion: reduce) { .gd-breathe, .gd-pop { animation: none; } }
+
+/* The first-run tour (TourCoach): a dark veil over the page with the lit item cut out of it, and the assistant beside it. */
+.gd-tour-hole {
+  position: fixed; z-index: 40; pointer-events: none; border-radius: 24px;
+  box-shadow: 0 0 0 3px var(--brand-400), 0 0 0 200vmax rgb(8 12 24 / 0.66);
+  transition: left 0.5s var(--lc-drawer), top 0.5s var(--lc-drawer), width 0.5s var(--lc-drawer), height 0.5s var(--lc-drawer);
+}
+/* The veil fades in when the tour starts. */
+@keyframes gd-veil-in { from { opacity: 0; } }
+.gd-tour-hole { animation: gd-veil-in 0.35s ease-out both; }
+.dark .gd-tour-hole { box-shadow: 0 0 0 3px var(--brand-400), 0 0 0 200vmax rgb(0 0 0 / 0.72); }
+.gd-tour-glide { transition: left 0.6s var(--lc-out), top 0.6s var(--lc-out); }
+.gd-tour-orb { filter: drop-shadow(0 6px 14px rgb(43 127 255 / 0.3)); }
+/* The speech bubble points back at the assistant, and pops out of it. */
+.gd-speech { box-shadow: 0 22px 50px -16px rgb(0 0 0 / 0.5); animation: gd-speech-in 0.3s var(--lc-out) both; }
+.gd-speech-tail { position: absolute; width: 18px; height: 18px; background: inherit; border-radius: 3px; transform: rotate(45deg); }
+.gd-speech[data-side="right"] { transform-origin: left center; }
+.gd-speech[data-side="right"] .gd-speech-tail { left: -6px; top: calc(50% - 9px); }
+.gd-speech[data-side="left"] { transform-origin: right center; }
+.gd-speech[data-side="left"] .gd-speech-tail { right: -6px; top: calc(50% - 9px); }
+.gd-speech[data-side="below"] { transform-origin: 28px top; }
+.gd-speech[data-side="below"] .gd-speech-tail { top: -6px; left: 19px; }
+.gd-speech[data-side="above"] { transform-origin: 28px bottom; }
+.gd-speech[data-side="above"] .gd-speech-tail { bottom: -6px; left: 19px; }
+.gd-speech[data-side="center"] { transform-origin: center top; }
+.gd-speech[data-side="center"] .gd-speech-tail { top: -6px; left: calc(50% - 9px); }
+@keyframes gd-speech-in { from { opacity: 0; transform: translateY(4px) scale(0.98); } }
+@media (prefers-reduced-motion: reduce) { .gd-tour-hole, .gd-tour-glide { transition: none; } .gd-speech { animation: none; } }
+
+/* A new pick: its picture and words fade in where the old ones were. */
+@keyframes gd-pick-in { from { opacity: 0; transform: scale(0.985); } }
+.gd-pick-in > * { animation: gd-pick-in 0.35s var(--lc-out, ease-out) both; }
+@media (prefers-reduced-motion: reduce) { .gd-pick-in > * { animation: none; } }
+
+/* The options dialog: each option fades in as the user moves between them. */
+.gd-help-in { animation: gd-help-in 200ms ease-out both; }
+@keyframes gd-help-in { from { opacity: 0; transform: translateY(4px); } }
+@media (prefers-reduced-motion: reduce) { .gd-help-in { animation: none; } }
+
+/* The bottom bar is fixed to the window: in a step morph it is snapshotted on its own, so it never
+   rides along inside the page's snapshot (where it would sit at the wrong place). */
+.gd-bar { view-transition-name: gd-bar; }
+
+/* Between Check screens: the new screen slides in from the side the flow went (data-dir), and in
+   the fixed bottom bar only the parts that change move: the title and count, the button label,
+   Back, and the progress segments filling. The bar itself never moves. */
+.gd-screen-in { animation: gd-screen-next 420ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.gd-screen-in[data-dir="back"] { animation-name: gd-screen-back; }
+@keyframes gd-screen-next { from { opacity: 0; transform: translateX(28px); } }
+@keyframes gd-screen-back { from { opacity: 0; transform: translateX(-28px); } }
+.gd-bar-in { animation: gd-bar-next 320ms cubic-bezier(0.22, 1, 0.36, 1) both; display: inline-flex; }
+.gd-bar-in[data-dir="back"] { animation-name: gd-bar-back; }
+@keyframes gd-bar-next { from { opacity: 0; transform: translateY(6px); } }
+@keyframes gd-bar-back { from { opacity: 0; transform: translateY(-6px); } }
+.gd-seg { transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 300ms ease; }
+@media (prefers-reduced-motion: reduce) {
+  .gd-screen-in, .gd-bar-in { animation: none; }
+  .gd-seg { transition: none; }
+}
+
+/* The assistant's words on a new screen come in softly (the bubble stays put). */
+.gd-enter { animation: gd-words-in 280ms ease-out both; }
+@keyframes gd-words-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .gd-enter { animation: none; } }
+
+/* The top bar's dock (Island.tsx) slides down from the window's top edge when a PDF is chosen or changed. */
+@keyframes gd-dock-in {
+  from { transform: translateY(-100%); }
+  to { transform: none; }
+}
+
+/* A sheet over the page (the PDF viewer): solid almost at once and rising a little into place, so
+   the page behind never shows through it while it opens; it leaves quickly. (The dialog centres
+   itself with the `translate` property, so these move it with `transform` on top of that.) */
+@keyframes gd-sheet-in { from { opacity: 0; transform: translateY(12px) scale(0.97); } 30% { opacity: 1; } to { opacity: 1; transform: none; } }
+@keyframes gd-sheet-out { 60% { opacity: 1; } to { opacity: 0; transform: translateY(6px) scale(0.98); } }
+.gd-sheet[data-state="open"] { animation: gd-sheet-in 0.28s cubic-bezier(0.32, 0.72, 0, 1) both !important; }
+.gd-sheet[data-state="closed"] { animation: gd-sheet-out 0.16s ease-in both !important; }
+@media (prefers-reduced-motion: reduce) { .gd-sheet[data-state] { animation: none !important; } }

@@ -1,0 +1,25 @@
+/* Creating the book: the progress ring that becomes the Open button. */
+
+/* Progress ring becomes the button: a 52 px disc on the message surface fills, then widens into the brand pill. */
+.fx-ring {
+  width: 52px; height: 52px; border-radius: 26px;
+  background: var(--lc-bubble, var(--card)); color: var(--lc-accent-ink, var(--primary-foreground));
+  box-shadow: var(--lc-shadow, 0 1px 2px rgb(15 23 42 / 0.06), 0 4px 14px rgb(15 23 42 / 0.05));
+  interpolate-size: allow-keywords;
+  transition: width 0.55s var(--lc-drawer, cubic-bezier(0.32, 0.72, 0, 1)), padding 0.55s var(--lc-drawer, cubic-bezier(0.32, 0.72, 0, 1)), background-color 0.35s ease, transform 0.15s ease;
+}
+.fx-ring[data-done="true"] { width: auto; padding: 0 30px; background: var(--lc-accent, var(--brand-600)); }
+.fx-ring[data-done="true"]:hover { background: var(--lc-accent-hover, var(--brand-700)); }
+.fx-ring[data-done="true"]:active { transform: scale(0.97); }
+.fx-ring > svg { transition: opacity 0.2s ease; }
+.fx-ring[data-done="true"] > svg { opacity: 0; }
+.fx-ring circle.p { transition: stroke-dashoffset 0.6s var(--lc-out, cubic-bezier(0.23, 1, 0.32, 1)); transform: rotate(-90deg); transform-origin: 50% 50%; }
+@keyframes fx-label-in { from { opacity: 0; transform: translateY(6px); } }
+.fx-label-in { animation: fx-label-in 0.4s cubic-bezier(0.23, 1, 0.32, 1) 0.3s both; }
+@keyframes fx-fade-in { from { opacity: 0; transform: translateY(4px); } }
+.fx-fade-in { animation: fx-fade-in 0.4s cubic-bezier(0.23, 1, 0.32, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-ring, .fx-ring > svg, .fx-ring circle.p { transition: none; }
+  .fx-label-in, .fx-fade-in { animation: none; }
+}

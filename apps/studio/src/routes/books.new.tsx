@@ -1,15 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { NoProviderGate } from "@/components/app/NoProviderGate"
-import { WizardProvider } from "@/components/wizard"
-import { WizardFormProvider } from "@/components/wizard/WizardFormProvider"
-import { BookCreationWizard } from "@/components/wizard/BookCreationWizard"
+import { WizardProvider } from "@/components/wizard/core/WizardProvider"
+import { WizardFormProvider } from "@/components/wizard/core/WizardFormProvider"
+import { GuidedFlow } from "@/components/wizard/auto/guided"
 
 function AddBookPage() {
   return (
     <NoProviderGate>
       <WizardProvider>
         <WizardFormProvider>
-          <BookCreationWizard />
+          <GuidedFlow />
         </WizardFormProvider>
       </WizardProvider>
     </NoProviderGate>

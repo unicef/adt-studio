@@ -3,6 +3,7 @@ export type { WordTimestampEditGuard, WordTimestampSaveResponse } from "@adt/typ
 import { i18n } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
 import type { OutputSkipRequest } from "@adt/types"
+import type { SetupRecommendation } from "@adt/types"
 import type { OutputStatus, OutputSummary, OutputStageSummaryResponse, OutputRunScope, OutputReviewRequest, OutputDisclosureOptions, OutputReplacement, StageName } from "@adt/types"
 import type { PackagingStatus, SectioningModeState } from "@adt/types"
 import { sectioningErrorMessage } from "@/lib/sectioning-error"
@@ -1413,13 +1414,26 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
-  createBook: (label: string, pdf: File, config?: Record<string, unknown>) => {
+  /** Auto mode (issue #333): settings recommended from the PDF before the book exists. */
+  recommendSetup: async (pdf: File, apiKey: string, signal?: AbortSignal) => {
+    const formData = new FormData()
+    formData.append("pdf", pdf)
+    return request<SetupRecommendation>("/setup-recommendation", {
+      method: "POST",
+      headers: await buildApiHeaders(apiKey),
+      body: formData,
+      signal,
+    })
+  },
+
+  createBook: (label: string, pdf: File, config?: Record<string, unknown>, setupRecommendationId?: string) => {
     const formData = new FormData()
     formData.append("label", label)
     formData.append("pdf", pdf)
     if (config) {
       formData.append("config", JSON.stringify(config))
     }
+    if (setupRecommendationId) formData.append("setupRecommendationId", setupRecommendationId)
     return request<BookSummary>("/books", {
       method: "POST",
       body: formData,
