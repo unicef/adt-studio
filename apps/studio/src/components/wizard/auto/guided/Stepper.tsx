@@ -40,6 +40,7 @@ export function Stepper({ at, shown, failed, locked, complete, onGo, checkBars }
           const bad = step === at && failed
           return (
             <li key={step}>
+              {/* The dot is 8px; its hit area (::before) reaches into the gaps and 8px above and below it. */}
               <button
                 type="button"
                 onClick={() => onGo(step)}
@@ -48,7 +49,7 @@ export function Stepper({ at, shown, failed, locked, complete, onGo, checkBars }
                 aria-label={i18n._(NAME[step])}
                 title={i18n._(NAME[step])}
                 style={onScreen ? { viewTransitionName: "gd-step-dot" } : undefined}
-                className={cn("block h-2 rounded-full transition-[width,background-color] duration-300 disabled:cursor-default motion-reduce:transition-none", onScreen ? "w-6" : "w-2", bad ? "bg-destructive" : onScreen || done ? "bg-[var(--gd-step)]" : "bg-border", canGo && "hover:opacity-70")}
+                className={cn("relative block h-2 rounded-full transition-[width,background-color] before:absolute before:-inset-x-[3px] before:-inset-y-2 duration-300 disabled:cursor-default motion-reduce:transition-none", onScreen ? "w-6" : "w-2", bad ? "bg-destructive" : onScreen || done ? "bg-[var(--gd-step)]" : "bg-border", canGo && "hover:opacity-70")}
               />
             </li>
           )
