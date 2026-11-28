@@ -666,12 +666,6 @@ msgstr "{numPages} faqe"
 msgid "{numPages} pages, split into parts"
 msgstr "{numPages} faqe, të ndara në pjesë"
 
-msgid "{page} of {pageCount}"
-msgstr "{page} nga {pageCount}"
-
-msgid "{pageCount, plural, one {# page} other {# pages}}"
-msgstr "{pageCount, plural, one {# faqe} other {# faqe}}"
-
 msgid "{pageCount} {pageCount, plural, one {page} other {pages}}"
 msgstr "{pageCount} {pageCount, plural, one {faqe} other {faqe}}"
 
@@ -9215,6 +9209,9 @@ msgstr "Faqja {names}"
 
 msgid "Page {page}"
 msgstr "Faqe {page}"
+
+msgid "Page {page} of {total}"
+msgstr "Faqja {page} nga {total}"
 
 msgid "Page {pageId}"
 msgstr "Faqja {pageId}"

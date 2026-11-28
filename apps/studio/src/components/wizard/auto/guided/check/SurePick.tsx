@@ -59,7 +59,7 @@ export function SurePick({ picture, pictureKey, label, title, hint, result, afte
     return () => window.clearTimeout(id)
   }, [open])
   return (
-    <div data-pick className="flex scroll-mt-24 flex-col gap-5">
+    <div data-pick data-open={open || undefined} className="flex scroll-mt-24 flex-col gap-5">
       {/* On a wide window the picture stands beside the words, so the step fits without scrolling. */}
       <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:gap-8">
         {picture && (

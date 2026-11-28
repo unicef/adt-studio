@@ -666,12 +666,6 @@ msgstr "{numPages} pages"
 msgid "{numPages} pages, split into parts"
 msgstr "{numPages} pages, divisées en parties"
 
-msgid "{page} of {pageCount}"
-msgstr "{page} sur {pageCount}"
-
-msgid "{pageCount, plural, one {# page} other {# pages}}"
-msgstr "{pageCount, plural, one {# page} other {# pages}}"
-
 msgid "{pageCount} {pageCount, plural, one {page} other {pages}}"
 msgstr "{pageCount} {pageCount, plural, one {page} other {pages}}"
 
@@ -9215,6 +9209,9 @@ msgstr "Page {names}"
 
 msgid "Page {page}"
 msgstr "Page {page}"
+
+msgid "Page {page} of {total}"
+msgstr "Page {page} sur {total}"
 
 msgid "Page {pageId}"
 msgstr "Page {pageId}"
