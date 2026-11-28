@@ -1,4 +1,5 @@
 import { createPagePublicationRefresh } from "./page-publication-refresh"
+import { createTtsRunRefresh } from "./tts-run-refresh"
 import { refreshRunStatus, reconcileRunPublication } from "./run-query-invalidation"
 import { sectioningErrorMessage, needsHistoryRecovery } from "@/lib/sectioning-error"
 import { useEffect, useCallback, useRef, createContext, useContext, useState } from "react"
@@ -198,9 +199,6 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   // Throttle progressive page invalidations during storyboard runs
   const lastPageInvalidateRef = useRef<number>(0)
 
-  // Throttle progressive TTS-list invalidations during speech runs
-  const lastTtsInvalidateRef = useRef<number>(0)
-
   // Serialized run queue — chains API calls so they arrive in click order
   const runChainRef = useRef<Promise<void>>(Promise.resolve())
 
@@ -231,6 +229,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     const url = `${BASE_URL}/books/${label}/stages/status`
     const es = new EventSource(url)
     const pagePublications = createPagePublicationRefresh(queryClient, label)
+    const ttsRefresh = createTtsRunRefresh(queryClient, label)
 
     // The server emits ready after registering this listener, including on an
     // otherwise idle stream. Catch up page availability as well as run status.
@@ -339,14 +338,8 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         }
         // Progressively refresh the TTS list during speech generation — GET
         // /tts serves the run's live snapshot, so each completed audio shows
-        // up in the Speech view as it lands (throttled to ~2s).
-        if (pipelineStep === "tts") {
-          const now = Date.now()
-          if (now - lastTtsInvalidateRef.current > 2000) {
-            lastTtsInvalidateRef.current = now
-            queryClient.invalidateQueries({ queryKey: ["books", label, "tts"] })
-          }
-        }
+        // up in the Speech view as it lands (one read at a time, ~2s apart).
+        if (pipelineStep === "tts") ttsRefresh.request()
       } else if (d.type === "step-complete" || d.type === "step-skip") {
         // The step finished — its failure toast/beep dedup no longer applies.
         errorCountByStepRef.current.delete(pipelineStep)
@@ -452,16 +445,16 @@ export function useBookRunStatus(label: string): BookRunContextValue {
           })
         }
         // Speech errors persist per-item failures into the TTS output —
-        // refetch so the Speech view can mark the failed entries.
-        if (pipelineStep === "tts") {
-          queryClient.invalidateQueries({ queryKey: ["books", label, "tts"] })
-        }
+        // refetch so the Speech view can mark the failed entries. A run can
+        // fail hundreds of items, so this shares the progress path's pacing.
+        if (pipelineStep === "tts") ttsRefresh.request()
       }
     })
 
     // A queued run has started executing — full refetch to reconcile
     es.addEventListener("queue-next", () => {
       pagePublications.reset()
+      ttsRefresh.reset()
       progressRef.current.clear()
       lastPageInvalidateRef.current = 0
       errorCountByStepRef.current.clear()
@@ -472,6 +465,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     // Run completed — full refetch to reconcile with DB
     es.addEventListener("complete", () => {
       pagePublications.reset()
+      ttsRefresh.reset()
       progressRef.current.clear()
       errorCountByStepRef.current.clear()
       runErrorNotifiedRef.current = false
@@ -485,6 +479,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     // the "cancelling…" state. No error toast/beep: this was deliberate.
     es.addEventListener("cancelled", () => {
       pagePublications.reset()
+      ttsRefresh.reset()
       progressRef.current.clear()
       errorCountByStepRef.current.clear()
       runErrorNotifiedRef.current = false
@@ -531,6 +526,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       // network blip never toasts or beeps.
       if (me.data) {
         pagePublications.reset()
+        ttsRefresh.reset()
         try {
           const d = JSON.parse(me.data)
           const runError = sectioningErrorMessage(d.error, d.code) ?? i18n._(msg`Step run failed`)
@@ -691,6 +687,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
 
     return () => {
       pagePublications.dispose()
+      ttsRefresh.reset()
       es.close()
     }
   }, [label, queryClient])

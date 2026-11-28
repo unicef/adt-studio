@@ -194,7 +194,7 @@ export function PreviewValidationCard({
   })
   const tts = useQuery({
     queryKey: ["books", label, "tts"],
-    queryFn: () => api.getTTS(label),
+    queryFn: ({ signal }) => api.getTTS(label, signal),
     enabled: !!label,
   })
   const easyRead = useQuery({

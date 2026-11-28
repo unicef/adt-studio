@@ -395,3 +395,71 @@ it("SSE progress leaves an explicit confirmation read alive while cancelling sta
     expect(wasAborted).toBe(false)
   } finally { close() }
 })
+
+// #1236: every failed speech item used to start its own GET /tts, and so did
+// every 2 s of progress, whether or not the previous request had come back.
+it("starts one GET /tts for a burst of failed speech items, then one more for the rest", async () => {
+  vi.useFakeTimers()
+  const { client, close } = setup({ settle: false })
+  const key = ["books", "book", "tts"]
+  client.setQueryData(key, 0)
+  let failed = 0, inFlight = 0, peak = 0
+  const readTts = vi.fn(async () => {
+    const sent = failed
+    peak = Math.max(peak, ++inFlight)
+    // Ignore cancellation, like a response the API is already producing.
+    await new Promise(resolve => setTimeout(resolve, 300))
+    inFlight--
+    return sent
+  })
+  const stop = new QueryObserver(client, { queryKey: key, queryFn: readTts }).subscribe(() => {})
+  try {
+    await act(async () => {
+      for (failed = 1; failed <= 25; failed++) {
+        // The API reports a failed item as an error followed by progress.
+        Events.current.emit("progress", { type: "step-error", step: "tts", error: `pg001_t${failed} failed: 401` })
+        Events.current.emit("progress", { type: "step-progress", step: "tts", page: failed, totalPages: 25 })
+      }
+      failed = 25
+    })
+    expect(readTts).toHaveBeenCalledTimes(1)
+    await act(async () => { await vi.advanceTimersByTimeAsync(300 + 1999) })
+    expect(readTts).toHaveBeenCalledTimes(1)
+    await act(async () => { await vi.advanceTimersByTimeAsync(1 + 300) })
+    expect(readTts).toHaveBeenCalledTimes(2)
+    expect(client.getQueryData(key)).toBe(25)
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000) })
+    expect(readTts).toHaveBeenCalledTimes(2)
+    expect(peak).toBe(1)
+  } finally { stop(); close() }
+})
+
+it.each(["complete", "cancelled", "error"])("ends a speech run on %s with one last GET /tts and nothing after it", async (terminal) => {
+  vi.useFakeTimers()
+  const { client, close } = setup({ settle: false })
+  const key = ["books", "book", "tts"]
+  client.setQueryData(key, 0)
+  let generated = 0
+  const readTts = vi.fn(async () => generated)
+  const stop = new QueryObserver(client, { queryKey: key, queryFn: readTts }).subscribe(() => {})
+  const progress = () => Events.current.emit("progress", { type: "step-progress", step: "tts", page: generated, totalPages: 3 })
+  try {
+    generated = 1
+    await act(async () => progress())
+    expect(readTts).toHaveBeenCalledTimes(1)
+    // Within 2 s of the last read: held back for the trailing read.
+    generated = 2
+    await act(async () => progress())
+    expect(readTts).toHaveBeenCalledTimes(1)
+    generated = 3
+    vi.mocked(api.getStepStatus).mockResolvedValue({ stages: {}, steps: {}, error: null, runStatus: "idle", runRevision: "after", stepErrors: null, stepMessages: null, pendingDecisions: [] })
+    await act(async () => {
+      Events.current.emit(terminal, terminal === "error" ? { error: "Speech failed" } : {})
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    expect(readTts).toHaveBeenCalledTimes(2)
+    expect(client.getQueryData(key)).toBe(3)
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000) })
+    expect(readTts).toHaveBeenCalledTimes(2)
+  } finally { stop(); close() }
+})
