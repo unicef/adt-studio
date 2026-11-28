@@ -4,6 +4,7 @@ import { Check, ChevronDown } from "lucide-react"
 import type { SetupRecommendation } from "@adt/types"
 import { cn } from "@/lib/utils"
 import { Screen } from "../shared/PreviewChoices"
+import { CompactOptionsContext, useOptionsLayout } from "../shared/optionsLayout"
 import { swapName } from "../shared/motion"
 import { screenPages, useDescribe, useScreenImages } from "../shared/screens/pages"
 import { SCREEN } from "../shared/screens/layouts"
@@ -52,6 +53,7 @@ export function PickBadge({ changed }: { changed: boolean }) {
  */
 export function SurePick({ picture, pictureKey, label, title, hint, result, after, changed, badge = true, labelId, open, onToggle, others, othersLabel, hideLabel, children }: { picture: ReactNode; pictureKey?: string; label?: ReactNode; after?: ReactNode; title: ReactNode; hint?: ReactNode; result?: ReactNode; changed: boolean; badge?: boolean; labelId: string; open: boolean; onToggle: () => void; others: boolean; othersLabel?: ReactNode; hideLabel?: ReactNode; children?: ReactNode }) {
   const more = useRef<HTMLDivElement>(null)
+  const inline = useOptionsLayout() === "inline" && others
   // Once the options have grown in, bring them into view (gently, above the bottom bar).
   // Once open, the options may spill out (a language list drops below its field); while they
   // grow or shrink they're clipped.
@@ -101,7 +103,7 @@ export function SurePick({ picture, pictureKey, label, title, hint, result, afte
           </span>
           {hint && <span className="text-[15.5px] leading-snug text-muted-foreground lg:text-[16.5px]">{hint}</span>}
           {result && <span className="text-[13.5px] leading-snug text-foreground/85 lg:text-[14.5px]">{result}</span>}
-          {others && (
+          {others && !inline && (
             <button type="button" aria-expanded={open} onClick={onToggle} className="lc-link -ml-1.5 mt-1 inline-flex min-h-9 items-center gap-1 px-1.5 text-[13.5px] font-medium">
               {open ? (hideLabel ?? <Trans>Hide the other options</Trans>) : (othersLabel ?? <Trans>See the other options</Trans>)}
               <ChevronDown className={cn("size-3.5 transition-transform motion-reduce:transition-none", open && "rotate-180")} />
@@ -115,14 +117,25 @@ export function SurePick({ picture, pictureKey, label, title, hint, result, afte
           {after}
         </div>
       )}
+      {/* Lab variant (?options=inline): the options always in view as compact cards, no toggle. */}
+      {inline && (
+        <div className="flex flex-col gap-2">
+          <span className="text-[12px] font-semibold uppercase tracking-[0.05em] text-foreground/60">
+            <Trans>Other options</Trans>
+          </span>
+          <CompactOptionsContext.Provider value>{children}</CompactOptionsContext.Provider>
+        </div>
+      )}
       {/* The options grow in (height and fade), and shrink away when hidden; nothing else on the page moves. */}
-      <div data-state={open ? "open" : "closed"} className={cn("gd-expand grid", open ? "grid-rows-[1fr] opacity-100" : "-mt-5 grid-rows-[0fr] opacity-0")} inert={!open}>
-        <div className={cn("min-h-0", settled ? "overflow-visible" : "overflow-hidden")}>
-          <div ref={more} className="scroll-mb-[150px] px-1 pb-2 pt-1">
-            {children}
+      {!inline && (
+        <div data-state={open ? "open" : "closed"} className={cn("gd-expand grid", open ? "grid-rows-[1fr] opacity-100" : "-mt-5 grid-rows-[0fr] opacity-0")} inert={!open}>
+          <div className={cn("min-h-0", settled ? "overflow-visible" : "overflow-hidden")}>
+            <div ref={more} className="scroll-mb-[150px] px-1 pb-2 pt-1">
+              {children}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

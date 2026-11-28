@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react"
+import { useContext, useState, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
 import type { SetupFact, SetupRecommendation, SetupSettingId } from "@adt/types"
@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { OptionsHelp } from "./OptionsHelp"
 import { useExplain } from "./explain"
 import { Screen } from "./Screen"
+import { CompactOptionsContext } from "./optionsLayout"
 import { Citation } from "./Citation"
 import { FACT_GUIDE, type OptionGuide } from "./optionGuide"
 import { settingsFor, settingsTouchedBy, type FactAnswers } from "../../engine/answers"
@@ -29,12 +30,14 @@ const NARROW = 520
  */
 export type LookOption = { value: string; label: string; line: string; look: Look; guess: boolean; art?: ReactNode; more?: string; phone?: string; tag?: ReactNode; guide?: OptionGuide; why?: ReactNode }
 
-function LookCard({ rec, option, page, narrow, chosen, first, onPick, file }: { rec: SetupRecommendation; option: LookOption; page: number; narrow: boolean; chosen: boolean; first: boolean; onPick: (card: HTMLElement) => void; file: File | null | undefined }) {
+function LookCard({ rec, option, page, narrow, compact = false, chosen, first, onPick, file }: { rec: SetupRecommendation; option: LookOption; page: number; narrow: boolean; compact?: boolean; chosen: boolean; first: boolean; onPick: (card: HTMLElement) => void; file: File | null | undefined }) {
   const describe = useDescribe()
   const { ref, box } = useBox<HTMLSpanElement>()
   const width = Math.max(80, Math.min(box.w - 28, ((box.h - 24) * SCREEN.desktop.w) / SCREEN.desktop.h))
   const pages = screenPages(rec, option.look.pageGrouping, page)
   const srcs = useScreenImages(file, pages)
+  // Compact (the inline lab variant) draws like the narrow row: a small picture beside the words.
+  const row = narrow || compact
   const card = (
     <button
       type="button"
@@ -42,9 +45,9 @@ function LookCard({ rec, option, page, narrow, chosen, first, onPick, file }: { 
       data-q-first={first ? "" : undefined}
       onClick={(e) => onPick(e.currentTarget)}
       aria-label={`${option.label}. ${option.line}.${option.art ? "" : ` ${describe(option.look, "desktop", pages)}`}`}
-      className={cn("qd18-o group relative flex min-w-0 p-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500", narrow ? "flex-row items-center gap-3" : "flex-col", chosen && "is-sel")}
+      className={cn("qd18-o group relative flex min-w-0 p-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500", row ? "flex-row items-center gap-3" : "flex-col", chosen && "is-sel")}
     >
-      <span ref={ref} className={cn("relative grid shrink-0 place-items-center overflow-hidden rounded-[12px]", !option.art && "qd18-pv", narrow ? "h-[96px] w-[132px]" : "h-[max(100px,calc(150px-var(--gd-squeeze,0px)))] lg:h-[max(84px,calc(170px-var(--gd-squeeze,0px)))]")}>
+      <span ref={ref} className={cn("relative grid shrink-0 place-items-center overflow-hidden rounded-[12px]", !option.art && "qd18-pv", compact ? "h-[68px] w-[96px]" : narrow ? "h-[96px] w-[132px]" : "h-[max(100px,calc(150px-var(--gd-squeeze,0px)))] lg:h-[max(84px,calc(170px-var(--gd-squeeze,0px)))]")}>
         {option.art ? (
           <span className="qd18-dev block h-full w-full p-2">{option.art}</span>
         ) : (
@@ -54,21 +57,21 @@ function LookCard({ rec, option, page, narrow, chosen, first, onPick, file }: { 
             </span>
           )
         )}
-        {option.guess && !narrow && (
+        {option.guess && !row && (
           <span className="absolute left-2 top-2 whitespace-nowrap rounded-full bg-[var(--lc-bubble)] px-2 py-0.5 text-[11px] font-medium text-brand-700 shadow-sm">
             <Trans>My guess</Trans>
           </span>
         )}
       </span>
-      <span className={cn("flex min-w-0 flex-col", narrow ? "py-1 pr-1" : "px-1.5 pb-1 pt-2.5")}>
-        {option.guess && narrow && (
+      <span className={cn("flex min-w-0 flex-col", row ? "py-1 pr-1" : "px-1.5 pb-1 pt-2.5")}>
+        {option.guess && row && (
           <span className="mb-1 w-fit whitespace-nowrap rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
             <Trans>My guess</Trans>
           </span>
         )}
-        <span className="text-[15px] font-medium leading-tight lg:text-[17px]">{option.label}</span>
-        {option.line && <span className="mt-0.5 text-[13px] leading-snug text-muted-foreground lg:text-[14.5px]">{option.line}</span>}
-        {option.tag && <span className="mt-2">{option.tag}</span>}
+        <span className={cn("font-medium leading-tight", compact ? "text-[14.5px]" : "text-[15px] lg:text-[17px]")}>{option.label}</span>
+        {option.line && <span className={cn("mt-0.5 leading-snug text-muted-foreground", compact ? "line-clamp-2 text-[12.5px]" : "text-[13px] lg:text-[14.5px]")}>{option.line}</span>}
+        {option.tag && !compact && <span className="mt-2">{option.tag}</span>}
       </span>
     </button>
   )
@@ -82,7 +85,9 @@ function LookCard({ rec, option, page, narrow, chosen, first, onPick, file }: { 
  */
 export function LookChoices({ rec, options, page, chosen, onPick, file, labelId }: { rec: SetupRecommendation; options: LookOption[]; page: number; chosen?: string; onPick: (value: string, card: HTMLElement | null) => void; file: File | null | undefined; labelId: string }) {
   const { ref, box } = useBox()
-  const cols = options.length
+  const compact = useContext(CompactOptionsContext)
+  // Compact cards need room for a picture beside the words: at most three across.
+  const cols = compact ? Math.min(options.length, box.w > 0 && box.w < 760 ? 2 : 3) : options.length
   const narrow = box.w > 0 && box.w < NARROW
   const [help, setHelp] = useState(false)
   const explains = options.some((o) => o.more)
@@ -91,7 +96,7 @@ export function LookChoices({ rec, options, page, chosen, onPick, file, labelId 
   return (
     <div className="flex flex-col gap-2 pt-1">
       <div ref={ref} role="group" aria-labelledby={labelId} className="grid gap-3" style={{ gridTemplateColumns: narrow ? "minmax(0, 1fr)" : `repeat(${cols}, minmax(0, 1fr))` }}>
-        {box.w > 0 && options.map((o, i) => <LookCard key={o.value} rec={rec} option={o} page={page} narrow={narrow} chosen={chosen === o.value} first={i === 0} onPick={(card) => onPick(o.value, card)} file={file} />)}
+        {box.w > 0 && options.map((o, i) => <LookCard key={o.value} rec={rec} option={o} page={page} narrow={narrow} compact={compact} chosen={chosen === o.value} first={i === 0} onPick={(card) => onPick(o.value, card)} file={file} />)}
       </div>
       {explains && <OptionsHelp open={help} onOpenChange={setHelp} rec={rec} options={options} page={page} chosen={chosen} file={file} onPick={(v) => { setHelp(false); onPick(v, null) }} />}
     </div>

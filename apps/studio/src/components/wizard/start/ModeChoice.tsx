@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { ArrowRight, Check, SlidersHorizontal, Sparkles } from "lucide-react"
 import { FlowTopBar } from "@/components/FlowTopBar"
@@ -25,16 +25,16 @@ function Way({ art, fallback, title, tag, text, points, cta, primary, onPick }: 
         primary ? "ring-brand-300 hover:ring-brand-500" : "ring-border hover:ring-brand-300",
       )}
     >
-      <span className="grid h-[clamp(130px,24vh,210px)] place-items-center bg-[var(--lc-stage)] p-4">
+      <span className="grid h-[clamp(140px,28vh,300px)] place-items-center bg-[var(--lc-stage)] p-5">
         <Illustration name={art} fallback={fallback} />
       </span>
-      <span className="flex flex-1 flex-col gap-3 p-5 lg:p-6">
+      <span className="flex flex-1 flex-col gap-3 p-5 lg:gap-4 lg:p-7">
         <span className="flex flex-wrap items-center gap-2">
-          <span className="text-[20px] font-semibold leading-tight tracking-[-0.01em] lg:text-[22px]">{title}</span>
+          <span className="text-[20px] font-semibold leading-tight tracking-[-0.01em] lg:text-[24px]">{title}</span>
           {tag}
         </span>
-        <span className="text-[14.5px] leading-relaxed text-muted-foreground">{text}</span>
-        <ul className="flex flex-col gap-1.5 text-[13.5px]">
+        <span className="text-[14.5px] leading-relaxed text-muted-foreground lg:text-[16px]">{text}</span>
+        <ul className="flex flex-col gap-1.5 text-[13.5px] lg:text-[14.5px]">
           {points.map((p, i) => (
             <li key={i} className="flex gap-2">
               <Check aria-hidden className="mt-0.5 size-4 shrink-0 stroke-[2.5] text-brand-600" />
@@ -63,20 +63,33 @@ function Way({ art, fallback, title, tag, text, points, cta, primary, onPick }: 
  */
 export function ModeChoice({ onAuto, onManual }: { onAuto: () => void; onManual: () => void }) {
   const { t } = useLingui()
+  // Like the assistant's pages: centred in the window, and scaled up on big windows (1 up to
+  // 1440x920, then with the window, up to 1.5) instead of sitting small at the top.
+  const scroller = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(1)
+  useLayoutEffect(() => {
+    const el = scroller.current
+    if (!el) return
+    const fit = () => setScale(Math.round(Math.min(1.5, Math.max(1, Math.min(el.clientWidth / 1440, el.clientHeight / 920))) * 100) / 100)
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
   return (
     <div className="lc-root flex h-full min-h-0 flex-1 flex-col">
-      <FlowTopBar title={t`Add Book`} contentWidth={880} />
-      <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-[880px] flex-col gap-6 px-4 py-8 sm:px-6 lg:py-12">
+      <FlowTopBar title={t`Add Book`} contentWidth={1040 * scale} />
+      <div ref={scroller} className="flex flex-1 flex-col overflow-y-auto">
+        <div className="m-auto flex w-full max-w-[1040px] flex-col gap-7 px-4 py-8 sm:px-6" style={{ zoom: scale } as CSSProperties}>
           <div className="flex flex-col gap-1.5">
-            <h1 className="text-[26px] font-semibold tracking-[-0.02em] lg:text-[30px]">
+            <h1 className="text-[26px] font-semibold tracking-[-0.02em] lg:text-[34px]">
               <Trans>How do you want to set up this book?</Trans>
             </h1>
-            <p className="text-[15px] text-muted-foreground">
+            <p className="text-[15px] text-muted-foreground lg:text-[16.5px]">
               <Trans>Either way you choose the PDF next, and nothing is converted until you set the book up.</Trans>
             </p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:gap-5">
+          <div className="grid gap-4 sm:grid-cols-2 lg:gap-6">
             <Way
               primary
               art="step-check-wizard"
