@@ -1,7 +1,8 @@
 import { Trans } from "@lingui/react/macro"
 import { SearchX } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
-export function BetaVersionSearchEmptyState() {
+export function BetaVersionSearchEmptyState({ onClear }: { onClear: () => void }) {
   return (
     <div
       data-slot="beta-version-search-empty-state"
@@ -25,8 +26,16 @@ export function BetaVersionSearchEmptyState() {
           <Trans>No beta versions found</Trans>
         </h2>
         <p className="mx-auto mt-1.5 max-w-sm text-pretty text-sm leading-6 text-muted-foreground motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300 motion-safe:delay-150 motion-safe:fill-mode-backwards">
-          <Trans>Try another title, version, or description.</Trans>
+          <Trans>Try another title, version, contributor, PR, or branch.</Trans>
         </p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300 motion-safe:delay-200 motion-safe:fill-mode-backwards"
+          onClick={onClear}
+        >
+          <Trans>Clear search</Trans>
+        </Button>
       </div>
     </div>
   )

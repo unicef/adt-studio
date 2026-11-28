@@ -1,4 +1,5 @@
 import {
+  betaNumberOf,
   compareReleaseVersions as compareParsedReleaseVersions,
   isBetaVersion,
   parseReleaseTag,
@@ -59,7 +60,7 @@ const RELEASE_BY_TAG_URL =
   "https://api.github.com/repos/unicef/adt-studio/releases/tags";
 const RELEASE_DOWNLOAD_URL =
   "https://github.com/unicef/adt-studio/releases/download";
-const GITHUB_HEADERS = {
+export const GITHUB_HEADERS = {
   Accept: "application/vnd.github+json",
   "User-Agent": "ADT-Studio-Updater",
   "X-GitHub-Api-Version": "2022-11-28",
@@ -74,6 +75,45 @@ export function isBetaReleaseVersion(value: string): boolean {
   return parsed !== null && isBetaVersion(parsed);
 }
 
+export function isNumberedBeta(value: string): boolean {
+  const parsed = parseReleaseTag(value);
+  return parsed !== null && betaNumberOf(parsed) !== null;
+}
+
+/**
+ * The staging line a version belongs to — its first pre-release identifier,
+ * e.g. `beta-pr-803` for `0.9.1-beta-pr-803.2` — or undefined for anything that
+ * is not a staging (preview) build.
+ */
+export function stagingLineOf(value: string): string | undefined {
+  const first = parseReleaseTag(value)?.prerelease?.[0];
+  return typeof first === "string" && first.startsWith("beta-")
+    ? first
+    : undefined;
+}
+
+/**
+ * Which releases the update prompt may offer. A numbered beta is only offered
+ * newer numbered betas. A staging (preview) build is only offered a newer build
+ * of its own staging line — a rebuild of the same PR — never a numbered beta
+ * (the preview notice handles leaving for one) or another PR's build.
+ */
+export function isOfferedRelease(
+  version: string,
+  currentVersion: string,
+): boolean {
+  if (!isBetaReleaseVersion(currentVersion)) return true;
+  const currentLine = stagingLineOf(currentVersion);
+  if (currentLine) {
+    return (
+      stagingLineOf(version) === currentLine &&
+      compareReleaseVersions(version, currentVersion) > 0
+    );
+  }
+  if (!isNumberedBeta(currentVersion) || !isNumberedBeta(version)) return false;
+  return compareReleaseVersions(version, currentVersion) > 0;
+}
+
 export function compareReleaseVersions(left: string, right: string): number {
   const a = parseReleaseTag(left);
   const b = parseReleaseTag(right);
@@ -83,6 +123,55 @@ export function compareReleaseVersions(left: string, right: string): number {
     );
   }
   return compareParsedReleaseVersions(a, b);
+}
+
+function sameCore(left: string, right: string): boolean {
+  const a = parseReleaseTag(left);
+  const b = parseReleaseTag(right);
+  return (
+    a !== null &&
+    b !== null &&
+    a.major === b.major &&
+    a.minor === b.minor &&
+    a.patch === b.patch
+  );
+}
+
+/**
+ * Version order puts a preview below every numbered beta of its X.Y.Z, but a
+ * preview is built from develop *after* the latest beta, so for a preview build
+ * that order would call older betas "upgrades". Instead, a numbered beta of the
+ * preview's X.Y.Z is newer only when it was published after the preview. With
+ * no dates to go on, only the newest such beta counts as newer.
+ */
+function directionFromPreview(
+  release: GitHubRelease,
+  version: string,
+  currentVersion: string,
+  releases: readonly GitHubRelease[],
+): ReleaseDirection | undefined {
+  if (!stagingLineOf(currentVersion)) return undefined;
+  if (!isNumberedBeta(version) || !sameCore(version, currentVersion)) {
+    return undefined;
+  }
+  const current = releases.find(
+    (candidate) =>
+      candidate.tagName.replace(/^v/, "") === currentVersion.replace(/^v/, ""),
+  );
+  const published = Date.parse(release.releaseDate ?? "");
+  const currentPublished = Date.parse(current?.releaseDate ?? "");
+  if (Number.isFinite(published) && Number.isFinite(currentPublished)) {
+    return published > currentPublished ? "upgrade" : "downgrade";
+  }
+  const newest = releases
+    .map((candidate) => candidate.tagName.replace(/^v/, ""))
+    .filter(
+      (candidate) =>
+        isNumberedBeta(candidate) && sameCore(candidate, currentVersion),
+    )
+    .sort(compareReleaseVersions)
+    .at(-1);
+  return version === newest ? "upgrade" : "downgrade";
 }
 
 export function createBetaReleaseCatalog(
@@ -116,11 +205,12 @@ export function createBetaReleaseCatalog(
           source: release.source,
           totalBytes: installerSize(release.assets, platform),
           direction:
-            comparison > 0
+            directionFromPreview(release, version, currentVersion, releases) ??
+            (comparison > 0
               ? ("upgrade" as const)
               : comparison < 0
                 ? ("downgrade" as const)
-                : ("current" as const),
+                : ("current" as const)),
         },
       ];
     })

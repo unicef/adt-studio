@@ -17,7 +17,7 @@ const BETA_BUMPS = {
   staging: "patch",
 };
 
-export function calculateReleaseVersion(tags, releaseType, stagingSlug) {
+export function calculateReleaseVersion(tags, releaseType, stagingSlug, stagingBuild) {
   const versions = tags.map(parseReleaseTag).filter(Boolean);
   const stable = versions
     .filter((version) => version.prerelease == null)
@@ -54,11 +54,39 @@ export function calculateReleaseVersion(tags, releaseType, stagingSlug) {
         "Staging versions require a branch slug (letters, numbers, and hyphens)",
       );
     }
-    return `${formatCore(core)}-beta-${stagingSlug}`;
+    return `${formatCore(core)}-beta-${stagingSlug}${stagingBuildSuffix(versions, core, stagingSlug, stagingBuild)}`;
   }
 
   const betaNumber = continueBetaLine ? betaNumberOf(latestBeta) + 1 : 1;
   return `${formatCore(core)}-beta.${betaNumber}`;
+}
+
+/**
+ * Re-staging a PR must not reuse its version: the in-app updater refuses to
+ * install a version equal to the running one, so a rebuild with the same tag
+ * could never reach anyone already on the previous build. Counting the tags, the
+ * first build would be the bare `-beta-<slug>` tag and each rebuild on the same
+ * core `.2`, `.3`…, which semver orders after the bare tag and after each other.
+ *
+ * Counting tags alone can go backwards: staging cleanup (or deleting a preview by
+ * hand) removes the tags, and the next build would restart at the bare tag, below
+ * what people already have installed. So the staging workflow also passes a
+ * number that only goes up (its run number), and the suffix is never below it.
+ */
+function stagingBuildSuffix(versions, core, stagingSlug, stagingBuild) {
+  const identifier = `beta-${stagingSlug}`;
+  const builds = versions
+    .filter(
+      (version) =>
+        version.prerelease?.[0] === identifier && compareCore(version, core) === 0,
+    )
+    .map((version) =>
+      typeof version.prerelease[1] === "number" ? version.prerelease[1] : 1,
+    );
+  const floor = Number.isSafeInteger(stagingBuild) && stagingBuild > 0 ? stagingBuild : 0;
+  const next = builds.length === 0 ? 0 : Math.max(...builds) + 1;
+  const build = Math.max(next, floor);
+  return build === 0 ? "" : `.${build}`;
 }
 
 function bumpCore(version, bump) {
@@ -74,17 +102,22 @@ function bumpCore(version, bump) {
 }
 
 function main() {
-  const [, , releaseType, stagingSlug] = process.argv;
+  const [, , releaseType, stagingSlug, stagingBuild] = process.argv;
   if (!releaseType) {
     console.error(
-      "Usage: node scripts/calculate-release-version.mjs <major|minor|patch|beta|beta-minor|beta-major|staging> [staging-slug]",
+      "Usage: node scripts/calculate-release-version.mjs <major|minor|patch|beta|beta-minor|beta-major|staging> [staging-slug] [staging-build]",
     );
     process.exitCode = 1;
     return;
   }
   try {
     console.log(
-      calculateReleaseVersion(listGitTags(), releaseType, stagingSlug),
+      calculateReleaseVersion(
+        listGitTags(),
+        releaseType,
+        stagingSlug,
+        stagingBuild ? Number(stagingBuild) : undefined,
+      ),
     );
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));

@@ -6,6 +6,7 @@ import {
   createBetaReleaseCatalog,
   fetchGitHubReleaseByVersion,
   isBetaReleaseVersion,
+  isOfferedRelease,
   parseGitHubRelease,
   type GitHubReleaseAsset,
   type GitHubRelease,
@@ -280,6 +281,78 @@ describe("release catalog version handling", () => {
     expect(betaReleaseDownloadUrl(catalog[0])).toBe(
       "https://github.com/unicef/adt-studio/releases/download/v0.7.4-beta.5/",
     );
+  });
+
+  it("on a preview build, calls same-version betas newer only when published after it", () => {
+    const dated = (tagName: string, releaseDate: string) => ({
+      ...release(tagName),
+      releaseDate,
+    });
+    const catalog = createBetaReleaseCatalog(
+      [
+        dated("v0.8.1-beta.1", "2026-07-01T00:00:00Z"),
+        dated("v0.8.1-beta.5", "2026-07-10T00:00:00Z"),
+        dated("v0.8.1-beta-pr-867", "2026-07-12T00:00:00Z"),
+        dated("v0.8.1-beta.6", "2026-07-14T00:00:00Z"),
+        dated("v0.8.0-beta.9", "2026-06-01T00:00:00Z"),
+        dated("v0.8.2-beta.1", "2026-07-20T00:00:00Z"),
+      ],
+      "0.8.1-beta-pr-867",
+      "win32",
+    );
+    const directions = Object.fromEntries(
+      catalog.map(({ version, direction }) => [version, direction]),
+    );
+    expect(directions).toEqual({
+      "0.8.2-beta.1": "upgrade",
+      "0.8.1-beta.6": "upgrade",
+      "0.8.1-beta.5": "downgrade",
+      "0.8.1-beta.1": "downgrade",
+      "0.8.1-beta-pr-867": "current",
+      "0.8.0-beta.9": "downgrade",
+    });
+  });
+
+  it("on a preview build with no dates, treats only the newest same-version beta as newer", () => {
+    const undated = (tagName: string) => ({ ...release(tagName), releaseDate: undefined });
+    const catalog = createBetaReleaseCatalog(
+      [undated("v0.8.1-beta.1"), undated("v0.8.1-beta.5"), undated("v0.8.1-beta-pr-867.2")],
+      "0.8.1-beta-pr-867.2",
+      "win32",
+    );
+    expect(
+      catalog.map(({ version, direction }) => ({ version, direction })),
+    ).toEqual([
+      { version: "0.8.1-beta.5", direction: "upgrade" },
+      { version: "0.8.1-beta.1", direction: "downgrade" },
+      { version: "0.8.1-beta-pr-867.2", direction: "current" },
+    ]);
+  });
+
+  it("offers only newer versions, and numbered betas only to numbered betas", () => {
+    expect(isOfferedRelease("0.8.0-beta.2", "0.8.0-beta.1")).toBe(true);
+    expect(isOfferedRelease("0.8.0-beta.1", "0.8.0-beta.2")).toBe(false);
+    expect(isOfferedRelease("0.8.1-beta-pr-867", "0.8.0-beta.1")).toBe(false);
+    expect(isOfferedRelease("0.8.1-beta.1", "0.8.1-beta-pr-867")).toBe(false);
+    expect(isOfferedRelease("0.8.1-beta-pr-868", "0.8.1-beta-pr-867")).toBe(false);
+    expect(isOfferedRelease("not-a-version", "0.8.0-beta.1")).toBe(false);
+  });
+
+  it("offers a preview build only a newer build of its own PR", () => {
+    expect(isOfferedRelease("0.8.1-beta-pr-867.2", "0.8.1-beta-pr-867")).toBe(true);
+    expect(isOfferedRelease("0.8.1-beta-pr-867.3", "0.8.1-beta-pr-867.2")).toBe(true);
+    expect(isOfferedRelease("0.8.2-beta-pr-867", "0.8.1-beta-pr-867.4")).toBe(true);
+    expect(isOfferedRelease("0.8.1-beta-pr-867", "0.8.1-beta-pr-867")).toBe(false);
+    expect(isOfferedRelease("0.8.1-beta-pr-867", "0.8.1-beta-pr-867.2")).toBe(false);
+    expect(isOfferedRelease("0.8.1-beta-pr-8670", "0.8.1-beta-pr-867")).toBe(false);
+    // A numbered beta never sees a rebuild of someone's PR.
+    expect(isOfferedRelease("0.8.1-beta-pr-867.2", "0.8.0-beta.1")).toBe(false);
+  });
+
+  it("leaves stable installs exactly as they were", () => {
+    expect(isOfferedRelease("0.8.1", "0.8.0")).toBe(true);
+    expect(isOfferedRelease("0.8.0", "0.8.0")).toBe(true);
+    expect(isOfferedRelease("not-a-version", "0.8.0")).toBe(true);
   });
 
   it("also supports beta-named updater metadata", () => {

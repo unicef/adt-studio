@@ -82,7 +82,7 @@ jobs:
           RELEASE_NOTICE: ${{ inputs.release_notice }}
           COVER_PALETTE: ${{ inputs.cover_palette }}
         run: |
-          if [[ "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+-beta-pr-([0-9]+)$ ]]; then
+          if [[ "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+-beta-pr-([0-9]+)(\.[0-9]+)?$ ]]; then
             PR_NUMBER="${BASH_REMATCH[1]}"
             PR_JSON=$(gh pr view "$PR_NUMBER" --repo "$REPO" \
               --json state,baseRefName,isCrossRepository)

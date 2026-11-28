@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from "electron";
 import {
   autoUpdater,
+  BaseUpdater,
   CancellationToken,
   type ProgressInfo,
   type UpdateInfo,
@@ -10,6 +11,7 @@ import {
   fetchBetaReleaseCatalog,
   fetchGitHubReleaseByVersion,
   isBetaReleaseVersion,
+  isOfferedRelease,
   type AvailableRelease,
   type BetaRelease,
 } from "./release-catalog";
@@ -30,17 +32,24 @@ export type UpdateStatus =
       releaseDate?: string;
       releaseNotes?: string;
       totalBytes?: number;
+      offered?: boolean;
     }
   | { phase: "not-available" }
   | {
       phase: "downloading";
       version: string;
+      offered?: boolean;
       percent: number;
       bytesPerSecond: number;
       transferred: number;
       total: number;
     }
-  | { phase: "downloaded"; version: string; releaseNotes?: string }
+  | {
+      phase: "downloaded";
+      version: string;
+      releaseNotes?: string;
+      offered?: boolean;
+    }
   | { phase: "installing"; version: string }
   | { phase: "error"; message: string };
 
@@ -75,6 +84,7 @@ function emitAvailableFromLastInfo(): void {
     releaseDate: lastInfo.releaseDate,
     releaseNotes: releaseNotesForInfo(lastInfo),
     totalBytes: lastInfo.files?.[0]?.size,
+    offered: isOfferedRelease(lastInfo.version, app.getVersion()),
   });
 }
 
@@ -133,6 +143,7 @@ function configure(): void {
       releaseDate: info.releaseDate,
       releaseNotes: releaseNotesForInfo(info),
       totalBytes,
+      offered: isOfferedRelease(info.version, app.getVersion()),
     });
   });
 
@@ -146,6 +157,9 @@ function configure(): void {
     emit({
       phase: "downloading",
       version: lastInfo?.version ?? "",
+      offered: lastInfo
+        ? isOfferedRelease(lastInfo.version, app.getVersion())
+        : undefined,
       percent: progress.percent,
       bytesPerSecond: progress.bytesPerSecond,
       transferred: progress.transferred,
@@ -160,6 +174,7 @@ function configure(): void {
     emit({
       phase: "downloaded",
       version: info.version,
+      offered: isOfferedRelease(info.version, app.getVersion()),
       releaseNotes,
     });
   });
@@ -187,8 +202,8 @@ export async function checkForUpdates(): Promise<UpdateStatus> {
   try {
     if (isBetaReleaseVersion(app.getVersion())) {
       betaReleases = await fetchBetaReleaseCatalog(app.getVersion());
-      const newestUpgrade = betaReleases.find(
-        (release) => release.direction === "upgrade",
+      const newestUpgrade = betaReleases.find((release) =>
+        isOfferedRelease(release.version, app.getVersion()),
       );
       if (!newestUpgrade) {
         lastInfo = null;
@@ -294,6 +309,9 @@ export async function selectVersion(version: string): Promise<UpdateStatus> {
   }
 
   configure();
+  // A different version was picked, so an earlier "Install on quit" no longer
+  // applies: whatever this downloads must not install on quit without asking.
+  autoUpdater.autoInstallOnAppQuit = false;
 
   try {
     if (!betaReleases.some((release) => release.version === version)) {
@@ -391,4 +409,29 @@ export function quitAndInstall(): void {
 export function deferInstallUntilQuit(): void {
   if (lastStatus.phase !== "downloaded") return;
   autoUpdater.autoInstallOnAppQuit = true;
+  armInstallOnQuit();
+}
+
+let installOnQuitArmed = false;
+
+/**
+ * electron-updater only adds its own install-on-quit handler when a download
+ * finishes with `autoInstallOnAppQuit` already on. We keep it off while
+ * downloading so nothing installs unasked, so the handler is never added and
+ * quitting would not install. Add our own. It reads the flag at quit time, so
+ * picking another version (which turns the flag off) still cancels it.
+ *
+ * Windows and Linux only: on macOS Squirrel has to fetch the update before
+ * quit, which electron-updater gives no public way to start.
+ */
+function armInstallOnQuit(): void {
+  if (installOnQuitArmed || !(autoUpdater instanceof BaseUpdater)) return;
+  const updater = autoUpdater;
+  installOnQuitArmed = true;
+  app.once("quit", (_event, exitCode) => {
+    if (!updater.autoInstallOnAppQuit || exitCode !== 0) return;
+    // install() ignores a second call, so this is safe if electron-updater's
+    // own handler was added too.
+    updater.install(true, false);
+  });
 }

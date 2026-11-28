@@ -24,6 +24,7 @@ import { Route as BooksLabelIndexRouteImport } from "./routes/books.$label.index
 import { Route as AppSettingsIndexRouteImport } from "./routes/_app.settings.index"
 import { Route as BooksLabelDebugRouteImport } from "./routes/books.$label.debug"
 import { Route as BooksLabelStepRouteImport } from "./routes/books.$label.$step"
+import { Route as AppSettingsVersionsRouteImport } from "./routes/_app.settings.versions"
 import { Route as AppSettingsThemeRouteImport } from "./routes/_app.settings.theme"
 import { Route as AppSettingsPublishingRouteImport } from "./routes/_app.settings.publishing"
 import { Route as AppSettingsProvidersRouteImport } from "./routes/_app.settings.providers"
@@ -110,6 +111,11 @@ const BooksLabelStepRoute = BooksLabelStepRouteImport.update({
   path: "/$step",
   getParentRoute: () => BooksLabelRoute,
 } as any)
+const AppSettingsVersionsRoute = AppSettingsVersionsRouteImport.update({
+  id: "/versions",
+  path: "/versions",
+  getParentRoute: () => AppSettingsRoute,
+} as any)
 const AppSettingsThemeRoute = AppSettingsThemeRouteImport.update({
   id: "/theme",
   path: "/theme",
@@ -186,6 +192,7 @@ export interface FileRoutesByFullPath {
   "/settings/providers": typeof AppSettingsProvidersRoute
   "/settings/publishing": typeof AppSettingsPublishingRoute
   "/settings/theme": typeof AppSettingsThemeRoute
+  "/settings/versions": typeof AppSettingsVersionsRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/settings/": typeof AppSettingsIndexRoute
@@ -211,6 +218,7 @@ export interface FileRoutesByTo {
   "/settings/providers": typeof AppSettingsProvidersRoute
   "/settings/publishing": typeof AppSettingsPublishingRoute
   "/settings/theme": typeof AppSettingsThemeRoute
+  "/settings/versions": typeof AppSettingsVersionsRoute
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/settings": typeof AppSettingsIndexRoute
   "/books/$label": typeof BooksLabelIndexRoute
@@ -239,6 +247,7 @@ export interface FileRoutesById {
   "/_app/settings/providers": typeof AppSettingsProvidersRoute
   "/_app/settings/publishing": typeof AppSettingsPublishingRoute
   "/_app/settings/theme": typeof AppSettingsThemeRoute
+  "/_app/settings/versions": typeof AppSettingsVersionsRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/_app/settings/": typeof AppSettingsIndexRoute
@@ -268,6 +277,7 @@ export interface FileRouteTypes {
     | "/settings/providers"
     | "/settings/publishing"
     | "/settings/theme"
+    | "/settings/versions"
     | "/books/$label/$step"
     | "/books/$label/debug"
     | "/settings/"
@@ -293,6 +303,7 @@ export interface FileRouteTypes {
     | "/settings/providers"
     | "/settings/publishing"
     | "/settings/theme"
+    | "/settings/versions"
     | "/books/$label/debug"
     | "/settings"
     | "/books/$label"
@@ -320,6 +331,7 @@ export interface FileRouteTypes {
     | "/_app/settings/providers"
     | "/_app/settings/publishing"
     | "/_app/settings/theme"
+    | "/_app/settings/versions"
     | "/books/$label/$step"
     | "/books/$label/debug"
     | "/_app/settings/"
@@ -446,6 +458,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof BooksLabelStepRouteImport
       parentRoute: typeof BooksLabelRoute
     }
+    "/_app/settings/versions": {
+      id: "/_app/settings/versions"
+      path: "/versions"
+      fullPath: "/settings/versions"
+      preLoaderRoute: typeof AppSettingsVersionsRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
     "/_app/settings/theme": {
       id: "/_app/settings/theme"
       path: "/theme"
@@ -535,6 +554,7 @@ interface AppSettingsRouteChildren {
   AppSettingsProvidersRoute: typeof AppSettingsProvidersRoute
   AppSettingsPublishingRoute: typeof AppSettingsPublishingRoute
   AppSettingsThemeRoute: typeof AppSettingsThemeRoute
+  AppSettingsVersionsRoute: typeof AppSettingsVersionsRoute
   AppSettingsIndexRoute: typeof AppSettingsIndexRoute
 }
 
@@ -547,6 +567,7 @@ const AppSettingsRouteChildren: AppSettingsRouteChildren = {
   AppSettingsProvidersRoute: AppSettingsProvidersRoute,
   AppSettingsPublishingRoute: AppSettingsPublishingRoute,
   AppSettingsThemeRoute: AppSettingsThemeRoute,
+  AppSettingsVersionsRoute: AppSettingsVersionsRoute,
   AppSettingsIndexRoute: AppSettingsIndexRoute,
 }
 

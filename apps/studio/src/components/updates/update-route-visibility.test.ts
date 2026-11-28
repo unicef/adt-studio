@@ -1,5 +1,9 @@
-import { describe, expect, it } from "vitest"
-import { isPipelineRoute } from "./UpdateDialogProvider"
+import { describe, expect, it, vi } from "vitest"
+
+// The provider links to the settings nav, whose tab labels are Lingui `msg` macros.
+vi.mock("@lingui/core/macro", () => ({ msg: (strings: TemplateStringsArray) => ({ id: strings.join("") }) }))
+
+const { isPipelineRoute } = await import("./UpdateDialogProvider")
 
 describe("isPipelineRoute", () => {
   it.each([

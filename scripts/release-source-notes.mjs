@@ -1,4 +1,5 @@
 const HEADING = "### Release source";
+export const MAX_PULL_REQUESTS = 10;
 const FACTUAL_START = "<!-- adt-factual-notes:start -->";
 const FACTUAL_END = "<!-- adt-factual-notes:end -->";
 const GITHUB_URL_PREFIX = "https://github.com/";
