@@ -24,7 +24,7 @@ export interface BookPageProfile {
   imageCoverage: number
   maxImageCoverage: number
   pathCount: number
-  /** Visible characters whose block sits on an image covering at least 30% of the page. */
+  /** Visible characters whose block sits on an image covering at least 30% of the page (an OCR layer's hidden text is left out). */
   textOverImageChars: number
   /** Share of non-white pixels in a small render. */
   ink: number
@@ -61,14 +61,17 @@ const clip = (r: Rect, b: Rect): Rect => [
 ]
 const inside = (inner: Rect, outer: Rect, slack = 0.5) => area(clip(inner, outer)) >= slack * area(inner)
 
-function countGlyphs(text: MupdfText): number {
-  let n = 0
+/** Where each printable glyph of `text` starts on the page (its origin through `ctm`). */
+function glyphOrigins(text: MupdfText, ctm: number[]): [number, number][] {
+  const out: [number, number][] = []
   text.walk({
-    showGlyph: (_f, _t, _g, uni) => {
-      if (uni > 32) n++
+    showGlyph: (_f, trm, _g, uni) => {
+      if (uni <= 32) return
+      const [x, y] = [trm[4], trm[5]]
+      out.push([x * ctm[0] + y * ctm[2] + ctm[4], x * ctm[1] + y * ctm[3] + ctm[5]])
     },
   })
-  return n
+  return out
 }
 
 function profilePage(doc: MupdfDocument, index: number): { profile: BookPageProfile; edges: BookPageEdges } {
@@ -78,15 +81,16 @@ function profilePage(doc: MupdfDocument, index: number): { profile: BookPageProf
     const pageRect: Rect = [b[0], b[1], b[2], b[3]]
     const pageArea = Math.max(1, area(pageRect))
 
-    let invisibleChars = 0
+    /** Origins of the glyphs drawn invisibly (an OCR layer): counted, and left out of the text over pictures. */
+    const invisible: [number, number][] = []
     let pathCount = 0
     const images: BookPageProfile["images"] = []
     const dev = new mupdf.Device({
       // Release every wrapper the device hands us right away. Left to the GC,
       // they pin images in mupdf's store and a long picture book crawls, then
       // runs out of memory (see mupdf-image-refs.ts).
-      ignoreText: (text) => {
-        invisibleChars += countGlyphs(text)
+      ignoreText: (text, ctm) => {
+        invisible.push(...glyphOrigins(text, ctm as unknown as number[]))
         text.destroy()
       },
       fillPath: (path) => {
@@ -112,6 +116,7 @@ function profilePage(doc: MupdfDocument, index: number): { profile: BookPageProf
     page.run(dev, mupdf.Matrix.identity)
     dev.close()
     dev.destroy()
+    const invisibleChars = invisible.length
 
     // Free WASM memory per page: without this a long picture book runs out of memory.
     const st = page.toStructuredText("preserve-whitespace")
@@ -134,7 +139,11 @@ function profilePage(doc: MupdfDocument, index: number): { profile: BookPageProf
       const chars = t.replace(/\s/g, "").length
       if (r[0] <= b[0] + band) textNearLeftEdge += chars
       if (r[2] >= b[2] - band) textNearRightEdge += chars
-      if (bigImages.some((i) => inside(r, i.rect))) textOverImageChars += t.replace(/\s/g, "").length
+      if (bigImages.some((i) => inside(r, i.rect))) {
+        // The structured text holds the hidden OCR glyphs too: only the ones a reader sees count here.
+        const hidden = invisible.filter(([x, y]) => x >= r[0] - 1 && x <= r[2] + 1 && y >= r[1] - 1 && y <= r[3] + 1).length
+        textOverImageChars += Math.max(0, chars - hidden)
+      }
     }
     const totalChars = text.replace(/\s/g, "").length
     const visibleChars = Math.max(0, totalChars - invisibleChars)

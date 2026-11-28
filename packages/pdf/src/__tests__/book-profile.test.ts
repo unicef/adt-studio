@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import mupdf from "mupdf"
 import { profileBookAsync, renderBookPagesAsync } from "../book-profile.js"
 import { createWatermarkedTestPdf } from "./create-test-pdf.js"
 
@@ -47,5 +48,38 @@ describe("renderBookPagesAsync", () => {
 
   it("fails on a page the PDF doesn't have", async () => {
     await expect(renderBookPagesAsync(pdf, [{ pages: [99], size: 64 }])).rejects.toThrow()
+  })
+})
+
+/** One page: a full-page picture with a line of words over it, drawn visibly or hidden (an OCR layer, `3 Tr`). */
+function pictureWithWords(hidden: boolean): Uint8Array {
+  const doc = new mupdf.PDFDocument()
+  const pixmap = new mupdf.Pixmap(mupdf.ColorSpace.DeviceRGB, [0, 0, 8, 8], false)
+  pixmap.clear(180)
+  const resources = doc.newDictionary()
+  const xobjects = doc.newDictionary()
+  xobjects.put("Im1", doc.addImage(new mupdf.Image(pixmap)))
+  const fonts = doc.newDictionary()
+  fonts.put("F1", doc.addSimpleFont(new mupdf.Font("Helvetica")))
+  resources.put("XObject", xobjects)
+  resources.put("Font", fonts)
+  const content = new mupdf.Buffer()
+  content.writeLine(`q 500 0 0 700 0 0 cm /Im1 Do Q BT /F1 24 Tf ${hidden ? 3 : 0} Tr 60 400 Td (Thelittlefoxran) Tj ET`)
+  doc.insertPage(-1, doc.addPage([0, 0, 500, 700], 0, doc.addObject(resources), content))
+  return doc.saveToBuffer("").asUint8Array()
+}
+
+describe("text over pictures", () => {
+  it("counts the words a reader sees on a picture", async () => {
+    const [page] = (await profileBookAsync(pictureWithWords(false))).pages
+    expect(page.invisibleChars).toBe(0)
+    expect(page.textOverImageChars).toBe(15)
+  })
+
+  it("leaves out a scan's hidden OCR words", async () => {
+    const [page] = (await profileBookAsync(pictureWithWords(true))).pages
+    expect(page.invisibleChars).toBe(15)
+    expect(page.visibleChars).toBe(0)
+    expect(page.textOverImageChars).toBe(0)
   })
 })
