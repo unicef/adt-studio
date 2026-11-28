@@ -1,4 +1,3 @@
-import { useState } from "react"
 import { useLingui } from "@lingui/react/macro"
 import type { SetupFact, SetupRecommendation } from "@adt/types"
 import { FACT_OPTIONS, settingsTouchedBy } from "../../engine/answers"
@@ -9,16 +8,16 @@ import type { Answers } from "../shared/useAnswers"
 import { factArt } from "../shared/art/ConceptArt"
 import { FACT_HINT, plainTitle, QUESTION_SHORT } from "../shared/words"
 import { Picture, PICTURE, SurePick } from "./SurePick"
+import { CompactOptionsContext } from "../shared/optionsLayout"
 
 /**
  * One fact on a Check screen. Sure (the engine didn't ask): its pick highlighted, the others under
  * "See the other options". Asked: every answer side by side, the guess marked and selected until
  * the user picks another. `sets` adds what the answer turns on ("Interactive activities: On").
  */
-export function FactPick({ rec, fact, chat, file, sets }: { rec: SetupRecommendation; fact: SetupFact; chat: Answers; file: File | null | undefined; sets?: boolean }) {
+export function FactPick({ rec, fact, chat, file, sets, stacked }: { rec: SetupRecommendation; fact: SetupFact; chat: Answers; file: File | null | undefined; sets?: boolean; /** One of several questions on the screen: the question, every answer as a compact card (the picked one marked) and what it sets, without the large picture. */ stacked?: boolean }) {
   const { i18n } = useLingui()
   const derived = chat.derived!
-  const [open, setOpen] = useState(false)
   const value = derived.current[fact.id]
   const labelId = `gd-fact-${fact.id}`
   const page = fact.evidencePages[0] ?? rec.previewPage
@@ -32,7 +31,9 @@ export function FactPick({ rec, fact, chat, file, sets }: { rec: SetupRecommenda
         <p id={labelId} className="px-1 text-[15px] font-medium">
           {question}
         </p>
-        <PreviewChoices rec={rec} fact={fact} order={order} answers={derived.current} chosen={value} onAnswer={(v) => chat.answer(fact.id, v)} file={file} labelId={labelId} />
+        <CompactOptionsContext.Provider value={stacked ? "all" : false}>
+          <PreviewChoices rec={rec} fact={fact} order={order} answers={derived.current} chosen={value} onAnswer={(v) => chat.answer(fact.id, v)} file={file} labelId={labelId} />
+        </CompactOptionsContext.Provider>
       </div>
     )
   }
@@ -47,6 +48,18 @@ export function FactPick({ rec, fact, chat, file, sets }: { rec: SetupRecommenda
       return `${i18n._(SETTING_NAME[id])}: ${words ? i18n._(words) : String(derived.effective[id]?.value)}`
     })
     .join(" · ")
+  if (stacked)
+    return (
+      <div className="flex flex-col gap-2">
+        <p id={labelId} className="px-1 text-[15px] font-medium">
+          {question}
+        </p>
+        <CompactOptionsContext.Provider value="all">
+          <PreviewChoices rec={rec} fact={fact} order={order} answers={derived.current} chosen={value} onAnswer={(v) => chat.answer(fact.id, v)} file={file} labelId={labelId} />
+        </CompactOptionsContext.Provider>
+        {result && <p className="px-1 text-[13.5px] leading-snug text-foreground/85">{result}</p>}
+      </div>
+    )
   return (
     <SurePick
       picture={
@@ -62,8 +75,6 @@ export function FactPick({ rec, fact, chat, file, sets }: { rec: SetupRecommenda
       result={result || undefined}
       changed={value !== fact.value}
       labelId={labelId}
-      open={open}
-      onToggle={() => setOpen((o) => !o)}
       others
     >
       <PreviewChoices

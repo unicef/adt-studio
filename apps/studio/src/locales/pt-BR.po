@@ -2653,6 +2653,9 @@ msgstr "Pasta de livros"
 msgid "Books like this"
 msgstr "Livros desse tipo"
 
+msgid "Books like this:"
+msgstr "Livros desse tipo:"
+
 msgid "Books that are mostly words, and school books with many parts."
 msgstr "Livros que são quase só texto e livros didáticos com muitas seções."
 
@@ -5979,9 +5982,6 @@ msgstr "Ocultar detalhes do erro"
 msgid "Hide reviewer comments"
 msgstr "Ocultar comentários dos revisores"
 
-msgid "Hide the other options"
-msgstr "Ocultar as outras opções"
-
 msgid "Hide toasts automatically after a delay."
 msgstr "Ocultar notificações automaticamente após um atraso."
 
@@ -6609,6 +6609,9 @@ msgstr "Propõe tarefas para o aluno."
 msgid "It stopped opening on {0}. Sharing again makes a new one."
 msgstr "Ele parou de abrir em {0}. Compartilhar novamente cria um novo."
 
+msgid "It takes longer, the AI service may charge for it, and the pages won't look like the printed book."
+msgstr "Demora mais, o serviço de IA pode cobrar por isso e as páginas não vão ficar como o livro impresso."
+
 msgid "It teaches a subject in lessons and gives the learner tasks to do."
 msgstr "Ensina um assunto em lições e dá tarefas ao aluno."
 
@@ -6718,6 +6721,12 @@ msgstr "Manter o conteúdo filtrado"
 
 msgid "Keep going"
 msgstr "Continue"
+
+msgid "Keep in mind"
+msgstr "Fique atento"
+
+msgid "Keep in mind:"
+msgstr "Fique atento:"
 
 msgid "Keep it as reading content. Its controls stay as they are."
 msgstr "Manter como conteúdo de leitura. Os controles ficam como estão."
@@ -10279,6 +10288,9 @@ msgstr "Os leitores já veem suas últimas edições."
 msgid "Readers appear here once they open the link and give a name."
 msgstr "Os leitores aparecem aqui quando abrem o link e dão um nome."
 
+msgid "Readers can't make the text bigger or let it flow to fit the screen, so small print stays hard to read."
+msgstr "O leitor não consegue aumentar o texto nem fazê-lo se ajustar à tela, então letras pequenas continuam difíceis de ler."
+
 msgid "Readers can't open the link right now. Everything they left is still here."
 msgstr "Os leitores não conseguem abrir o link agora. Tudo o que eles deixaram continua aqui."
 
@@ -11537,9 +11549,6 @@ msgstr "Ver notas da versão"
 
 msgid "See the book & pick pages"
 msgstr "Ver o livro e escolher páginas"
-
-msgid "See the other options"
-msgstr "Ver as outras opções"
 
 msgid "Seed"
 msgstr "Semente"
@@ -12980,6 +12989,9 @@ msgstr "A IA recria cada página para que fique fácil de ler em qualquer tamanh
 msgid "The AI rebuilds each page to fit the screen."
 msgstr "A IA recria cada página para se ajustar à tela."
 
+msgid "The AI retypes the words, so check them for mistakes. It's slower, and on a phone the page still shrinks."
+msgstr "A IA reescreve o texto, então confira se há erros. É mais lento e, no celular, a página continua encolhendo."
+
 msgid "The AI will preserve the original style while applying your changes."
 msgstr "A IA preservará o estilo original ao aplicar suas alterações."
 
@@ -13323,6 +13335,9 @@ msgstr "As ilustrações transmitem boa parte do sentido."
 
 msgid "The pictures have no labels, only captions."
 msgstr "As imagens não têm rótulos, só legendas."
+
+msgid "The printed design isn't kept: text and pictures are laid out again in one column."
+msgstr "O projeto gráfico impresso não é mantido: texto e ilustrações são reorganizados em uma coluna."
 
 msgid "The printed page stays, and the AI types its words again on top."
 msgstr "A página impressa é mantida, e a IA reescreve o texto por cima."
@@ -15128,6 +15143,9 @@ msgstr "Destaque por palavra"
 
 msgid "words"
 msgstr "palavras"
+
+msgid "Words drawn inside the picture stay part of the picture."
+msgstr "Palavras desenhadas dentro da ilustração continuam fazendo parte da ilustração."
 
 msgid "Work on these pages on their own, then export the project to merge it back into the full book."
 msgstr "Trabalhe nestas páginas separadamente e depois exporte o projeto para mesclá-lo ao livro completo."

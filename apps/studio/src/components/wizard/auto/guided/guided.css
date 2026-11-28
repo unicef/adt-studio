@@ -114,13 +114,6 @@
 .reduce-effects :is(.gd-tour-hole, .gd-tour-glide) { transition: none; }
 .reduce-effects .gd-speech { animation: none; }
 
-/* Accordions (the other options, the languages): height and opacity ease together. */
-.gd-expand { transition: grid-template-rows 0.32s var(--lc-out, ease-out), opacity 0.24s ease, margin 0.32s var(--lc-out, ease-out); }
-/* Closing is even (ease-in-out), not front-loaded: the cards fade a little faster than their space folds away, so it reads as a collapse and not a jump. */
-.gd-expand[data-state="closed"] { transition: grid-template-rows 0.38s cubic-bezier(0.45, 0, 0.25, 1), opacity 0.22s ease, margin 0.38s cubic-bezier(0.45, 0, 0.25, 1); }
-@media (prefers-reduced-motion: reduce) { .gd-expand { transition: none; } }
-.reduce-effects .gd-expand { transition: none; }
-
 /* A new pick: its picture and words fade in where the old ones were. */
 @keyframes gd-pick-in { from { opacity: 0; transform: scale(0.985); } }
 .gd-pick-in > * { animation: gd-pick-in 0.35s var(--lc-out, ease-out) both; }

@@ -2655,6 +2655,9 @@ msgstr "Dossier des livres"
 msgid "Books like this"
 msgstr "Livres de ce type"
 
+msgid "Books like this:"
+msgstr "Livres de ce type :"
+
 msgid "Books that are mostly words, and school books with many parts."
 msgstr "Les livres surtout composés de texte, et les manuels scolaires en plusieurs parties."
 
@@ -5981,9 +5984,6 @@ msgstr "Masquer les détails de l'erreur"
 msgid "Hide reviewer comments"
 msgstr "Masquer les commentaires des relecteurs"
 
-msgid "Hide the other options"
-msgstr "Masquer les autres options"
-
 msgid "Hide toasts automatically after a delay."
 msgstr "Masquer les notifications automatiquement après un délai."
 
@@ -6611,6 +6611,9 @@ msgstr "Il donne des tâches à un élève."
 msgid "It stopped opening on {0}. Sharing again makes a new one."
 msgstr "Il ne s’ouvre plus depuis le {0}. Partager à nouveau en crée un nouveau."
 
+msgid "It takes longer, the AI service may charge for it, and the pages won't look like the printed book."
+msgstr "C'est plus long, le service d'IA peut le facturer, et les pages ne ressembleront pas au livre imprimé."
+
 msgid "It teaches a subject in lessons and gives the learner tasks to do."
 msgstr "Il enseigne une matière en leçons et donne des tâches à l'élève."
 
@@ -6720,6 +6723,12 @@ msgstr "Conserver le contenu filtré"
 
 msgid "Keep going"
 msgstr "Continuer"
+
+msgid "Keep in mind"
+msgstr "À garder en tête"
+
+msgid "Keep in mind:"
+msgstr "À garder en tête :"
 
 msgid "Keep it as reading content. Its controls stay as they are."
 msgstr "La garder comme contenu de lecture. Ses contrôles restent tels quels."
@@ -10281,6 +10290,9 @@ msgstr "Les lecteurs voient déjà vos dernières modifications."
 msgid "Readers appear here once they open the link and give a name."
 msgstr "Les lecteurs apparaissent ici dès qu’ils ouvrent le lien et donnent un nom."
 
+msgid "Readers can't make the text bigger or let it flow to fit the screen, so small print stays hard to read."
+msgstr "Les lecteurs ne peuvent ni agrandir le texte ni l'adapter à l'écran, donc les petits caractères restent difficiles à lire."
+
 msgid "Readers can't open the link right now. Everything they left is still here."
 msgstr "Les lecteurs ne peuvent pas ouvrir le lien pour l'instant. Tout ce qu'ils ont laissé est toujours ici."
 
@@ -11539,9 +11551,6 @@ msgstr "Voir les notes de version"
 
 msgid "See the book & pick pages"
 msgstr "Voir le livre et choisir les pages"
-
-msgid "See the other options"
-msgstr "Voir les autres options"
 
 msgid "Seed"
 msgstr "Graine"
@@ -12982,6 +12991,9 @@ msgstr "L'IA refait chaque page pour qu'elle se lise bien sur toutes les tailles
 msgid "The AI rebuilds each page to fit the screen."
 msgstr "L'IA refait chaque page pour l'adapter à l'écran."
 
+msgid "The AI retypes the words, so check them for mistakes. It's slower, and on a phone the page still shrinks."
+msgstr "L'IA retape le texte, alors vérifiez qu'il n'y a pas d'erreurs. C'est plus lent, et sur un téléphone la page rétrécit toujours."
+
 msgid "The AI will preserve the original style while applying your changes."
 msgstr "L'IA conservera le style original tout en appliquant vos modifications."
 
@@ -13325,6 +13337,9 @@ msgstr "Les images portent une grande partie du sens."
 
 msgid "The pictures have no labels, only captions."
 msgstr "Les images n'ont pas de légendes sur leurs parties, seulement un texte en dessous."
+
+msgid "The printed design isn't kept: text and pictures are laid out again in one column."
+msgstr "La mise en page imprimée n'est pas gardée : le texte et les images sont réorganisés en une colonne."
 
 msgid "The printed page stays, and the AI types its words again on top."
 msgstr "La page imprimée reste, et l'IA retape son texte par-dessus."
@@ -15130,6 +15145,9 @@ msgstr "Surlignage mot à mot"
 
 msgid "words"
 msgstr "mots"
+
+msgid "Words drawn inside the picture stay part of the picture."
+msgstr "Les mots dessinés dans l'image restent une partie de l'image."
 
 msgid "Work on these pages on their own, then export the project to merge it back into the full book."
 msgstr "Travaillez sur ces pages séparément, puis exportez le projet pour le fusionner avec le livre complet."

@@ -2653,6 +2653,9 @@ msgstr "Books folder"
 msgid "Books like this"
 msgstr "Books like this"
 
+msgid "Books like this:"
+msgstr "Books like this:"
+
 msgid "Books that are mostly words, and school books with many parts."
 msgstr "Books that are mostly words, and school books with many parts."
 
@@ -5979,9 +5982,6 @@ msgstr "Hide error details"
 msgid "Hide reviewer comments"
 msgstr "Hide reviewer comments"
 
-msgid "Hide the other options"
-msgstr "Hide the other options"
-
 msgid "Hide toasts automatically after a delay."
 msgstr "Hide toasts automatically after a delay."
 
@@ -6609,6 +6609,9 @@ msgstr "It sets tasks for a learner."
 msgid "It stopped opening on {0}. Sharing again makes a new one."
 msgstr "It stopped opening on {0}. Sharing again makes a new one."
 
+msgid "It takes longer, the AI service may charge for it, and the pages won't look like the printed book."
+msgstr "It takes longer, the AI service may charge for it, and the pages won't look like the printed book."
+
 msgid "It teaches a subject in lessons and gives the learner tasks to do."
 msgstr "It teaches a subject in lessons and gives the learner tasks to do."
 
@@ -6718,6 +6721,12 @@ msgstr "Keep filtered content"
 
 msgid "Keep going"
 msgstr "Keep going"
+
+msgid "Keep in mind"
+msgstr "Keep in mind"
+
+msgid "Keep in mind:"
+msgstr "Keep in mind:"
 
 msgid "Keep it as reading content. Its controls stay as they are."
 msgstr "Keep it as reading content. Its controls stay as they are."
@@ -10279,6 +10288,9 @@ msgstr "Readers already see your latest edits."
 msgid "Readers appear here once they open the link and give a name."
 msgstr "Readers appear here once they open the link and give a name."
 
+msgid "Readers can't make the text bigger or let it flow to fit the screen, so small print stays hard to read."
+msgstr "Readers can't make the text bigger or let it flow to fit the screen, so small print stays hard to read."
+
 msgid "Readers can't open the link right now. Everything they left is still here."
 msgstr "Readers can't open the link right now. Everything they left is still here."
 
@@ -11537,9 +11549,6 @@ msgstr "See release notes"
 
 msgid "See the book & pick pages"
 msgstr "See the book & pick pages"
-
-msgid "See the other options"
-msgstr "See the other options"
 
 msgid "Seed"
 msgstr "Seed"
@@ -12980,6 +12989,9 @@ msgstr "The AI rebuilds each page so it reads well on any screen size."
 msgid "The AI rebuilds each page to fit the screen."
 msgstr "The AI rebuilds each page to fit the screen."
 
+msgid "The AI retypes the words, so check them for mistakes. It's slower, and on a phone the page still shrinks."
+msgstr "The AI retypes the words, so check them for mistakes. It's slower, and on a phone the page still shrinks."
+
 msgid "The AI will preserve the original style while applying your changes."
 msgstr "The AI will preserve the original style while applying your changes."
 
@@ -13323,6 +13335,9 @@ msgstr "The pictures carry much of the meaning."
 
 msgid "The pictures have no labels, only captions."
 msgstr "The pictures have no labels, only captions."
+
+msgid "The printed design isn't kept: text and pictures are laid out again in one column."
+msgstr "The printed design isn't kept: text and pictures are laid out again in one column."
 
 msgid "The printed page stays, and the AI types its words again on top."
 msgstr "The printed page stays, and the AI types its words again on top."
@@ -15128,6 +15143,9 @@ msgstr "Word-level highlighting"
 
 msgid "words"
 msgstr "words"
+
+msgid "Words drawn inside the picture stay part of the picture."
+msgstr "Words drawn inside the picture stay part of the picture."
 
 msgid "Work on these pages on their own, then export the project to merge it back into the full book."
 msgstr "Work on these pages on their own, then export the project to merge it back into the full book."

@@ -152,31 +152,36 @@ export const LAYOUT_GUIDE: Record<string, OptionGuide> = {
  * The page layouts at a glance, on the Look screen: one line on what you get (the card), the books
  * it suits, and what happens on a phone.
  */
-export const LAYOUT_AT_A_GLANCE: Record<string, { line: MessageDescriptor; best: MessageDescriptor; phone: MessageDescriptor }> = {
+export const LAYOUT_AT_A_GLANCE: Record<string, { line: MessageDescriptor; best: MessageDescriptor; phone: MessageDescriptor; /** Its downside, said plainly. */ watch: MessageDescriptor }> = {
   fixed_layout: {
     line: msg`Your page, exactly as printed.`,
     best: msg`Picture books where the words are part of the art.`,
     phone: msg`The whole page shrinks to fit, so small text gets small.`,
+    watch: msg`Readers can't make the text bigger or let it flow to fit the screen, so small print stays hard to read.`,
   },
   two_column_story: {
     line: msg`The picture on one side, its words on the other.`,
     best: msg`Picture books with the words beside the art.`,
     phone: msg`The words move under the picture.`,
+    watch: msg`Words drawn inside the picture stay part of the picture.`,
   },
   single_column: {
     line: msg`One clean column of text, pictures in between.`,
     best: msg`Articles, reports, guides and novels.`,
     phone: msg`Reads like a web page; the text stays a comfortable size.`,
+    watch: msg`The printed design isn't kept: text and pictures are laid out again in one column.`,
   },
   llm: {
     line: msg`The AI rebuilds each page to fit the screen.`,
     best: msg`Books that are mostly words, and school books with many parts.`,
     phone: msg`Everything rearranges into one easy column.`,
+    watch: msg`It takes longer, the AI service may charge for it, and the pages won't look like the printed book.`,
   },
   "llm-overlay": {
     line: msg`The printed page stays, and the AI types its words again on top.`,
     best: msg`Scanned picture books: PDFs where you can't select or copy the words.`,
     phone: msg`The whole page shrinks to fit, like the printed page.`,
+    watch: msg`The AI retypes the words, so check them for mistakes. It's slower, and on a phone the page still shrinks.`,
   },
 }
 

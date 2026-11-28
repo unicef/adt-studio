@@ -1,13 +1,8 @@
-import { createContext, useContext } from "react"
+import { createContext } from "react"
 
 /**
- * How a sure pick shows its other options: behind "See the other options" (accordion, the default)
- * or always in view as compact cards under the pick (inline). Set only by the dev-only lab
- * (lab/OptionsLab.tsx, `?options=inline`) while the two are compared.
+ * Compact option cards (a small picture beside the words). "others": under a sure pick, its other
+ * options (the picked one is shown large above, so it's left out). "all": every option, the picked
+ * one marked (a screen with more than one question). False: the full cards.
  */
-export type OptionsLayout = "accordion" | "inline"
-export const OptionsLayoutContext = createContext<OptionsLayout>("accordion")
-export const useOptionsLayout = () => useContext(OptionsLayoutContext)
-
-/** Set by a sure pick around its options when they're shown inline: the cards draw compact (picture beside the words). */
-export const CompactOptionsContext = createContext(false)
+export const CompactOptionsContext = createContext<false | "others" | "all">(false)

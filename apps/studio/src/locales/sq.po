@@ -2655,6 +2655,9 @@ msgstr "Dosja e librave"
 msgid "Books like this"
 msgstr "Libra si ky"
 
+msgid "Books like this:"
+msgstr "Libra si ky:"
+
 msgid "Books that are mostly words, and school books with many parts."
 msgstr "Libra që janë kryesisht tekst dhe libra shkollorë me shumë pjesë."
 
@@ -5981,9 +5984,6 @@ msgstr "Fshih detajet e gabimit"
 msgid "Hide reviewer comments"
 msgstr "Fshih komentet e rishikuesve"
 
-msgid "Hide the other options"
-msgstr "Fshih opsionet e tjera"
-
 msgid "Hide toasts automatically after a delay."
 msgstr "Fshih njoftimet automatikisht pas një vonese."
 
@@ -6611,6 +6611,9 @@ msgstr "I jep detyra nxënësit."
 msgid "It stopped opening on {0}. Sharing again makes a new one."
 msgstr "Pushoi së hapuri më {0}. Duke e ndarë përsëri krijohet një e re."
 
+msgid "It takes longer, the AI service may charge for it, and the pages won't look like the printed book."
+msgstr "Zgjat më shumë, shërbimi i IA-së mund ta faturojë dhe faqet nuk do të duken si libri i shtypur."
+
 msgid "It teaches a subject in lessons and gives the learner tasks to do."
 msgstr "Shpjegon një lëndë në mësime dhe i jep nxënësit detyra për të bërë."
 
@@ -6720,6 +6723,12 @@ msgstr "Mbaj përmbajtjen e filtruar"
 
 msgid "Keep going"
 msgstr "Vazhdo"
+
+msgid "Keep in mind"
+msgstr "Mbani parasysh"
+
+msgid "Keep in mind:"
+msgstr "Mbani parasysh:"
 
 msgid "Keep it as reading content. Its controls stay as they are."
 msgstr "Mbajeni si përmbajtje leximi. Kontrollet e saj mbeten siç janë."
@@ -10281,6 +10290,9 @@ msgstr "Lexuesit i shohin tashmë ndryshimet tuaja më të fundit."
 msgid "Readers appear here once they open the link and give a name."
 msgstr "Lexuesit shfaqen këtu sapo të hapin lidhjen dhe të japin një emër."
 
+msgid "Readers can't make the text bigger or let it flow to fit the screen, so small print stays hard to read."
+msgstr "Lexuesit nuk mund ta zmadhojnë tekstin as ta përshtatin me ekranin, prandaj shkronjat e vogla mbeten të vështira për t'u lexuar."
+
 msgid "Readers can't open the link right now. Everything they left is still here."
 msgstr "Lexuesit nuk mund ta hapin lidhjen tani. Gjithçka që lanë është ende këtu."
 
@@ -11539,9 +11551,6 @@ msgstr "Shih shënimet e versionit"
 
 msgid "See the book & pick pages"
 msgstr "Shihni librin dhe zgjidhni faqet"
-
-msgid "See the other options"
-msgstr "Shiko opsionet e tjera"
 
 msgid "Seed"
 msgstr "Fara"
@@ -12982,6 +12991,9 @@ msgstr "AI e rindërton çdo faqe që të lexohet mirë në çdo madhësi ekrani
 msgid "The AI rebuilds each page to fit the screen."
 msgstr "AI e rindërton çdo faqe që t'i përshtatet ekranit."
 
+msgid "The AI retypes the words, so check them for mistakes. It's slower, and on a phone the page still shrinks."
+msgstr "IA-ja e rishkruan tekstin, ndaj kontrollojeni për gabime. Është më e ngadaltë dhe në telefon faqja prapë zvogëlohet."
+
 msgid "The AI will preserve the original style while applying your changes."
 msgstr "AI do të ruajë stilin origjinal ndërkohë që aplikon ndryshimet tuaja."
 
@@ -13325,6 +13337,9 @@ msgstr "Figurat mbartin shumë nga kuptimi."
 
 msgid "The pictures have no labels, only captions."
 msgstr "Figurat nuk kanë etiketa, vetëm përshkrime."
+
+msgid "The printed design isn't kept: text and pictures are laid out again in one column."
+msgstr "Dizajni i shtypur nuk ruhet: teksti dhe figurat rirenditen në një kolonë."
 
 msgid "The printed page stays, and the AI types its words again on top."
 msgstr "Faqja e shtypur mbetet dhe AI e shkruan tekstin e saj përsëri sipër."
@@ -15130,6 +15145,9 @@ msgstr "Theksim në nivel fjale"
 
 msgid "words"
 msgstr "fjalë"
+
+msgid "Words drawn inside the picture stay part of the picture."
+msgstr "Fjalët e vizatuara brenda figurës mbeten pjesë e figurës."
 
 msgid "Work on these pages on their own, then export the project to merge it back into the full book."
 msgstr "Punoni me këto faqe veçmas, pastaj eksportoni projektin për ta bashkuar me librin e plotë."

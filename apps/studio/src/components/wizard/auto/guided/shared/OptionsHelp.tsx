@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react"
 import type { MessageDescriptor } from "@lingui/core"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { ArrowLeft, ArrowRight, Check, Smartphone, Sparkles, Zap } from "lucide-react"
+import { ArrowLeft, ArrowRight, Check, Smartphone, Sparkles, TriangleAlert, Zap } from "lucide-react"
 import type { SetupRecommendation } from "@adt/types"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
@@ -143,12 +143,12 @@ function HelpPicture({ rec, option, page, file }: { rec: SetupRecommendation; op
 }
 
 type BodyProps = { o: LookOption; options: LookOption[]; rec: SetupRecommendation; page: number; file: File | null | undefined; show: (value: string) => void }
-type Topic = "fits" | "better" | "books" | "making"
+type Topic = "fits" | "better" | "books" | "making" | "watch"
 
 /**
  * One option, one thing at a time: first the option at a glance (its picture large, its name,
  * what it does, and why it was suggested), then "Learn more" as small tabs, each showing a single
- * section: when to pick it, when another fits better, books like it, how it's made.
+ * section: when to pick it, when another fits better, books like it, how it's made, what to keep in mind.
  */
 function CardBody({ o, options, rec, page, file, show }: BodyProps) {
   const { t } = useLingui()
@@ -158,6 +158,7 @@ function CardBody({ o, options, rec, page, file, show }: BodyProps) {
     ...(better.length ? [{ id: "better" as const, label: <Trans>When another fits better</Trans> }] : []),
     ...(o.guide ? [{ id: "books" as const, label: <Trans>Books like this</Trans> }] : []),
     ...(o.guide?.making || o.phone ? [{ id: "making" as const, label: <Trans>How it&apos;s made</Trans> }] : []),
+    ...(o.watch ? [{ id: "watch" as const, label: <Trans>Keep in mind</Trans> }] : []),
   ]
   const [topic, setTopic] = useState<Topic>(topics[0]?.id ?? "fits")
   return (
@@ -229,6 +230,12 @@ function CardBody({ o, options, rec, page, file, show }: BodyProps) {
             {topic === "books" && o.guide && (
               <p className="text-muted-foreground">
                 <Said m={o.guide.examples} />
+              </p>
+            )}
+            {topic === "watch" && o.watch && (
+              <p className="flex gap-2.5 text-muted-foreground">
+                <TriangleAlert className="mt-1 size-4 shrink-0 text-amber-500" />
+                <span>{o.watch}</span>
               </p>
             )}
             {topic === "making" && (

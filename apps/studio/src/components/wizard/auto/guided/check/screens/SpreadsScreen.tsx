@@ -1,5 +1,4 @@
 /* eslint-disable lingui/no-unlocalized-strings -- setting ids and values, never shown */
-import { useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Lock } from "lucide-react"
 import type { SetupRecommendation } from "@adt/types"
@@ -29,7 +28,6 @@ export function spreadPages(rec: SetupRecommendation): number[] {
 export function SpreadsScreen({ rec, chat, file }: Props) {
   const { i18n } = useLingui()
   const derived = chat.derived!
-  const [open, setOpen] = useState(false)
   const value = derived.effective.pageGrouping?.value === "spread" ? "spread" : "single"
   const guess = derived.fromAnswers.pageGrouping?.value === "spread" ? "spread" : "single"
   const changed = derived.source("pageGrouping") === "changed"
@@ -78,8 +76,6 @@ export function SpreadsScreen({ rec, chat, file }: Props) {
       }
       changed={changed}
       labelId={labelId}
-      open={open}
-      onToggle={() => setOpen((o) => !o)}
       others
     >
       <LookChoices rec={rec} options={options} page={page} chosen={value} onPick={(v) => chat.override("pageGrouping", v)} file={file} labelId={labelId} />

@@ -3,6 +3,8 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
 import type { SetupFact, SetupRecommendation, SetupSettingId } from "@adt/types"
 import { cn } from "@/lib/utils"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
+import { Smartphone, ThumbsUp, TriangleAlert } from "lucide-react"
 import { OptionsHelp } from "./OptionsHelp"
 import { useExplain } from "./explain"
 import { Screen } from "./Screen"
@@ -28,9 +30,10 @@ const NARROW = 520
  * One card: a label and a line, with the book as it would come out (`look`) or a drawing (`art`)
  * when the user's pages wouldn't tell the options apart.
  */
-export type LookOption = { value: string; label: string; line: string; look: Look; guess: boolean; art?: ReactNode; more?: string; phone?: string; tag?: ReactNode; guide?: OptionGuide; why?: ReactNode }
+export type LookOption = { value: string; label: string; line: string; look: Look; guess: boolean; art?: ReactNode; more?: string; phone?: string; /** Books it suits, and its downside (page layouts). */ best?: string; watch?: string; tag?: ReactNode; guide?: OptionGuide; why?: ReactNode }
 
 function LookCard({ rec, option, page, narrow, compact = false, chosen, first, onPick, file }: { rec: SetupRecommendation; option: LookOption; page: number; narrow: boolean; compact?: boolean; chosen: boolean; first: boolean; onPick: (card: HTMLElement) => void; file: File | null | undefined }) {
+  const { i18n } = useLingui()
   const describe = useDescribe()
   const { ref, box } = useBox<HTMLSpanElement>()
   const width = Math.max(80, Math.min(box.w - 28, ((box.h - 24) * SCREEN.desktop.w) / SCREEN.desktop.h))
@@ -75,7 +78,53 @@ function LookCard({ rec, option, page, narrow, compact = false, chosen, first, o
       </span>
     </button>
   )
-  return card
+  // Hovering a card (a pointer resting on it) shows more about the option: what it does, the
+  // books it suits, how it reads on a phone and its downside. Touch and keyboard users get the same
+  // through Explain the options.
+  const best = option.best ?? (option.guide ? i18n._(option.guide.examples) : undefined)
+  return (
+    <HoverCard openDelay={450} closeDelay={80}>
+      <HoverCardTrigger asChild>{card}</HoverCardTrigger>
+      <HoverCardContent side="top" sideOffset={10} className="w-[min(92vw,340px)] rounded-[16px] border-0 bg-[var(--lc-bubble,var(--popover))] p-4 shadow-[0_0_0_1px_var(--lc-line,var(--border)),0_18px_40px_-18px_rgba(15,23,42,0.55)]">
+        <p className="text-[15px] font-semibold leading-tight">{option.label}</p>
+        <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">{option.more ?? option.line}</p>
+        {(best || option.phone || option.watch) && (
+          <ul className="mt-3 flex flex-col gap-2 border-t border-border pt-3 text-[13px] leading-snug">
+            {best && (
+              <li className="flex gap-2">
+                <ThumbsUp aria-hidden className="mt-0.5 size-3.5 shrink-0 text-brand-500" />
+                <span>
+                  <span className="font-medium">{option.best ? <Trans>Best for:</Trans> : <Trans>Books like this:</Trans>}</span> <span className="text-muted-foreground">{best}</span>
+                </span>
+              </li>
+            )}
+            {option.phone && (
+              <li className="flex gap-2">
+                <Smartphone aria-hidden className="mt-0.5 size-3.5 shrink-0 text-brand-500" />
+                <span>
+                  <span className="font-medium">
+                    <Trans>On a phone:</Trans>
+                  </span>{" "}
+                  <span className="text-muted-foreground">{option.phone}</span>
+                </span>
+              </li>
+            )}
+            {option.watch && (
+              <li className="flex gap-2">
+                <TriangleAlert aria-hidden className="mt-0.5 size-3.5 shrink-0 text-amber-500" />
+                <span>
+                  <span className="font-medium">
+                    <Trans>Keep in mind:</Trans>
+                  </span>{" "}
+                  <span className="text-muted-foreground">{option.watch}</span>
+                </span>
+              </li>
+            )}
+          </ul>
+        )}
+      </HoverCardContent>
+    </HoverCard>
+  )
 }
 
 /**
@@ -86,8 +135,10 @@ function LookCard({ rec, option, page, narrow, compact = false, chosen, first, o
 export function LookChoices({ rec, options, page, chosen, onPick, file, labelId }: { rec: SetupRecommendation; options: LookOption[]; page: number; chosen?: string; onPick: (value: string, card: HTMLElement | null) => void; file: File | null | undefined; labelId: string }) {
   const { ref, box } = useBox()
   const compact = useContext(CompactOptionsContext)
+  // Under a pick, the cards are its other options: the picked one is already shown large above.
+  const shown = compact === "others" ? options.filter((o) => o.value !== chosen) : options
   // Compact cards need room for a picture beside the words: at most three across.
-  const cols = compact ? Math.min(options.length, box.w > 0 && box.w < 760 ? 2 : 3) : options.length
+  const cols = compact ? Math.min(shown.length, box.w > 0 && box.w < 760 ? 2 : 3) : shown.length
   const narrow = box.w > 0 && box.w < NARROW
   const [help, setHelp] = useState(false)
   const explains = options.some((o) => o.more)
@@ -96,7 +147,7 @@ export function LookChoices({ rec, options, page, chosen, onPick, file, labelId 
   return (
     <div className="flex flex-col gap-2 pt-1">
       <div ref={ref} role="group" aria-labelledby={labelId} className="grid gap-3" style={{ gridTemplateColumns: narrow ? "minmax(0, 1fr)" : `repeat(${cols}, minmax(0, 1fr))` }}>
-        {box.w > 0 && options.map((o, i) => <LookCard key={o.value} rec={rec} option={o} page={page} narrow={narrow} compact={compact} chosen={chosen === o.value} first={i === 0} onPick={(card) => onPick(o.value, card)} file={file} />)}
+        {box.w > 0 && shown.map((o, i) => <LookCard key={o.value} rec={rec} option={o} page={page} narrow={narrow} compact={!!compact} chosen={chosen === o.value} first={i === 0} onPick={(card) => onPick(o.value, card)} file={file} />)}
       </div>
       {explains && <OptionsHelp open={help} onOpenChange={setHelp} rec={rec} options={options} page={page} chosen={chosen} file={file} onPick={(v) => { setHelp(false); onPick(v, null) }} />}
     </div>

@@ -1,7 +1,6 @@
 /* eslint-disable lingui/no-unlocalized-strings -- setting ids and values, never shown */
-import { useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { Lock, Smartphone, ThumbsUp } from "lucide-react"
+import { Smartphone, ThumbsUp, TriangleAlert } from "lucide-react"
 import type { SetupRecommendation } from "@adt/types"
 import { cn } from "@/lib/utils"
 import { strategiesFor } from "../../../engine/answers"
@@ -28,7 +27,6 @@ type Props = { rec: SetupRecommendation; chat: Answers; file: File | null | unde
 function LayoutPick({ rec, chat, file, asked }: Props & { asked: boolean }) {
   const { i18n } = useLingui()
   const derived = chat.derived!
-  const [open, setOpen] = useState(false)
   const value = String(derived.effective.renderStrategy?.value)
   const shown = new Set(SETTING_OPTIONS.renderStrategy.map((o) => String(o.value)))
   const allowed = strategiesFor(derived.effective.preset?.value).filter((s) => shown.has(s))
@@ -49,6 +47,8 @@ function LayoutPick({ rec, chat, file, asked }: Props & { asked: boolean }) {
       more: SETTING_VALUE.renderStrategy[v] ? i18n._(SETTING_VALUE.renderStrategy[v]!.means) : undefined,
       guide: LAYOUT_GUIDE[v],
       phone: LAYOUT_AT_A_GLANCE[v] ? i18n._(LAYOUT_AT_A_GLANCE[v]!.phone) : undefined,
+      best: LAYOUT_AT_A_GLANCE[v] ? i18n._(LAYOUT_AT_A_GLANCE[v]!.best) : undefined,
+      watch: LAYOUT_AT_A_GLANCE[v] ? i18n._(LAYOUT_AT_A_GLANCE[v]!.watch) : undefined,
       why:
         v === first && RULE_WHY[derived.fromAnswers.renderStrategy?.rule ?? ""] ? (
           <>
@@ -89,8 +89,6 @@ function LayoutPick({ rec, chat, file, asked }: Props & { asked: boolean }) {
       badge={!asked}
       changed={derived.source("renderStrategy") === "changed"}
       labelId={labelId}
-      open={open}
-      onToggle={() => setOpen((o) => !o)}
       others={options.length > 1}
     >
       {choices}
@@ -98,7 +96,7 @@ function LayoutPick({ rec, chat, file, asked }: Props & { asked: boolean }) {
   )
 }
 
-/** Under the picked layout: the books it suits, how it reads on a phone, and how it's made. */
+/** Under the picked layout: the books it suits, how it reads on a phone, its downside, and how it's made. */
 function AtAGlance({ strategy }: { strategy: string }) {
   const { i18n } = useLingui()
   const at = LAYOUT_AT_A_GLANCE[strategy]
@@ -106,7 +104,8 @@ function AtAGlance({ strategy }: { strategy: string }) {
     <span className="mt-1 flex flex-col gap-1.5">
       {at && (
         <>
-          <span className="flex items-start gap-2">
+          {/* On a short window the books it suits (and, shorter still, how it reads on a phone) give way: they're in each card's hover and in Explain the options. */}
+          <span className="flex items-start gap-2 [@media(max-height:820px)]:hidden">
             <ThumbsUp aria-hidden className="mt-[3px] size-4 shrink-0 text-brand-500" />
             <span>
               <span className="font-medium">
@@ -115,7 +114,7 @@ function AtAGlance({ strategy }: { strategy: string }) {
               <span className="text-muted-foreground">{i18n._(at.best)}</span>
             </span>
           </span>
-          <span className="flex items-start gap-2">
+          <span className="flex items-start gap-2 [@media(max-height:780px)]:hidden">
             <Smartphone aria-hidden className="mt-[3px] size-4 shrink-0 text-brand-500" />
             <span>
               <span className="font-medium">
@@ -124,9 +123,18 @@ function AtAGlance({ strategy }: { strategy: string }) {
               <span className="text-muted-foreground">{i18n._(at.phone)}</span>
             </span>
           </span>
+          <span className="flex items-start gap-2">
+            <TriangleAlert aria-hidden className="mt-[3px] size-4 shrink-0 text-amber-500" />
+            <span>
+              <span className="font-medium">
+                <Trans>Keep in mind:</Trans>
+              </span>{" "}
+              <span className="text-muted-foreground">{i18n._(at.watch)}</span>
+            </span>
+          </span>
         </>
       )}
-      <MethodTag strategy={strategy} long className="mt-1" />
+      <MethodTag strategy={strategy} className="mt-1" />
     </span>
   )
 }

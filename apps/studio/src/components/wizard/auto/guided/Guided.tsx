@@ -342,19 +342,13 @@ function useSqueeze(scroller: RefObject<HTMLElement | null>, page: RefObject<HTM
       }
       set(hi)
     }
-    // Sizes change on every frame while something grows or shrinks (options opening, a panel
-    // morphing): an overflow is fixed at once (no scrollbar), anything else waits until it settles.
-    // While a pick's options are open the page may scroll, so the pictures keep their size.
+    // Sizes change on every frame while something grows or shrinks (a panel morphing): an overflow
+    // is fixed at once (no scrollbar), anything else waits until it settles.
     let timer = 0
     const onResize = () => {
       window.clearTimeout(timer)
-      // Options open or still closing: wait, then fit once they've settled (if they've closed by then).
-      if (el.querySelector("[data-pick][data-open]")) timer = window.setTimeout(settle, 420)
-      else if (sc.scrollHeight - sc.clientHeight > 1) fit()
+      if (sc.scrollHeight - sc.clientHeight > 1) fit()
       else timer = window.setTimeout(fit, 160)
-    }
-    const settle = () => {
-      if (!el.querySelector("[data-pick][data-open]")) fit()
     }
     fit()
     const ro = new ResizeObserver(onResize)

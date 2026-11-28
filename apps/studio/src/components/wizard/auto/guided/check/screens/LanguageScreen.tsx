@@ -96,8 +96,6 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
       badge={!!found}
       labelId="gd-language"
       pictureKey="language"
-      open={false}
-      onToggle={() => {}}
       others={false}
     />
   )
