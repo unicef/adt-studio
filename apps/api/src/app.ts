@@ -137,7 +137,7 @@ app.route(
   createStageRoutes(stageService, eventBus, pageErrorDecisions, booksDir, promptsDir, webAssetsDir, configPath)
 )
 app.route("/api", createTaskRoutes(taskService))
-app.route("/api", createSetupRecommendationRoutes(booksDir, configPath))
+app.route("/api", createSetupRecommendationRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createPresetRoutes(configPath, booksDir))
 app.route("/api", createAdtPreviewRoutes(booksDir, webAssetsDir, configPath, promptsDir))
 app.route("/api", createSpeechConfigRoutes(configPath))

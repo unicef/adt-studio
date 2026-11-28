@@ -16,9 +16,9 @@ import { Hono } from "hono"
 import { bodyLimit } from "hono/body-limit"
 import type { ContentfulStatusCode } from "hono/utils/http-status"
 import { z } from "zod"
-import { AiProviderError, createLLMModel, formatProviderError, type LlmLogEntry } from "@adt/llm"
+import { AiProviderError, createLLMModel, createPromptEngine, formatProviderError, type LlmLogEntry } from "@adt/llm"
 import { profileBookAsync, renderBookPagesAsync } from "@adt/pdf"
-import { loadConfig, recommendSetup } from "@adt/pipeline"
+import { createSemaphore, loadConfig, recommendSetup } from "@adt/pipeline"
 import { DEFAULT_LLM_MODEL_ID, type SetupRecommendation, type SetupRecommendationErrorCode } from "@adt/types"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
 
@@ -43,6 +43,13 @@ const SetupRecommendationForm = z.object({
 class PdfRenderError extends Error {}
 
 const sha256 = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex")
+
+/**
+ * PDFs profiled or drawn here at once. Each one is copied into mupdf's memory for that (up to
+ * SETUP_PDF_MAX_BYTES each), so more wait their turn instead of piling up. The AI calls aren't limited.
+ */
+const PDF_READS_AT_ONCE = 2
+const pdfReads = createSemaphore(PDF_READS_AT_ONCE)
 
 const HOLD_MS = 2 * 60 * 60 * 1000
 const MAX_HELD = 20
@@ -75,7 +82,7 @@ export function attachSetupRecommendation(
   return "attached"
 }
 
-export function createSetupRecommendationRoutes(booksDir: string, configPath?: string): Hono {
+export function createSetupRecommendationRoutes(booksDir: string, promptsDir: string, configPath?: string): Hono {
   const app = new Hono()
 
   // POST /setup-recommendation — multipart `pdf`. Returns the recommendation.
@@ -96,20 +103,24 @@ export function createSetupRecommendationRoutes(booksDir: string, configPath?: s
     const config = loadConfig(configPath)
     const modelId = process.env.ADT_SETUP_RECOMMENDER_MODEL || config.default_model || DEFAULT_LLM_MODEL_ID
     const llmLog: LlmLogEntry[] = []
+    // No book yet, so no book prompts: the global prompts/setup_recommender_*.liquid.
+    const promptEngine = createPromptEngine([promptsDir], { basePromptModelId: config.base_prompt_model })
     const model = createLLMModel({
       modelId,
       cacheDir: path.join(path.resolve(booksDir), ".cache", "setup-recommender"),
+      promptEngine,
       onLog: (entry) => llmLog.push(entry),
       providerCredentials: readProviderCredentials(c),
       logLevel: "silent",
     })
 
+    const signal = c.req.raw.signal
     let profile
     try {
-      profile = await profileBookAsync(buffer, { signal: c.req.raw.signal })
+      profile = await pdfReads.run(() => profileBookAsync(buffer, { signal }), signal)
     } catch (err) {
       // The client went away (a new PDF, or the page closed): nothing to answer.
-      if (c.req.raw.signal.aborted) throw err
+      if (signal.aborted) throw err
       return failed(400, "pdf-unreadable", `Could not read the PDF: ${err instanceof Error ? err.message : String(err)}`)
     }
     // Nothing to show the AI: don't call it with no pages.
@@ -121,20 +132,20 @@ export function createSetupRecommendationRoutes(booksDir: string, configPath?: s
         model,
         modelId,
         profile,
-        renderPages: (pages, size) =>
-          renderBookPagesAsync(buffer, pages, { size, signal: c.req.raw.signal }).catch((err: unknown) => {
-            if (c.req.raw.signal.aborted) throw err
+        renderPages: (sets) =>
+          pdfReads.run(() => renderBookPagesAsync(buffer, sets, { signal }), signal).catch((err: unknown) => {
+            if (signal.aborted) throw err
             throw new PdfRenderError(err instanceof Error ? err.message : String(err))
           }),
-        signal: c.req.raw.signal,
+        signal,
       })
       prune()
       held.set(recommendation.id, { recommendation, llmLog, createdAt: Date.now(), pdfHash: sha256(buffer) })
       return c.json(recommendation)
     } catch (err) {
-      if (c.req.raw.signal.aborted) throw err
-      // Both readings failed. Pages that couldn't be drawn are the PDF's fault; anything else came
-      // from the AI service (an error, a timeout, or answers that never fit the expected shape).
+      if (signal.aborted) throw err
+      // Pages that couldn't be drawn are the PDF's fault; anything else came from the AI service
+      // (both readings failed: an error, a timeout, or answers that never fit the expected shape).
       if (err instanceof PdfRenderError) return failed(422, "pdf-pages-unreadable", `Could not read the PDF's pages: ${err.message}`)
       // A provider that isn't set up (no key, unknown model): the shared handler answers 400/422 with its code.
       if (AiProviderError.is(err)) throw err

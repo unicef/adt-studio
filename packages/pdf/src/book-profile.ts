@@ -184,17 +184,15 @@ function profilePage(doc: MupdfDocument, index: number): { profile: BookPageProf
   }
 }
 
-/** The profiling, one page per step, so the async version can hand the event loop back between pages. */
-function* profileSteps(buffer: Uint8Array, range?: { start: number; end: number }): Generator<void, BookProfile, void> {
+/** The profiling, one page per step, so it can hand the event loop back between pages. */
+function* profileSteps(buffer: Uint8Array): Generator<void, BookProfile, void> {
   const started = performance.now()
   const doc = mupdf.Document.openDocument(buffer, "application/pdf")
   try {
     const pageCount = doc.countPages()
-    const start = range ? Math.max(0, range.start - 1) : 0
-    const end = range ? Math.min(pageCount, range.end) : pageCount
     const pages: BookPageProfile[] = []
     const edges: BookPageEdges[] = []
-    for (let i = start; i < end; i++) {
+    for (let i = 0; i < pageCount; i++) {
       const r = profilePage(doc, i)
       pages.push(r.profile)
       edges.push(r.edges)
@@ -209,44 +207,45 @@ function* profileSteps(buffer: Uint8Array, range?: { start: number; end: number 
   }
 }
 
-/** Profiles every page (or a 1-indexed inclusive range). */
-export function profileBook(buffer: Uint8Array, range?: { start: number; end: number }): BookProfile {
-  const steps = profileSteps(buffer, range)
-  for (;;) {
-    const r = steps.next()
-    if (r.done) return r.value
-  }
-}
-
 /**
- * profileBook for a server: it hands the event loop back every few pages (so one long book doesn't
- * freeze every other request, or the desktop app's main process) and stops when `signal` aborts.
+ * Profiles every page. Made for a server: it hands the event loop back every few pages (so one
+ * long book doesn't freeze every other request, or the desktop app's main process) and stops when
+ * `signal` aborts.
  */
 export async function profileBookAsync(
   buffer: Uint8Array,
-  opts: { range?: { start: number; end: number }; signal?: AbortSignal; pagesPerTurn?: number } = {},
+  opts: { signal?: AbortSignal; pagesPerTurn?: number } = {},
 ): Promise<BookProfile> {
-  return runAsync(profileSteps(buffer, opts.range), opts.pagesPerTurn ?? 2, opts.signal)
+  return runAsync(profileSteps(buffer), opts.pagesPerTurn ?? 2, opts.signal)
 }
 
-/** The rendering, one page per step (see profileSteps). */
+/** Pages to render, all at about `size` px on their longest side. */
+export interface PageRenderSet {
+  pages: number[]
+  size: number
+}
+
+/** The rendering, one page per step (see profileSteps). Each page is loaded once, however many sets ask for it. */
 function* renderSteps(
   buffer: Uint8Array,
-  pages: number[],
-  size: number,
+  sets: PageRenderSet[],
   format: "png" | "jpeg",
-): Generator<void, Map<number, Uint8Array>, void> {
+): Generator<void, Map<number, Uint8Array>[], void> {
   const doc = mupdf.Document.openDocument(buffer, "application/pdf")
-  const out = new Map<number, Uint8Array>()
+  const out = sets.map(() => new Map<number, Uint8Array>())
+  const pages = [...new Set(sets.flatMap((s) => s.pages))].sort((a, b) => a - b)
   try {
     for (const n of pages) {
       const page = doc.loadPage(n - 1)
       try {
         const b = page.getBounds()
-        const scale = size / Math.max(b[2] - b[0], b[3] - b[1], 1)
-        const pix = page.toPixmap(mupdf.Matrix.scale(scale, scale), mupdf.ColorSpace.DeviceRGB, false)
-        out.set(n, format === "jpeg" ? pix.asJPEG(70) : pix.asPNG())
-        pix.destroy()
+        sets.forEach((set, i) => {
+          if (!set.pages.includes(n)) return
+          const scale = set.size / Math.max(b[2] - b[0], b[3] - b[1], 1)
+          const pix = page.toPixmap(mupdf.Matrix.scale(scale, scale), mupdf.ColorSpace.DeviceRGB, false)
+          out[i].set(n, format === "jpeg" ? pix.asJPEG(70) : pix.asPNG())
+          pix.destroy()
+        })
       } finally {
         page.destroy()
       }
@@ -258,27 +257,16 @@ function* renderSteps(
   return out
 }
 
-/** Renders 1-indexed pages with the longest side about `size` px. JPEG at quality 70 by default (5x smaller than PNG on picture books). */
-export function renderBookPages(
-  buffer: Uint8Array,
-  pages: number[],
-  size = 512,
-  format: "png" | "jpeg" = "jpeg",
-): Map<number, Uint8Array> {
-  const steps = renderSteps(buffer, pages, size, format)
-  for (;;) {
-    const r = steps.next()
-    if (r.done) return r.value
-  }
-}
-
-/** renderBookPages for a server: one page per turn of the event loop, and it stops when `signal` aborts. */
+/**
+ * Renders 1-indexed pages, one map per set, opening the PDF once. JPEG at quality 70 by default
+ * (5x smaller than PNG on picture books). One page per turn of the event loop; stops when `signal` aborts.
+ */
 export async function renderBookPagesAsync(
   buffer: Uint8Array,
-  pages: number[],
-  opts: { size?: number; format?: "png" | "jpeg"; signal?: AbortSignal } = {},
-): Promise<Map<number, Uint8Array>> {
-  return runAsync(renderSteps(buffer, pages, opts.size ?? 512, opts.format ?? "jpeg"), 1, opts.signal)
+  sets: PageRenderSet[],
+  opts: { format?: "png" | "jpeg"; signal?: AbortSignal } = {},
+): Promise<Map<number, Uint8Array>[]> {
+  return runAsync(renderSteps(buffer, sets, opts.format ?? "jpeg"), 1, opts.signal)
 }
 
 /** Runs a step generator, handing the event loop back every `every` steps and stopping on abort. */

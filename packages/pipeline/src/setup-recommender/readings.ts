@@ -12,16 +12,28 @@
  *    own. Book facts are counted from the labels with fixed thresholds; the
  *    labels also give the pages to import.
  *
- * Pure: the model and the page renderer come in as parameters.
+ * The prompts are prompts/setup_recommender_questions.liquid and
+ * prompts/setup_recommender_page_labels.liquid, rendered by the model's prompt engine.
+ *
+ * Pure: the model (with its prompt engine) and the rendered page images come in as parameters.
  */
 import { z } from "zod"
-import type { LLMModel, ContentPart, TokenUsage } from "@adt/llm"
+import type { LLMModel, TokenUsage } from "@adt/llm"
 import type { BookProfile } from "@adt/pdf"
 import type { MeasuredFacts } from "./facts.js"
 import { BOOK_FACT_IDS, BOOK_FACT_OPTIONS, type BookFactId, type BookFacts } from "./rules.js"
 
-/** Renders 1-indexed pages at about `size` px; may be async (the server hands the event loop back between pages). */
-export type RenderPages = (pages: number[], size: number) => Map<number, Uint8Array> | Promise<Map<number, Uint8Array>>
+/**
+ * Renders sets of 1-indexed pages, each set at about its `size` px, in one pass over the PDF;
+ * returns one map (page -> image bytes) per set, in order.
+ */
+export type RenderPages = (sets: { pages: number[]; size: number }[]) => Promise<Map<number, Uint8Array>[]>
+
+export const QUESTIONS_PROMPT = "setup_recommender_questions"
+export const PAGE_LABELS_PROMPT = "setup_recommender_page_labels"
+/** The longest side, in px, of the page images each reading is shown. */
+export const QUESTIONS_IMAGE_SIZE = 1000
+export const PAGE_LABELS_IMAGE_SIZE = 512
 
 const toBase64 = (bytes: Uint8Array) => Buffer.from(bytes).toString("base64")
 const range = (a: number, b: number) => Array.from({ length: Math.max(0, b - a + 1) }, (_, i) => a + i)
@@ -77,57 +89,8 @@ export function questionPages(b: BookProfile, f: MeasuredFacts): number[] {
 }
 
 // ---------------------------------------------------------------------------
-// One definition of where the words sit, shared by both readings (and by the
-// question the user answers in Studio), so the two readings can't drift apart
-// on a picture that runs across the fold.
+// Reading 1: plain questions (the questions and their answers are in the prompt)
 // ---------------------------------------------------------------------------
-
-export const WORDS_ON_PICTURE =
-  "The words sit inside the picture's area, even on a calm part of it such as sky, sea or a coloured band of the illustration, and the picture may continue onto the facing page."
-export const WORDS_BESIDE_PICTURE =
-  "The words sit in their own area outside the picture: above, below or next to it, or on the facing page."
-export const WORDS_MOSTLY = "It is mostly words. Pictures are few or small."
-
-// ---------------------------------------------------------------------------
-// Reading 1: plain questions
-// ---------------------------------------------------------------------------
-
-export const PLAIN_QUESTIONS: Record<BookFactId, { ask: string; options: Record<string, string> }> = {
-  genre: {
-    ask: "What is this book mostly?",
-    options: {
-      story:
-        "A story. Readers follow characters or events from start to end: a picture book, a tale or a novel. A story with a few colouring or drawing pages is still a story.",
-      textbook: "A schoolbook. It teaches a subject in lessons and gives the learner tasks to do.",
-      reference:
-        "Something people read to find information: a report, an article, a manual or a guide. It has no tasks for the reader.",
-    },
-  },
-  exercises: {
-    ask: "Does the book ask the reader to write or mark answers? (Colouring and drawing do not count.)",
-    options: {
-      none: "No. The reader only reads, or colours and draws. Questions inside the story that nobody writes an answer to do not count.",
-      some: "Yes, on a few pages: questions to answer, blanks to fill, things to match, circle or tick.",
-      many: "Yes, on most pages.",
-    },
-  },
-  composition: {
-    ask: "Where are the words on a page?",
-    options: {
-      "text-in-art": `On the picture. ${WORDS_ON_PICTURE}`,
-      "text-beside-art": `Beside the picture. ${WORDS_BESIDE_PICTURE}`,
-      "text-mostly": WORDS_MOSTLY,
-    },
-  },
-  diagrams: {
-    ask: "Are there pictures with labels that explain something, like maps, charts, diagrams or labelled drawings?",
-    options: {
-      none: "No. Only illustrations or photos. A caption under a photo does not count.",
-      some: "Yes, a few.",
-      many: "Yes, on many pages.",
-    },
-  },
-}
 
 export interface QuestionAnswer {
   answer: string
@@ -166,55 +129,53 @@ const QuestionsSchema = z.object({
     ),
 })
 
-function questionsContext(b: BookProfile, f: MeasuredFacts, pages: number[]): string {
-  const lines = [
-    `The book has ${b.pageCount} pages. You are shown pages ${pages.join(", ")}.`,
-    `Measured from the PDF: median ${f.textDensity.medianChars} visible characters per page; pictures cover a median ${Math.round(f.pictureHeavy.medianCoverage * 100)}% of a page; text sits over a large picture on ${Math.round(f.textOverPictures.share * 100)}% of text pages; ${f.exerciseCues.pagesWithCues} pages show exercise cues (numbered items, blanks, instructions).`,
-  ]
-  for (const p of pages) {
-    const page = b.pages.find((x) => x.page === p)
-    if (page) lines.push(`Text of page ${p} (first 600 characters): ${page.text.slice(0, 600)}`)
-  }
-  return lines.join("\n")
+/** A page as the prompts show it: its number, the start of its text, and its image (base64, "" when it couldn't be drawn). */
+interface PromptPage {
+  number: number
+  text: string
+  image: string
 }
+
+function promptPages(b: BookProfile, pages: number[], images: Map<number, Uint8Array>, textChars: number): PromptPage[] {
+  const byPage = new Map(b.pages.map((p) => [p.page, p]))
+  return pages.map((n) => {
+    const img = images.get(n)
+    return { number: n, text: byPage.get(n)?.text.slice(0, textChars) ?? "", image: img ? toBase64(img) : "" }
+  })
+}
+
+/** About what the prompt uploads: the page texts and the images as base64 (the prompt's fixed wording is left out). */
+const uploadBytesOf = (pages: PromptPage[]) => pages.reduce((n, p) => n + p.text.length + p.image.length, 0)
 
 export async function readQuestions(opts: {
   model: LLMModel
   profile: BookProfile
   facts: MeasuredFacts
-  renderPages: RenderPages
+  /** The page images at QUESTIONS_IMAGE_SIZE, for `questionPages(profile, facts)`. */
+  images: Map<number, Uint8Array>
   signal?: AbortSignal
 }): Promise<QuestionsReading> {
   const started = performance.now()
-  const pages = questionPages(opts.profile, opts.facts)
-  const images = await opts.renderPages(pages, 1000)
-  const questions = BOOK_FACT_IDS.map(
-    (id) =>
-      `${id}: ${PLAIN_QUESTIONS[id].ask}\n${Object.entries(PLAIN_QUESTIONS[id].options)
-        .map(([k, v]) => `- ${k}: ${v}`)
-        .join("\n")}`,
-  ).join("\n\n")
-  const content: ContentPart[] = [
-    {
-      type: "text",
-      text: `${questionsContext(opts.profile, opts.facts, pages)}\n\nAnswer every question below.\n\n${questions}`,
-    },
-  ]
-  let uploadBytes = content[0].type === "text" ? content[0].text.length : 0
-  for (const p of pages) {
-    const img = images.get(p)
-    if (!img) continue
-    content.push({ type: "text", text: `Page ${p}:` }, { type: "image", image: toBase64(img) })
-    uploadBytes += Math.ceil((img.length * 4) / 3)
-  }
+  const { profile, facts: f } = opts
+  const pages = questionPages(profile, f)
+  const shown = promptPages(profile, pages, opts.images, 600)
   const res = await opts.model.generateObject<z.infer<typeof QuestionsSchema>>({
     schema: QuestionsSchema,
-    system:
-      "You describe a book from a few of its pages so that a teacher can check your description against the paper book. Answer each question on its own. Base every answer on what you see; cite only the shown pages that support it. Use low confidence when the shown pages do not settle a question.",
-    messages: [{ role: "user", content }],
+    prompt: QUESTIONS_PROMPT,
+    context: {
+      page_count: profile.pageCount,
+      shown_pages: pages,
+      measured: {
+        median_chars: f.textDensity.medianChars,
+        picture_coverage_pct: Math.round(f.pictureHeavy.medianCoverage * 100),
+        text_over_pictures_pct: Math.round(f.textOverPictures.share * 100),
+        exercise_cue_pages: f.exerciseCues.pagesWithCues,
+      },
+      pages: shown,
+    },
     maxRetries: 1,
     signal: opts.signal,
-    log: { taskType: "setup-recommender", promptName: "setup-recommender-questions" },
+    log: { taskType: "setup-recommender", promptName: QUESTIONS_PROMPT },
   })
   const { language, ...rest } = res.object
   const answers = rest as Record<BookFactId, QuestionAnswer>
@@ -227,11 +188,10 @@ export async function readQuestions(opts: {
     language: languageCode(language),
     usage: res.usage ?? { inputTokens: 0, outputTokens: 0 },
     ms: performance.now() - started,
-    uploadBytes,
+    uploadBytes: uploadBytesOf(shown),
   }
 }
 
-/** A two-letter language code from the model's answer, or null ("none", or anything that isn't a code). */
 /**
  * The language as a tag the app uses: "pt", or "pt-BR" / "es-419" when a region came with it.
  * Anything else after the language (a script, a typo) is dropped; no two-letter language → null.
@@ -249,25 +209,11 @@ export function languageCode(answer: string | undefined): string | null {
 // Reading 2: page labels
 // ---------------------------------------------------------------------------
 
-export const PAGE_TYPES = {
-  cover: "Front or back cover.",
-  "front-matter":
-    "Title page, copyright, contents, or a preface, foreword or introduction written about the book by its author, editor or publisher.",
-  story: "Narrative: tells a story (fiction or tale), as prose or as text with illustrations.",
-  lesson: "Teaches a topic to learners: explanations, examples, worked content addressed to students.",
-  exercise: "Tasks for the reader to do: questions to answer, blanks, matching, circling, writing.",
-  informational: "Factual or academic prose read for information, not a lesson: article, paper, report, manual.",
-  "back-matter": "Credits, licence, index, glossary, about the author, list of other titles.",
-  blank: "Empty or nearly empty page, or a picture with no text that does not carry a story.",
-} as const
-export const PLACEMENTS = {
-  "on-art": `On the picture. ${WORDS_ON_PICTURE}`,
-  "beside-art": `Beside the picture. ${WORDS_BESIDE_PICTURE}`,
-  "text-only": "Mostly text; pictures small or absent.",
-  "no-text": "No readable text.",
-} as const
-export type PageType = keyof typeof PAGE_TYPES
-export type Placement = keyof typeof PLACEMENTS
+// The page types and text placements a label can take (what each means is in the prompt).
+export const PAGE_TYPES = ["cover", "front-matter", "story", "lesson", "exercise", "informational", "back-matter", "blank"] as const
+export const PLACEMENTS = ["on-art", "beside-art", "text-only", "no-text"] as const
+export type PageType = (typeof PAGE_TYPES)[number]
+export type Placement = (typeof PLACEMENTS)[number]
 export interface PageLabel {
   page: number
   type: PageType
@@ -279,8 +225,8 @@ const PageLabelsSchema = z.object({
   pages: z.array(
     z.object({
       page: z.number().int(),
-      type: z.enum(Object.keys(PAGE_TYPES) as [PageType, ...PageType[]]),
-      textPlacement: z.enum(Object.keys(PLACEMENTS) as [Placement, ...Placement[]]),
+      type: z.enum(PAGE_TYPES),
+      textPlacement: z.enum(PLACEMENTS),
       meaningfulFigure: z.boolean(),
     }),
   ),
@@ -288,7 +234,8 @@ const PageLabelsSchema = z.object({
 })
 
 const NON_VOTING: PageType[] = ["cover", "front-matter", "back-matter", "blank"]
-const BODY: PageType[] = ["story", "lesson", "exercise", "informational"]
+/** Pages of the book itself (not its covers, front or back matter, or blanks). */
+export const BODY_PAGE_TYPES: PageType[] = ["story", "lesson", "exercise", "informational"]
 
 export interface LabelCounts {
   body: number
@@ -363,7 +310,7 @@ export interface PageRangeSuggestion {
  */
 export function suggestRange(labels: PageLabel[], pageCount: number): PageRangeSuggestion | null {
   const sorted = [...labels].sort((a, b) => a.page - b.page)
-  const isBody = (l?: PageLabel) => !!l && BODY.includes(l.type)
+  const isBody = (l?: PageLabel) => !!l && BODY_PAGE_TYPES.includes(l.type)
   const startIdx = sorted.findIndex((l, i) => isBody(l) && isBody(sorted[i + 1]))
   if (startIdx < 0) return null
   let endIdx = sorted.length - 1
@@ -409,47 +356,29 @@ export interface PageLabelsReading {
 export async function readPageLabels(opts: {
   model: LLMModel
   profile: BookProfile
-  renderPages: RenderPages
+  /** The page images at PAGE_LABELS_IMAGE_SIZE, for `samplePlan(profile.pageCount).all`. */
+  images: Map<number, Uint8Array>
   signal?: AbortSignal
 }): Promise<PageLabelsReading> {
   const started = performance.now()
   const { profile } = opts
   const plan = samplePlan(profile.pageCount)
   const pages = plan.all
-  const byPage = new Map(profile.pages.map((p) => [p.page, p]))
-  const list = (o: Record<string, string>) =>
-    Object.entries(o)
-      .map(([k, v]) => `- ${k}: ${v}`)
-      .join("\n")
-  const shown = plan.full
-    ? `The book has ${profile.pageCount} pages; every page is shown below`
-    : `The book has ${profile.pageCount} pages. You are shown ${pages.length} of them: the first ${plan.opening.length}, ${plan.middle.length} spread through the middle, and the last ${plan.end.length}`
-  const intro = [
-    `${shown}, each as a small image with its first 300 characters of text.`,
-    `Label each page shown.\n\nPage type:\n${list(PAGE_TYPES)}\n\nText placement:\n${list(PLACEMENTS)}\n\nmeaningfulFigure: true when the page has a diagram, chart, map, table, labelled figure or infographic whose labels carry meaning (not a plain photo or illustration).`,
-    `Finally, bookGenre: what the whole book most likely is (story, textbook or reference), judging from everything shown, including what any preface says about the book.`,
-  ].join("\n\n")
-  // All page texts in one block, then
-  // each image after its "Page n:" label.
-  const texts = pages.map((n) => `Page ${n}: Text: ${byPage.get(n)?.text.slice(0, 300) || "(no text)"}`)
-  const text = [intro, ...texts].join("\n\n")
-  const images = await opts.renderPages(pages, 512)
-  const content: ContentPart[] = [{ type: "text", text }]
-  let uploadBytes = text.length
-  for (const n of pages) {
-    const img = images.get(n)
-    if (!img) continue
-    content.push({ type: "text", text: `Page ${n}:` }, { type: "image", image: toBase64(img) })
-    uploadBytes += Math.ceil((img.length * 4) / 3)
-  }
+  const shown = promptPages(profile, pages, opts.images, 300)
   const res = await opts.model.generateObject<z.infer<typeof PageLabelsSchema>>({
     schema: PageLabelsSchema,
-    system:
-      "You label the pages of a book one by one, judging each page on its own. Then you give one guess for the whole book.",
-    messages: [{ role: "user", content }],
+    prompt: PAGE_LABELS_PROMPT,
+    context: {
+      page_count: profile.pageCount,
+      every_page: plan.full,
+      opening_count: plan.opening.length,
+      middle_count: plan.middle.length,
+      end_count: plan.end.length,
+      pages: shown,
+    },
     maxRetries: 1,
     signal: opts.signal,
-    log: { taskType: "setup-recommender", promptName: "setup-recommender-page-labels" },
+    log: { taskType: "setup-recommender", promptName: PAGE_LABELS_PROMPT },
   })
   // One label per page (the first), only for pages that were sent: a repeated page would count twice.
   const seen = new Set<number>()
@@ -466,6 +395,6 @@ export async function readPageLabels(opts: {
     range: suggestRange(labels, profile.pageCount),
     usage: res.usage ?? { inputTokens: 0, outputTokens: 0 },
     ms: performance.now() - started,
-    uploadBytes,
+    uploadBytes: uploadBytesOf(shown),
   }
 }

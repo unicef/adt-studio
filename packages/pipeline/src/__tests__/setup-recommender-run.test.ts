@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import type { BookProfile } from "@adt/pdf"
 import type { LLMModel } from "@adt/llm"
 import { recommendSetup } from "../setup-recommender/recommend.js"
+import { PAGE_LABELS_PROMPT } from "../setup-recommender/readings.js"
 
 // A 10-page digital textbook: plain text pages, no pictures, no edges to join.
 const profile: BookProfile = {
@@ -37,7 +38,7 @@ const LABELS = {
 function fakeModel(fail: ("labels" | "questions")[] = []): LLMModel {
   return {
     generateObject: async (opts: { log?: { promptName?: string } }) => {
-      const which = opts.log?.promptName?.endsWith("page-labels") ? "labels" : "questions"
+      const which = opts.log?.promptName === PAGE_LABELS_PROMPT ? "labels" : "questions"
       if (fail.includes(which)) throw new Error(`${which} reading failed: HTTP 500 from the provider`)
       return { object: which === "labels" ? LABELS : QUESTIONS, usage: { inputTokens: 10, outputTokens: 5 } }
     },
@@ -45,7 +46,7 @@ function fakeModel(fail: ("labels" | "questions")[] = []): LLMModel {
 }
 
 const run = (fail: ("labels" | "questions")[] = []) =>
-  recommendSetup({ id: "t", model: fakeModel(fail), modelId: "fake:model", profile, renderPages: async () => new Map() })
+  recommendSetup({ id: "t", model: fakeModel(fail), modelId: "fake:model", profile, renderPages: async (sets) => sets.map(() => new Map()) })
 
 describe("recommendSetup", () => {
   it("uses both readings and asks nothing when they agree", async () => {

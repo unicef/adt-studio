@@ -618,11 +618,4 @@ export { storyboardSourceWarnings, captureStoryboardSource, publishSynchronizedS
 
 export { assertDerivedPackageFilesAvailable } from "./packaging/derived-bundle-files.js"
 // Auto mode (issue #333): the setup recommender.
-export {
-  recommendSetup,
-  measureFacts,
-  decide as decideSetup,
-  type RecommendSetupOptions,
-  type MeasuredFacts,
-  type RenderPages,
-} from "./setup-recommender/index.js"
+export { recommendSetup, type RecommendSetupOptions } from "./setup-recommender/index.js"

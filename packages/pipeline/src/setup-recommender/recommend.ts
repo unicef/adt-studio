@@ -9,9 +9,14 @@ import type { BookProfile } from "@adt/pdf"
 import type { SetupDecided, SetupFact, SetupReadings, SetupRecommendation } from "@adt/types"
 import { measureFacts, type MeasuredFacts } from "./facts.js"
 import {
+  BODY_PAGE_TYPES,
+  PAGE_LABELS_IMAGE_SIZE,
+  QUESTIONS_IMAGE_SIZE,
   languageCode,
+  questionPages,
   readPageLabels,
   readQuestions,
+  samplePlan,
   type PageLabel,
   type PageLabelsReading,
   type QuestionsReading,
@@ -216,6 +221,7 @@ export function factQuestions(
 
 export interface RecommendSetupOptions {
   id: string
+  /** Renders the readings' prompts (prompts/setup_recommender_*.liquid) through its prompt engine. */
   model: LLMModel
   modelId: string
   profile: BookProfile
@@ -230,9 +236,15 @@ export async function recommendSetup(opts: RecommendSetupOptions): Promise<Setup
   const measured = measureFacts(profile)
   const factsMs = performance.now() - factsStarted
 
+  // Both readings' page images in one pass over the PDF (a page both readings show is loaded once).
+  // A page that can't be drawn fails the whole recommendation: it is the PDF's fault, not a reading's.
+  const [labelImages, questionImages] = await opts.renderPages([
+    { pages: samplePlan(profile.pageCount).all, size: PAGE_LABELS_IMAGE_SIZE },
+    { pages: questionPages(profile, measured), size: QUESTIONS_IMAGE_SIZE },
+  ])
   const [labelsResult, questionsResult] = await Promise.allSettled([
-    readPageLabels({ model: opts.model, profile, renderPages: opts.renderPages, signal: opts.signal }),
-    readQuestions({ model: opts.model, profile, facts: measured, renderPages: opts.renderPages, signal: opts.signal }),
+    readPageLabels({ model: opts.model, profile, images: labelImages, signal: opts.signal }),
+    readQuestions({ model: opts.model, profile, facts: measured, images: questionImages, signal: opts.signal }),
   ])
   const labels: PageLabelsReading | null = labelsResult.status === "fulfilled" ? labelsResult.value : null
   const questions: QuestionsReading | null = questionsResult.status === "fulfilled" ? questionsResult.value : null
@@ -261,7 +273,7 @@ export async function recommendSetup(opts: RecommendSetupOptions): Promise<Setup
   }))
 
   const decided = decide(measured, proposal)
-  const bodyPage = pageLabels.find((l) => ["story", "lesson", "exercise", "informational"].includes(l.type))?.page
+  const bodyPage = pageLabels.find((l) => BODY_PAGE_TYPES.includes(l.type))?.page
   const previewPage = bodyPage ?? questions?.pages[0] ?? 1
 
   return {
@@ -282,7 +294,8 @@ export async function recommendSetup(opts: RecommendSetupOptions): Promise<Setup
       vectorDiagrams: measured.vectorDiagrams.value,
       textOverPicturesShare: measured.textOverPictures.share,
       medianChars: measured.textDensity.medianChars,
-      language: measured.language.pdfTag ?? measured.language.guess,
+      // What the PDF itself tells, in bookLanguage's order without the AI: the text's guess, then the PDF's tag.
+      language: measured.language.guess ?? measured.language.pdfTag,
     },
     language: bookLanguage(questions?.language ?? null, measured.language),
     facts,

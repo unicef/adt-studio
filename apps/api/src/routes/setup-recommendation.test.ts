@@ -42,7 +42,7 @@ beforeEach(() => {
   fs.writeFileSync(configPath, "structure_types: {}\nrole_types: {}\n")
   app = new Hono()
   app.onError(errorHandler)
-  app.route("/", createSetupRecommendationRoutes(tmpDir, configPath))
+  app.route("/", createSetupRecommendationRoutes(tmpDir, path.resolve("prompts"), configPath))
   app.route("/", createBookRoutes(tmpDir))
 })
 afterEach(() => {
@@ -129,7 +129,7 @@ describe("POST /setup-recommendation", () => {
 
   it("says the PDF is at fault (422, not a provider error) when its pages can't be drawn", async () => {
     recommend.impl = async (o) => {
-      await o.renderPages([99], 100) // a page the 2-page PDF doesn't have
+      await o.renderPages([{ pages: [99], size: 100 }]) // a page the 2-page PDF doesn't have
       return { id: o.id }
     }
     const res = await app.request("/setup-recommendation", { method: "POST", body: pdfForm(blankPdf(2)) })

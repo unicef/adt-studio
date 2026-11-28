@@ -3,7 +3,7 @@ import type { BookProfile } from "@adt/pdf"
 import { measureFacts, type MeasuredFacts } from "../setup-recommender/facts.js"
 import { decide, factMatters, type BookFacts } from "../setup-recommender/rules.js"
 import { bookLanguage, breakTies, factEvidence, factQuestions } from "../setup-recommender/recommend.js"
-import { countLabels, languageCode, PLACEMENTS, PLAIN_QUESTIONS, readPageLabels, samplePlan, suggestRange, type PageLabel } from "../setup-recommender/readings.js"
+import { countLabels, languageCode, readPageLabels, samplePlan, suggestRange, type PageLabel } from "../setup-recommender/readings.js"
 import type { LLMModel } from "@adt/llm"
 
 const measured = (over: Partial<MeasuredFacts> = {}): MeasuredFacts => ({
@@ -139,7 +139,7 @@ describe("page labels reading", () => {
         usage: { inputTokens: 1, outputTokens: 1 },
       }),
     } as unknown as LLMModel
-    const reading = await readPageLabels({ model, profile, renderPages: () => new Map() })
+    const reading = await readPageLabels({ model, profile, images: new Map() })
     expect(reading.labels.map((l) => [l.page, l.type])).toEqual([[1, "story"], [2, "story"], [3, "story"], [4, "story"]])
     expect(reading.counts.body).toBe(4)
   })
@@ -165,11 +165,6 @@ describe("page labels", () => {
     expect(breakTies(counted, q("text-in-art")).composition).toBe("text-in-art")
     // An answer outside the tie leaves the labels' pick; the readings then disagree and the fact is asked.
     expect(breakTies(counted, q("text-mostly")).composition).toBe(counted.facts.composition)
-  })
-
-  it("defines words on the picture the same way in both readings", () => {
-    expect(PLACEMENTS["on-art"]).toBe(PLAIN_QUESTIONS.composition.options["text-in-art"])
-    expect(PLACEMENTS["beside-art"]).toBe(PLAIN_QUESTIONS.composition.options["text-beside-art"])
   })
 
   it("counts the book's kind from body pages only and flags close calls", () => {
