@@ -4,7 +4,7 @@ import type sqlite from "node-sqlite3-wasm"
 import { SCHEMA_VERSION, BOOK_RECOVERY_PENDING_FILE } from "@adt/types"
 import { BookBusyError, ownsBookWriter, withBookWriter } from "./book-writer.js"
 
-import { initHistoryEvidence } from "./history-schema.js"
+import { HISTORY_EVIDENCE_SQL, initHistoryEvidence } from "./history-schema.js"
 import { captureLegacyHistory } from "./history-evidence.js"
 import { openCoordinatedDatabase } from "./database-admission.js"
 
@@ -85,6 +85,9 @@ CREATE TABLE IF NOT EXISTS sign_language_videos (
   created_at TEXT NOT NULL
 );
 `
+
+/** Every table a book database has today: the base schema plus history evidence. */
+export const BOOK_TABLES: readonly string[] = [...`${SCHEMA_SQL}${HISTORY_EVIDENCE_SQL}`.matchAll(/CREATE TABLE IF NOT EXISTS (\w+)/g)].map(match => match[1])
 
 export function assertRecoveryCopyReady(bookDir: string): void {
   if (fs.existsSync(path.join(bookDir, BOOK_RECOVERY_PENDING_FILE))) {

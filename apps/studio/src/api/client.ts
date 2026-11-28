@@ -2253,6 +2253,8 @@ export const api = {
       pendingDecisions: PendingDecision[]
       coverage?: import("@adt/types").StoryboardCoverage
       protectedWork?: Array<import("@adt/types").AuthoredReplacement & { pageNumber?: number }>
+      /** Which Extract re-run actions the book allows (SPEC-0003 RAC-24). */
+      extractRerun?: import("@adt/types").ExtractRerunStatus
     }>(`/books/${label}/step-status`, { signal }),
 
   getTTS: (label: string) =>
