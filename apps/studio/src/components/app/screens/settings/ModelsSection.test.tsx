@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from "react"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { ProviderDescriptor } from "@adt/types"
 
@@ -122,6 +122,7 @@ vi.mock("@/api/client", () => ({
 const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
 const { FloatingSaveProvider } = await import("@/components/pipeline/components/floating-save")
 const { ModelsSection } = await import("./ModelsSection")
+const { useTaskModelDrafts } = await import("./taskModels/useTaskModelDrafts")
 
 const byId = (id: string) => document.getElementById(id) as HTMLInputElement
 const defaultLlmInput = () => byId("app-default-model")
@@ -372,5 +373,41 @@ describe("ModelsSection — speech model (i) tooltip", () => {
     await waitFor(() => expect(isOpen()).toBe(true))
     fireEvent.click(infoButton())
     await waitFor(() => expect(isOpen()).toBe(false))
+  })
+})
+
+describe("ModelsSection — OpenAI task models under another provider's default", () => {
+  const NOTE = "Tasks set to GPT-6 Luna or GPT-6.1 Sol use this model instead while it isn't an OpenAI model."
+
+  it("explains the rule only while the default LLM is not an OpenAI model", async () => {
+    await renderLoaded()
+    expect(screen.queryByText(NOTE)).toBeNull()
+    fireEvent.change(defaultLlmInput(), { target: { value: "anthropic:claude-opus-4" } })
+    await waitFor(() => expect(screen.getByText(NOTE)).toBeTruthy())
+  })
+
+  it("shows a book on another provider's default following that default, not the global OpenAI pin", () => {
+    const task = { kind: "step" as const, prompts: [], reasoningEffort: null, inheritsFrom: [] as string[] }
+    const platform = {
+      defaultModel: "openai:gpt-6-luna",
+      defaultReasoningEffort: null,
+      tasks: [
+        { ...task, id: "page_sectioning", configKey: "page_sectioning", model: "openai:gpt-6.1-sol" },
+        { ...task, id: "glossary", configKey: "glossary", model: null, inheritsFrom: ["page_sectioning"] },
+        { ...task, id: "metadata", configKey: "metadata", model: "anthropic:claude-opus-4" },
+      ],
+    }
+    const book = { ...platform, tasks: platform.tasks.map((entry) => ({ ...entry, model: null })) }
+    const state = { data: book, inherited: platform, isLoading: false, isError: false, isSaving: false, save: () => {} }
+    const client = new QueryClient()
+    const wrapper = ({ children }: { children: React.ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>
+
+    const onClaude = renderHook(() => useTaskModelDrafts("anthropic:claude-sonnet-4-5", state), { wrapper }).result.current
+    expect(onClaude.inheritedOf("page_sectioning").model).toBe("anthropic:claude-sonnet-4-5")
+    expect(onClaude.inheritedOf("glossary").model).toBe("anthropic:claude-sonnet-4-5")
+    expect(onClaude.inheritedOf("metadata").model).toBe("anthropic:claude-opus-4")
+
+    const onOpenAi = renderHook(() => useTaskModelDrafts("", state), { wrapper }).result.current
+    expect(onOpenAi.inheritedOf("page_sectioning").model).toBe("openai:gpt-6.1-sol")
   })
 })

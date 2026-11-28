@@ -3,6 +3,7 @@ import { useLingui } from "@lingui/react/macro"
 import {
   fitReasoningEffort,
   resolveInheritedTaskModel,
+  taskModelApplies,
   type InheritedModelSource,
   type ReasoningEffort,
   type ReasoningEffortSupport,
@@ -92,15 +93,21 @@ export function useTaskModelDrafts(defaultModelDraft: string, taskModels: TaskMo
   const normalized = (id: string) => normalizeQualifiedModelInput(drafts[id] ?? "")
   const taskOf = (id: string) => tasks.find((task) => task.id === id)
   const platformTaskOf = (id: string) => taskModels.inherited?.tasks.find((task) => task.id === id)
+  // A global OpenAI pin doesn't apply when this book's default LLM is another
+  // provider's (the pipeline drops it the same way): show what will run.
+  const platformModelOf = (id: string) => {
+    const model = platformTaskOf(id)?.model
+    return model && taskModelApplies(model, defaultModel) ? model : null
+  }
   const inheritedDefaultEffort = taskModels.inherited?.defaultReasoningEffort ?? undefined
   const inheritedOf = (id: string): { model: string; source: InheritedModelSource } => {
     const task = taskOf(id)
-    const platformModel = platformTaskOf(id)?.model
+    const platformModel = platformModelOf(id)
     if (platformModel) return { model: platformModel, source: { kind: "platform" } }
     return task
       ? resolveInheritedTaskModel(
           task,
-          (sourceId) => normalized(sourceId) || platformTaskOf(sourceId)?.model || null,
+          (sourceId) => normalized(sourceId) || platformModelOf(sourceId) || null,
           defaultModel,
         )
       : { model: defaultModel, source: { kind: "default" } }

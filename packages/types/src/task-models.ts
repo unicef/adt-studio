@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { StepName } from "./pipeline.js"
-import { LLMModelId } from "./config.js"
+import { DEFAULT_LLM_MODEL_ID, LLMModelId, type AppConfig } from "./config.js"
 import { ReasoningEffort } from "./llm-inference.js"
 
 export interface StepTaskModelTarget {
@@ -141,6 +141,61 @@ export function resolveInheritedTaskModel(
     if (model) return { model, source: { kind: "task", taskId } }
   }
   return { model: defaultModel, source: { kind: "default" } }
+}
+
+function providerOf(model: string): string {
+  return model.split(":", 1)[0]
+}
+
+/**
+ * The models the shipped config pins tasks to. These are recommendations for
+ * the OpenAI default; a task set to any other model was chosen on purpose.
+ */
+export const SHIPPED_TASK_MODEL_IDS: readonly string[] = [DEFAULT_LLM_MODEL_ID, "openai:gpt-6.1-sol"]
+
+/**
+ * A task pinned to one of the shipped models (GPT-6 Luna, GPT-6.1 Sol) applies
+ * only while the default LLM is an OpenAI model. With another provider as the
+ * default, that task follows the default instead, so a user with no OpenAI key
+ * can run every stage. A pin to any other model, OpenAI's included, always
+ * applies: it is the user's choice, and a missing key is reported before a run.
+ */
+export function taskModelApplies(model: string | null | undefined, defaultModel: string): boolean {
+  return !model || !SHIPPED_TASK_MODEL_IDS.includes(model) || providerOf(defaultModel) === "openai"
+}
+
+type ModelBlock = { model?: string | null; reasoning_effort?: unknown }
+
+function withoutModel<T extends ModelBlock>(block: T): T {
+  const { model: _model, reasoning_effort: _effort, ...rest } = block
+  return rest as T
+}
+
+/**
+ * `config` without the task pins that don't apply under its default LLM (see
+ * `taskModelApplies`). A dropped pin takes its `reasoning_effort` with it,
+ * since that effort was chosen for the pinned model. Apply it to the final,
+ * merged config: a book can set its own default LLM.
+ */
+export function withApplicableTaskModels(config: AppConfig): AppConfig {
+  const defaultModel = config.default_model ?? DEFAULT_LLM_MODEL_ID
+  if (providerOf(defaultModel) === "openai") return config
+  const next = { ...config } as Record<string, unknown>
+  for (const target of STEP_TASK_MODEL_TARGETS) {
+    const block = next[target.configKey] as ModelBlock | undefined
+    if (block && typeof block === "object" && !taskModelApplies(block.model, defaultModel)) {
+      next[target.configKey] = withoutModel(block)
+    }
+  }
+  if (config.render_strategies) {
+    next.render_strategies = Object.fromEntries(Object.entries(config.render_strategies).map(([name, strategy]) => [
+      name,
+      strategy.config && !taskModelApplies(strategy.config.model, defaultModel)
+        ? { ...strategy, config: withoutModel(strategy.config) }
+        : strategy,
+    ]))
+  }
+  return next as AppConfig
 }
 
 export const TaskModelsResponse = z.object({

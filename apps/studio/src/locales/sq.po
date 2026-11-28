@@ -12288,6 +12288,9 @@ msgstr "Parazgjedhjet e modeleve sipas detyrës u përditësuan."
 msgid "Tasks Running"
 msgstr "Detyrat po Ekzekutohen"
 
+msgid "Tasks set to GPT-6 Luna or GPT-6.1 Sol use this model instead while it isn't an OpenAI model."
+msgstr "Detyrat e caktuara me GPT-6 Luna ose GPT-6.1 Sol përdorin këtë model për sa kohë që ai nuk është model OpenAI."
+
 msgid "Teaching the pixels new tricks..."
 msgstr "Duke i mësuar pikselëve truke të reja..."
 

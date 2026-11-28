@@ -2,7 +2,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
-import { deepMerge, loadBookConfig, loadBookConfigOverrides, loadConfig } from "../config.js"
+import { deepMerge, loadBookConfig, loadBookConfigOverrides, loadConfig, loadConfigAsWritten } from "../config.js"
 import { AppConfig } from "@adt/types"
 
 const dirs: string[] = []
@@ -213,5 +213,46 @@ role_types:
     expect(() =>
       loadBookConfig("../escape", booksRoot, baseConfigPath)
     ).toThrow("Invalid book label")
+  })
+})
+
+describe("OpenAI task pins follow the effective default LLM (#964 review)", () => {
+  const globalYaml = (defaultModel: string) => `structure_types: {}
+role_types: {}
+default_model: "${defaultModel}"
+page_sectioning:
+  model: "openai:gpt-6.1-sol"
+  reasoning_effort: "medium"
+visual_review:
+  model: "openai:gpt-6.1-sol"
+`
+  function setup(defaultModel: string, bookYaml?: string) {
+    const booksRoot = makeTempDir(), label = "book"
+    fs.mkdirSync(path.join(booksRoot, label))
+    const global = path.join(booksRoot, "config.yaml")
+    fs.writeFileSync(global, globalYaml(defaultModel))
+    if (bookYaml) fs.writeFileSync(path.join(booksRoot, label, "config.yaml"), bookYaml)
+    return { booksRoot, label, global }
+  }
+
+  it("drops OpenAI pins from the global config under a non-OpenAI default, without rewriting the file", () => {
+    const { global } = setup("anthropic:claude-sonnet-4-5")
+    const config = loadConfig(global)
+    expect(config.page_sectioning?.model).toBeUndefined()
+    expect(config.page_sectioning?.reasoning_effort).toBeUndefined()
+    expect(config.visual_review?.model).toBeUndefined()
+    expect(loadConfigAsWritten(global).page_sectioning?.model).toBe("openai:gpt-6.1-sol")
+    expect(fs.readFileSync(global, "utf8")).toBe(globalYaml("anthropic:claude-sonnet-4-5"))
+  })
+
+  it("lets a book's own default LLM decide which global pins apply", () => {
+    const claudeBook = setup("openai:gpt-6-luna", `default_model: "anthropic:claude-sonnet-4-5"\n`)
+    expect(loadConfig(claudeBook.global).page_sectioning?.model).toBe("openai:gpt-6.1-sol")
+    expect(loadBookConfig(claudeBook.label, claudeBook.booksRoot, claudeBook.global).page_sectioning?.model).toBeUndefined()
+
+    const openAiBook = setup("anthropic:claude-sonnet-4-5", `default_model: "openai:gpt-6-luna"\n`)
+    const config = loadBookConfig(openAiBook.label, openAiBook.booksRoot, openAiBook.global)
+    expect(config.page_sectioning).toMatchObject({ model: "openai:gpt-6.1-sol", reasoning_effort: "medium" })
+    expect(config.visual_review?.model).toBe("openai:gpt-6.1-sol")
   })
 })
