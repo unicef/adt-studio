@@ -92,3 +92,18 @@ export class AiProviderError extends Error {
     return new AiProviderError("invalid-model-id", `Invalid model id "${raw}": ${reason}`)
   }
 }
+
+/**
+ * The model's safety classifiers declined the request. Resending the same
+ * input is declined again, so the client does not retry it.
+ */
+export class ModelRefusalError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = "ModelRefusalError"
+  }
+
+  static is(error: unknown): error is ModelRefusalError {
+    return error instanceof ModelRefusalError
+  }
+}
