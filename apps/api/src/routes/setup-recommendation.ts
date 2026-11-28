@@ -8,7 +8,9 @@
  * `setupRecommendationId`, the recommendation is written into the book folder
  * as `setup-recommendation.json` and the log entries into the book's LLM log
  * (book-level storage, every prompt and response inspectable in the app's
- * LLM log). A recommendation no book is made from is dropped with its log.
+ * LLM log). The page images the AI saw go into the book's `.debug-images`,
+ * under the hash the log names them by, so the LLM log can show them. A
+ * recommendation no book is made from is dropped with its log and images.
  *
  * The AI answers are cached in `<booksDir>/.cache/setup-recommender`, shared by
  * every PDF (there is no book folder yet); entries written more than
@@ -31,6 +33,8 @@ import { readProviderCredentials } from "../middleware/provider-credentials.js"
 interface Held {
   recommendation: SetupRecommendation
   llmLog: LlmLogEntry[]
+  /** The page images the readings were sent, by the hash their log entries name them by. */
+  images: Map<string, Uint8Array>
   createdAt: number
   /** sha256 of the PDF it was made from: it is saved only into a book made from that same PDF. */
   pdfHash: string
@@ -90,6 +94,20 @@ export function pruneSetupCache(cacheDir: string, now = Date.now()): void {
   }
 }
 
+/** An image's name in the LLM log: the start of the sha256 of its base64, as the log writes it (@adt/llm sanitizeMessages). */
+function logImageHash(image: Uint8Array): string {
+  return createHash("sha256").update(Buffer.from(image).toString("base64")).digest("hex").slice(0, 16)
+}
+
+/** The images the log entries name: only those are saved, not every page drawn. */
+function loggedImageHashes(log: LlmLogEntry[]): Set<string> {
+  const hashes = new Set<string>()
+  for (const entry of log)
+    for (const message of entry.messages)
+      for (const part of message.content) if (part.type === "image") hashes.add(part.hash)
+  return hashes
+}
+
 /**
  * Saves a held recommendation with a new book: the recommendation into its
  * folder, its AI calls into its LLM log. Called by POST /books with the book's
@@ -108,6 +126,10 @@ export function attachSetupRecommendation(
   const storage = createBookStorage(book.label, book.booksDir)
   try {
     for (const entry of h.llmLog) storage.appendLlmLog(entry)
+    for (const hash of loggedImageHashes(h.llmLog)) {
+      const image = h.images.get(hash)
+      if (image) storage.putDebugImage(hash, Buffer.from(image))
+    }
   } finally {
     storage.close()
   }
@@ -140,6 +162,7 @@ export function createSetupRecommendationRoutes(booksDir: string, promptsDir: st
     const config = loadConfig(configPath)
     const modelId = process.env.ADT_SETUP_RECOMMENDER_MODEL || config.default_model || DEFAULT_LLM_MODEL_ID
     const llmLog: LlmLogEntry[] = []
+    const images = new Map<string, Uint8Array>()
     // No book yet, so no book prompts: the global prompts/setup_recommender_*.liquid.
     const promptEngine = createPromptEngine([promptsDir], { basePromptModelId: config.base_prompt_model })
     const cacheDir = path.join(path.resolve(booksDir), ".cache", "setup-recommender")
@@ -176,14 +199,20 @@ export function createSetupRecommendationRoutes(booksDir: string, promptsDir: st
         modelId,
         profile,
         renderPages: (sets) =>
-          pdfReads.run(() => renderBookPagesAsync(buffer, sets, { signal }), signal).catch((err: unknown) => {
-            if (signal.aborted) throw err
-            throw new PdfRenderError(err instanceof Error ? err.message : String(err))
-          }),
+          pdfReads.run(() => renderBookPagesAsync(buffer, sets, { signal }), signal).then(
+            (rendered) => {
+              for (const set of rendered) for (const img of set.values()) images.set(logImageHash(img), img)
+              return rendered
+            },
+            (err: unknown) => {
+              if (signal.aborted) throw err
+              throw new PdfRenderError(err instanceof Error ? err.message : String(err))
+            },
+          ),
         signal,
       })
       prune()
-      held.set(recommendation.id, { recommendation, llmLog, createdAt: Date.now(), pdfHash: sha256(buffer) })
+      held.set(recommendation.id, { recommendation, llmLog, images, createdAt: Date.now(), pdfHash: sha256(buffer) })
       return c.json(recommendation)
     } catch (err) {
       if (signal.aborted) throw err

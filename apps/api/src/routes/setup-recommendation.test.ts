@@ -9,6 +9,7 @@ import { openBookDb } from "@adt/storage"
 import { z } from "zod"
 import { errorHandler } from "../middleware/error-handler.js"
 import { createBookRoutes } from "./books.js"
+import { createDebugRoutes } from "./debug.js"
 import { createSetupRecommendationRoutes, pruneSetupCache, SETUP_CACHE_MAX_AGE_MS, SETUP_PDF_MAX_BYTES } from "./setup-recommendation.js"
 
 // Writing into the book can be made to fail.
@@ -59,6 +60,7 @@ beforeEach(() => {
   app.onError(errorHandler)
   app.route("/", createSetupRecommendationRoutes(tmpDir, path.resolve("prompts"), configPath))
   app.route("/", createBookRoutes(tmpDir))
+  app.route("/", createDebugRoutes(tmpDir, path.resolve("prompts"), configPath))
 })
 afterEach(() => {
   storageFails.on = false
@@ -200,6 +202,34 @@ describe("saving the recommendation with the book", () => {
     const saved = JSON.parse(fs.readFileSync(path.join(tmpDir, "logged", "setup-recommendation.json"), "utf8"))
     expect(saved.recommendation.id).toBeTruthy()
     expect(saved.llmLog).toBeUndefined()
+  })
+
+  it("saves the page images the AI was sent into the book, under the hash its LLM log names them by", async () => {
+    fs.writeFileSync(configPath, "structure_types: {}\nrole_types: {}\ndefault_model: nowhere:model\n")
+    recommend.impl = async (o) => {
+      // Two pages are drawn, only the first is sent: only that one is saved.
+      const [drawn] = await o.renderPages([{ pages: [1, 2], size: 64 }])
+      const image = Buffer.from(drawn!.get(1)!).toString("base64")
+      await o.model
+        .generateObject({ schema: z.object({}), prompt: "setup_recommender_questions", context: { page_count: 2, shown_pages: [1], pages: [{ number: 1, text: "", image }] }, log: { taskType: "setup-recommender", promptName: "setup_recommender_questions" } })
+        .catch(() => undefined)
+      return { id: o.id }
+    }
+    const pdf = blankPdf(2)
+    await createBook("imaged", pdf, await recommendFor(pdf))
+    const db = openBookDb(path.join(tmpDir, "imaged", "imaged.db"))
+    let hashes: string[]
+    try {
+      const [row] = db.all("SELECT data FROM llm_log") as { data: string }[]
+      const entry = JSON.parse(row!.data) as { messages: { content: { type: string; hash?: string }[] }[] }
+      hashes = entry.messages.flatMap((m) => m.content.filter((p) => p.type === "image").map((p) => p.hash!))
+    } finally {
+      db.close()
+    }
+    expect(hashes).toHaveLength(1)
+    expect(fs.readdirSync(path.join(tmpDir, "imaged", ".debug-images"))).toEqual([`${hashes[0]}.png`])
+    const res = await app.request(`/books/imaged/debug/llm-image/${hashes[0]}`)
+    expect(res.status).toBe(200)
   })
 
   it("still makes the book, with a warning, when saving the recommendation into it fails", async () => {

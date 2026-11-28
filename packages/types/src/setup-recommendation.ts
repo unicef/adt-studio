@@ -98,7 +98,10 @@ export const SetupFact = z.object({
   value: SetupFactValue,
   /** The question reading's answer (second opinion). Null when it did not run. */
   secondOpinion: SetupFactValue.nullable(),
-  /** The question reading's own words, to show the user. */
+  /**
+   * The question reading's own words about its answer (`secondOpinion`), not about `value`: when
+   * the two readings disagree, show it with the second opinion only. Null when it did not run.
+   */
   reason: z.string().nullable(),
   /** Pages that show this fact. */
   evidencePages: z.array(z.number().int()),
