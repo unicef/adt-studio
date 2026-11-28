@@ -6,11 +6,12 @@ import { PrimaryButton } from "../../core/ui"
 import { ErrorState, SecondaryButton } from "./ErrorState"
 
 /**
- * Why the AI setup stopped. `auth`: the provider rejected the key. `quota`: a usage or rate limit.
- * `offline`: no connection to the provider. `unknown`: anything else, e.g. an answer that didn't
- * match what the setup expects. `classifySetupError` sorts the recommender's errors into these.
+ * Why the AI setup stopped. `auth`: the provider has no key or rejected it. `quota`: a usage or rate
+ * limit. `offline`: the browser is offline. `pdf`: the PDF can't be read (damaged, empty or too
+ * large). `unknown`: anything else, e.g. an answer that didn't match what the setup expects, or a
+ * request that failed while online. `classifySetupError` sorts the recommender's errors into these.
  */
-export type SetupErrorKind = "auth" | "quota" | "offline" | "unknown"
+export type SetupErrorKind = "auth" | "quota" | "offline" | "pdf" | "unknown"
 
 
 /** The loader's error state. "Set it up myself" keeps the PDF and opens the manual setup; nothing is lost. */
@@ -61,6 +62,15 @@ export function SetupError({ kind, detail, onRetry, onManual }: { kind: SetupErr
             {retry}
           </>
         }
+      />
+    )
+  if (kind === "pdf")
+    return (
+      <ErrorState
+        title={<Trans>We couldn&apos;t open this PDF</Trans>}
+        body={<Trans>It may be damaged, have no pages, or be too large. Try another file, or set this book up yourself.</Trans>}
+        detail={detail}
+        actions={manual}
       />
     )
   if (kind === "offline")

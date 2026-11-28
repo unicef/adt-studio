@@ -7,9 +7,10 @@ import { ErrorDetails } from "../../errors/ErrorState"
 import { Chip } from "./bubbles"
 
 /**
- * Why the assistant couldn't read the book, said as its own message, with what to do next. Four
- * kinds, as in SetupError: auth, quota, offline (retries by itself when the connection returns)
- * and anything else. "Set it up myself" keeps the PDF.
+ * Why the assistant couldn't read the book, said as its own message, with what to do next. The
+ * kinds of SetupError: auth, quota, offline (only when the browser is offline; retries by itself
+ * when the connection returns), pdf (no retry: the same file fails again) and anything else.
+ * "Set it up myself" keeps the PDF.
  */
 export function EngineError({ failure, onRetry, onManual, current }: { failure: SetupFailure; onRetry: () => void; onManual: () => void; current: boolean }) {
   useEffect(() => {
@@ -24,7 +25,9 @@ export function EngineError({ failure, onRetry, onManual, current }: { failure: 
     ) : failure.kind === "quota" ? (
       <Trans>Your AI provider turned me down because of a usage limit.</Trans>
     ) : failure.kind === "offline" ? (
-      <Trans>I can&apos;t reach your AI provider. You seem to be offline.</Trans>
+      <Trans>You&apos;re offline, so I can&apos;t reach your AI provider.</Trans>
+    ) : failure.kind === "pdf" ? (
+      <Trans>I couldn&apos;t open this PDF.</Trans>
     ) : (
       <Trans>Something went wrong while I was looking at your book.</Trans>
     )
@@ -35,6 +38,8 @@ export function EngineError({ failure, onRetry, onManual, current }: { failure: 
       <Trans>Wait a moment and try again, or set this book up yourself. Your PDF stays here.</Trans>
     ) : failure.kind === "offline" ? (
       <Trans>I&apos;ll try again as soon as you&apos;re back online.</Trans>
+    ) : failure.kind === "pdf" ? (
+      <Trans>It may be damaged, have no pages, or be too large. Try another file, or set this book up yourself.</Trans>
     ) : (
       <Trans>Try again, or set it up yourself. Your PDF stays here.</Trans>
     )
@@ -58,7 +63,7 @@ export function EngineError({ failure, onRetry, onManual, current }: { failure: 
               <Plug className="size-4" />
               <Trans>Open AI providers</Trans>
             </Link>
-          ) : (
+          ) : failure.kind === "pdf" ? null : (
             <Chip primary onClick={onRetry} icon={<RotateCcw className="size-4" />}>
               <Trans>Try again</Trans>
             </Chip>
