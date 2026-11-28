@@ -179,7 +179,7 @@ export function TourCoach({ stops, at, onNext, onBack, onDone }: { stops: CoachS
         className={cn("gd-tour-coach fixed z-[41] flex", !pos && "invisible", placed && "gd-tour-glide", side === "right" && "flex-row items-center", side === "left" && "flex-row-reverse items-center", side === "below" && "flex-col items-start", side === "above" && "flex-col-reverse items-start", big && "flex-col items-center")}
         style={{ left: pos?.left ?? 0, top: pos?.top ?? 0, gap: big ? 14 : 10 }}
       >
-        <span className="gd-tour-orb flex" style={{ viewTransitionName: "gd-orb" }}>
+        <span className="flex drop-shadow-[0_6px_14px_rgb(43_127_255/0.3)]" style={{ viewTransitionName: "gd-orb" }}>
           <WizardPose pose={stop.pose ?? "hello"} size={big ? 170 : ORB} talking={talking} />
         </span>
         <div key={at} ref={speech} className={cn("gd-speech relative rounded-[22px] bg-[var(--lc-bubble)] px-5 py-4 text-[15.5px] leading-[1.5] lg:text-[16.5px]", big && "text-center")} data-side={side} style={{ width: big ? `min(${BUBBLE + 80}px, calc(100vw - ${EDGE * 2}px))` : BUBBLE }}>

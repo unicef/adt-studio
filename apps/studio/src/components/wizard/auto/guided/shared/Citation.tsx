@@ -35,7 +35,7 @@ function Slide({ file, page, onOpen, current }: { file: File; page: number; onOp
 function Track({ file, pages, at, onOpen }: { file: File; pages: number[]; at: number; onOpen: (page: number) => void }) {
   return (
     <div className="overflow-hidden rounded-[10px] bg-[var(--lc-stage,var(--muted))]">
-      <div className="ev-track flex" style={{ transform: `translateX(${-at * 100}%)` }}>
+      <div className="cite-track flex" style={{ transform: `translateX(${-at * 100}%)` }}>
         {pages.map((p, i) => (
           <Slide key={p} file={file} page={p} current={i === at} onOpen={() => onOpen(p)} />
         ))}
@@ -105,7 +105,7 @@ export function Citation({ file, pages, className }: { file: File | null | undef
             }}
             aria-label={list.length === 1 ? t`Read on page ${firstPage}` : t`Read on pages ${all}`}
             aria-expanded={open}
-            className={cn("ev-cite ml-1.5 mr-0.5 inline-flex translate-y-[-1px] items-center gap-1 rounded-full bg-brand-50 px-2 py-px align-middle text-[0.72em] font-semibold leading-[1.5] text-brand-700 ring-1 ring-brand-200 transition-[background-color,box-shadow] hover:bg-brand-100 hover:ring-brand-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-500 data-[state=open]:bg-brand-100 data-[state=open]:ring-brand-400", className)}
+            className={cn("cite-chip ml-1.5 mr-0.5 inline-flex translate-y-[-1px] items-center gap-1 rounded-full bg-brand-50 px-2 py-px align-middle text-[0.72em] font-semibold leading-[1.5] text-brand-700 ring-1 ring-brand-200 transition-[background-color,box-shadow] hover:bg-brand-100 hover:ring-brand-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-500 data-[state=open]:bg-brand-100 data-[state=open]:ring-brand-400", className)}
           >
             <FileText aria-hidden className="size-[1.05em]" />
             {list.length === 1 ? <Trans>Page {firstPage}</Trans> : <Plural value={list.length} one="# page" other="# pages" />}
@@ -115,7 +115,7 @@ export function Citation({ file, pages, className }: { file: File | null | undef
           ref={content}
           side="top"
           sideOffset={8}
-          className="ev-card w-[196px] rounded-[16px] border-0 bg-[var(--lc-bubble,var(--popover))] p-2 shadow-[0_0_0_1px_var(--lc-line,var(--border)),0_18px_40px_-18px_rgba(15,23,42,0.55)]"
+          className="cite-card w-[196px] rounded-[16px] border-0 bg-[var(--lc-bubble,var(--popover))] p-2 shadow-[0_0_0_1px_var(--lc-line,var(--border)),0_18px_40px_-18px_rgba(15,23,42,0.55)]"
           onKeyDown={keys}
           onBlur={(e) => {
             if (!inside(e.relatedTarget as Element | null)) setOpen(false)

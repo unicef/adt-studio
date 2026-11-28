@@ -31,28 +31,28 @@ export function Book3D({ src, alt = "", height = 270, maxWidth = 280, settle, cl
               <Sparkles className="size-10 text-brand-300" />
             </div>
           )}
-          <span aria-hidden className="am-book-hinge" />
+          <span aria-hidden className="book3d-hinge" />
         </div>
       </div>
     )
   }
   return (
-    <div className={cn("am-book-stand relative", className)} style={{ width: w, height: h }}>
-      <div aria-hidden className="am-book-floor" />
-      <div className="am-book-tilt">
-        <div className={cn("am-book", wide && "am-book-wide", settle && "am-book-settle")} style={{ width: w * RASTER, height: h * RASTER }}>
-          <div className="am-book-back" style={{ transform: `translateZ(${-t / 2}px)`, backgroundImage: src ? `url(${src})` : undefined }} />
-          <div className="am-book-pages" style={{ width: t, top: 4 * RASTER, bottom: 4 * RASTER, transform: `translateX(${t / 2 - 4 * RASTER}px) rotateY(90deg)` }} />
-          <div className="am-book-front size-full" style={{ transform: `translateZ(${t / 2}px)` }}>
+    <div className={cn("book3d-stand relative", className)} style={{ width: w, height: h }}>
+      <div aria-hidden className="book3d-floor" />
+      <div className="book3d-tilt">
+        <div className={cn("book3d", wide && "book3d-wide", settle && "book3d-settle")} style={{ width: w * RASTER, height: h * RASTER }}>
+          <div className="book3d-back" style={{ transform: `translateZ(${-t / 2}px)`, backgroundImage: src ? `url(${src})` : undefined }} />
+          <div className="book3d-pages" style={{ width: t, top: 4 * RASTER, bottom: 4 * RASTER, transform: `translateX(${t / 2 - 4 * RASTER}px) rotateY(90deg)` }} />
+          <div className="book3d-front size-full" style={{ transform: `translateZ(${t / 2}px)` }}>
             {src ? (
               <img src={src} alt={alt} onLoad={(e) => setRatio(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)} className="block size-full" />
             ) : (
-              <div className="am-book-blank grid size-full place-items-center">
+              <div className="book3d-blank grid size-full place-items-center">
                 <Sparkles className="size-14 text-brand-300" />
               </div>
             )}
-            <span aria-hidden className="am-book-hinge" />
-            <span aria-hidden className="am-book-gloss" />
+            <span aria-hidden className="book3d-hinge" />
+            <span aria-hidden className="book3d-gloss" />
           </div>
         </div>
       </div>

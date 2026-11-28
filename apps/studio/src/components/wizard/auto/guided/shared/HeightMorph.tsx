@@ -3,8 +3,8 @@ import { cn } from "@/lib/utils"
 import "./expand.css"
 
 /**
- * b10 · Family-style height morph: the card stays where it is and only its height eases to whatever
- * its content is now; the content itself swaps with a short blur (`ix-swap`, keyed by the caller).
+ * A height morph: the card stays where it is and only its height eases to whatever
+ * its content is now; the content itself swaps with a short blur (`height-morph-swap`, keyed by the caller).
  */
 export function HeightMorph({ children, className }: { children: ReactNode; className?: string }) {
   const inner = useRef<HTMLDivElement>(null)
@@ -19,7 +19,7 @@ export function HeightMorph({ children, className }: { children: ReactNode; clas
     return () => ro.disconnect()
   }, [])
   return (
-    <div className={cn("ix-morph", className)} style={{ height: height ?? undefined }}>
+    <div className={cn("height-morph", className)} style={{ height: height ?? undefined }}>
       <div ref={inner}>{children}</div>
     </div>
   )

@@ -24,7 +24,6 @@ type ViewTransitionDoc = Document & { startViewTransition: (update: () => void) 
 const DIALOG = "[role=dialog][data-state], [role=alertdialog][data-state]"
 
 /** Set on <html> while a morph runs: guided.css's view-transition timings apply to Add Book's morphs only. */
-// eslint-disable-next-line lingui/no-unlocalized-strings -- an attribute name
 const MORPHING = "data-gd-morph"
 let morphing = 0
 

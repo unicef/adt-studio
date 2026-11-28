@@ -35,7 +35,7 @@ export function HeadingBar({ className }: { className?: string }) {
 export function FigureMark({ box }: { box?: { x: number; y: number; w: number; h: number } }) {
   const style: CSSProperties = box ? { left: `${box.x * 100}%`, top: `${box.y * 100}%`, width: `${box.w * 100}%`, height: `${box.h * 100}%` } : { inset: 10 }
   return (
-    <span aria-hidden className="pointer-events-none absolute animate-[am-pop_0.35s_cubic-bezier(0.34,1.56,0.64,1)_both] rounded-[14px] border-[3px] border-dashed border-violet-500/90 motion-reduce:animate-none" style={style}>
+    <span aria-hidden className="pointer-events-none absolute animate-[flow-pop_0.35s_cubic-bezier(0.34,1.56,0.64,1)_both] rounded-[14px] border-[3px] border-dashed border-violet-500/90 motion-reduce:animate-none" style={style}>
       <span className="absolute -bottom-[15px] left-3 inline-flex items-center gap-1.5 rounded-full bg-violet-600 px-3 py-1 text-[15px] font-semibold text-white shadow-md">
         <ImageIcon className="size-4" />
         <Trans>Figure + labels</Trans>
@@ -108,7 +108,7 @@ export function Part({ n, on, children, className }: { n: number; on: boolean; c
     <div className={cn("relative", className)}>
       {children}
       {on && (
-        <span aria-hidden className="pointer-events-none absolute -inset-2.5 animate-[am-pop_0.35s_cubic-bezier(0.34,1.56,0.64,1)_both] rounded-[18px] border-[3px] border-dashed border-amber-500 motion-reduce:animate-none" style={{ animationDelay: `${n * 80}ms` }}>
+        <span aria-hidden className="pointer-events-none absolute -inset-2.5 animate-[flow-pop_0.35s_cubic-bezier(0.34,1.56,0.64,1)_both] rounded-[18px] border-[3px] border-dashed border-amber-500 motion-reduce:animate-none" style={{ animationDelay: `${n * 80}ms` }}>
         </span>
       )}
     </div>

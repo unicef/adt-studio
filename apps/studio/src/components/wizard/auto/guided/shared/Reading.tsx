@@ -41,9 +41,9 @@ export function ReadingCard({ file, pageCount, done = false }: { file: File | nu
             <img src="/add-book/wizard-scan.png" alt="" draggable={false} className="absolute left-0 top-0 h-full w-auto max-w-none" />
           </span>
           {/* The beam is drawn here: it widens from the wand to the pages' height and fades out before the first page. */}
-          <span aria-hidden className="lcl-beam relative -ml-1.5 mr-1.5 h-[76px] w-[26px] shrink-0 sm:mr-2 sm:h-[112px] sm:w-[64px]">
-            <span className="lcl-beam-cone" />
-            {[0, 1, 2].map((i) => <span key={i} className="lcl-beam-spark" style={{ animationDelay: `${i * 0.6}s`, top: `${44 + (i - 1) * 9}%` }} />)}
+          <span aria-hidden className="scan-beam relative -ml-1.5 mr-1.5 h-[76px] w-[26px] shrink-0 sm:mr-2 sm:h-[112px] sm:w-[64px]">
+            <span className="scan-beam-cone" />
+            {[0, 1, 2].map((i) => <span key={i} className="scan-spark" style={{ animationDelay: `${i * 0.6}s`, top: `${44 + (i - 1) * 9}%` }} />)}
           </span>
           <ScanPages file={file} pageCount={pageCount} />
         </span>

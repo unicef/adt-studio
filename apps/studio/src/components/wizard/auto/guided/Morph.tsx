@@ -20,7 +20,7 @@ export function Morph({ swap, name, children, className, inner }: { swap: string
     )
   return (
     <HeightMorph className={className}>
-      <div key={swap} className={cn("ix-swap", inner)}>
+      <div key={swap} className={cn("height-morph-swap", inner)}>
         {children}
       </div>
     </HeightMorph>

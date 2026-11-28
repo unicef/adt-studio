@@ -88,15 +88,15 @@ function LookCard({ rec, option, page, narrow, compact = false, chosen, first, o
       style={vtName ? { viewTransitionName: vtName.replace(/[^a-zA-Z0-9_-]/g, "_") } : undefined}
       onClick={(e) => onPick(e.currentTarget)}
       aria-label={option.art ? t`${label}. ${line}.` : t`${label}. ${line}. ${looks}`}
-      className={cn("qd18-o group relative flex min-w-0 p-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500", row ? "flex-row items-center gap-3" : "flex-col", chosen && "is-sel")}
+      className={cn("opt-card group relative flex min-w-0 p-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500", row ? "flex-row items-center gap-3" : "flex-col", chosen && "is-sel")}
       data-grow={grow}
     >
-      <span ref={ref} className={cn("relative grid shrink-0 place-items-center overflow-hidden rounded-[12px]", !option.art && "qd18-pv", compact ? "h-[68px] w-[96px]" : narrow ? "h-[96px] w-[132px]" : "h-[max(100px,calc(150px-var(--gd-squeeze,0px)))] lg:h-[max(84px,calc(170px-var(--gd-squeeze,0px)))]")}>
+      <span ref={ref} className={cn("relative grid shrink-0 place-items-center overflow-hidden rounded-[12px]", !option.art && "bg-[var(--lc-stage,var(--muted))]", compact ? "h-[68px] w-[96px]" : narrow ? "h-[96px] w-[132px]" : "h-[max(100px,calc(150px-var(--gd-squeeze,0px)))] lg:h-[max(84px,calc(170px-var(--gd-squeeze,0px)))]")}>
         {option.art ? (
-          <span className="qd18-dev block h-full w-full p-2">{option.art}</span>
+          <span className="opt-art block h-full w-full p-2">{option.art}</span>
         ) : (
           box.w > 0 && (
-            <span className="qd18-dev">
+            <span className="opt-art">
               <Screen shown={option.look} srcs={srcs} width={width} />
             </span>
           )
@@ -120,7 +120,7 @@ function LookCard({ rec, option, page, narrow, compact = false, chosen, first, o
     </button>
   )
   // Hovering a card (a pointer resting on it) grows it: its details open from its edge as one piece
-  // with it (question.css .qd18-grow): what it does, the books it suits, how it reads on a phone and
+  // with it (question.css .opt-details): what it does, the books it suits, how it reads on a phone and
   // its downside. Touch and keyboard users get the same through Explain the options.
   const best = option.best ?? (option.guide ? i18n._(option.guide.examples) : undefined)
   return (
@@ -133,7 +133,7 @@ function LookCard({ rec, option, page, narrow, compact = false, chosen, first, o
         sideOffset={-2}
         avoidCollisions={false}
         collisionPadding={{ top: room.top, bottom: room.bottom }}
-        className="qd18-grow max-h-[var(--radix-hover-card-content-available-height)] w-[var(--radix-hover-card-trigger-width)] overflow-y-auto p-4"
+        className="opt-details max-h-[var(--radix-hover-card-content-available-height)] w-[var(--radix-hover-card-trigger-width)] overflow-y-auto p-4"
       >
         <p className="text-[15px] font-semibold leading-tight">{option.label}</p>
         <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">{option.more ?? option.line}</p>

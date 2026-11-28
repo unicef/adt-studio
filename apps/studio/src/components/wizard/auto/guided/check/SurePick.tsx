@@ -18,7 +18,7 @@ export function Picture({ rec, look, page, file, className }: { rec: SetupRecomm
   const describe = useDescribe()
   const { ref, box } = useBox<HTMLSpanElement>()
   return (
-    <span ref={ref} role="img" aria-label={describe(look, "desktop", pages)} className={cn("qd18-pv relative grid shrink-0 place-items-center overflow-hidden rounded-[12px]", className)}>
+    <span ref={ref} role="img" aria-label={describe(look, "desktop", pages)} className={cn("relative grid shrink-0 place-items-center overflow-hidden rounded-[12px] bg-[var(--lc-stage,var(--muted))]", className)}>
       {box.w > 0 && <Screen shown={look} srcs={srcs} width={fitWidth(box)} />}
     </span>
   )

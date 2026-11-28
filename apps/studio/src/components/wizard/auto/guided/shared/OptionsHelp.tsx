@@ -147,7 +147,7 @@ function HelpPicture({ rec, option, page, file }: { rec: SetupRecommendation; op
   const pages = screenPages(rec, option.look.pageGrouping, page)
   const srcs = useScreenImages(file, pages)
   return (
-    <span aria-hidden className="qd18-pv grid h-[200px] w-full place-items-center overflow-hidden rounded-[16px] bg-muted sm:h-[min(34vh,280px)]">
+    <span aria-hidden className="grid h-[200px] w-full place-items-center overflow-hidden rounded-[16px] bg-[var(--lc-stage,var(--muted))] sm:h-[min(34vh,280px)]">
       {option.art ? <span className="block h-full w-full p-4">{option.art}</span> : <Screen shown={option.look} srcs={srcs} width={320} />}
     </span>
   )

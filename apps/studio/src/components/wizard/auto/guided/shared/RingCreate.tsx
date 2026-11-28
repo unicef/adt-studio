@@ -64,20 +64,20 @@ export function RingCreate({ run }: { run: CreateRun }) {
           data-done={morphed}
           aria-hidden={!morphed}
           tabIndex={morphed ? undefined : -1}
-          className="fx-ring relative inline-flex shrink-0 items-center justify-center overflow-hidden text-[15px] font-semibold"
+          className="create-ring relative inline-flex shrink-0 items-center justify-center overflow-hidden text-[15px] font-semibold"
         >
           <svg viewBox="0 0 52 52" className="absolute left-0 top-0 size-[52px]" aria-hidden>
             <circle cx="26" cy="26" r={R} fill="none" strokeWidth="3.5" className="stroke-border" />
             <circle cx="26" cy="26" r={R} fill="none" strokeWidth="3.5" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - p)} className="p stroke-brand-600" />
           </svg>
           {morphed && (
-            <span className="fx-label-in inline-flex items-center gap-2 whitespace-nowrap">
+            <span className="create-label-in inline-flex items-center gap-2 whitespace-nowrap">
               <Trans>Open the book</Trans>
               <ArrowRight className="size-4" />
             </span>
           )}
         </button>
-        <span key={morphed ? "ready" : run.status} className="fx-fade-in text-center font-mono text-[13px] text-muted-foreground">
+        <span key={morphed ? "ready" : run.status} className="create-fade-in text-center font-mono text-[13px] text-muted-foreground">
           {morphed ? <Trans>{run.name} is set up</Trans> : run.status === "extracting" ? <Trans>Starting on the first pages…</Trans> : done ? <Trans>Done</Trans> : <Trans>Saving your book…</Trans>}
         </span>
       </div>

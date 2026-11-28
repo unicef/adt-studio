@@ -41,7 +41,7 @@ export function ErrorDetails({ detail, className }: { detail: string; className?
 /** What went wrong, what it means for the user, and what they can do next — the shape every auto-mode error uses. */
 export function ErrorState({ title, body, actions, detail, status, className }: { title: ReactNode; body: ReactNode; actions: ReactNode; detail?: string; status?: ReactNode; className?: string }) {
   return (
-    <div role="alert" className={cn("flex flex-col items-center gap-3 animate-[am-fade-up_0.4s_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none", className)}>
+    <div role="alert" className={cn("flex flex-col items-center gap-3 animate-[flow-fade-up_0.4s_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none", className)}>
       <h1 className="text-[40px] font-bold leading-[1.05] tracking-[-0.03em]">{title}</h1>
       <p className="max-w-[540px] text-[16px] leading-relaxed text-muted-foreground">{body}</p>
       {status}

@@ -3,7 +3,6 @@ import { WIDE } from "./useWide"
 
 // eslint-disable-next-line lingui/no-unlocalized-strings -- a CSS variable
 const SQUEEZE = "--gd-squeeze"
-// eslint-disable-next-line lingui/no-unlocalized-strings -- an attribute name
 const TIGHT = "data-gd-tight"
 
 /**

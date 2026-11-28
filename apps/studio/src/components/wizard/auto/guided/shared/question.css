@@ -5,30 +5,28 @@
 
 /* Light picture cards: a quiet picture area, a plain label and a short line. The picked one
    lifts with an accent edge and a tinted shadow; the others' pictures sit back a little. */
-.qd18-o {
+.opt-card {
   border-radius: 18px;
   background: var(--lc-bubble, var(--card));
   box-shadow: 0 0 0 1.5px var(--lc-line, var(--border));
   transition: transform 0.35s var(--lc-pop, cubic-bezier(0.34, 1.56, 0.64, 1)), box-shadow 0.2s ease, border-radius 0.18s ease;
 }
-.qd18-o:hover { box-shadow: 0 0 0 1.5px var(--brand-300); }
-.qd18-o.is-sel {
+.opt-card:hover { box-shadow: 0 0 0 1.5px var(--brand-300); }
+.opt-card.is-sel {
   transform: translateY(-4px);
   box-shadow: 0 0 0 1.5px var(--lc-accent, var(--brand-600)), 0 10px 22px -6px color-mix(in oklab, var(--brand-600) 26%, transparent);
 }
-.qd18-pv { background: var(--lc-stage, var(--muted)); }
-.qd18-pg { box-shadow: 0 1px 2px rgb(0 0 0 / 0.18), 0 6px 14px -8px rgb(15 23 42 / 0.35); }
-.qd18-dev { display: block; transform: scale(0.88); transition: transform 0.5s var(--lc-spring, cubic-bezier(0.34, 1.45, 0.64, 1)); }
-.qd18-o:hover .qd18-dev { transform: scale(0.93); }
-.qd18-o.is-sel .qd18-dev { transform: scale(1) rotate(-1.5deg); }
+.opt-art { display: block; transform: scale(0.88); transition: transform 0.5s var(--lc-spring, cubic-bezier(0.34, 1.45, 0.64, 1)); }
+.opt-card:hover .opt-art { transform: scale(0.93); }
+.opt-card.is-sel .opt-art { transform: scale(1) rotate(-1.5deg); }
 
 /* A card whose details are open grows: the card takes the panel's outline and lift, and the two
    meet with square corners, the panel overlapping the card's edge with no border on the shared side,
    so they read as one shape (PreviewChoices' hover details). */
-.qd18-o[data-state="open"] { box-shadow: 0 0 0 1.5px var(--brand-300), 0 22px 44px -22px rgb(15 23 42 / 0.5); }
-.qd18-o[data-state="open"][data-grow="down"] { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
-.qd18-o[data-state="open"][data-grow="up"] { border-top-left-radius: 0; border-top-right-radius: 0; }
-.qd18-grow {
+.opt-card[data-state="open"] { box-shadow: 0 0 0 1.5px var(--brand-300), 0 22px 44px -22px rgb(15 23 42 / 0.5); }
+.opt-card[data-state="open"][data-grow="down"] { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.opt-card[data-state="open"][data-grow="up"] { border-top-left-radius: 0; border-top-right-radius: 0; }
+.opt-details {
   /* The outline is drawn like the card's (outside the edge), so the two line up exactly. */
   border: 0;
   border-radius: 18px;
@@ -37,17 +35,17 @@
 }
 /* On the side it shares with the card, the outline is clipped away and the panel covers the card's
    edge, so the seam disappears; the other three sides keep their outline and shadow. */
-.qd18-grow[data-side="bottom"] { border-top-left-radius: 0; border-top-right-radius: 0; transform-origin: top center; clip-path: inset(0 -64px -64px -64px); }
-.qd18-grow[data-side="top"] { border-bottom-left-radius: 0; border-bottom-right-radius: 0; transform-origin: bottom center; clip-path: inset(-64px -64px 0 -64px); }
-@keyframes qd18-grow-down { from { opacity: 0; transform: translateY(-6px) scaleY(0.96); } }
-@keyframes qd18-grow-up { from { opacity: 0; transform: translateY(6px) scaleY(0.96); } }
-.qd18-grow[data-state="open"][data-side="bottom"] { animation: qd18-grow-down 0.2s var(--lc-out, ease-out) both !important; }
-.qd18-grow[data-state="open"][data-side="top"] { animation: qd18-grow-up 0.2s var(--lc-out, ease-out) both !important; }
-.qd18-grow[data-state="closed"] { animation: qd18-fade-out 0.12s ease-in both !important; }
-@keyframes qd18-fade-out { to { opacity: 0; } }
+.opt-details[data-side="bottom"] { border-top-left-radius: 0; border-top-right-radius: 0; transform-origin: top center; clip-path: inset(0 -64px -64px -64px); }
+.opt-details[data-side="top"] { border-bottom-left-radius: 0; border-bottom-right-radius: 0; transform-origin: bottom center; clip-path: inset(-64px -64px 0 -64px); }
+@keyframes opt-details-down { from { opacity: 0; transform: translateY(-6px) scaleY(0.96); } }
+@keyframes opt-details-up { from { opacity: 0; transform: translateY(6px) scaleY(0.96); } }
+.opt-details[data-state="open"][data-side="bottom"] { animation: opt-details-down 0.2s var(--lc-out, ease-out) both !important; }
+.opt-details[data-state="open"][data-side="top"] { animation: opt-details-up 0.2s var(--lc-out, ease-out) both !important; }
+.opt-details[data-state="closed"] { animation: opt-details-out 0.12s ease-in both !important; }
+@keyframes opt-details-out { to { opacity: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .qd18-grow[data-state] { animation: none !important; }
-  .qd18-o, .qd18-dev { transition: none; }
-  .qd18-o.is-sel { transform: none; }
+  .opt-details[data-state] { animation: none !important; }
+  .opt-card, .opt-art { transition: none; }
+  .opt-card.is-sel { transform: none; }
 }

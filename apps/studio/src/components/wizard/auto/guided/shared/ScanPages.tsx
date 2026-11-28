@@ -27,9 +27,9 @@ export function ScanPages({ file, pageCount }: { file: File; pageCount: number }
   return (
     <span aria-hidden className="flex shrink-0 items-center gap-2 sm:gap-[18px]">
       {spreadPages(pageCount, 3).map((page, i) => (
-        <span key={page} className="lcl-page relative overflow-hidden rounded-[4px]">
+        <span key={page} className="relative overflow-hidden rounded-[4px] shadow-[0_1px_2px_rgb(15_23_42/0.18),0_6px_16px_-8px_rgb(15_23_42/0.25)] dark:shadow-[0_1px_2px_rgb(0_0_0/0.5),0_6px_16px_-8px_rgb(0_0_0/0.6)]">
           <Thumb file={file} page={page} />
-          <span className="lcl-scan-line" style={{ animationDelay: `${i * 0.8}s` }} />
+          <span className="scan-line" style={{ animationDelay: `${i * 0.8}s` }} />
         </span>
       ))}
     </span>
