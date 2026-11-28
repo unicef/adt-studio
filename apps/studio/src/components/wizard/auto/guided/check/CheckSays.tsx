@@ -1,9 +1,11 @@
-import { Trans, useLingui } from "@lingui/react/macro"
+import { useStore } from "@tanstack/react-form"
+import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import { CircleHelp } from "lucide-react"
 import { askExplain, useExplainable } from "../shared/explain"
 import { useLanguageName } from "../shared/languageName"
 import type { SetupRecommendation } from "@adt/types"
-import { RULE_WHY } from "../../engine/words"
+import { RULE_WHY, SETTING_VALUE } from "../../engine/words"
+import { useWizardForm } from "../../../core/wizardForm"
 import type { Derived } from "../shared/useAnswers"
 import { Chip } from "../shared/bubbles"
 import { ASK_WHY, KIND_SAYS } from "../shared/words"
@@ -107,28 +109,24 @@ function Says({ rec, derived, screen, file, pageCount }: Props) {
     )
   }
   if (screen === "look") {
-    return (
-      <p>
-        {ask ? i18n._(ask) : why(derived.fromAnswers.renderStrategy?.rule)}
-      </p>
-    )
-  }
-  if (screen === "spreads") return <SpreadsSays derived={derived} />
-  if (screen === "pages") {
-    if (pageCount > LARGE_BOOK)
+    // A layout the user picked by hand: say so, and what it does (the reason was for the guess).
+    const layout = SETTING_VALUE.renderStrategy[String(derived.effective.renderStrategy?.value)]
+    // eslint-disable-next-line lingui/no-unlocalized-strings -- a source id, never shown
+    if (derived.source("renderStrategy") === "changed" && layout) {
+      const name = i18n._(layout.name)
       return (
         <p>
           <Trans>
-            <strong className="font-semibold">This is a big book: {pageCount} pages.</strong> Converting all of them takes a while and uses more of your AI credit, so you may want to start with a few.
-          </Trans>
+            <strong className="font-semibold">Your pick: {name}.</strong>
+          </Trans>{" "}
+          {i18n._(layout.means)}
         </p>
       )
-    return (
-      <p>
-        <Trans>Pick the pages to convert. All {pageCount} are selected.</Trans>
-      </p>
-    )
+    }
+    return <p>{ask ? i18n._(ask) : why(derived.fromAnswers.renderStrategy?.rule)}</p>
   }
+  if (screen === "spreads") return <SpreadsSays derived={derived} />
+  if (screen === "pages") return <PagesSays pageCount={pageCount} />
   if (screen === "activities") {
     const facts = screenFacts(rec, derived.current, "activities").map((f) => f.id)
     const rule = facts.includes("exercises") ? derived.fromAnswers.activitiesGenerator?.rule : derived.fromAnswers.figureExtraction?.rule
@@ -143,11 +141,49 @@ function Says({ rec, derived, screen, file, pageCount }: Props) {
   )
 }
 
+/** Pages: the pages chosen now (every page, a range, or split into parts); for a big book, a nudge to start with a few. */
+function PagesSays({ pageCount }: { pageCount: number }) {
+  const form = useWizardForm()
+  const scope = useStore(form.store, (s) => s.values.scope)
+  const start = Math.max(1, parseInt(useStore(form.store, (s) => s.values.startPage)) || 1)
+  const end = Math.min(pageCount, parseInt(useStore(form.store, (s) => s.values.endPage)) || pageCount)
+  if (scope === "split")
+    return (
+      <p>
+        <Trans>
+          <strong className="font-semibold">Split into parts.</strong> The book is set up without converting it, so each person can convert their own pages.
+        </Trans>
+      </p>
+    )
+  if (scope === "range" && (start > 1 || end < pageCount)) {
+    const count = end - start + 1
+    return (
+      <p>
+        <strong className="font-semibold">{start === end ? <Trans>Page {start} is selected.</Trans> : <Trans>Pages {start}–{end} are selected.</Trans>}</strong>{" "}
+        <Plural value={count} one="Only that page is converted." other="Only those # pages are converted." />
+      </p>
+    )
+  }
+  if (pageCount > LARGE_BOOK)
+    return (
+      <p>
+        <Trans>
+          <strong className="font-semibold">This is a big book: {pageCount} pages.</strong> Converting all of them takes a while and uses more of your AI credit, so you may want to start with a few.
+        </Trans>
+      </p>
+    )
+  return (
+    <p>
+      <Plural value={pageCount} one="Pick the pages to convert. The only page is selected." other="Pick the pages to convert. All # are selected." />
+    </p>
+  )
+}
+
 /** Facing pages: what the PDF showed (pictures across two pages, two-page openings, wide pages, or none), and so what happens to its pages. The pages that showed it are on the screen. */
-/* eslint-disable lingui/no-unlocalized-strings -- rule ids and setting values, never shown */
 function SpreadsSays({ derived }: { derived: Derived }) {
   const rule = derived.fromAnswers.pageGrouping?.rule
   const joined = derived.effective.pageGrouping?.value === "spread"
+  // eslint-disable-next-line lingui/no-unlocalized-strings -- a rule id or setting value, never shown
   if (derived.source("pageGrouping") === "changed")
     return (
       <p>
@@ -194,4 +230,3 @@ function SpreadsSays({ derived }: { derived: Derived }) {
     </p>
   )
 }
-/* eslint-enable lingui/no-unlocalized-strings */
