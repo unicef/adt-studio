@@ -1,7 +1,7 @@
 import { createHistoryRecoveryRoutes } from "./history-recovery.js"
 import { readSectioningLifecycle, recoverSectioningTransition } from "@adt/storage"
 import { BookConfigError, effectiveSectioningMode, publishedAdtDirectory } from "@adt/pipeline"
-import { getStageClearNodes, getStageClearOrder } from "@adt/types"
+import { getStageClearNodes, getStageClearOrder, type SetupRecommendationWarning } from "@adt/types"
 import { bookWriterMiddleware } from "../middleware/book-writer.js"
 import fs from "node:fs"
 import { attachSetupRecommendation } from "./setup-recommendation.js"
@@ -299,16 +299,16 @@ export function createBookRoutes(
     // book. The book already exists here, so a failure only adds a warning.
     const setupRecommendationId = formData.get("setupRecommendationId")
     if (typeof setupRecommendationId === "string" && setupRecommendationId) {
-      let setupRecommendationWarning: string | null = null
+      let setupRecommendationWarning: SetupRecommendationWarning | null = null
       try {
-        const attached = attachSetupRecommendation(setupRecommendationId, path.join(path.resolve(booksDir), book.label), {
+        const attached = attachSetupRecommendation(setupRecommendationId, { label: book.label, booksDir }, {
           config: configOverrides,
           pdf: pdfBuffer,
         })
-        if (attached === "expired") setupRecommendationWarning = "The setup recommendation expired, so it was not saved with the book."
-        if (attached === "other-pdf") setupRecommendationWarning = "The setup recommendation was made for a different PDF, so it was not saved with the book."
+        if (attached === "expired") setupRecommendationWarning = { reason: "expired", message: "The setup recommendation expired, so it was not saved with the book." }
+        if (attached === "other-pdf") setupRecommendationWarning = { reason: "other-pdf", message: "The setup recommendation was made for a different PDF, so it was not saved with the book." }
       } catch (err) {
-        setupRecommendationWarning = `The setup recommendation was not saved with the book: ${err instanceof Error ? err.message : String(err)}`
+        setupRecommendationWarning = { reason: "failed", message: `The setup recommendation was not saved with the book: ${err instanceof Error ? err.message : String(err)}` }
       }
       if (setupRecommendationWarning) return c.json({ ...book, setupRecommendationWarning }, 201)
     }

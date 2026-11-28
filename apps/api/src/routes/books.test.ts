@@ -179,7 +179,7 @@ describe("POST /books", () => {
     expect(res.status).toBe(201)
     const book = await res.json()
     expect(book.label).toBe("auto-book")
-    expect(book.setupRecommendationWarning).toMatch(/expired/)
+    expect(book.setupRecommendationWarning).toMatchObject({ reason: "expired", message: expect.stringMatching(/expired/) })
     expect(fs.existsSync(path.join(tmpDir, "auto-book", "setup-recommendation.json"))).toBe(false)
   })
 

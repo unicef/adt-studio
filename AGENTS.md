@@ -123,6 +123,7 @@ docker run -p 8080:80 -v ./books:/app/books adt-studio
 | `PORT` | `3001` | Internal only — nginx proxies to this |
 | `ADT_SCREENSHOT_CONCURRENCY` | `min(8, max(2, cores - 1))` | Max simultaneous screenshot captures per API process (see [docs/ARCHITECTURE.md#screenshot-capture](docs/ARCHITECTURE.md#screenshot-capture)) |
 | `ADT_SCREENSHOT_DEBUG` | unset | Set to any value to log per-capture queue wait, capture duration, and semaphore occupancy |
+| `ADT_SETUP_RECOMMENDER_MODEL` | unset (the config's `default_model`, else the built-in default) | Model for Add Book's auto mode (`POST /api/setup-recommendation`, issue #333). Its AI answers are cached in `<BOOKS_DIR>/.cache/setup-recommender`, shared by every PDF; entries older than 30 days are removed |
 
 **`TEMPLATES_DIR` trap:** The Dockerfile and `docker-compose.yml` set `TEMPLATES_DIR=/app/templates` but the application **never reads this env var**. Templates dir is always derived from `path.join(path.dirname(PROMPTS_DIR), "templates")`. To use a custom templates directory, mount it as a sibling of `prompts/` — i.e. override `PROMPTS_DIR` and keep `templates/` next to it.
 

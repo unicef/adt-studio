@@ -212,3 +212,14 @@ export const SETUP_RECOMMENDATION_ERROR_CODES = [
   "ai-provider-failed",
 ] as const
 export type SetupRecommendationErrorCode = (typeof SETUP_RECOMMENDATION_ERROR_CODES)[number]
+
+/**
+ * Why POST /books couldn't save the setup recommendation with the new book (the book itself was
+ * made): `expired` (unknown, older than two hours, or dropped when the server restarted),
+ * `other-pdf` (made from a different PDF), `failed` (writing it failed; `message` says why).
+ */
+export const SetupRecommendationWarning = z.object({
+  reason: z.enum(["expired", "other-pdf", "failed"]),
+  message: z.string(),
+})
+export type SetupRecommendationWarning = z.infer<typeof SetupRecommendationWarning>

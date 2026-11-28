@@ -5,9 +5,14 @@
  *
  * The book does not exist yet, so the AI calls' log entries are held in
  * memory with the recommendation. When the book is created with
- * `setupRecommendationId`, both are written into the book folder as
- * `setup-recommendation.json` (book-level storage, every prompt and response
- * inspectable).
+ * `setupRecommendationId`, the recommendation is written into the book folder
+ * as `setup-recommendation.json` and the log entries into the book's LLM log
+ * (book-level storage, every prompt and response inspectable in the app's
+ * LLM log). A recommendation no book is made from is dropped with its log.
+ *
+ * The AI answers are cached in `<booksDir>/.cache/setup-recommender`, shared by
+ * every PDF (there is no book folder yet); entries written more than
+ * SETUP_CACHE_MAX_AGE_MS ago are removed.
  */
 import fs from "node:fs"
 import path from "node:path"
@@ -16,9 +21,10 @@ import { Hono } from "hono"
 import { bodyLimit } from "hono/body-limit"
 import type { ContentfulStatusCode } from "hono/utils/http-status"
 import { z } from "zod"
-import { AiProviderError, createLLMModel, createPromptEngine, formatProviderError, type LlmLogEntry } from "@adt/llm"
+import { AiProviderError, createLLMModel, createPromptEngine, createRateLimiter, formatProviderError, type LlmLogEntry } from "@adt/llm"
 import { profileBookAsync, renderBookPagesAsync } from "@adt/pdf"
 import { createSemaphore, loadConfig, recommendSetup } from "@adt/pipeline"
+import { createBookStorage } from "@adt/storage"
 import { DEFAULT_LLM_MODEL_ID, type SetupRecommendation, type SetupRecommendationErrorCode } from "@adt/types"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
 
@@ -60,23 +66,54 @@ function prune(now = Date.now()) {
   while (held.size > MAX_HELD) held.delete(held.keys().next().value!)
 }
 
+/** Shared AI cache entries written longer ago than this are removed (checked at most once per SETUP_CACHE_PRUNE_EVERY_MS). */
+export const SETUP_CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000
+const SETUP_CACHE_PRUNE_EVERY_MS = 60 * 60 * 1000
+let cachePrunedAt = 0
+
+/** Removes cache entries older than SETUP_CACHE_MAX_AGE_MS. Best effort: a file it can't read or remove stays. */
+export function pruneSetupCache(cacheDir: string, now = Date.now()): void {
+  let names: string[]
+  try {
+    names = fs.readdirSync(cacheDir)
+  } catch {
+    return
+  }
+  for (const name of names) {
+    if (!name.endsWith(".json")) continue
+    const file = path.join(cacheDir, name)
+    try {
+      if (now - fs.statSync(file).mtimeMs > SETUP_CACHE_MAX_AGE_MS) fs.rmSync(file, { force: true })
+    } catch {
+      // Another request may be using or removing it.
+    }
+  }
+}
+
 /**
- * Writes a held recommendation and its AI log into a new book's folder. Called
- * by POST /books with the book's PDF. "expired" when the id is unknown or
- * expired; "other-pdf" when it was made from a different PDF (nothing saved).
+ * Saves a held recommendation with a new book: the recommendation into its
+ * folder, its AI calls into its LLM log. Called by POST /books with the book's
+ * PDF. "expired" when the id is unknown or expired; "other-pdf" when it was
+ * made from a different PDF (nothing saved).
  */
 export function attachSetupRecommendation(
   id: string,
-  bookDir: string,
+  book: { label: string; booksDir: string },
   applied: { config: Record<string, unknown> | undefined; pdf: Uint8Array },
 ): "attached" | "expired" | "other-pdf" {
   prune()
   const h = held.get(id)
   if (!h) return "expired"
   if (h.pdfHash !== sha256(applied.pdf)) return "other-pdf"
+  const storage = createBookStorage(book.label, book.booksDir)
+  try {
+    for (const entry of h.llmLog) storage.appendLlmLog(entry)
+  } finally {
+    storage.close()
+  }
   fs.writeFileSync(
-    path.join(bookDir, "setup-recommendation.json"),
-    JSON.stringify({ recommendation: h.recommendation, appliedConfig: applied.config ?? null, llmLog: h.llmLog }, null, 2),
+    path.join(path.resolve(book.booksDir), book.label, "setup-recommendation.json"),
+    JSON.stringify({ recommendation: h.recommendation, appliedConfig: applied.config ?? null }, null, 2),
   )
   held.delete(id)
   return "attached"
@@ -105,10 +142,16 @@ export function createSetupRecommendationRoutes(booksDir: string, promptsDir: st
     const llmLog: LlmLogEntry[] = []
     // No book yet, so no book prompts: the global prompts/setup_recommender_*.liquid.
     const promptEngine = createPromptEngine([promptsDir], { basePromptModelId: config.base_prompt_model })
+    const cacheDir = path.join(path.resolve(booksDir), ".cache", "setup-recommender")
+    if (Date.now() - cachePrunedAt > SETUP_CACHE_PRUNE_EVERY_MS) {
+      cachePrunedAt = Date.now()
+      pruneSetupCache(cacheDir)
+    }
     const model = createLLMModel({
       modelId,
-      cacheDir: path.join(path.resolve(booksDir), ".cache", "setup-recommender"),
+      cacheDir,
       promptEngine,
+      rateLimiter: config.rate_limit ? createRateLimiter(config.rate_limit.requests_per_minute) : undefined,
       onLog: (entry) => llmLog.push(entry),
       providerCredentials: readProviderCredentials(c),
       logLevel: "silent",

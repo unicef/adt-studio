@@ -5,9 +5,24 @@ import path from "node:path"
 import { Hono } from "hono"
 import type { RecommendSetupOptions } from "@adt/pipeline"
 import { AiProviderError } from "@adt/llm"
+import { openBookDb } from "@adt/storage"
+import { z } from "zod"
 import { errorHandler } from "../middleware/error-handler.js"
 import { createBookRoutes } from "./books.js"
-import { createSetupRecommendationRoutes, SETUP_PDF_MAX_BYTES } from "./setup-recommendation.js"
+import { createSetupRecommendationRoutes, pruneSetupCache, SETUP_CACHE_MAX_AGE_MS, SETUP_PDF_MAX_BYTES } from "./setup-recommendation.js"
+
+// Writing into the book can be made to fail.
+const storageFails = vi.hoisted(() => ({ on: false }))
+vi.mock("@adt/storage", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@adt/storage")>()
+  return {
+    ...actual,
+    createBookStorage: (...args: Parameters<typeof actual.createBookStorage>) => {
+      if (storageFails.on) throw new Error("disk full")
+      return actual.createBookStorage(...args)
+    },
+  }
+})
 
 // The AI readings are replaced: each test says what recommendSetup does with the PDF it is given.
 const recommend = vi.hoisted(() => ({ impl: async (o: RecommendSetupOptions): Promise<unknown> => ({ id: o.id }) }))
@@ -46,6 +61,7 @@ beforeEach(() => {
   app.route("/", createBookRoutes(tmpDir))
 })
 afterEach(() => {
+  storageFails.on = false
   fs.rmSync(tmpDir, { recursive: true, force: true })
   recommend.impl = async (o) => ({ id: o.id })
 })
@@ -66,7 +82,7 @@ const createBook = async (label: string, bytes: Uint8Array, id: string) => {
   f.append("setupRecommendationId", id)
   const res = await app.request("/books", { method: "POST", body: f })
   expect(res.status).toBe(201)
-  return (await res.json()) as { setupRecommendationWarning?: string }
+  return (await res.json()) as { setupRecommendationWarning?: { reason: string; message: string } }
 }
 
 describe("POST /setup-recommendation", () => {
@@ -157,7 +173,56 @@ describe("saving the recommendation with the book", () => {
   it("doesn't save it into a book made from a different PDF", async () => {
     const id = await recommendFor(blankPdf(2))
     const book = await createBook("other-pdf", blankPdf(3), id)
-    expect(book.setupRecommendationWarning).toMatch(/different PDF/)
+    expect(book.setupRecommendationWarning).toMatchObject({ reason: "other-pdf", message: expect.stringMatching(/different PDF/) })
     expect(fs.existsSync(path.join(tmpDir, "other-pdf", "setup-recommendation.json"))).toBe(false)
+  })
+
+  it("writes the readings' AI calls into the book's LLM log, and the recommendation alone into its folder", async () => {
+    // A model id no provider knows: the call fails before any network, and is still logged.
+    fs.writeFileSync(configPath, "structure_types: {}\nrole_types: {}\ndefault_model: nowhere:model\n")
+    recommend.impl = async (o) => {
+      await o.model
+        .generateObject({ schema: z.object({}), prompt: "setup_recommender_questions", context: { pages: [] }, log: { taskType: "setup-recommender", promptName: "setup_recommender_questions" } })
+        .catch(() => undefined)
+      return { id: o.id }
+    }
+    const pdf = blankPdf(2)
+    await createBook("logged", pdf, await recommendFor(pdf))
+    const db = openBookDb(path.join(tmpDir, "logged", "logged.db"))
+    try {
+      const rows = db.all("SELECT step, data FROM llm_log") as { step: string; data: string }[]
+      expect(rows).toHaveLength(1)
+      expect(rows[0].step).toBe("setup-recommender")
+      expect(JSON.parse(rows[0].data).promptName).toBe("setup_recommender_questions")
+    } finally {
+      db.close()
+    }
+    const saved = JSON.parse(fs.readFileSync(path.join(tmpDir, "logged", "setup-recommendation.json"), "utf8"))
+    expect(saved.recommendation.id).toBeTruthy()
+    expect(saved.llmLog).toBeUndefined()
+  })
+
+  it("still makes the book, with a warning, when saving the recommendation into it fails", async () => {
+    const pdf = blankPdf(2)
+    const id = await recommendFor(pdf)
+    storageFails.on = true
+    const book = await createBook("unsaved", pdf, id)
+    expect(book.setupRecommendationWarning).toMatchObject({ reason: "failed", message: expect.stringMatching(/disk full/) })
+    expect(fs.existsSync(path.join(tmpDir, "unsaved", "unsaved.pdf"))).toBe(true)
+    expect(fs.existsSync(path.join(tmpDir, "unsaved", "setup-recommendation.json"))).toBe(false)
+  })
+})
+
+describe("the shared AI cache", () => {
+  it("removes entries written longer ago than the cap, and keeps the rest", () => {
+    const dir = path.join(tmpDir, ".cache", "setup-recommender")
+    fs.mkdirSync(dir, { recursive: true })
+    fs.writeFileSync(path.join(dir, "old.json"), "{}")
+    fs.writeFileSync(path.join(dir, "new.json"), "{}")
+    const old = new Date(Date.now() - SETUP_CACHE_MAX_AGE_MS - 60_000)
+    fs.utimesSync(path.join(dir, "old.json"), old, old)
+    pruneSetupCache(dir)
+    expect(fs.readdirSync(dir)).toEqual(["new.json"])
+    pruneSetupCache(path.join(tmpDir, "missing"))
   })
 })
