@@ -604,7 +604,7 @@ export { admitSectioningRun } from "./sectioning-admission.js"
 export { sectioningReplacementSignature } from "./sectioning-replacement-signature.js"
 export { createStoryboardPublication } from "./storyboard-publication.js"
 
-export { extractionOptionsFromConfig, prepareExtractionAdmission, assertSafeExtractionRun } from "./extraction-admission.js"
+export { extractionOptionsFromConfig, prepareExtractionAdmission } from "./extraction-admission.js"
 
 export { protectedAuthoredRecords, assertAuthoredReplacement, replacementConfirmed, selectSectioningPages, assertSectioningIdentityHistory, resetSectioningStoryboard, AuthoredReplacementError } from "./authored-output.js"
 
