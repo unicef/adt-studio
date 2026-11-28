@@ -16,7 +16,7 @@ import { CompactOptionsContext } from "../shared/optionsLayout"
  * the user picks another. `sets` adds what the answer turns on ("Interactive activities: On").
  */
 export function FactPick({ rec, fact, chat, file, sets, stacked }: { rec: SetupRecommendation; fact: SetupFact; chat: Answers; file: File | null | undefined; sets?: boolean; /** One of several questions on the screen: the question, every answer as a compact card (the picked one marked) and what it sets, without the large picture. */ stacked?: boolean }) {
-  const { i18n } = useLingui()
+  const { i18n, t } = useLingui()
   const derived = chat.derived!
   const value = derived.current[fact.id]
   const labelId = `gd-fact-${fact.id}`
@@ -45,7 +45,9 @@ export function FactPick({ rec, fact, chat, file, sets, stacked }: { rec: SetupR
   const result = touched
     .map((id) => {
       const words = plainTitle(id, derived.effective[id]?.value)
-      return `${i18n._(SETTING_NAME[id])}: ${words ? i18n._(words) : String(derived.effective[id]?.value)}`
+      const name = i18n._(SETTING_NAME[id])
+      const setTo = words ? i18n._(words) : String(derived.effective[id]?.value)
+      return t`${name}: ${setTo}`
     })
     .join(" · ")
   if (stacked)

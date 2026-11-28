@@ -1,4 +1,3 @@
-/* eslint-disable lingui/no-unlocalized-strings -- setting ids and values, never shown */
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Lock } from "lucide-react"
 import type { SetupRecommendation } from "@adt/types"
@@ -30,6 +29,7 @@ export function SpreadsScreen({ rec, chat, file }: Props) {
   const derived = chat.derived!
   const value = derived.effective.pageGrouping?.value === "spread" ? "spread" : "single"
   const guess = derived.fromAnswers.pageGrouping?.value === "spread" ? "spread" : "single"
+  // eslint-disable-next-line lingui/no-unlocalized-strings -- a source id, never shown
   const changed = derived.source("pageGrouping") === "changed"
   const rule = derived.fromAnswers.pageGrouping?.rule
   const evidence = spreadPages(rec)
@@ -78,6 +78,7 @@ export function SpreadsScreen({ rec, chat, file }: Props) {
       labelId={labelId}
       others
     >
+      {/* eslint-disable-next-line lingui/no-unlocalized-strings -- a setting id, never shown */}
       <LookChoices rec={rec} options={options} page={page} chosen={value} onPick={(v) => chat.override("pageGrouping", v)} file={file} labelId={labelId} />
     </SurePick>
   )

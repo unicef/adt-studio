@@ -1,8 +1,8 @@
-/* eslint-disable lingui/no-unlocalized-strings -- setting ids and values, never shown */
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Smartphone, ThumbsUp, TriangleAlert } from "lucide-react"
 import type { SetupRecommendation } from "@adt/types"
 import { cn } from "@/lib/utils"
+import { RENDER_STRATEGIES } from "@/components/wizard/core/constants"
 import { strategiesFor } from "../../../engine/answers"
 import { RULE_WHY, SETTING_NAME, SETTING_VALUE } from "../../../engine/words"
 import { LookChoices, type LookOption } from "../../shared/PreviewChoices"
@@ -25,14 +25,16 @@ type Props = { rec: SetupRecommendation; chat: Answers; file: File | null | unde
  * When the engine asked (its readings disagree on where the words sit), the options start open.
  */
 function LayoutPick({ rec, chat, file, asked }: Props & { asked: boolean }) {
-  const { i18n } = useLingui()
+  const { i18n, t } = useLingui()
   const derived = chat.derived!
   const value = String(derived.effective.renderStrategy?.value)
   const shown = new Set(SETTING_OPTIONS.renderStrategy.map((o) => String(o.value)))
   const allowed = strategiesFor(derived.effective.preset?.value).filter((s) => shown.has(s))
+  // Every layout has a name (a hidden one, the wizard's own title), so a setting id is never shown.
   const name = (v: string) => {
-    const words = plainTitle("renderStrategy", v)
-    return words ? i18n._(words) : v
+    // eslint-disable-next-line lingui/no-unlocalized-strings -- a setting id, never shown
+    const words = plainTitle("renderStrategy", v) ?? RENDER_STRATEGIES.find((r) => r.id === v)?.title
+    return words ? i18n._(words) : t`Page layout`
   }
   // The engine's pick first; the order stays put while the user tries the others.
   const first = String(derived.fromAnswers.renderStrategy?.value ?? value)
@@ -68,6 +70,7 @@ function LayoutPick({ rec, chat, file, asked }: Props & { asked: boolean }) {
   )
   const labelId = "gd-layout"
   const means = SETTING_VALUE.renderStrategy[value]?.means
+  // eslint-disable-next-line lingui/no-unlocalized-strings -- a setting id, never shown
   const choices = <LookChoices rec={rec} options={options} page={rec.previewPage} chosen={value} onPick={(v) => chat.override("renderStrategy", v)} file={file} labelId={labelId} />
   // Asked: the options are the question, side by side, as on any asked fact.
   if (asked)
@@ -79,6 +82,8 @@ function LayoutPick({ rec, chat, file, asked }: Props & { asked: boolean }) {
         {choices}
       </div>
     )
+  // eslint-disable-next-line lingui/no-unlocalized-strings -- a source id, never shown
+  const changed = derived.source("renderStrategy") === "changed"
   return (
     <SurePick
       picture={<span className={`grid shrink-0 place-items-center p-3 ${PICTURE}`}>{layoutArt(value)}</span>}
@@ -87,7 +92,7 @@ function LayoutPick({ rec, chat, file, asked }: Props & { asked: boolean }) {
       hint={means ? i18n._(means) : undefined}
       result={<AtAGlance strategy={value} />}
       badge={!asked}
-      changed={derived.source("renderStrategy") === "changed"}
+      changed={changed}
       labelId={labelId}
       others={options.length > 1}
     >
