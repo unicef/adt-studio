@@ -1,5 +1,5 @@
-import { Trans } from "@lingui/react/macro"
-import { FileText } from "lucide-react"
+import { Plural, Trans } from "@lingui/react/macro"
+import { Check, FileText } from "lucide-react"
 import type { SetupRecommendation } from "@adt/types"
 import type { EngineRun } from "../../engine/useEngineRun"
 import { Chip } from "./bubbles"
@@ -27,10 +27,14 @@ export function ReadingMessage({ run, rec, onManual }: { run: EngineRun; rec: Se
  * same view-transition name), with the book's own pages being scanned, its name and page count.
  * Before the page count is known it says it's opening the file.
  */
-export function ReadingCard({ file, pageCount }: { file: File | null; pageCount: number }) {
+export function ReadingCard({ file, pageCount, done = false }: { file: File | null; pageCount: number; /** The reading is over (back here from a later step): no scan, no moving bar. */ done?: boolean }) {
   return (
     <div className="gd-reading flex w-full flex-col items-center gap-5 rounded-[22px] border-2 border-[var(--gd-step)] bg-[var(--lc-bubble)] px-6 py-10 text-center lg:py-[clamp(40px,calc(var(--gd-vh,1vh)*7),84px)]" style={{ viewTransitionName: "gd-drop" }}>
-      {file && pageCount > 0 ? (
+      {done ? (
+        <span className="grid size-16 place-items-center rounded-full bg-emerald-500 text-white">
+          <Check className="size-8 stroke-[3]" />
+        </span>
+      ) : file && pageCount > 0 ? (
         <span className="flex max-w-full items-center">
           {/* The wizard, cropped at its wand tip so the picture's own beam never reaches the pages. */}
           <span aria-hidden className="relative z-10 h-[88px] w-[99px] shrink-0 overflow-hidden [mask-image:linear-gradient(to_right,#000_90%,transparent)] sm:h-[136px] sm:w-[153px]">
@@ -46,11 +50,13 @@ export function ReadingCard({ file, pageCount }: { file: File | null; pageCount:
       ) : <span className="grid size-16 place-items-center rounded-full bg-[var(--lc-accent-soft)] text-[var(--lc-accent-text)]"><FileText className="size-7" /></span>}
       <span className="flex max-w-full flex-col items-center gap-1">
         <span className="max-w-full truncate text-[17px] font-semibold lg:text-[19px]">{file?.name}</span>
-        <span className="text-[14px] text-muted-foreground lg:text-[15px]">{pageCount > 0 ? <Trans>{pageCount} pages · reading</Trans> : <Trans>Opening the PDF…</Trans>}</span>
+        <span className="text-[14px] text-muted-foreground lg:text-[15px]">{done ? <Plural value={pageCount} one="# page · read" other="# pages · read" /> : pageCount > 0 ? <Plural value={pageCount} one="# page · reading" other="# pages · reading" /> : <Trans>Opening the PDF…</Trans>}</span>
       </span>
-      <span aria-hidden className="gd-reading-bar h-1.5 w-full max-w-[420px] overflow-hidden rounded-full bg-muted">
-        <span />
-      </span>
+      {!done && (
+        <span aria-hidden className="gd-reading-bar h-1.5 w-full max-w-[420px] overflow-hidden rounded-full bg-muted">
+          <span />
+        </span>
+      )}
     </div>
   )
 }

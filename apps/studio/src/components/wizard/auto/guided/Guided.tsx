@@ -184,7 +184,7 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
     } else {
       swap = `reading-${attempt}`
       says = <ReadingMessage run={run} rec={rec} onManual={manual} />
-      panel = <ReadingCard file={flow.file} pageCount={flow.pageCount} />
+      panel = <ReadingCard file={flow.file} pageCount={flow.pageCount} done={!!rec} />
     }
   } else if (shown === "check" && rec && chat.derived && values) {
     swap = `check-${check.at}`
@@ -197,7 +197,7 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
     panel = <CreatePanel run={lastRun} />
   }
 
-  const busy = (shown === "reading" && !failure) || (shown === "create" && !!lastRun && (lastRun.status === "saving" || lastRun.status === "extracting"))
+  const busy = (shown === "reading" && !failure && !rec) || (shown === "create" && !!lastRun && (lastRun.status === "saving" || lastRun.status === "extracting"))
   const tone = failure && shown === "reading" ? "error" : lastRun?.status === "failed" && shown === "create" ? "error" : lastRun?.status === "done" && shown === "create" ? "done" : shown
 
   // The page column: Check is one focused column, Upload shows its three cards side by side.

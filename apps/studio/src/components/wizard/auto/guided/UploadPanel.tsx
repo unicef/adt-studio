@@ -1,5 +1,5 @@
 import { useRef, type ReactNode } from "react"
-import { Trans } from "@lingui/react/macro"
+import { Plural, Trans } from "@lingui/react/macro"
 import { AlertTriangle, ArrowRight, PlayCircle, BookOpenCheck, Check, FileText, FileUp, ListChecks, ScanSearch } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PrimaryButton } from "../../core/ui"
@@ -121,7 +121,7 @@ function DropZone({ flow, rejected }: { flow: UploadFlow; rejected: boolean }) {
         <Badge tone="ok" icon={<Check className="size-7 stroke-[3] lg:size-8" />} />
         <span className="max-w-full truncate text-[17px] font-semibold lg:text-[20px]">{name}</span>
         <span className="text-[14.5px] text-muted-foreground lg:text-[15.5px]">
-          <Trans>{flow.pageCount} pages · ready</Trans>
+          <Plural value={flow.pageCount} one="# page · ready" other="# pages · ready" />
         </span>
       </>
     )
@@ -234,7 +234,7 @@ export function UploadPanel({ flow, rejected, onContinue, tour, onTour, onTourDo
   if (flow.file && flow.pageCount > 0 && !flow.error && onContinue)
     return (
       <div className="flex flex-col items-start gap-4">
-        <Attachment flow={flow} frozen={false} />
+        <Attachment flow={flow} />
         <PrimaryButton onClick={onContinue} icon={<ArrowRight className="size-4" />} className={cn(LC_PRIMARY, "flex-row-reverse")}>
           <Trans>Continue</Trans>
         </PrimaryButton>
