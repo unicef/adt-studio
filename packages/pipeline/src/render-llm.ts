@@ -89,25 +89,31 @@ export async function renderSectionLlm(
     page_direction: input.pageDirection ?? "",
   }
 
-  const result = await llmModel.generateObject<{
-    reasoning: string
-    content: string
-  }>({
-    schema: webRenderingLLMSchema,
-    prompt: config.promptName,
-    context: promptContext,
-    validate: validateWebRendering,
-    maxRetries: config.maxRetries,
-    maxTokens: 32768,
-    temperature: config.temperature,
-    reasoningEffort: config.reasoningEffort,
-    timeoutMs: config.timeoutMs,
-    signal: options.signal,
-    log: {
-      taskType,
-      pageId: input.pageId,
-      promptName: config.promptName,
-    },
+  const generate = (model: LLMModel, maxRetries: number, reasoningEffort: RenderConfig["reasoningEffort"]) =>
+    model.generateObject<{
+      reasoning: string
+      content: string
+    }>({
+      schema: webRenderingLLMSchema,
+      prompt: config.promptName,
+      context: promptContext,
+      validate: validateWebRendering,
+      maxRetries,
+      maxTokens: 32768,
+      temperature: config.temperature,
+      reasoningEffort,
+      timeoutMs: config.timeoutMs,
+      signal: options.signal,
+      log: {
+        taskType,
+        pageId: input.pageId,
+        promptName: config.promptName,
+      },
+    })
+
+  const result = await generateWithFallback(config, options, {
+    primary: (maxRetries) => generate(llmModel, maxRetries, config.reasoningEffort),
+    fallback: (model, maxRetries) => generate(model, maxRetries, config.fallback?.reasoningEffort),
   })
 
   let generatedHtml = result.object.content
@@ -346,6 +352,48 @@ function validateWebRendering(
   }
 
   return { valid: false, errors: [...check.errors, ...typographyErrors] }
+}
+
+/**
+ * Run the strategy's own model; if it fails, give the remaining attempts to
+ * `config.fallback`, starting again from the original prompt (#1259). The
+ * total stays `maxRetries + 1` attempts. A cancelled run never falls back,
+ * and the fallback's own error is rethrown so its type survives.
+ */
+export async function generateWithFallback<T>(
+  config: Pick<RenderConfig, "modelId" | "maxRetries" | "fallback">,
+  options: Pick<RenderExecutionOptions, "signal" | "fallbackModel">,
+  run: {
+    primary: (maxRetries: number) => Promise<T>
+    fallback: (model: LLMModel, maxRetries: number) => Promise<T>
+  },
+): Promise<T> {
+  const totalAttempts = config.maxRetries + 1
+  const fallback = config.fallback
+  const fallbackModel = options.fallbackModel
+  if (!fallback || !fallbackModel || fallback.afterAttempts >= totalAttempts) {
+    return run.primary(config.maxRetries)
+  }
+  try {
+    return await run.primary(fallback.afterAttempts - 1)
+  } catch (primaryError) {
+    if (options.signal?.aborted) throw primaryError
+    const remaining = totalAttempts - fallback.afterAttempts
+    console.warn(
+      `[render] ${config.modelId} failed ${fallback.afterAttempts} attempt(s); ` +
+      `${fallback.modelId} takes the remaining ${remaining}`,
+    )
+    try {
+      return await run.fallback(fallbackModel, remaining - 1)
+    } catch (fallbackError) {
+      if (fallbackError instanceof Error && !options.signal?.aborted) {
+        fallbackError.message =
+          `${config.modelId} failed ${fallback.afterAttempts} attempt(s); ` +
+          `then ${fallback.modelId}: ${fallbackError.message}`
+      }
+      throw fallbackError
+    }
+  }
 }
 
 /** Require one response per explicit question/blank. If the tree only contains

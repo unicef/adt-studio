@@ -285,6 +285,25 @@ Notes:
 - The visual-review model comes from `visual_review.model`, then `default_model`, then `DEFAULT_VISUAL_REVIEW_MODEL_ID` (`resolveVisualReviewModelId` in `packages/pipeline/src/visual-review.ts`). Its effort comes from `visual_review.reasoning_effort`, then the strategy's `visual_refinement.reasoning_effort`, then `default_reasoning_effort`.
 - Debug screenshots referenced from LLM logs are stored as files in `books/{label}/.debug-images/`.
 
+### Fallback model (`render_strategies.*.config.fallback`)
+
+An `llm` or `activity` strategy can name a second model. When the strategy's own model fails `after_attempts` times (validation or transport errors), the remaining attempts go to the fallback, which starts again from the original prompt and resolves its own model-specific prompt variant. The total number of attempts stays `max_retries + 1`, a cancelled run never falls back, and each call appears in the LLM log under the model that made it.
+
+```yaml
+render_strategies:
+  llm:
+    render_type: llm
+    config:
+      prompt: web_generation_html
+      max_retries: 5             # 6 attempts in total
+      fallback:
+        model: openai:gpt-6.1-sol
+        reasoning_effort: medium # the fallback's own effort; defaults to the model's
+        after_attempts: 2        # primary attempts before switching (default 2)
+```
+
+With `after_attempts` at or above the total number of attempts, the fallback never runs. A book whose `config.yaml` pins its own `render_strategies.llm.model` still inherits the global `fallback` block (deep merge), unless the book sets `fallback: null`.
+
 ### Book context for rendering (`render_context`)
 
 By default each section is rendered from its own content tree and page image only. With `render_context.enabled: true`, the page-rendering and visual-review prompts also receive a `<book_context>` block (`prompts/_book_context.liquid`) so the model can keep tone, heading hierarchy and continuity with the rest of the book. The block is reference data: the prompt tells the model never to copy its text into the HTML, and the usual fidelity checks still apply to every rendered word.

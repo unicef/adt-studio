@@ -140,17 +140,35 @@ function findSectionElements(doc: any): any[] {
   )
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isContentWrapper(el: any): boolean {
+  return el?.type === "tag" && el.name === "div" && el.attribs?.id === "content"
+}
+
 /**
- * Find the <div id="content"> container in the parsed document.
- * Returns null if no such element exists.
+ * Find the <div id="content"> page wrapper that encloses the section.
+ * A `#content` anywhere else is not the wrapper: returning one nested inside
+ * the section would cut the cleaned HTML down to that element's subtree.
+ * Returns null if the section has no such ancestor.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function findContentContainer(doc: any): any | null {
-  return DomUtils.findOne(
-    (el) => el.type === "tag" && el.name === "div" && el.attribs?.id === "content",
-    doc.children ?? [],
-    true
-  )
+function findContentContainer(section: any): any | null {
+  for (let node = section.parent; node; node = node.parent) {
+    if (isContentWrapper(node)) return node
+  }
+  return null
+}
+
+/**
+ * A model sometimes puts `id="content"` on a div inside the section instead
+ * of on the page wrapper around it. The page has one `#content` (the reader
+ * and the stored HTML rely on it), so drop the misplaced id and keep the div.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function removeNestedContentIds(section: any): void {
+  for (const el of DomUtils.findAll(isContentWrapper, section.children ?? [])) {
+    delete el.attribs.id
+  }
 }
 
 export interface HtmlValidationOptions {
@@ -214,6 +232,7 @@ export function validateSectionHtml(
   }
 
   const section = sections[0]
+  removeNestedContentIds(section)
   validateRequiredSectionAttributes(section, options, errors)
 
   walkNode(section, allowedIds, imageIdSet, errors, options)
@@ -261,9 +280,17 @@ export function validateSectionHtml(
     const optional = options?.optionalTextIds
     const renderedDataIds = new Set<string>()
     collectDataIds(section, renderedDataIds)
+    // Ids the model did emit, but outside the section, are not missing: say
+    // where they are, or the retry repeats the same layout.
+    const documentDataIds = new Set<string>()
+    collectDataIds(doc, documentDataIds)
     for (const textId of allowedTextIds) {
       if (!renderedDataIds.has(textId) && !optional?.has(textId)) {
-        errors.push(`Missing required text data-id: "${textId}"`)
+        errors.push(
+          documentDataIds.has(textId)
+            ? `Text data-id "${textId}" is outside the <section>. Put every element inside the one <section>; only the <div id="content"> wrapper may surround it.`
+            : `Missing required text data-id: "${textId}"`
+        )
       }
     }
   }
@@ -278,7 +305,7 @@ export function validateSectionHtml(
 
   // Prefer the <div id="content"> wrapper when present so background colors
   // and other container-level styling are preserved in the stored HTML.
-  const contentContainer = findContentContainer(doc)
+  const contentContainer = findContentContainer(section)
   const outputNode = contentContainer ?? section
 
   return {

@@ -117,6 +117,12 @@ inherit `page_sectioning.model` when they set none (Easy Read and speech
 preparation inherit through translation). The shipped config pins them to
 `openai:gpt-6-luna`, so moving sectioning to Sol changes no other task.
 
+Web pages (`render_strategies.llm`) render on the default model, Luna, with
+`openai:gpt-6.1-sol` at `medium` as `config.fallback`: after two failed Luna
+attempts, Sol takes the remaining four from the original prompt and resolves its
+own `web_generation_html` variant (#1259). Settings > Models does not show the
+fallback yet; it is set in `config.yaml`.
+
 ### Non-OpenAI default models
 
 Every shipped task pin names GPT-6 Luna or GPT-6.1 Sol
@@ -128,6 +134,8 @@ them, with their `reasoning_effort`, when the config is loaded (`loadConfig`,
 Anthropic, Google, Ollama, custom or CLI login can then run every stage without
 an OpenAI key. A task set to any other model, an OpenAI one included, keeps it:
 that is the user's choice, and a missing key is still reported before the run.
+The shipped web-rendering fallback (`render_strategies.llm.config.fallback`) is
+dropped the same way, so a failed render never switches to a model with no key.
 Settings > Models shows the resolved models and notes the rule when the default
 is not an OpenAI model.
 

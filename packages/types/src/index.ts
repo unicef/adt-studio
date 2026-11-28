@@ -191,6 +191,7 @@ export {
   PageSectioningConfig,
   RenderType,
   VisualRefinementStrategyConfig,
+  RenderFallbackConfig,
   RenderStrategyConfig,
   AccessibilityAssessmentConfig,
   EpubGlossaryMode,

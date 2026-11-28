@@ -158,6 +158,10 @@ export function validateTypographyHierarchy(
     if (!expectedLevel && !isLegacyHeading) continue
 
     const content = findByDataId(root, leaf.text_id)
+    if (!content) {
+      errors.push(`Heading "${leaf.text_id}" is missing from the rendered section.`)
+      continue
+    }
     const heading = closestHeading(content)
     if (!heading) {
       errors.push(`Heading "${leaf.text_id}" must be rendered inside a semantic <h1> through <h6>.`)

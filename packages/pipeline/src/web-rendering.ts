@@ -29,6 +29,16 @@ export interface VisualRefinementConfig {
   reasoningEffort?: ReasoningEffort
 }
 
+export interface RenderFallback {
+  modelId: string
+  reasoningEffort?: ReasoningEffort
+  /** Attempts the primary model gets before the fallback takes over (≥ 1). */
+  afterAttempts: number
+}
+
+/** Attempts the primary model gets when a fallback sets no `after_attempts`. */
+export const DEFAULT_RENDER_FALLBACK_AFTER_ATTEMPTS = 2
+
 export interface RenderConfig {
   renderType: "llm" | "template" | "activity" | "fixed_layout"
   // llm / activity fields
@@ -38,6 +48,9 @@ export interface RenderConfig {
   timeoutMs: number
   temperature: number
   reasoningEffort?: ReasoningEffort
+  /** Model that takes the remaining attempts once `modelId` has failed
+   *  `afterAttempts` times. */
+  fallback?: RenderFallback
   // activity fields — answer generation prompt
   answerPromptName: string
   // template fields
@@ -159,6 +172,8 @@ export interface RenderPageInput {
 
 export interface RenderExecutionOptions {
   signal?: AbortSignal
+  /** Model for `RenderConfig.fallback`, resolved by the caller. */
+  fallbackModel?: LLMModel
 }
 
 export type ResolveLLMModel = LLMModel | ((modelId: string) => LLMModel)
@@ -421,7 +436,9 @@ export async function renderPage(
         config,
         getLLMModel(llmModel, config.modelId),
         visualRefinement,
-        options,
+        config.fallback
+          ? { ...options, fallbackModel: getLLMModel(llmModel, config.fallback.modelId) }
+          : options,
       )
     }
 
@@ -504,6 +521,13 @@ export function buildRenderStrategyResolver(
       timeoutMs: (cfg?.timeout ?? DEFAULT_RENDER_CONFIG.timeout) * 1000,
       temperature: cfg?.temperature ?? DEFAULT_RENDER_CONFIG.temperature,
       reasoningEffort: cfg?.reasoning_effort ?? appConfig.default_reasoning_effort,
+      ...(cfg?.fallback && {
+        fallback: {
+          modelId: cfg.fallback.model,
+          reasoningEffort: cfg.fallback.reasoning_effort,
+          afterAttempts: cfg.fallback.after_attempts ?? DEFAULT_RENDER_FALLBACK_AFTER_ATTEMPTS,
+        },
+      }),
       answerPromptName: cfg?.answer_prompt ?? "",
       templateName: cfg?.template ?? "",
       ...(vr?.enabled && {

@@ -195,3 +195,11 @@ describe("validateRetainedHeadingHierarchy", () => {
     )).toContainEqual(expect.stringContaining("nested <style>"))
   })
 })
+
+describe("validateTypographyHierarchy — absent heading (#1259)", () => {
+  it("reports a heading that is not in the HTML as missing, not as unwrapped", () => {
+    expect(validateTypographyHierarchy('<section><p data-id="other">Text</p></section>', [
+      { text_id: "reader", text_type: "subheading" },
+    ])).toEqual(['Heading "reader" is missing from the rendered section.'])
+  })
+})

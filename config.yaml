@@ -250,6 +250,12 @@ render_strategies:
       prompt: web_generation_html
       max_retries: 5
       timeout: 180
+      # Web pages render on default_model (Luna). If it fails twice, Sol takes
+      # the remaining attempts from the original prompt (#1259).
+      fallback:
+        model: "openai:gpt-6.1-sol"
+        reasoning_effort: "medium"
+        after_attempts: 2
       visual_refinement:
         enabled: true
   llm-overlay:
