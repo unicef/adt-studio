@@ -20,9 +20,14 @@ import { screenTitle } from "./words"
 
 const HEADING = "gd-check-title"
 
+/** How long a new screen ignores its button, so a double-click never presses the next screen's (or creates the book). */
+const SETTLE_MS = 500
+
 /** Enter moves on unless focus is in a field or on something Enter already presses. */
 // eslint-disable-next-line lingui/no-unlocalized-strings -- a CSS selector
 const OWN_ENTER = "input, textarea, select, button, a[href], [role='slider'], [role='switch'], [contenteditable='true']"
+// eslint-disable-next-line lingui/no-unlocalized-strings -- a CSS selector
+const DIALOG = "[role='dialog'], [role='alertdialog']"
 
 type Props = {
   rec: SetupRecommendation
@@ -32,6 +37,8 @@ type Props = {
   file: File | null | undefined
   pageCount: number
   locked: boolean
+  /** False while the manual wizard is open over this (hidden) flow: its keys are not ours. */
+  active: boolean
   onCreate: () => void
 }
 
@@ -41,7 +48,7 @@ type Props = {
  * when it asked) and "Skip to the end with my picks". The last screen creates the book. Focus
  * moves to the heading of each new screen; Enter presses the screen's button.
  */
-export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, onCreate }: Props) {
+export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, active, onCreate }: Props) {
   const { i18n } = useLingui()
   const derived = chat.derived!
   const facts = activityFacts(rec, derived.current)
@@ -70,8 +77,14 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
   if (way.current.at !== at) way.current = { at, index, dir: index >= way.current.index ? "next" : "back" }
   const dir = way.current.dir
 
+  // When this screen came in: a press right after it (the second click of a double-click, a quick
+  // run of clicks on the same spot) is meant for the screen before, so it does nothing.
+  const since = useRef(0)
+  useLayoutEffect(() => {
+    since.current = performance.now()
+  }, [at])
   const primary = () => {
-    if (locked) return
+    if (locked || performance.now() - since.current < SETTLE_MS) return
     if (last) return create()
     // The answers on this screen are settled now (the guess, unless another was picked).
     for (const f of screenFacts(rec, derived.current, at)) if (f.ask && !(f.id in chat.answers)) chat.answer(f.id, derived.current[f.id])
@@ -90,17 +103,21 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
 
   const press = useRef(primary)
   press.current = primary
+  const section = useRef<HTMLElement>(null)
   useEffect(() => {
+    if (!active) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Enter" || e.defaultPrevented || e.isComposing || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return
+      if (e.key !== "Enter" || e.repeat || e.defaultPrevented || e.isComposing || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return
       const target = e.target as HTMLElement | null
-      if (target?.closest(OWN_ENTER)) return
+      // Only Enter on this screen (or with focus nowhere): never in a dialog over it or elsewhere on the page.
+      if (!target || (target !== document.body && !section.current?.contains(target))) return
+      if (target.closest(OWN_ENTER) || target.closest(DIALOG)) return
       e.preventDefault()
       press.current()
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [])
+  }, [active])
 
   let body: ReactNode = null
   if (at === "kind") body = <KindScreen rec={rec} chat={chat} file={file} />
@@ -112,7 +129,7 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
   else body = <NameScreen rec={rec} facts={facts} screens={screens} values={values} settings={derived.effective} pageCount={pageCount} onEdit={(s) => check.go(s, true)} />
 
   return (
-    <section aria-labelledby={HEADING} inert={locked} className="flex flex-col">
+    <section ref={section} aria-labelledby={HEADING} inert={locked} className="flex flex-col">
       <div key={at} data-dir={dir} className="gd-screen-in -mx-2 flex flex-col gap-3 px-2 pb-2 pt-1 lg:gap-4">
         {/* The decision leads: the screen's name is for screen readers, and the count and switch live in the bottom bar. */}
         <h2 id={HEADING} ref={heading} tabIndex={-1} className="sr-only">

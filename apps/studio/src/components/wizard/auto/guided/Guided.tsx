@@ -189,7 +189,7 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
   } else if (shown === "check" && rec && chat.derived && values) {
     swap = `check-${check.at}`
     says = <CheckSays rec={rec} derived={chat.derived} screen={check.at} file={flow.file} pageCount={flow.pageCount} />
-    panel = revealed && <CheckFlow rec={rec} chat={chat} check={check} values={values} file={flow.file} pageCount={flow.pageCount} locked={create.locked} onCreate={onCreate} />
+    panel = revealed && <CheckFlow rec={rec} chat={chat} check={check} values={values} file={flow.file} pageCount={flow.pageCount} locked={create.locked} active={active} onCreate={onCreate} />
     bars = <CheckBars screens={check.screens} at={check.at} done={check.done} />
   } else if (shown === "create" && lastRun) {
     swap = `create-${lastRun.n}-${lastRun.status === "failed" ? "failed" : lastRun.status === "done" ? "done" : "busy"}`
