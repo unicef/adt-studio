@@ -12286,6 +12286,9 @@ msgstr "Se actualizaron los modelos predeterminados específicos de cada tarea."
 msgid "Tasks Running"
 msgstr "Tareas en Ejecución"
 
+msgid "Tasks set to GPT-6 Luna or GPT-6.1 Sol use this model instead while it isn't an OpenAI model."
+msgstr "Las tareas configuradas con GPT-6 Luna o GPT-6.1 Sol usan este modelo mientras no sea un modelo de OpenAI."
+
 msgid "Teaching the pixels new tricks..."
 msgstr "Enseñando nuevos trucos a los píxeles..."
 

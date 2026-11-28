@@ -17,6 +17,7 @@ import {
   findReasoningEffortSupport,
   resolveInheritedTaskModel,
   taskConfigPath,
+  withApplicableTaskModels,
   type AiModality,
   type ReasoningEffort,
   type TaskModelsResponse,
@@ -295,7 +296,8 @@ table{border-collapse:collapse;width:100%;margin:0.75rem 0;}th,td{border:1px sol
   })
 
   const readTaskModels = (content: string): TaskModelsResponse => {
-    const parsed = AppConfig.parse(yaml.load(content))
+    // Show what runs: OpenAI task pins don't apply under another provider's default.
+    const parsed = withApplicableTaskModels(AppConfig.parse(yaml.load(content)))
     return {
       defaultModel: parsed.default_model ?? DEFAULT_LLM_MODEL_ID,
       defaultReasoningEffort: parsed.default_reasoning_effort ?? null,

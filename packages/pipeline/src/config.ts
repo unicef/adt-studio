@@ -2,7 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import yaml from "js-yaml"
 import { recoverSectioningTransition } from "@adt/storage"
-import { AppConfig, parseBookLabel } from "@adt/types"
+import { AppConfig, parseBookLabel, withApplicableTaskModels } from "@adt/types"
 
 /**
  * Deep-merge two plain objects. Plain objects recurse;
@@ -37,13 +37,21 @@ export function deepMerge<T extends Record<string, unknown>>(
   return result as T
 }
 
-export function loadConfig(configPath?: string): AppConfig {
+/** The global config as written, with every task pin. Merge a book's overrides
+ * onto this, then apply `withApplicableTaskModels` to the result. */
+export function loadConfigAsWritten(configPath?: string): AppConfig {
   const resolved = configPath ?? path.resolve(process.cwd(), "config.yaml")
   if (!fs.existsSync(resolved)) {
     throw new Error(`Config file not found: ${resolved}`)
   }
   const raw = yaml.load(fs.readFileSync(resolved, "utf-8"))
   return AppConfig.parse(normalizePersistedSectioningMode(raw))
+}
+
+/** The global config the pipeline runs: OpenAI task pins apply only while the
+ * default LLM is an OpenAI model (`withApplicableTaskModels`). */
+export function loadConfig(configPath?: string): AppConfig {
+  return withApplicableTaskModels(loadConfigAsWritten(configPath))
 }
 
 /** The old settings UI wrote "section" for dynamic sectioning. Normalize that
@@ -94,9 +102,11 @@ export function loadBookConfig(
   configPath?: string
 ): AppConfig {
   const overrides = loadBookConfigOverrides(label, booksRoot)
-  const base = loadConfig(configPath)
-  if (!overrides) return base
+  // Merge onto the global config as written: a book that sets its own default
+  // LLM decides which of the global task pins apply.
+  const base = loadConfigAsWritten(configPath)
+  if (!overrides) return withApplicableTaskModels(base)
   const parsed = AppConfig.safeParse(deepMerge(base, overrides))
   if (!parsed.success) throw new BookConfigError(label, parsed.error)
-  return parsed.data
+  return withApplicableTaskModels(parsed.data)
 }

@@ -5,7 +5,10 @@ default_model: "openai:gpt-6-luna"
 
 # Visual review, activity rendering, book outline and page sectioning run on
 # GPT-6.1 Sol; every other text task uses default_model unless it sets its own
-# model (Settings > Models).
+# model (Settings > Models). The GPT-6 Luna and GPT-6.1 Sol pins below apply
+# only while default_model is an OpenAI model: with another provider as the
+# default, those tasks follow default_model (withApplicableTaskModels in
+# @adt/types). A task set to any other model keeps it.
 visual_review:
   model: "openai:gpt-6.1-sol"
   reasoning_effort: "medium"

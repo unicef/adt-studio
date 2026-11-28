@@ -1,6 +1,6 @@
 import path from "node:path"
 import { describe, expect, it } from "vitest"
-import { resolveInheritedTaskModel, type AppConfig, type TaskModelEntry } from "@adt/types"
+import { SHIPPED_TASK_MODEL_IDS, resolveInheritedTaskModel, withApplicableTaskModels, type AppConfig, type TaskModelEntry } from "@adt/types"
 import {
   buildBookOutlineConfig,
   buildBookSummaryConfig,
@@ -89,6 +89,23 @@ describe("task model display matches the pipeline runtime", () => {
     for (const task of tasks) {
       expect({ task: task.id, model: displayedModel(tasks, task, defaultModel) })
         .toEqual({ task: task.id, model: runtimeModel(config, task) })
+    }
+  })
+
+  it("pins tasks only to the shipped models, so a non-OpenAI default releases every pin", () => {
+    for (const task of listTaskModels(shipped)) {
+      if (task.model?.startsWith("openai:")) expect({ task: task.id, model: task.model }).toEqual({ task: task.id, model: expect.toSatisfy((m: string) => SHIPPED_TASK_MODEL_IDS.includes(m)) })
+    }
+  })
+
+  it("runs every task on the default model when the default LLM is not an OpenAI model", () => {
+    // A user with only an Anthropic key: no task may still need OpenAI.
+    const config = withApplicableTaskModels(withImageSteps({ ...shipped, default_model: "anthropic:claude-sonnet-4-5" }))
+    const tasks = listTaskModels(config)
+    for (const task of tasks) {
+      expect({ task: task.id, model: runtimeModel(config, task) }).toEqual({ task: task.id, model: "anthropic:claude-sonnet-4-5" })
+      expect({ task: task.id, model: displayedModel(tasks, task, config.default_model!) })
+        .toEqual({ task: task.id, model: "anthropic:claude-sonnet-4-5" })
     }
   })
 

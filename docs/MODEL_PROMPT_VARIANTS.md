@@ -117,6 +117,24 @@ inherit `page_sectioning.model` when they set none (Easy Read and speech
 preparation inherit through translation). The shipped config pins them to
 `openai:gpt-6-luna`, so moving sectioning to Sol changes no other task.
 
+### Non-OpenAI default models
+
+Every shipped task pin names GPT-6 Luna or GPT-6.1 Sol
+(`SHIPPED_TASK_MODEL_IDS` in `@adt/types`). Those pins apply only while the
+default LLM (`default_model`, globally or in a book's own config) is an OpenAI
+model. With another provider as the default, `withApplicableTaskModels` drops
+them, with their `reasoning_effort`, when the config is loaded (`loadConfig`,
+`loadBookConfig`), so those tasks follow the default model. A user with only an
+Anthropic, Google, Ollama, custom or CLI login can then run every stage without
+an OpenAI key. A task set to any other model, an OpenAI one included, keeps it:
+that is the user's choice, and a missing key is still reported before the run.
+Settings > Models shows the resolved models and notes the rule when the default
+is not an OpenAI model.
+
+One consequence: while the default is not an OpenAI model, a task set to Luna or
+Sol by hand also follows the default. Making OpenAI the default again restores
+every pin, because the file itself is never rewritten.
+
 Visual review runs at `medium` effort (`visual_review.reasoning_effort`). The
 activity strategies also set `reasoning_effort: medium`, which applies to
 activity HTML generation and answers only: review reads

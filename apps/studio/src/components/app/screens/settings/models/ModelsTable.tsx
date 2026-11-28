@@ -209,6 +209,11 @@ export function ModelsTable(props: ModelsTableProps) {
                       <span className="block text-pretty text-[11.5px] text-muted-foreground">
                         <Trans>Every text task falls back to this model unless it overrides it.</Trans>
                       </span>
+                      {tasks.defaultModel && !tasks.defaultModel.startsWith("openai:") && (
+                        <span className="mt-1 block text-pretty text-[11.5px] text-muted-foreground">
+                          <Trans>Tasks set to GPT-6 Luna or GPT-6.1 Sol use this model instead while it isn't an OpenAI model.</Trans>
+                        </span>
+                      )}
                     </span>
                   </label>
                 </td>
