@@ -2079,8 +2079,8 @@ msgstr "Një gjuhë tjetër e përkthen librin në të."
 msgid "Another language…"
 msgstr "Një gjuhë tjetër…"
 
-msgid "Another option fits better when"
-msgstr "Një opsion tjetër përshtatet më mirë kur"
+#~ msgid "Another option fits better when"
+#~ msgstr "Një opsion tjetër përshtatet më mirë kur"
 
 msgid "Another program on this computer is already signing in to Cloudflare. Close it and try again."
 msgstr "Një program tjetër në këtë kompjuter është tashmë duke u kyçur në Cloudflare. Mbylle atë dhe provo përsëri."
@@ -2652,8 +2652,11 @@ msgstr "Librat ndahen nga një llogari falas Cloudflare e juaja, e lidhur një h
 msgid "Books folder"
 msgstr "Dosja e librave"
 
-msgid "Books like this:"
-msgstr "Libra si ky:"
+msgid "Books like this"
+msgstr "Libra si ky"
+
+#~ msgid "Books like this:"
+#~ msgstr "Libra si ky:"
 
 msgid "Books that are mostly words, and school books with many parts."
 msgstr "Libra që janë kryesisht tekst dhe libra shkollorë me shumë pjesë."
@@ -2947,6 +2950,9 @@ msgstr "Ndrysho Presetin"
 msgid "Change the book language?"
 msgstr "Të ndryshohet gjuha e librit?"
 
+msgid "Change the PDF?"
+msgstr "Ta ndryshoni PDF-në?"
+
 msgid "Change the picture for this term"
 msgstr "Ndrysho figurën e këtij termi"
 
@@ -3108,6 +3114,9 @@ msgstr "Zgjidhni një model ekzistues ose shkruani një id të ri provider:model
 
 msgid "Choose another file"
 msgstr "Zgjidh një skedar tjetër"
+
+msgid "Choose another PDF"
+msgstr "Zgjidhni një PDF tjetër"
 
 msgid "Choose another ZIP"
 msgstr "Zgjidhni një ZIP tjetër"
@@ -4941,6 +4950,9 @@ msgstr "Çdo faqe është bashkuar përsëri nga pjesa e saj — i gjithë libri
 msgid "Every page in this book has all sections pruned. There is no content available to generate {stageName} from."
 msgstr "Çdo faqe në këtë libër ka të gjitha seksionet të shkurtuara. Nuk ka përmbajtje të disponueshme për të gjeneruar {stageName}."
 
+msgid "Every page is converted."
+msgstr "Konvertohen të gjitha faqet."
+
 msgid "Every page is pruned"
 msgstr "Çdo faqe është shkurtuar"
 
@@ -5377,6 +5389,9 @@ msgstr "Paraqitje e fiksuar"
 
 msgid "Fixed once the book is set up: the pages are cut into screens when the book is made."
 msgstr "Fiksohet pasi libri krijohet: faqet ndahen në ekrane kur bëhet libri."
+
+msgid "Fixed once the book is set up."
+msgstr "Fiksohet pasi libri krijohet."
 
 msgid "Fixed two-column template layout"
 msgstr "Paraqitje e fiksuar me dy kolona"
@@ -6059,6 +6074,9 @@ msgstr "Si funksionon Easy Read"
 msgid "How it works"
 msgstr "Si funksionon"
 
+msgid "How it's made"
+msgstr "Si bëhet"
+
 msgid "How languages work"
 msgstr "Si funksionojnë gjuhët"
 
@@ -6724,6 +6742,9 @@ msgstr "Mbani vlerat që keni futur aty ku ndryshimet mbivendosen."
 msgid "Keep this one"
 msgstr "Mbaje këtë"
 
+msgid "Keep this PDF"
+msgstr "Mbajeni këtë PDF"
+
 msgid "Keep working"
 msgstr "Vazhdo punën"
 
@@ -6867,8 +6888,17 @@ msgstr "Hapësira ndër-rreshta"
 msgid "Learn by doing."
 msgstr "Mëso duke bërë."
 
+msgid "Learn more"
+msgstr "Mësoni më shumë"
+
 msgid "Least used"
 msgstr "Më pak i përdorur"
+
+msgid "Leave"
+msgstr "Dilni"
+
+msgid "Leave Add Book?"
+msgstr "Të dilni nga Shto Libër?"
 
 msgid "Leave at None to run segmentation on all qualifying images (subject to pipeline rules)."
 msgstr "Lëre në Asnjë për të ekzekutuar segmentimin në të gjitha imazhet e kualifikuara (sipas rregullave të pipeline)."
@@ -9564,8 +9594,8 @@ msgstr "Zgjidhni nga libri"
 msgid "Pick from Book"
 msgstr "Zgjidhni nga Libri"
 
-msgid "Pick it when"
-msgstr "Zgjidheni kur"
+#~ msgid "Pick it when"
+#~ msgstr "Zgjidheni kur"
 
 msgid "Pick one layout approach."
 msgstr "Zgjidhni një qasje paraqitjeje."
@@ -10127,6 +10157,9 @@ msgstr "Citat"
 
 msgid "Radius"
 msgstr "Rrezja"
+
+msgid "Rather choose every setting yourself?"
+msgstr "Preferoni ta zgjidhni vetë çdo cilësim?"
 
 msgid "Re-enable type"
 msgstr "Ri-aktivizo tipin"
@@ -11713,6 +11746,9 @@ msgstr "Vendos fontet për të gjithë librin"
 msgid "Set it up myself"
 msgstr "Do ta konfiguroj vetë"
 
+msgid "Set it up step by step"
+msgstr "Konfigurojeni hap pas hapi"
+
 msgid "Set manually"
 msgstr "Caktuar manualisht"
 
@@ -13024,6 +13060,9 @@ msgstr "Titulli dhe të dhënat e librit vijnë me pjesën që përmban faqen 1 
 msgid "The built-in prompts are optimized for {DEFAULT_MODEL}. You switched the default LLM to <0>{savedModel}</0>, so we recommend generating new global prompt files tuned for it. You can also continue with the existing prompts."
 msgstr "Prompt-et e integruara janë optimizuar për {DEFAULT_MODEL}. E ndryshuat LLM-në e parazgjedhur në <0>{savedModel}</0>, ndaj rekomandojmë të gjeneroni skedarë të rinj prompt-esh globale të përshtatur për të. Mund të vazhdoni edhe me prompt-et ekzistuese."
 
+msgid "The choices you made for this book will be lost, and the new PDF is read again from the start."
+msgstr "Zgjedhjet që bëtë për këtë libër do të humbasin dhe PDF-ja e re lexohet nga fillimi."
+
 msgid "The Cloudflare sign-in did not grant everything sharing needs. Disconnect, connect again, and allow every permission ADT Studio asks for. Nothing was created in your account."
 msgstr "Hyrja në Cloudflare nuk dha gjithçka që i duhet ndarjes. Shkëputuni, lidhuni përsëri dhe lejoni çdo leje që kërkon ADT Studio. Asgjë nuk u krijua në llogarinë tuaj."
 
@@ -13250,6 +13289,12 @@ msgstr "Faqet vendosen në një paraqitje të gatshme pa AI, ndaj është e shpe
 
 msgid "The pages I read this on"
 msgstr "Faqet ku e lexova këtë"
+
+msgid "The parts are converted after the book is created."
+msgstr "Pjesët konvertohen pasi krijohet libri."
+
+msgid "The PDF and the choices you made for this book will be lost. Nothing has been converted yet."
+msgstr "PDF-ja dhe zgjedhjet që bëtë për këtë libër do të humbasin. Ende nuk është konvertuar asgjë."
 
 msgid "The picture and its words belong together."
 msgstr "Figura dhe teksti i saj shkojnë bashkë."
@@ -14921,6 +14966,9 @@ msgstr "Çfarë është e re"
 msgid "What's new in this release"
 msgstr "Çfarë ka të re në këtë version"
 
+msgid "When another fits better"
+msgstr "Kur përshtatet më mirë një tjetër"
+
 msgid "When describing images, mention any culturally specific objects, locations, or recurring characters by name."
 msgstr "Kur përshkruan imazhet, përmend çdo objekt specifik kulturor, vendndodhje ose personazh të përsëritur me emër."
 
@@ -14947,6 +14995,9 @@ msgstr "Kur dikush ju dërgon një pjesë të librit të tyre për të punuar, a
 
 msgid "When the link should stop working"
 msgstr "Kur duhet të ndalojë së funksionuari lidhja"
+
+msgid "When to pick it"
+msgstr "Kur ta zgjidhni"
 
 msgid "When you’re done"
 msgstr "Kur të mbaroni"

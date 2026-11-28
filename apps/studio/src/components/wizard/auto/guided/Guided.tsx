@@ -27,6 +27,8 @@ import { useScreenValues } from "./check/useScreenValues"
 import { CreatePanel, CreateSays } from "./CreatePanel"
 import { Morph } from "./Morph"
 import { FlowTopBar } from "@/components/FlowTopBar"
+import { useNavigate } from "@tanstack/react-router"
+import { useLeaveGuard } from "./shared/LeaveGuard"
 import { PdfRow } from "./pdf/PdfRow"
 import { Stepper } from "./Stepper"
 import { STEPS, type StepId } from "./steps"
@@ -67,7 +69,12 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
   const create = useCreateRun()
   // While the book is being saved or its extraction starts, the PDF can't change (no drop, no Change PDF).
   const creating = create.runs.some((r) => r.status === "saving" || r.status === "extracting")
-  const flow = useUploadFlow({ active: active && !creating })
+  // Asks before the setup so far is lost (a new PDF, leaving, closing): once a PDF is chosen, until its book is set up.
+  const guardRef = useRef<(go: () => void) => void>((go) => go())
+  const flow = useUploadFlow({ active: active && !creating, guard: (go) => guardRef.current(go) })
+  const leave = useLeaveGuard(active && !!flow.file && !create.locked)
+  guardRef.current = (go) => leave.confirm("change", go)
+  const navigate = useNavigate()
   const validFile = !!flow.file && flow.pageCount > 0 && !flow.error
   const [attempt, setAttempt] = useState(0)
   const [rejectedAt, setRejectedAt] = useState(0)
@@ -175,7 +182,7 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
     const shownTour = flow.file ? null : tour
     says = <UploadSays flow={flow} rejected={!!rejectedAt && !validFile} />
     swap = `upload-${rejectedAt}-${flow.error ?? ""}-${validFile}-${!!flow.file}-${shownTour === null}`
-    panel = <UploadPanel flow={flow} rejected={!!rejectedAt && !validFile} onContinue={view === "upload" && validFile ? () => morph(() => setView(null)) : null} tour={shownTour} onTour={setTour} onTourDone={() => morph(endTour)} onTourAgain={() => setTour(0)} />
+    panel = <UploadPanel flow={flow} rejected={!!rejectedAt && !validFile} onContinue={view === "upload" && validFile ? () => morph(() => setView(null)) : null} tour={shownTour} onTour={setTour} onTourDone={() => morph(endTour)} onTourAgain={() => setTour(0)} onManual={manual} />
   } else if (shown === "reading") {
     if (failure) {
       swap = `failed-${attempt}`
@@ -218,6 +225,7 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
         <div className="relative z-40 shrink-0" style={{ viewTransitionName: "gd-topbar" }}>
           <FlowTopBar
             title={t`Add Book`}
+            onBack={() => leave.confirm("leave", () => navigate({ to: "/" }))}
             contentWidth={columnPx * scale}
           />
         </div>
@@ -253,6 +261,7 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
             </div>
           </div>
         </div>
+        {leave.dialog}
         <span role="status" className="sr-only">
           {busy && shown === "reading" ? <Trans>The {assistant} is reading your book…</Trans> : null}
         </span>

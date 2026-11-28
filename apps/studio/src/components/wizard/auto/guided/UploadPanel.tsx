@@ -1,6 +1,6 @@
 import { useRef, type ReactNode } from "react"
 import { Trans } from "@lingui/react/macro"
-import { AlertTriangle, ArrowRight, PlayCircle, BookOpenCheck, Check, FileText, FileUp, ListChecks, ScanSearch } from "lucide-react"
+import { AlertTriangle, ArrowRight, PlayCircle, BookOpenCheck, Check, FileText, FileUp, ListChecks, ScanSearch, Wrench } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PrimaryButton } from "../../core/ui"
 import type { UploadFlow } from "../../start/upload/useUploadFlow"
@@ -204,7 +204,7 @@ function Again() {
  * is checked (opening, then OK or why not). A first run walks through the page with a spotlight
  * (`tour`). Back on this step later: the PDF with its page choice.
  */
-export function UploadPanel({ flow, rejected, onContinue, tour, onTour, onTourDone, onTourAgain }: { flow: UploadFlow; rejected: boolean; onContinue: (() => void) | null; tour: number | null; onTour: (i: number) => void; onTourDone: () => void; onTourAgain: () => void }) {
+export function UploadPanel({ flow, rejected, onContinue, tour, onTour, onTourDone, onTourAgain, onManual }: { flow: UploadFlow; rejected: boolean; onContinue: (() => void) | null; tour: number | null; onTour: (i: number) => void; onTourDone: () => void; onTourAgain: () => void; onManual: () => void }) {
   const cards = [useRef<HTMLLIElement>(null), useRef<HTMLLIElement>(null), useRef<HTMLLIElement>(null)]
   const drop = useRef<HTMLDivElement>(null)
   const name = useAssistantName()
@@ -261,12 +261,23 @@ export function UploadPanel({ flow, rejected, onContinue, tour, onTour, onTourDo
       <div ref={drop} className="rounded-[22px]">
         <DropZone flow={flow} rejected={rejected} />
       </div>
+      {/* The other way in, from the start: every setting by hand in the step-by-step wizard (it has its own PDF upload). */}
       {tour === null && !flow.file && (
-        <div className="flex justify-center">
-          <button type="button" onClick={onTourAgain} className="lc-link inline-flex min-h-10 items-center gap-1.5 px-3 text-[13.5px] font-medium">
+        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[13.5px]">
+          <button type="button" onClick={onTourAgain} className="lc-link inline-flex min-h-10 items-center gap-1.5 px-3 font-medium">
             <PlayCircle className="size-4" />
             <Trans>Take the tour again</Trans>
           </button>
+          <span aria-hidden className="text-border">
+            |
+          </span>
+          <span className="inline-flex items-center gap-1 text-muted-foreground">
+            <Trans>Rather choose every setting yourself?</Trans>
+            <button type="button" onClick={onManual} className="lc-link inline-flex min-h-10 items-center gap-1.5 px-1.5 font-medium">
+              <Wrench className="size-4" />
+              <Trans>Set it up step by step</Trans>
+            </button>
+          </span>
         </div>
       )}
       {tour !== null && <TourCoach stops={stops} at={tour} onNext={() => onTour(tour + 1)} onBack={() => onTour(tour - 1)} onDone={onTourDone} />}

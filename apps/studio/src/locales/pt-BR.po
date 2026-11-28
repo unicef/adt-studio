@@ -2077,8 +2077,8 @@ msgstr "Outro idioma traduz o livro para ele."
 msgid "Another language…"
 msgstr "Outro idioma…"
 
-msgid "Another option fits better when"
-msgstr "Outra opção serve melhor quando"
+#~ msgid "Another option fits better when"
+#~ msgstr "Outra opção serve melhor quando"
 
 msgid "Another program on this computer is already signing in to Cloudflare. Close it and try again."
 msgstr "Outro programa neste computador já está entrando no Cloudflare. Feche-o e tente novamente."
@@ -2650,8 +2650,11 @@ msgstr "Os livros são compartilhados a partir de uma conta Cloudflare gratuita 
 msgid "Books folder"
 msgstr "Pasta de livros"
 
-msgid "Books like this:"
-msgstr "Livros assim:"
+msgid "Books like this"
+msgstr "Livros assim"
+
+#~ msgid "Books like this:"
+#~ msgstr "Livros assim:"
 
 msgid "Books that are mostly words, and school books with many parts."
 msgstr "Livros que são quase só texto e livros escolares com muitas partes."
@@ -2945,6 +2948,9 @@ msgstr "Alterar predefinição"
 msgid "Change the book language?"
 msgstr "Alterar o idioma do livro?"
 
+msgid "Change the PDF?"
+msgstr "Trocar o PDF?"
+
 msgid "Change the picture for this term"
 msgstr "Alterar a imagem deste termo"
 
@@ -3106,6 +3112,9 @@ msgstr "Escolha um modelo existente ou digite um novo id provider:model. Criar a
 
 msgid "Choose another file"
 msgstr "Escolher outro arquivo"
+
+msgid "Choose another PDF"
+msgstr "Escolher outro PDF"
 
 msgid "Choose another ZIP"
 msgstr "Escolher outro ZIP"
@@ -4939,6 +4948,9 @@ msgstr "Todas as páginas foram mescladas de volta a partir de sua parte — o l
 msgid "Every page in this book has all sections pruned. There is no content available to generate {stageName} from."
 msgstr "Todas as páginas deste livro têm todas as seções removidas. Não há conteúdo disponível para gerar {stageName}."
 
+msgid "Every page is converted."
+msgstr "Todas as páginas são convertidas."
+
 msgid "Every page is pruned"
 msgstr "Todas as páginas foram removidas"
 
@@ -5375,6 +5387,9 @@ msgstr "Layout fixo"
 
 msgid "Fixed once the book is set up: the pages are cut into screens when the book is made."
 msgstr "Fica fixo depois que o livro é criado: as páginas são divididas em telas quando o livro é feito."
+
+msgid "Fixed once the book is set up."
+msgstr "Fica fixo depois que o livro é criado."
 
 msgid "Fixed two-column template layout"
 msgstr "Layout fixo de duas colunas (template)"
@@ -6057,6 +6072,9 @@ msgstr "Como funciona a Leitura Fácil"
 msgid "How it works"
 msgstr "Como funciona"
 
+msgid "How it's made"
+msgstr "Como é feito"
+
 msgid "How languages work"
 msgstr "Como os idiomas funcionam"
 
@@ -6722,6 +6740,9 @@ msgstr "Mantenha os valores que você inseriu onde as alterações se sobrepõem
 msgid "Keep this one"
 msgstr "Manter este"
 
+msgid "Keep this PDF"
+msgstr "Manter este PDF"
+
 msgid "Keep working"
 msgstr "Continue trabalhando"
 
@@ -6865,8 +6886,17 @@ msgstr "Entrelinha"
 msgid "Learn by doing."
 msgstr "Aprenda fazendo."
 
+msgid "Learn more"
+msgstr "Saiba mais"
+
 msgid "Least used"
 msgstr "Menos usado"
+
+msgid "Leave"
+msgstr "Sair"
+
+msgid "Leave Add Book?"
+msgstr "Sair de Adicionar livro?"
 
 msgid "Leave at None to run segmentation on all qualifying images (subject to pipeline rules)."
 msgstr "Deixe em Nenhum para executar segmentação em todas as imagens qualificadas (sujeito às regras do pipeline)."
@@ -9562,8 +9592,8 @@ msgstr "Escolher do livro"
 msgid "Pick from Book"
 msgstr "Escolher do livro"
 
-msgid "Pick it when"
-msgstr "Escolha esta quando"
+#~ msgid "Pick it when"
+#~ msgstr "Escolha esta quando"
 
 msgid "Pick one layout approach."
 msgstr "Escolha uma abordagem de layout."
@@ -10125,6 +10155,9 @@ msgstr "Citação"
 
 msgid "Radius"
 msgstr "Raio"
+
+msgid "Rather choose every setting yourself?"
+msgstr "Prefere escolher cada configuração você mesmo?"
 
 msgid "Re-enable type"
 msgstr "Reativar tipo"
@@ -11711,6 +11744,9 @@ msgstr "Definir fontes do livro todo"
 msgid "Set it up myself"
 msgstr "Configurar eu mesmo"
 
+msgid "Set it up step by step"
+msgstr "Configurar passo a passo"
+
 msgid "Set manually"
 msgstr "Definida manualmente"
 
@@ -13022,6 +13058,9 @@ msgstr "O título e os metadados do livro chegam com a parte que contém a pági
 msgid "The built-in prompts are optimized for {DEFAULT_MODEL}. You switched the default LLM to <0>{savedModel}</0>, so we recommend generating new global prompt files tuned for it. You can also continue with the existing prompts."
 msgstr "Os prompts integrados são otimizados para {DEFAULT_MODEL}. Você alterou o LLM padrão para <0>{savedModel}</0>, então recomendamos gerar novos arquivos de prompts globais ajustados para ele. Você também pode continuar com os prompts existentes."
 
+msgid "The choices you made for this book will be lost, and the new PDF is read again from the start."
+msgstr "As escolhas que você fez para este livro serão perdidas, e o novo PDF será lido desde o início."
+
 msgid "The Cloudflare sign-in did not grant everything sharing needs. Disconnect, connect again, and allow every permission ADT Studio asks for. Nothing was created in your account."
 msgstr "O login da Cloudflare não concedeu tudo o que o compartilhamento precisa. Desconecte, conecte de novo e permita todas as permissões que o ADT Studio pedir. Nada foi criado na sua conta."
 
@@ -13248,6 +13287,12 @@ msgstr "As páginas entram em um layout pronto, sem a IA, então é rápido e n�
 
 msgid "The pages I read this on"
 msgstr "As páginas em que li isso"
+
+msgid "The parts are converted after the book is created."
+msgstr "As partes são convertidas depois que o livro é criado."
+
+msgid "The PDF and the choices you made for this book will be lost. Nothing has been converted yet."
+msgstr "O PDF e as escolhas que você fez para este livro serão perdidos. Nada foi convertido ainda."
 
 msgid "The picture and its words belong together."
 msgstr "A ilustração e o texto dela andam juntos."
@@ -14919,6 +14964,9 @@ msgstr "O que há de novo"
 msgid "What's new in this release"
 msgstr "Novidades desta versão"
 
+msgid "When another fits better"
+msgstr "Quando outra combina melhor"
+
 msgid "When describing images, mention any culturally specific objects, locations, or recurring characters by name."
 msgstr "Ao descrever imagens, mencione pelo nome objetos, lugares ou personagens recorrentes que sejam culturalmente específicos."
 
@@ -14945,6 +14993,9 @@ msgstr "Quando alguém enviar a você uma parte de um livro para trabalhar, ela 
 
 msgid "When the link should stop working"
 msgstr "Quando o link deve parar de funcionar"
+
+msgid "When to pick it"
+msgstr "Quando escolher"
 
 msgid "When you’re done"
 msgstr "Quando terminar"

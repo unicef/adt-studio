@@ -1,3 +1,4 @@
+import { useState, type CSSProperties } from "react"
 import { useStore } from "@tanstack/react-form"
 import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import { FileText, Scissors } from "lucide-react"
@@ -10,13 +11,38 @@ import { SCOPE_LINK } from "../../../../core/fields/ScopeField"
 import { usePageThumb } from "../../../../core/pdf/usePageThumb"
 import { useWizardForm } from "../../../../core/wizardForm"
 
-/** A chosen end of the range, large enough to tell the pages apart. */
+/**
+ * A chosen end of the range, large enough to tell the pages apart. The frame takes the page's own
+ * shape (read from the rendered image), so a landscape book gets landscape frames instead of a strip
+ * inside a portrait box; it is portrait until the first image has loaded.
+ */
 function EndPage({ file, page, label }: { file: File | null; page: number; label: string }) {
   const src = usePageThumb(file, page, 220)
+  const [ratio, setRatio] = useState(3 / 4)
   return (
     <figure className="flex shrink-0 flex-col items-center gap-1.5">
-      <span className="grid aspect-[3/4] h-[max(92px,calc(clamp(120px,calc(var(--gd-vh,1vh)*19),180px)-var(--gd-squeeze,0px)))] place-items-center overflow-hidden rounded-[6px] bg-muted shadow-[0_8px_20px_-10px_rgba(15,23,42,0.4)] ring-1 ring-border">
-        {src ? <img key={src} src={src} alt="" draggable={false} className="max-h-full max-w-full animate-in fade-in duration-200" /> : <FileText aria-hidden className="size-5 text-muted-foreground/60" />}
+      {/* Height fits the window (the step's squeeze) but stays short enough that a wide page keeps to
+          about a third of the row, so two of them leave the slider room; the width follows the page.
+          Only the width eases: the height is measured at once by the window fit. */}
+      <span
+        style={{ "--page-ratio": ratio } as CSSProperties}
+        className="grid h-(--thumb-h) w-[calc(var(--thumb-h)*var(--page-ratio))] [--thumb-h:min(max(92px,calc(clamp(120px,calc(var(--gd-vh,1vh)*19),180px)-var(--gd-squeeze,0px))),calc(30cqw/var(--page-ratio)))] place-items-center overflow-hidden rounded-[6px] bg-muted shadow-[0_8px_20px_-10px_rgba(15,23,42,0.4)] ring-1 ring-border transition-[width] duration-200 ease-out"
+      >
+        {src ? (
+          <img
+            key={src}
+            src={src}
+            alt=""
+            draggable={false}
+            onLoad={(e) => {
+              const { naturalWidth: w, naturalHeight: h } = e.currentTarget
+              if (w > 0 && h > 0) setRatio(w / h)
+            }}
+            className="size-full object-contain animate-in fade-in duration-200"
+          />
+        ) : (
+          <FileText aria-hidden className="size-5 text-muted-foreground/60" />
+        )}
       </span>
       <figcaption className="text-[12px] font-semibold tabular-nums text-muted-foreground">
         {label} <Trans>p. {page}</Trans>
@@ -95,7 +121,7 @@ export function PagesScreen({ pageCount }: { pageCount: number }) {
       <Collapsible shown={!split}>
         <div inert={split} className="flex flex-col gap-3">
           {/* The range as the pages themselves: the first and last chosen page either side of the slider. */}
-          <div className="flex items-center gap-3 rounded-2xl bg-muted/40 p-3 sm:gap-5 sm:px-5">
+          <div className="@container flex items-center gap-3 rounded-2xl bg-muted/40 p-3 sm:gap-5 sm:px-5">
             <EndPage file={file} page={start} label={t`From`} />
             <div className="flex min-w-0 flex-1 flex-col items-center gap-2">
               <Slider aria-label={t`Pages to convert`} min={1} max={total} step={1} minStepsBetweenThumbs={0} value={[start, end]} onValueChange={([a, b]) => setRange(a!, b!)} color={getPresetAccent(null).bg} />

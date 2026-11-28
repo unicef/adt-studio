@@ -33,7 +33,7 @@ export function OptionsHelp({ open, onOpenChange, rec, options, page, chosen, fi
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="flex h-[min(88vh,720px)] max-w-[820px] flex-col gap-0 overflow-hidden p-0 outline-none focus:outline-none focus-visible:outline-none"
+        className="flex h-[min(90vh,780px)] max-w-[min(94vw,980px)] flex-col gap-0 overflow-hidden rounded-[22px] p-0 outline-none focus:outline-none focus-visible:outline-none"
         onKeyDown={(e) => {
           if (e.target instanceof HTMLElement && e.target.closest("[role=tablist]")) return
           if (e.key === "ArrowRight") go(1)
@@ -64,7 +64,7 @@ export function OptionsHelp({ open, onOpenChange, rec, options, page, chosen, fi
                 i === at ? "text-brand-700 dark:text-brand-300" : "text-muted-foreground hover:bg-black/[0.03] hover:text-foreground dark:hover:bg-white/[0.04]",
               )}
             >
-              <span aria-hidden className={cn("grid h-[52px] w-[84px] place-items-center overflow-hidden rounded-[8px] transition-opacity", i === at ? "opacity-100" : "opacity-70 group-hover:opacity-100")}>
+              <span aria-hidden className={cn("grid h-[60px] w-[96px] place-items-center overflow-hidden rounded-[8px] transition-opacity", i === at ? "opacity-100" : "opacity-70 group-hover:opacity-100")}>
                 {x.art ?? <TabPicture rec={rec} option={x} page={page} file={file} />}
               </span>
               <span className="flex items-start gap-1 text-[12.5px] font-medium leading-tight">
@@ -121,15 +121,6 @@ export function OptionsHelp({ open, onOpenChange, rec, options, page, chosen, fi
   )
 }
 
-function Part({ title, children }: { title: ReactNode; children: ReactNode }) {
-  return (
-    <section className="flex flex-col gap-1.5">
-      <h3 className="text-[12px] font-semibold uppercase tracking-[0.05em] text-foreground/65">{title}</h3>
-      {children}
-    </section>
-  )
-}
-
 function Said({ m }: { m: MessageDescriptor }) {
   const { i18n } = useLingui()
   return <>{i18n._(m)}</>
@@ -145,38 +136,112 @@ function HelpPicture({ rec, option, page, file }: { rec: SetupRecommendation; op
   const pages = screenPages(rec, option.look.pageGrouping, page)
   const srcs = useScreenImages(file, pages)
   return (
-    <span aria-hidden className="qd18-pv grid h-[150px] w-full place-items-center overflow-hidden rounded-[12px] bg-muted">
-      {option.art ? <span className="block h-full w-full p-3">{option.art}</span> : <Screen shown={option.look} srcs={srcs} width={210} />}
+    <span aria-hidden className="qd18-pv grid h-[200px] w-full place-items-center overflow-hidden rounded-[16px] bg-muted sm:h-[min(34vh,280px)]">
+      {option.art ? <span className="block h-full w-full p-4">{option.art}</span> : <Screen shown={option.look} srcs={srcs} width={320} />}
     </span>
   )
 }
 
 type BodyProps = { o: LookOption; options: LookOption[]; rec: SetupRecommendation; page: number; file: File | null | undefined; show: (value: string) => void }
+type Topic = "fits" | "better" | "books" | "making"
 
-/** The details laid out as sections: the option at a glance, then the signs, then the settings. */
+/**
+ * One option, one thing at a time: first the option at a glance (its picture large, its name,
+ * what it does, and why it was suggested), then "Learn more" as small tabs, each showing a single
+ * section: when to pick it, when another fits better, books like it, how it's made.
+ */
 function CardBody({ o, options, rec, page, file, show }: BodyProps) {
+  const { t } = useLingui()
+  const better = o.guide?.better.filter((b) => options.some((x) => x.value === b.go)) ?? []
+  const topics: { id: Topic; label: ReactNode }[] = [
+    ...(o.guide ? [{ id: "fits" as const, label: <Trans>When to pick it</Trans> }] : []),
+    ...(better.length ? [{ id: "better" as const, label: <Trans>When another fits better</Trans> }] : []),
+    ...(o.guide ? [{ id: "books" as const, label: <Trans>Books like this</Trans> }] : []),
+    ...(o.guide?.making || o.phone ? [{ id: "making" as const, label: <Trans>How it&apos;s made</Trans> }] : []),
+  ]
+  const [topic, setTopic] = useState<Topic>(topics[0]?.id ?? "fits")
   return (
-          <div role="tabpanel" className="gd-help-in flex flex-col gap-5 px-6 py-5 text-[14px] leading-relaxed">
-            {/* The option at a glance: its picture, and the assistant saying what it is. */}
-            <div className="grid items-center gap-5 sm:grid-cols-[230px_minmax(0,1fr)]">
-              <HelpPicture rec={rec} option={o} page={page} file={file} />
-              <div className="flex min-w-0 flex-col gap-2">
-                <div className="flex items-center gap-2.5">
-                  <WizardPose pose="hello" size={52} className="-my-1 shrink-0" />
-                  <p className="text-[19px] font-semibold leading-tight">{o.label}</p>
-                </div>
-                <DialogDescription className="text-[14.5px] leading-relaxed text-muted-foreground">{o.more ?? o.line}</DialogDescription>
-                {o.guide && (
-                  <p className="text-[13px] text-muted-foreground">
-                    <span className="font-medium text-foreground/80">
-                      <Trans>Books like this:</Trans>
-                    </span>{" "}
-                    <Said m={o.guide.examples} />
+    <div role="tabpanel" className="gd-help-in flex flex-col gap-6 px-6 py-6 text-[15px] leading-relaxed sm:px-8">
+      {/* The option at a glance. */}
+      <div className="grid items-center gap-6 sm:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+        <HelpPicture rec={rec} option={o} page={page} file={file} />
+        <div className="flex min-w-0 flex-col gap-3">
+          <div className="flex items-center gap-2.5">
+            <WizardPose pose="hello" size={48} className="-my-1 shrink-0" />
+            <p className="text-[22px] font-semibold leading-tight tracking-[-0.01em]">{o.label}</p>
+          </div>
+          <DialogDescription className="text-[15.5px] leading-relaxed text-muted-foreground">{o.more ?? o.line}</DialogDescription>
+          {o.why && (
+            <div className="rounded-[12px] bg-brand-50 px-4 py-2.5 text-[14px] text-brand-900 dark:bg-brand-500/10 dark:text-brand-100">
+              <span className="font-semibold">{o.guess ? <Trans>Why I suggested it:</Trans> : <Trans>Why it could be this one:</Trans>}</span> {o.why}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Learn more: one section at a time. */}
+      {topics.length > 0 && (
+        <div className="flex flex-col gap-3 border-t border-border pt-5">
+          <div role="group" aria-label={t`Learn more`} className="flex flex-wrap gap-1.5">
+            {topics.map((x) => (
+              <button
+                key={x.id}
+                type="button"
+                aria-pressed={topic === x.id}
+                onClick={() => setTopic(x.id)}
+                className={cn(
+                  "h-8 rounded-full px-3.5 text-[13px] font-medium ring-1 transition-colors",
+                  topic === x.id ? "bg-brand-600 text-white ring-brand-600" : "bg-card text-foreground ring-border hover:bg-brand-50 hover:ring-brand-300",
+                )}
+              >
+                {x.label}
+              </button>
+            ))}
+          </div>
+          <div key={topic} className="gd-help-in min-h-[84px] text-[15px]">
+            {topic === "fits" && o.guide && (
+              <ul className="flex flex-col gap-1.5">
+                {o.guide.fits.map((m) => (
+                  <li key={m.id} className="flex gap-2.5">
+                    <Check className="mt-1 size-4 shrink-0 stroke-[2.5] text-brand-600 dark:text-brand-400" />
+                    <Said m={m} />
+                  </li>
+                ))}
+              </ul>
+            )}
+            {topic === "better" && (
+              <ul className="flex flex-col gap-1.5">
+                {better.map((b) => (
+                  <li key={b.when.id} className="flex gap-2.5">
+                    <ArrowRight className="mt-1 size-4 shrink-0 text-muted-foreground" />
+                    <span>
+                      <span className="text-muted-foreground">
+                        <Said m={b.when} />
+                      </span>{" "}
+                      <button type="button" onClick={() => show(b.go)} className="font-medium text-brand-700 underline decoration-brand-300 underline-offset-4 hover:decoration-brand-500 dark:text-brand-300 dark:decoration-brand-500/50">
+                        {options.find((x) => x.value === b.go)!.label}
+                      </button>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {topic === "books" && o.guide && (
+              <p className="text-muted-foreground">
+                <Said m={o.guide.examples} />
+              </p>
+            )}
+            {topic === "making" && (
+              <div className="flex flex-col gap-2 text-muted-foreground">
+                {o.guide?.making && (
+                  <p className="flex gap-2.5">
+                    {o.guide.making.ai ? <Sparkles className="mt-1 size-4 shrink-0 text-brand-500" /> : <Zap className="mt-1 size-4 shrink-0 text-amber-500" />}
+                    <Said m={o.guide.making.says} />
                   </p>
                 )}
                 {o.phone && (
-                  <p className="flex gap-1.5 text-[13px] text-muted-foreground">
-                    <Smartphone className="mt-0.5 size-3.5 shrink-0 text-brand-500" />
+                  <p className="flex gap-2.5">
+                    <Smartphone className="mt-1 size-4 shrink-0 text-brand-500" />
                     <span>
                       <span className="font-medium text-foreground/80">
                         <Trans>On a phone:</Trans>
@@ -185,62 +250,14 @@ function CardBody({ o, options, rec, page, file, show }: BodyProps) {
                     </span>
                   </p>
                 )}
-                {o.guide?.making && (
-                  <p className="flex gap-1.5 text-[13px] text-muted-foreground">
-                    {o.guide.making.ai ? <Sparkles className="mt-0.5 size-3.5 shrink-0 text-brand-500" /> : <Zap className="mt-0.5 size-3.5 shrink-0 text-amber-500" />}
-                    <Said m={o.guide.making.says} />
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {o.why && (
-              <div className="rounded-[12px] bg-brand-50 px-4 py-2.5 text-[13.5px] text-brand-900 dark:bg-brand-500/10 dark:text-brand-100">
-                <span className="font-semibold">{o.guess ? <Trans>Why I suggested it:</Trans> : <Trans>Why it could be this one:</Trans>}</span>{" "}
-                {o.why}
               </div>
             )}
-
-            {o.guide && (
-              <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
-                <Part title={<Trans>Pick it when</Trans>}>
-                  <ul className="flex flex-col gap-1">
-                    {o.guide.fits.map((m) => (
-                      <li key={m.id} className="flex gap-2">
-                        <Check className="mt-1 size-3.5 shrink-0 stroke-[2.5] text-brand-600 dark:text-brand-400" />
-                        <Said m={m} />
-                      </li>
-                    ))}
-                  </ul>
-                </Part>
-                {o.guide.better.some((b) => options.some((x) => x.value === b.go)) && (
-                  <Part title={<Trans>Another option fits better when</Trans>}>
-                    <ul className="flex flex-col gap-1">
-                      {o.guide.better
-                        .filter((b) => options.some((x) => x.value === b.go))
-                        .map((b) => (
-                          <li key={b.when.id} className="flex gap-2">
-                            <ArrowRight className="mt-1 size-3.5 shrink-0 text-muted-foreground" />
-                            <span>
-                              <span className="text-muted-foreground">
-                                <Said m={b.when} />
-                              </span>{" "}
-                              <button type="button" onClick={() => show(b.go)} className="font-medium text-brand-700 underline decoration-brand-300 underline-offset-4 hover:decoration-brand-500 dark:text-brand-300 dark:decoration-brand-500/50">
-                                {options.find((x) => x.value === b.go)!.label}
-                              </button>
-                            </span>
-                          </li>
-                        ))}
-                    </ul>
-                  </Part>
-                )}
-              </div>
-            )}
-
-
-            <p className="text-[12.5px] text-muted-foreground">
-              <Trans>You can change this until you set up the book.</Trans>{" "}
-            </p>
           </div>
+        </div>
+      )}
+      <p className="text-[12.5px] text-muted-foreground">
+        <Trans>You can change this until you set up the book.</Trans>
+      </p>
+    </div>
   )
 }

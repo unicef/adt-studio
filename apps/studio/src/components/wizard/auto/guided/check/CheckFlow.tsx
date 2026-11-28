@@ -109,7 +109,7 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, o
   else if (at === "spreads") body = <SpreadsScreen rec={rec} chat={chat} file={file} />
   else if (at === "pages") body = <PagesScreen pageCount={pageCount} />
   else if (at === "activities") body = <ActivitiesScreen rec={rec} chat={chat} file={file} />
-  else body = <NameScreen facts={facts} screens={screens} values={values} settings={derived.effective} onEdit={(s) => check.go(s, true)} />
+  else body = <NameScreen rec={rec} facts={facts} screens={screens} values={values} settings={derived.effective} pageCount={pageCount} onEdit={(s) => check.go(s, true)} />
 
   return (
     <section aria-labelledby={HEADING} inert={locked} className="flex flex-col">

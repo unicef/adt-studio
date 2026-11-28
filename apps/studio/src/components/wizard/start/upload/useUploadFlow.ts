@@ -19,7 +19,7 @@ function isPdfFile(f: File) {
  * (password-protected, damaged, not a PDF). `active` is false while the manual wizard is open over
  * the guided flow, so its window-wide drop zone stays off and only the manual wizard takes a drop.
  */
-export function useUploadFlow({ active = true }: { active?: boolean } = {}) {
+export function useUploadFlow({ active = true, guard }: { active?: boolean; /** Asks before a new PDF replaces the current one (the picker, or a dropped file); calls `go` to go ahead. */ guard?: (go: () => void) => void } = {}) {
   const form = useWizardForm()
   const { data: books } = useBooks()
   const file = useStore(form.store, (s) => s.values.file)
@@ -97,7 +97,7 @@ export function useUploadFlow({ active = true }: { active?: boolean } = {}) {
     return () => window.clearTimeout(id)
   }, [rejected])
 
-  const { overlay } = useFileDropZone({ accept: isPdfFile, onAccept: accept, enabled: active })
+  const { overlay } = useFileDropZone({ accept: isPdfFile, onAccept: (f: File) => (file && guard ? guard(() => accept(f)) : accept(f)), enabled: active })
 
   const { pages } = usePdfPreviewPages({ file, mode: "first", width: 960, height: 1280 })
   return {
@@ -110,7 +110,11 @@ export function useUploadFlow({ active = true }: { active?: boolean } = {}) {
     rejectedAt: rejected,
     overlay,
     inputRef,
-    openPicker: () => inputRef.current?.click(),
+    openPicker: () => {
+      const open = () => inputRef.current?.click()
+      if (file && guard) guard(open)
+      else open()
+    },
     onInputChange: (e: ChangeEvent<HTMLInputElement>) => {
       const picked = e.target.files?.[0]
       if (picked) pick(picked)
