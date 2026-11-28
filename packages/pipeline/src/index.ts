@@ -135,6 +135,7 @@ export {
   type VisualReviewResult,
   type VisualReviewValidation,
 } from "./visual-review.js"
+export { encodeLegacyEntities } from "./html-serialize.js"
 export {
   createScreenshotRenderer,
   resolveScreenshotConcurrency,

@@ -2338,13 +2338,14 @@ export function containsMathContent(html: string): boolean {
 /**
  * Returns true if the text is mixed prose with embedded math, rather than a
  * pure math expression. We detect this by looking for 3+ consecutive regular
- * English words — pure LaTeX expressions rarely have that.
+ * words (any script: accented letters are written literally now) — pure
+ * LaTeX expressions rarely have that.
  */
 function isMixedContent(text: string): boolean {
   const words = text.split(/\s+/)
   let consecutive = 0
   for (const word of words) {
-    if (/^[a-zA-Z]{3,}[.,;:!?]?$/.test(word)) {
+    if (/^\p{L}{3,}[.,;:!?]?$/u.test(word)) {
       consecutive++
       if (consecutive >= 3) return true
     } else {

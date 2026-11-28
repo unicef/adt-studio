@@ -17,6 +17,7 @@ import {
 import { DEFAULT_TYPOGRAPHY } from "@adt/types"
 import { validateTypographyHierarchy } from "./validate-typography-hierarchy.js"
 import { inspectOrderingActivityHtml } from "./ordering-contract.js"
+import { encodeLegacyEntities } from "./html-serialize.js"
 
 const BUILT_IN_STRICT_REVIEW_PROMPT = "visual_review"
 const USER_DIRECTED_REVIEW_PROMPT = "visual_review_flexible"
@@ -145,7 +146,8 @@ export async function renderSectionLlm(
       promptContext: {
         page_image_base64: input.pageImageBase64,
         section_type: section.sectionType,
-        current_html: generatedHtml,
+        // Prompt text is the LLM cache key: keep the pre-#907 encoding.
+        current_html: encodeLegacyEntities(generatedHtml),
         nodes: renderContext.nodes,
         leaf_texts: renderContext.leaf_texts,
         has_merged_content: sourcePages.length > 0,
@@ -188,6 +190,10 @@ export async function renderSectionLlm(
   // here). Rewrite once more so a right-to-left page is stored
   // direction-neutral; it changes nothing when the repairs did not.
   generatedHtml = directionNeutral(generatedHtml, input.pageDirection)
+  // The answers prompt (an LLM cache key) and the activity-ID hash see the
+  // pre-#907 entity encoding, so existing books keep their IDs and cache hits.
+  let legacyHtmlCache: string | undefined
+  const legacyHtml = () => (legacyHtmlCache ??= encodeLegacyEntities(generatedHtml))
 
   // Ordering has one inspectable source of truth in the validated HTML. Derive
   // its rank map deterministically so initial render, rerender, Studio editing,
@@ -221,7 +227,7 @@ export async function renderSectionLlm(
       prompt: config.answerPromptName,
       context: {
         ...promptContext,
-        activity_html: generatedHtml,
+        activity_html: legacyHtml(),
       },
       maxRetries: config.maxRetries,
       maxTokens: 4096,
@@ -249,7 +255,7 @@ export async function renderSectionLlm(
     html: generatedHtml,
     ...(activityReasoning !== undefined && { activityReasoning }),
     ...(activityAnswers !== undefined && { activityAnswers }),
-  }, (id) => `${section.sectionId}_activity_${inputSignature({ id, html: generatedHtml }).slice(0, 24)}`)
+  }, (id) => `${section.sectionId}_activity_${inputSignature({ id, html: legacyHtml() }).slice(0, 24)}`)
 }
 
 /**

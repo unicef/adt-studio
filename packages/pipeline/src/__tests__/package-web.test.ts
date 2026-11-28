@@ -3211,6 +3211,16 @@ describe("rewriteImageUrls", () => {
     expect(packaged.html).toContain('src="https://example.test/api/books/original/images/img1"')
     expect(packaged.referencedImages).toEqual(["img1"])
   })
+
+  it("keeps non-ASCII text and alt/title literal and escapes only what HTML requires (#907)", () => {
+    const html = `<p title="Año “x”">Niño á ¿Qué? &amp; &lt;b&gt;</p><img src="/api/books/mybook/images/abc123">`
+    const imageMap = new Map([["abc123", "photo.jpg"]])
+    const altText = new Map([["abc123", 'Niño "feliz"']])
+    const { html: out } = rewriteImageUrls(html, "mybook", imageMap, altText)
+    expect(out).toContain('<p title="Año “x”">Niño á ¿Qué? &amp; &lt;b&gt;</p>')
+    expect(out).toContain('alt="Niño &quot;feliz&quot;"')
+    expect(out).not.toMatch(/&#x/)
+  })
   it("rewrites src URL from API path to local images/ path", () => {
     const html = `<img src="/api/books/mybook/images/abc123">`
     const imageMap = new Map([["abc123", "photo.jpg"]])
@@ -3387,6 +3397,12 @@ describe("rewriteImageUrls", () => {
 })
 
 describe("convertLatexToMathml", () => {
+  it("leaves accented prose with an undelimited LaTeX marker as prose around the math", () => {
+    const result = convertLatexToMathml("<p>Calcula además también área total: x^2 + 3x</p>")
+    expect(result).toContain("Calcula además también área total")
+    expect(result).not.toMatch(/^<p><math/)
+  })
+
   it("converts inline $...$ LaTeX to MathML", () => {
     const result = convertLatexToMathml("<p>The equation $x^2$ is simple.</p>")
     expect(result).toContain("<math")
