@@ -1,4 +1,4 @@
-import { useContext, useRef, useState, type ReactNode } from "react"
+import { useContext, useLayoutEffect, useRef, useState, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
 import type { SetupFact, SetupRecommendation, SetupSettingId } from "@adt/types"
@@ -33,10 +33,43 @@ const NARROW = 520
  */
 export type LookOption = { value: string; label: string; line: string; look: Look; guess: boolean; art?: ReactNode; more?: string; phone?: string; /** Books it suits, and its downside (page layouts). */ best?: string; watch?: string; tag?: ReactNode; guide?: OptionGuide; why?: ReactNode }
 
+/** The room a card's details can take: the page between the top bar and the bottom bar (or the window). */
+function roomAround(el: HTMLElement): { top: number; bottom: number } {
+  let top = 0
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    const o = getComputedStyle(p).overflowY
+    if (o === "auto" || o === "scroll") {
+      top = p.getBoundingClientRect().top
+      break
+    }
+  }
+  const bar = document.querySelector(".gd-bar")?.getBoundingClientRect().top
+  return { top, bottom: bar && bar > 0 ? bar : window.innerHeight }
+}
+
+/** Space kept between the details and the bars. */
+const ROOM_PAD = 8
+
 function LookCard({ rec, option, page, narrow, compact = false, chosen, first, onPick, vtName, file }: { rec: SetupRecommendation; option: LookOption; page: number; narrow: boolean; compact?: boolean; chosen: boolean; first: boolean; onPick: (card: HTMLElement) => void; /** Its own morph name, so a pick slides the cards to their new places. */ vtName?: string; file: File | null | undefined }) {
-  const { i18n } = useLingui()
+  const { i18n, t } = useLingui()
   const cardRef = useRef<HTMLButtonElement>(null)
+  const [panel, setPanel] = useState<HTMLDivElement | null>(null)
+  const [open, setOpen] = useState(false)
   const [grow, setGrow] = useState<"down" | "up">("down")
+  const [room, setRoom] = useState({ top: 0, bottom: 0 })
+  // It grows from the card where it fits whole: downward when there's room above the bottom bar,
+  // else upward, else toward the larger space (where it scrolls). Measured once it's open, before it paints.
+  useLayoutEffect(() => {
+    const card = cardRef.current
+    if (!open || !card || !panel) return
+    const r = card.getBoundingClientRect()
+    const { top, bottom } = roomAround(card)
+    const need = panel.scrollHeight + ROOM_PAD
+    const below = bottom - r.bottom
+    const above = r.top - top
+    setGrow(below >= need ? "down" : above >= need ? "up" : below >= above ? "down" : "up")
+    setRoom({ top: top + ROOM_PAD, bottom: window.innerHeight - bottom + ROOM_PAD })
+  }, [open, panel])
   const describe = useDescribe()
   const { ref, box } = useBox<HTMLSpanElement>()
   const width = Math.max(80, Math.min(box.w - 28, ((box.h - 24) * SCREEN.desktop.w) / SCREEN.desktop.h))
@@ -44,6 +77,8 @@ function LookCard({ rec, option, page, narrow, compact = false, chosen, first, o
   const srcs = useScreenImages(file, pages)
   // Compact (the options under a pick) draws like the narrow row: a small picture beside the words.
   const row = narrow || compact
+  const { label, line } = option
+  const looks = option.art ? "" : describe(option.look, "desktop", pages)
   const card = (
     <button
       ref={cardRef}
@@ -52,7 +87,7 @@ function LookCard({ rec, option, page, narrow, compact = false, chosen, first, o
       data-q-first={first ? "" : undefined}
       style={vtName ? { viewTransitionName: vtName.replace(/[^a-zA-Z0-9_-]/g, "_") } : undefined}
       onClick={(e) => onPick(e.currentTarget)}
-      aria-label={`${option.label}. ${option.line}.${option.art ? "" : ` ${describe(option.look, "desktop", pages)}`}`}
+      aria-label={option.art ? t`${label}. ${line}.` : t`${label}. ${line}. ${looks}`}
       className={cn("qd18-o group relative flex min-w-0 p-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500", row ? "flex-row items-center gap-3" : "flex-col", chosen && "is-sel")}
       data-grow={grow}
     >
@@ -89,23 +124,18 @@ function LookCard({ rec, option, page, narrow, compact = false, chosen, first, o
   // its downside. Touch and keyboard users get the same through Explain the options.
   const best = option.best ?? (option.guide ? i18n._(option.guide.examples) : undefined)
   return (
-    <HoverCard
-      openDelay={450}
-      closeDelay={80}
-      onOpenChange={(o) => {
-        // It grows from the card: downward when there's room above the bottom bar, else upward.
-        const r = cardRef.current?.getBoundingClientRect()
-        if (o && r) setGrow(window.innerHeight - r.bottom >= 300 ? "down" : "up")
-      }}
-    >
+    <HoverCard openDelay={450} closeDelay={80} open={open} onOpenChange={setOpen}>
       <HoverCardTrigger asChild>{card}</HoverCardTrigger>
       <HoverCardContent
+        ref={setPanel}
         side={grow === "down" ? "bottom" : "top"}
         align="center"
         sideOffset={-2}
         avoidCollisions={false}
-        className="qd18-grow w-[var(--radix-hover-card-trigger-width)] p-4"
-      >        <p className="text-[15px] font-semibold leading-tight">{option.label}</p>
+        collisionPadding={{ top: room.top, bottom: room.bottom }}
+        className="qd18-grow max-h-[var(--radix-hover-card-content-available-height)] w-[var(--radix-hover-card-trigger-width)] overflow-y-auto p-4"
+      >
+        <p className="text-[15px] font-semibold leading-tight">{option.label}</p>
         <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">{option.more ?? option.line}</p>
         {(best || option.phone || option.watch) && (
           <ul className="mt-3 flex flex-col gap-2 border-t border-border pt-3 text-[13px] leading-snug">
