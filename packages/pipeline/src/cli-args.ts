@@ -19,7 +19,8 @@ Doctor (read-only compatibility check of existing books):
   pnpm pipeline doctor [books-dir] [--label <label>] [--json]
               Reports per book: schema version, stale lock files, rendered
               sections without a provable owner, duplicate text ids, and
-              catalog ids that re-key on this version. Writes nothing.
+              catalog ids that re-key on this version. Leaves book data unchanged.
+              A connection held by another process returns BOOK_BUSY; retry after it closes.
               Exit code 0 = no findings, 1 = findings, 2 = a book could not be read.`
 
 const ParsedCliArgsSchema = z

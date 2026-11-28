@@ -223,7 +223,7 @@ export function createQuizRoutes(
       for (const pageId of orderedPageIds) {
         const renderingRow = storage.getLatestNodeData("web-rendering", pageId)
         const sectioning = getRenderSectioning(storage, pageId)
-        if (!renderingRow || !sectioning) continue
+        if (renderingRow?.data == null || !sectioning) continue
         batch.push({
           pageId,
           rendering: renderingRow.data as WebRenderingOutput,

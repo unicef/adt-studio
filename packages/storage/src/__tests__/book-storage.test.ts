@@ -174,6 +174,20 @@ describe("createBookStorage", () => {
     storage.close()
   })
 
+  it("returns deduplication hashes alongside opt-in stored-asset evidence", () => {
+    const { storage } = createTempStorage()
+    try {
+      storage.putExtractedPage(makePage(1))
+      const ordinary = storage.getPageImages("pg001").find(image => image.imageId === "pg001_im001")!
+      const admitted = storage.getPageImages("pg001", true).find(image => image.imageId === ordinary.imageId)!
+      expect(ordinary.hash).toBe("hash_im001_1")
+      expect(ordinary).not.toHaveProperty("storedAsset")
+      expect(admitted).toEqual({ ...ordinary, storedAsset: {
+        relativePath: "images/pg001_im001.png", hash: ordinary.hash, source: "extract",
+      } })
+    } finally { storage.close() }
+  })
+
   it("persists segment placement bounds and returns them in getPageImages", () => {
     const { storage } = createTempStorage()
     storage.putExtractedPage(makePage(1))
@@ -827,6 +841,21 @@ describe("quiz history retention on invalidation", () => {
         expect(readCurrentNodeRow(db, "metadata", "book")).toEqual({ version: 1, data: "null" })
       } finally { db.close() }
     } finally { storage.close() }
+  })
+
+  it("refuses to clear authored element-audio through any list", () => {
+    const { storage } = createTempStorage()
+    try {
+      storage.putNodeData("element-audio", "pg001", {
+        entries: [{ nodeId: "pg001_im001", text: "Mago" }],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+      expect(() => storage.clearNodesByType(["text-catalog", "element-audio"]))
+        .toThrow(/element-audio/)
+      expect(storage.getLatestNodeData("element-audio", "pg001")?.version).toBe(1)
+    } finally {
+      storage.close()
+    }
   })
 
   it("rolls quiz invalidation and dependent deletion back with a failed transaction", () => {

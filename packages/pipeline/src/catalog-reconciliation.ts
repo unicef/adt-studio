@@ -1,3 +1,4 @@
+import { serializeHtml } from "./html-serialize.js"
 import { TTSOutput, WordTimestampOutput, voiceSlotEntryId } from "@adt/types"
 import { parseDocument, DomUtils } from "htmlparser2"
 import { publishSpeechOutput, bookAssetExists, type Storage } from "@adt/storage"
@@ -26,7 +27,7 @@ export function assignActivityIds(html: string, allocate: (oldId: string) => str
     }
     element.attribs["data-id"] = assigned.get(id)!
   }
-  return DomUtils.getOuterHTML(doc)
+  return serializeHtml(doc)
 }
 
 export function reconcileActivityIds(storage: Storage, pageId: string): void {
@@ -76,8 +77,12 @@ export function buildImageInventory(storage: Storage) {
     if (!rendering.success) continue
     const sectioning = getRenderSectioning(storage, page.pageId)
     const projected = withLegacyRenderingOwnership(storage, page.pageId, rendering.data)
+    // These projected sections do not change during this loop. Parse each
+    // owner's HTML once; duplicate and contradictory claims remain unresolved.
+    // Nothing survives this page's inventory pass, including undefined owners.
+    const owners = new Map(projected.sections.map(section => [section, renderedSectionId(section)]))
     for (const section of projected.sections) {
-      const source = resolveRenderedSection(section, sectioning?.sections, projected.sections)
+      const source = resolveRenderedSection(section, sectioning?.sections, projected.sections, entry => owners.get(entry))
       if (!source || source.isPruned) continue
       for (const id of extractImageIds([section.html])) add(id, page.pageId, source.sectionId)
     }

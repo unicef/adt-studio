@@ -1,4 +1,6 @@
 import { z } from "zod"
+import { PageSectioningOutput } from "./page-sectioning.js"
+import { AuthoredSaveGuard } from "./content-authorship.js"
 
 /**
  * Max upscale for a fixed-layout page filling its viewport. Shared by the
@@ -35,9 +37,61 @@ export const WebRenderingOutput = z.object({
 })
 export type WebRenderingOutput = z.infer<typeof WebRenderingOutput>
 
+/** Canonical page pair returned by an atomic editor save. Acknowledged guards
+ * and values travel together so a delayed GET cannot seed the next draft. */
+export const StoryboardSaveResult = z.object({
+  sectioningVersion: z.number().int().positive().nullable(),
+  renderingVersion: z.number().int().positive().nullable(),
+  sectioning: PageSectioningOutput.nullable(),
+  rendering: WebRenderingOutput.nullable(),
+})
+export type StoryboardSaveResult = z.infer<typeof StoryboardSaveResult>
+
+export const RenderingSave = WebRenderingOutput.extend(AuthoredSaveGuard.shape)
+export type RenderingSave = z.infer<typeof RenderingSave>
+export const AiSectionEdit = z.object({
+  ...AuthoredSaveGuard.shape,
+  renderingBaseVersion: AuthoredSaveGuard.shape.baseVersion,
+  instruction: z.string().trim().min(1),
+  currentHtml: z.string().optional(),
+})
+export type AiSectionEdit = z.infer<typeof AiSectionEdit>
+export const StoryboardSave = z.object({
+  sectioning: PageSectioningOutput.omit({ source: true }).optional(),
+  baseVersion: AuthoredSaveGuard.shape.baseVersion.optional(),
+  rendering: WebRenderingOutput.optional(),
+  renderingBaseVersion: AuthoredSaveGuard.shape.baseVersion.optional(),
+  renderingInSync: z.boolean().default(false),
+}).superRefine((value, ctx) => {
+  if (value.rendering && value.renderingBaseVersion === undefined) {
+    ctx.addIssue({ code: "custom", path: ["renderingBaseVersion"], message: "renderingBaseVersion is required for rendering saves" })
+  }
+  if (value.sectioning && value.baseVersion === undefined) {
+    ctx.addIssue({ code: "custom", path: ["baseVersion"], message: "baseVersion is required for sectioning saves" })
+  }
+})
+export type StoryboardSave = z.infer<typeof StoryboardSave>
+
 export const webRenderingLLMSchema = z.object({
   reasoning: z.string(),
   content: z.string(),
+})
+
+export const htmlEditLLMSchema = z.object({
+  reasoning: z.string(),
+  feasible: z
+    .boolean()
+    .describe(
+      "true when the instruction was applied with HTML, text, layout, and styling changes alone; false when it needs new or changed images, a heading rank change, or changes outside this section",
+    ),
+  unsupported_reason: z
+    .string()
+    .describe(
+      "Empty when feasible is true; otherwise one or two short sentences for a non-technical user, in the language of the instruction, saying what cannot be done and which storyboard tool to use instead",
+    ),
+  content: z
+    .string()
+    .describe("The edited section HTML, or the current HTML unchanged when feasible is false"),
 })
 
 export const activityAnswersLLMSchema = z.object({

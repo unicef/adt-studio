@@ -1,3 +1,4 @@
+import { serializeHtml } from "../html-serialize.js"
 import { DomUtils, parseDocument } from "htmlparser2"
 
 import { supportsEditableActivity } from "../extract-editable-activity.js"
@@ -211,8 +212,8 @@ export function restoreImportedCustomActivityScripts(
   }
 
   for (const sourceScript of sourceScripts) {
-    const cloned = parseDocument(DomUtils.getOuterHTML(sourceScript)).children[0]
+    const cloned = parseDocument(serializeHtml(sourceScript)).children[0]
     if (cloned) DomUtils.appendChild(generatedSection, cloned)
   }
-  return DomUtils.getOuterHTML(generatedDocument)
+  return serializeHtml(generatedDocument)
 }

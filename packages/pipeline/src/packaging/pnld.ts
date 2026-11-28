@@ -1,4 +1,5 @@
 import fs from "node:fs"
+import { stripXmlInvalid } from "../html-escape.js"
 import path from "node:path"
 import jpeg from "jpeg-js"
 import { PNG } from "pngjs"
@@ -13,6 +14,7 @@ import {
   injectWebpubStyles,
 } from "./web.js"
 import { stripRuntimeBundle } from "./strip-runtime-bundle.js"
+import { PACKAGE_OWNERS_FILE } from "./bundle-ownership.js"
 
 export type PackagePnldOptions = PackageAdtWebOptions
 
@@ -436,6 +438,8 @@ export function buildAdtSidecar(pnldDir: string): void {
   const assets = path.join(pnldDir, "assets")
   const content = path.join(pnldDir, "content")
 
+  // Retain origin evidence beside the relocated reader data.
+  moveFile(path.join(pnldDir, ".build-owners"), path.join(data, ".build-owners"))
   moveFile(path.join(assets, "config.json"), path.join(data, "assets", "config.json"))
   moveDir(path.join(assets, "interface_translations"), path.join(data, "assets", "interface_translations"))
   moveFile(path.join(content, "pages.json"), path.join(data, "content", "pages.json"))
@@ -734,6 +738,7 @@ function collectFiles(
   out: Array<{ href: string; mediaType: string }>,
 ): void {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === PACKAGE_OWNERS_FILE) continue
     const fullPath = path.join(dir, entry.name)
     if (entry.isDirectory()) {
       collectFiles(baseDir, fullPath, out)
@@ -920,7 +925,7 @@ function sumarioHeading(language: string): string {
 }
 
 function escapeXml(str: string): string {
-  return str
+  return stripXmlInvalid(str)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")

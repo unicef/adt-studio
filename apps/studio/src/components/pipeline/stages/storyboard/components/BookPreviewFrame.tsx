@@ -177,6 +177,8 @@ export interface BookPreviewFrameProps {
   /** Fires once the iframe has loaded, fonts are ready, and content injected —
    *  useful for revealing the frame after a loading skeleton. */
   onReady?: () => void
+  /** Reports each displayed selection after layout, without remounting the editor. */
+  onContentReady?: () => void
   /** Lightweight read-only mode for tiny previews: don't block first paint on
    *  web-font loading and skip LaTeX→MathML conversion. Approximate but fast. */
   thumbnail?: boolean
@@ -221,6 +223,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   onLinkHover,
   bodyFontFamily,
   onReady,
+  onContentReady,
   thumbnail = false,
   autoRefreshCss = false,
 }, ref) {
@@ -375,6 +378,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
     },
   }))
   const [iframeReady, setIframeReady] = useState(false)
+  const [loadedPreview, setLoadedPreview] = useState<{ doc: Document; shell: string } | null>(null)
   const [scale, setScale] = useState(1)
   const [contentHeight, setContentHeight] = useState(800)
   /**
@@ -1004,15 +1008,18 @@ ${selectors}:hover {
 
     const onLoad = () => {
       const doc = iframe.contentDocument
+      const shell = iframe.srcdoc
       if (!doc) return
       // Every load starts from a bare `<html>`. The shell is re-read whenever
       // `srcdoc` changes (a book font change, say) while `iframeReady` stays
       // true, so no effect re-runs to restore the direction.
       applyTextDirection(doc, textDirectionRef.current)
       const start = () => {
+        if (iframeRef.current !== iframe || iframe.contentDocument !== doc) return
         readyRef.current = true
         setIframeReady(true)
         injectContent(latestHtmlRef.current)
+        setLoadedPreview({ doc, shell })
       }
       // Thumbnails render read-only at tiny scale — don't block first paint on
       // web-font loading (fonts swap in a beat later, invisible at that size).
@@ -1040,6 +1047,30 @@ ${selectors}:hover {
   useEffect(() => {
     onScaleChange?.(scale)
   }, [scale, onScaleChange])
+
+  // A reused editor iframe does not load again on section navigation. Wait for
+  // the current injected content's fonts/layout, and cancel an obsolete callback.
+  useEffect(() => {
+    if (!iframeReady || !onContentReady || loadedPreview?.shell !== srcdoc) return
+    const doc = loadedPreview.doc
+    if (iframeRef.current?.contentDocument !== doc) return
+    let cancelled = false
+    let firstFrame = 0
+    let secondFrame = 0
+    void Promise.resolve(doc?.fonts?.ready).then(() => {
+      if (cancelled) return
+      firstFrame = requestAnimationFrame(() => {
+        secondFrame = requestAnimationFrame(() => {
+          if (!cancelled && iframeRef.current?.contentDocument === doc) onContentReady()
+        })
+      })
+    })
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(firstFrame)
+      cancelAnimationFrame(secondFrame)
+    }
+  }, [iframeReady, displayHtml, onContentReady, loadedPreview, srcdoc])
 
   // Keep onReady in a ref so the reveal effect can fire it without re-running
   // (and re-POSTing the CSS recompile) on every render.

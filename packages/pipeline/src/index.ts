@@ -214,6 +214,7 @@ export {
   extractTextCatalogEntriesFromHtml,
   exportedActivityCatalogIds,
 } from "./text-catalog.js"
+export { collectElementAudioTextIds } from "./element-audio-ids.js"
 export {
   projectImportedHtmlSection,
   createSafeImportedHtmlPreview,
@@ -308,7 +309,10 @@ export {
   elevenLabsVoiceSettingsFromConfig,
   buildElevenLabsTtsLogParams,
   classifyElevenLabsTtsError,
+  classifyTtsError,
   elevenLabsTtsRetryDelayMs,
+  openAiTtsRetryDelayMs,
+  OPENAI_TTS_MAX_RETRIES,
   parseElevenLabsErrorStatus,
   ELEVENLABS_TTS_MAX_CONCURRENCY,
   ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES,
@@ -381,7 +385,7 @@ export {
   type FontAssignmentInput,
 } from "./font-assignment.js"
 export { applyFontToHtml, type FontScope } from "./font-apply.js"
-export { loadConfig, loadBookConfig, deepMerge } from "./config.js"
+export { loadConfig, loadBookConfig, loadBookConfigOverrides, normalizePersistedSectioningMode, BookConfigError, deepMerge } from "./config.js"
 export { runFullPipeline, type FullPipelineOptions } from "./pipeline-dag.js"
 export {
   runDAG,
@@ -397,6 +401,7 @@ export {
   type PackageEpubOptions,
 } from "./packaging/epub.js"
 export { packageWebpub } from "./packaging/webpub.js"
+export { readerSettingsFromConfig } from "./reader-settings.js"
 export { packagePnld, type PackagePnldOptions } from "./packaging/pnld.js"
 export { buildPreviewTailwindCss } from "./tailwind.js"
 export { htmlToXhtml } from "./html-semantics.js"
@@ -430,6 +435,10 @@ export {
   collectTranslationBaselines,
   type BuildAdtRoundTripManifestOptions,
 } from "./adt-round-trip/manifest.js"
+export {
+  detectBundleReflowableFont,
+  reflowableBodyFontStyle,
+} from "./adt-round-trip/font.js"
 export {
   ADT_AGENT_GUIDE_VERSION,
   inspectAdtAgentGuide,
@@ -503,6 +512,7 @@ export {
 } from "./section-ids.js"
 export {
   resolveReadingOrder,
+  readReadingOrderQuizzes,
   defaultReadingOrder,
   toPageEntry,
   readingOrderHref,
@@ -542,7 +552,7 @@ export { inputSignature, outputEvidence, outputIdentityKey, deriveOutputStatus, 
 export { buildTextCatalogSnapshot, findIntroducedCatalogConflict } from "./text-catalog.js"
 export { assignActivityIds, reconcileActivityIds, reconcileTextCatalog, buildImageInventory } from "./catalog-reconciliation.js"
 
-export { coreTtsInputBasis, resolveCoreTtsSpeechCatalog } from "./core-tts.js"
+export { coreTtsInputBasis, preparationNeighbors, resolveCoreTtsSpeechCatalog } from "./core-tts.js"
 export { reconcileSpeechInputs } from "./speech-inputs.js"
 
 export { withOutputLocations, selectedForGeneration } from "./output-freshness.js"
@@ -555,7 +565,7 @@ export { readOutputCatalog, captionInputSignature } from "./output-catalog.js"
 
 export { assertOutputPublication } from "./output-freshness.js"
 
-export { computePageSpeechInputSignature, speechPageId } from "./speech.js"
+export { computePageSpeechInputSignature, speechPageId, isBatchableSpeechEntry, isPageBatchableSpeech } from "./speech.js"
 
 export { timestampInputSignature } from "./output-catalog.js"
 
@@ -584,6 +594,28 @@ export { sourceGenerationBasis, putSourceNodeData, preserveRenderedOwnership, pu
 
 export { collectQuizPages } from "./quiz-generation.js"
 
-export { assertReflowableSectioning } from "./render-sectioning.js"
+export { assertReflowableSectioning, hasFixedLayoutSectioning } from "./render-sectioning.js"
 
-export { renderedTextIds, sourceTextIds, findIntroducedBlankContentId, findIntroducedDerivedIdCollision } from "./content-ids.js"
+export { renderedContentIds, renderedTextIds, sourceTextIds, sourceContentIds, findIntroducedBlankContentId, findIntroducedDerivedIdCollision, findIntroducedImageAudioCollision } from "./content-ids.js"
+export { effectiveSectioningMode, sectioningInvalidationSteps, assertSectioningReplacementSafe, prepareSectioningRun, completeSectioning } from "./sectioning-lifecycle.js"
+export { SectioningSafetyError } from "./sectioning-errors.js"
+export { requiredPartRange, activeSectioningPages, partScopedPages } from "./sectioning-window.js"
+export { admitSectioningRun } from "./sectioning-admission.js"
+export { sectioningReplacementSignature } from "./sectioning-replacement-signature.js"
+export { createStoryboardPublication } from "./storyboard-publication.js"
+
+export { extractionOptionsFromConfig, prepareExtractionAdmission, assertSafeExtractionRun } from "./extraction-admission.js"
+
+export { protectedAuthoredRecords, assertAuthoredReplacement, replacementConfirmed, selectSectioningPages, assertSectioningIdentityHistory, resetSectioningStoryboard, AuthoredReplacementError } from "./authored-output.js"
+
+export { storyboardCoverage, storyboardCoverageByPage, missingStoryboardInputMessage } from "./storyboard-coverage.js"
+export { retainedPackageOwnership, PACKAGE_OWNERS_FILE } from "./packaging/bundle-ownership.js"
+export { publishedAdtDirectory } from "./packaging/publication-directory.js"
+export { packageFilesAvailable, assertPackageFilesAvailable, type MissingPackageAsset, type PackageFilesOptions } from "./packaging/bundle-files.js"
+export { isPublicOutputId, publicOutputOwners, ambiguousPublicOutputIds, ambiguousPublicOutputIdsFromOwners, invalidPublicOutputIdentity } from "./public-output-identity.js"
+
+export { storyboardSourceWarnings, captureStoryboardSource, publishSynchronizedStoryboardText } from "./storyboard-source-state.js"
+
+export { assertDerivedPackageFilesAvailable } from "./packaging/derived-bundle-files.js"
+// Auto mode (issue #333): the setup recommender.
+export { recommendSetup, type RecommendSetupOptions } from "./setup-recommender/index.js"

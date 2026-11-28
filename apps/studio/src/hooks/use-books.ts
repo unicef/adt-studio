@@ -1,11 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import type { BookMetadata } from "@adt/types"
+import { i18n } from "@lingui/core"
+import { msg } from "@lingui/core/macro"
+import { toast } from "sonner"
+import type { BookMetadata, SetupRecommendationWarning } from "@adt/types"
 import { api } from "@/api/client"
 
 export function useBooks() {
   return useQuery({
     queryKey: ["books"],
     queryFn: api.getBooks,
+    // Book access can verify a summary that was unknown on a cold listing.
+    // Refresh on SPA return even within the application's five-minute cache.
+    refetchOnMount: "always",
   })
 }
 
@@ -51,15 +57,32 @@ export function useCreateBook() {
       label,
       pdf,
       config,
+      setupRecommendationId,
     }: {
       label: string
       pdf: File
       config?: Record<string, unknown>
-    }) => api.createBook(label, pdf, config),
-    onSuccess: () => {
+      setupRecommendationId?: string
+    }) => api.createBook(label, pdf, config, setupRecommendationId),
+    onSuccess: (book) => {
       queryClient.invalidateQueries({ queryKey: ["books"] })
+      if (book.setupRecommendationWarning) warnSetupRecommendationNotSaved(book.setupRecommendationWarning)
     },
   })
+}
+
+/**
+ * The book was made with the chosen settings, but the AI setup's record (its findings and AI calls)
+ * couldn't be kept in the book folder. Said once, as a toast: nothing about the book needs doing.
+ */
+function warnSetupRecommendationNotSaved(warning: SetupRecommendationWarning) {
+  const title =
+    warning.reason === "expired"
+      ? i18n._(msg`Your book was created, but the AI setup's notes expired before they could be saved with it.`)
+      : warning.reason === "other-pdf"
+        ? i18n._(msg`Your book was created, but the AI setup's notes were made for another PDF, so they weren't saved with it.`)
+        : i18n._(msg`Your book was created, but the AI setup's notes couldn't be saved with it.`)
+  toast.warning(title, { description: warning.reason === "failed" ? warning.message : undefined })
 }
 
 export function useDeleteBook() {

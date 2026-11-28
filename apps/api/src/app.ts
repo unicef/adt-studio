@@ -1,5 +1,6 @@
 import { createOutputRoutes } from "./routes/outputs.js"
 import path from "node:path"
+import { bookWriterMiddleware } from "./middleware/book-writer.js"
 import fs from "node:fs"
 import os from "node:os"
 import { unzipSync } from "fflate"
@@ -7,7 +8,6 @@ import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { logger } from "hono/logger"
 import { errorHandler } from "./middleware/error-handler.js"
-import { bookWriterMiddleware } from "./middleware/book-writer.js"
 import { healthRoutes } from "./routes/health.js"
 import { createBookRoutes } from "./routes/books.js"
 import { createBookEventsRoutes } from "./routes/book-events.js"
@@ -45,6 +45,7 @@ import { createCloudflareRoutes } from "./routes/cloudflare.js"
 import { createConnectionStore, resolvePublishStateDir } from "./services/cloudflare/connection-store.js"
 import { createCloudflareOAuthService } from "./services/cloudflare/oauth.js"
 import { createPublishRoutes } from "./routes/publications.js"
+import { createSetupRecommendationRoutes } from "./routes/setup-recommendation.js"
 import { removeAbandonedAdtImports } from "./services/adt-import/marker.js"
 
 // Resolve paths relative to monorepo root (2 levels up from apps/api/)
@@ -136,6 +137,7 @@ app.route(
   createStageRoutes(stageService, eventBus, pageErrorDecisions, booksDir, promptsDir, webAssetsDir, configPath)
 )
 app.route("/api", createTaskRoutes(taskService))
+app.route("/api", createSetupRecommendationRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createPresetRoutes(configPath, booksDir))
 app.route("/api", createAdtPreviewRoutes(booksDir, webAssetsDir, configPath, promptsDir))
 app.route("/api", createSpeechConfigRoutes(configPath))

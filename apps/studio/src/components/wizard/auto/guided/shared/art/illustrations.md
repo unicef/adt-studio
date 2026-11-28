@@ -1,0 +1,40 @@
+# Add Book illustrations
+
+The images live in `apps/studio/public/add-book/` (served at `/add-book/<name>.png`).
+
+Generated with OpenAI gpt-image-2.6-sunburst (1536x1024, transparent, medium), downscaled to 1200x800.
+
+Shared style: Friendly, clean, modern flat illustration with soft depth (subtle soft shadows, slightly rounded 3D feel), like a high-quality product onboarding illustration. Limited palette: brand blue #2B7FFF as the main accent, warm amber #F5B83D as second accent, soft green #5FD3A0 sparingly, slate greys, white paper. Consistent soft light from the top left. Transparent background, the subject centred with generous empty margins, no floor, no background scene. Absolutely no text, letters, numbers, words or symbols of writing anywhere: suggest text only with grey rounded lines and blocks. No logos, no brands, no existing characters. Simple shapes, one clear idea, readable when shown small.
+
+- `kind-story.png`: An open picture storybook: the left page has an illustrated scene of a child and a friendly animal in nature with a sun and hills, the right page has a few grey text lines.
+- `kind-school.png`: A school workbook page: a blue heading block, grey lesson lines, a numbered exercise shown as amber circles with dashed blank lines to fill in, three small tick boxes with one ticked, and a yellow pencil.
+- `kind-information.png`: An information book page with a small bar chart, a small table, grey paragraph lines, and a magnifying glass resting over it.
+- `exercises-none.png`: A single page with a picture and grey text lines that the reader only reads, with a colourful crayon lying next to it. Nothing to answer.
+- `exercises-some.png`: A printed page with one exercise (an amber circle and dashed blank lines) on the left, a blue arrow, and on the right a screen card showing an interactive quiz with three rounded options, one selected in blue.
+- `exercises-many.png`: A small stack of worksheet pages with many exercises (amber circles and dashed blank lines) on the left, a blue arrow, and on the right a tablet showing several interactive activity cards: a quiz, a matching task and a fill-in card.
+- `diagrams-none.png`: A page with only a photo of a landscape (mountains, sun) and a single grey caption line under it. No labels, no arrows.
+- `diagrams-some.png`: One labelled scientific diagram of a volcano cross-section with thin label lines pointing to small blank rounded label tags, the whole figure and its labels enclosed in a blue dashed frame showing it is kept together as one piece.
+- `diagrams-many.png`: Three labelled figures side by side, each inside its own blue dashed frame: a simple map with a route, a bar chart, and a labelled drawing of a plant with thin label lines to blank tags.
+
+Page layouts (same style and model), a printed page becoming the screen on a tablet and a phone:
+
+- `layout-fixed.png`: On the left a printed picture-book page: a big illustration of a hill and a tree with grey text lines printed on the sky. A blue arrow to the right. On the right a tablet showing exactly the same page unchanged, and a phone next to it showing the same whole page shrunk small with empty bands above and below it.
+- `layout-overlay.png`: On the left a slightly faded, scanned-looking printed picture-book page with blurry grey text lines on the illustration. A blue arrow with a small sparkle to the right. On the right a tablet showing the same illustration with crisp sharp text lines laid on top inside soft blue outlined boxes, a few small sparkles around it.
+- `layout-two-column.png`: On the left a printed picture-book page: an illustration of a hill and a tree with grey text lines printed on it. A blue arrow to the right. On the right a tablet in landscape showing the illustration on its left half and clean grey text lines on its right half, and a phone next to it showing the illustration on top and the text lines below.
+- `layout-single-column.png`: On the left a printed page of an article with two narrow columns of grey text lines and one small picture. A blue arrow to the right. On the right a tablet and a phone both showing a single clean column of grey text lines with the small picture placed between paragraphs, the phone column narrower and longer.
+- `layout-ai.png`: On the left a printed school-book page with a blue heading block, grey text lines, a small picture and an amber exercise with dashed blank lines. A blue arrow with sparkles to the right. On the right a tablet and a phone each showing the same content rearranged into neat rounded cards that fit the screen: heading card, text card, picture card, exercise card, the phone stacking them in one column; small sparkles around them.
+
+Language (same style and model, generated with the shared style above):
+
+- `language.png`: An open storybook with a blue cover lying open, seen from the front and slightly above, in the lower half of the image: the left page shows a small illustration of a hill with a tree and a sun, the right page has a few grey text lines. Rising from behind the book's spine, a friendly round globe in brand blue with soft green continents on a small amber stand, tilted slightly. Leave clear empty space in the upper left and upper right corners above the book. (The Language screen lays the language's own words over it: a greeting, its name and the variety's country, in speech bubbles.)
+
+Facing pages (same style and model; cropped to the subject, then fitted to 1200x800):
+
+- `grouping-single.png`: On the left an open picture book whose two facing pages are separate: the left page has its own small picture of a tree on a hill, the right page its own small picture of a little house, each with grey text lines under it. A blue arrow to the right. On the right ONE single tablet standing upright (portrait) that shows only the tree page filling its screen, with a small round blue next-arrow button on the right edge of the screen and two small page dots under the picture (the first one blue). Only one device, never two.
+- `grouping-spread.png`: On the left an open picture book with one big landscape illustration (green hills, a winding blue river, an amber sun) that runs across both facing pages, continuing over the middle fold, with a few grey text lines on it. A blue arrow to the right. On the right one wide landscape tablet showing that whole landscape illustration in one piece across its screen, with the grey text lines.
+- `grouping-facing.png` (the case in the Where I saw it dialog): On the left an open picture book where the left page has only a few grey text lines and the facing right page is filled with one picture of a fox in a meadow under a sun, the two pages clearly made to be seen together. A blue arrow to the right. On the right one wide landscape tablet showing both pages side by side: the text lines on its left half and the fox picture on its right half.
+- `grouping-wide.png` (same): On the left a single wide landscape sheet of paper with a small folded corner, like one page of a document file, that already shows an open book printed on it: two facing pages side by side, a picture of a tree on the left half and grey text lines on the right half, with a faint fold line down the middle. A blue arrow to the right. On the right one wide landscape tablet showing exactly that same sheet unchanged.
+
+Start (same style and model):
+
+- `mode-manual.png` (the step-by-step card on the choice screen): A tidy settings panel card standing upright, with three horizontal sliders (blue knobs at different positions), two toggle switches (one on in blue, one off in grey) and a rounded dropdown field, next to a small open book leaning on it. Calm, organised, hands-on control. No characters.

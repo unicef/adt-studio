@@ -456,7 +456,37 @@ export function createAzureTTSSynthesizer(
  * hosted OpenAI API and exists so OpenAI-compatible endpoints can reuse this
  * synthesizer.
  */
-export function createTTSSynthesizer(apiKey?: string, baseUrl?: string): TTSSynthesizer {
+/**
+ * How long an OpenAI speech request may wait for the response to *start*.
+ * Healthy requests return headers in 1–2 s and then stream the audio, so this
+ * bounds only the wait for a response, never the length of the audio. Without
+ * it, a request on a dead connection holds its concurrency slot until the
+ * socket finally errors (18–67 s in #1067).
+ */
+export const OPENAI_TTS_RESPONSE_TIMEOUT_MS = 30_000
+
+/**
+ * Node's fetch reports every transport failure as a bare `fetch failed` (or
+ * `terminated` mid-body); the reason lives in `err.cause`. Keep the original
+ * message first so retry classification still matches, and append the cause
+ * so the log says what actually happened.
+ */
+function describeTransportError(err: unknown): Error {
+  if (!(err instanceof Error)) return new Error(String(err))
+  const cause = (err as { cause?: { code?: unknown; name?: unknown; message?: unknown } }).cause
+  if (!cause || typeof cause !== "object") return err
+  const code = typeof cause.code === "string" ? cause.code : typeof cause.name === "string" ? cause.name : ""
+  const detail = typeof cause.message === "string" ? cause.message : ""
+  const suffix = [code, detail].filter(Boolean).join(": ")
+  return suffix ? new Error(`${err.message} (${suffix})`, { cause: err }) : err
+}
+
+export function createTTSSynthesizer(
+  apiKey?: string,
+  baseUrl?: string,
+  settings: { responseTimeoutMs?: number } = {},
+): TTSSynthesizer {
+  const responseTimeoutMs = settings.responseTimeoutMs ?? OPENAI_TTS_RESPONSE_TIMEOUT_MS
   return {
     async synthesize(options: SynthesizeSpeechOptions): Promise<Uint8Array> {
       const resolvedApiKey = apiKey ?? process.env.OPENAI_API_KEY
@@ -465,30 +495,66 @@ export function createTTSSynthesizer(apiKey?: string, baseUrl?: string): TTSSynt
       }
 
       const resolvedBaseUrl = (baseUrl ?? "https://api.openai.com/v1").replace(/\/$/, "")
-      const response = await fetch(`${resolvedBaseUrl}/audio/speech`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resolvedApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: options.model,
-          voice: options.voice,
-          input: options.input,
-          response_format: options.responseFormat,
-          instructions: options.instructions,
-        }),
-        signal: options.signal,
-      })
-      if (!response.ok) {
-        const message = await response.text()
-        throw new Error(
-          `TTS request failed (${response.status}): ${message || response.statusText}`
-        )
-      }
+      // One controller carries both run cancellation and the response timeout.
+      // A cancel re-throws the caller's own abort reason, so it never looks
+      // like a retryable timeout.
+      const controller = new AbortController()
+      const cancel = () => controller.abort(options.signal?.reason)
+      if (options.signal?.aborted) cancel()
+      else options.signal?.addEventListener("abort", cancel, { once: true })
+      let timedOut = false
+      const timer = setTimeout(() => {
+        timedOut = true
+        controller.abort()
+      }, responseTimeoutMs)
+      try {
+        let response: Response
+        try {
+          response = await fetch(`${resolvedBaseUrl}/audio/speech`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${resolvedApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: options.model,
+              voice: options.voice,
+              input: options.input,
+              response_format: options.responseFormat,
+              instructions: options.instructions,
+            }),
+            signal: controller.signal,
+          })
+        } catch (err) {
+          if (options.signal?.aborted) throw err
+          if (timedOut) {
+            throw new Error(
+              `TTS request timed out: no response within ${responseTimeoutMs >= 1000 ? `${Math.round(responseTimeoutMs / 1000)}s` : `${responseTimeoutMs}ms`}`,
+              { cause: err },
+            )
+          }
+          throw describeTransportError(err)
+        } finally {
+          clearTimeout(timer)
+        }
+        if (!response.ok) {
+          const message = await response.text()
+          throw new Error(
+            `TTS request failed (${response.status}): ${message || response.statusText}`
+          )
+        }
 
-      const arrayBuffer = await response.arrayBuffer()
-      return new Uint8Array(arrayBuffer)
+        let arrayBuffer: ArrayBuffer
+        try {
+          arrayBuffer = await response.arrayBuffer()
+        } catch (err) {
+          if (options.signal?.aborted) throw err
+          throw describeTransportError(err)
+        }
+        return new Uint8Array(arrayBuffer)
+      } finally {
+        options.signal?.removeEventListener("abort", cancel)
+      }
     },
   }
 }

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 
 Element.prototype.scrollIntoView = vi.fn()
 const writeClipboard = vi.fn()
@@ -26,6 +26,10 @@ let dropZoneEnabled = true
 
 const interpolate = (strings: TemplateStringsArray, ...values: unknown[]) =>
   strings.reduce((text, part, index) => text + part + (index < values.length ? String(values[index]) : ""), "")
+// `t` is also called with a descriptor, `t({ message, context })`, whose
+// message the unmocked macro would have interpolated already.
+const translate = (strings: TemplateStringsArray | { message: string }, ...values: unknown[]) =>
+  "message" in strings ? strings.message : interpolate(strings, ...values)
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
@@ -39,7 +43,7 @@ const pluralize = (count: number, forms: { one: string; other: string }) => (
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
   Plural: ({ value, one, other }: { value: number; one: string; other: string }) => <>{pluralize(value, { one, other })}</>,
-  useLingui: () => ({ t: interpolate, i18n: { _: (value: { message?: string }) => value.message ?? "" } }),
+  useLingui: () => ({ t: translate, i18n: { _: (value: { message?: string }) => value.message ?? "" } }),
 }))
 
 vi.mock("@lingui/core/macro", () => ({
@@ -141,6 +145,7 @@ describe("ImportProject", () => {
       translationLanguageCount: 1,
       contentChanged: true,
       exportComparisonStatus: "unavailable",
+      bookFont: { family: "Open Sans", detected: true },
       featureRecovery: { speech: "partial", toc: "recovered" },
       compatibility: { supported: true, issues: [] },
       match: { confidence: "none", recommendedProjectLabel: null, candidates: [] },
@@ -163,6 +168,12 @@ describe("ImportProject", () => {
     expect(screen.getByText("Partly included")).toBeTruthy()
     expect(screen.getByText("Kept where nothing changed since export. The rest is generated again.")).toBeTruthy()
     expect(screen.getByText(/can’t tell whether its pages changed/)).toBeTruthy()
+    const steps = [...screen.getByText("Listed under Features").closest("ol")!.querySelectorAll("li")]
+    expect(steps.length).toBeGreaterThan(2)
+    expect(steps.slice(0, -1).every((step) => step.classList.contains("border-b"))).toBe(true)
+    expect(steps.at(-1)!.classList.contains("border-b")).toBe(false)
+    // The font the import found, the one the project will use (#1158).
+    expect(screen.getByText("Book font").closest("li")?.textContent).toContain("Open Sans")
     fireEvent.click(screen.getByRole("button", { name: "Import as new project" }))
 
     expect(importProject).not.toHaveBeenCalled()
@@ -376,6 +387,7 @@ describe("ImportProject", () => {
       translationLanguageCount: 0,
       contentChanged: true,
       exportComparisonStatus: "changed",
+      bookFont: { family: "Merriweather", detected: false },
       activityReview: {
         inventoryVersion: 2,
         items: [{
@@ -418,6 +430,7 @@ describe("ImportProject", () => {
     fireEvent.change(input, { target: { files: [file] } })
 
     const review = await screen.findByRole("button", { name: "Review 1 activity" })
+    expect(screen.getByText("Book font").closest("li")?.textContent).toContain("Merriweather (default)")
     expect(review).toHaveProperty("disabled", false)
     // The banner names each page and what was found on it, then one primary action.
     expect(screen.getByText("Choose a type for 1 activity page")).toBeTruthy()
@@ -502,6 +515,7 @@ describe("ImportProject", () => {
     expect(screen.getByText("manifest.json")).toBeTruthy()
     expect(screen.getByText("missing-editing-contract")).toBeTruthy()
     expect(screen.getByText(/has no editing contract/)).toBeTruthy()
+    expect(screen.queryByText(/activity type is missing or unclear/)).toBeNull()
     // The guide opens beside the problems, rendered from the real guide text.
     fireEvent.click(screen.getByRole("button", { name: "AI repair guide" }))
     const guide = screen.getByRole("region", { name: "AI repair guide" })
@@ -516,6 +530,200 @@ describe("ImportProject", () => {
     expect(correctedZipButton.hasAttribute("disabled")).toBe(false)
     fireEvent.click(correctedZipButton)
     expect(importAdt).not.toHaveBeenCalled()
+  })
+
+  // The review shows the real totals, and how many of each type it left out.
+  it("counts every problem found and says how many of each type are not listed", async () => {
+    previewImport.mockResolvedValue({
+      isAdtBundle: true,
+      legacyRecovery: false,
+      label: "unsupported-book",
+      title: "Unsupported book",
+      coverBase64: null,
+      sourceLanguage: "en",
+      outputLanguages: [],
+      runtimeFeatures: {},
+      pageCount: 1,
+      glossaryEntryCount: 0,
+      tocEntryCount: 0,
+      translationLanguageCount: 0,
+      contentChanged: true,
+      exportComparisonStatus: "changed",
+      compatibility: {
+        supported: false,
+        issues: [
+          ...Array.from({ length: 10 }, (_, index) => ({
+            code: "unsupported-script",
+            pageHref: `pg${String(index + 1).padStart(3, "0")}_sec001.html`,
+            detail: "./assets/extras.js",
+          })),
+          { code: "unlisted-root-page", pageHref: "creditos.html", detail: "creditos.html" },
+        ],
+        issueCounts: { "unsupported-script": 60, "unlisted-root-page": 1 },
+        omittedIssueCount: 50,
+      },
+      agentGuide: {
+        status: "missing",
+        currentVersion: 2,
+        files: {
+          agentsMd: { present: false, version: null, current: false },
+          claudeMd: { present: false, version: null, current: false },
+        },
+        currentGuide: "<!-- adt-studio-agent-guide: 2 -->\n# Editing Unsupported book",
+        repairPrompt: "Repair this exported ADT using the current guide.",
+        activityPrompt: null,
+      },
+      match: { confidence: "none", recommendedProjectLabel: null, candidates: [] },
+    })
+
+    const view = render(<ImportProject />)
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement
+    fireEvent.change(input, {
+      target: { files: [new File(["zip"], "broken.zip", { type: "application/zip" })] },
+    })
+
+    expect(await screen.findByText(/^61 .*to fix before import/)).toBeTruthy()
+    expect(screen.getByRole("region", { name: "To fix" })).toBeTruthy()
+    // One group per problem type: its name, how many were found, ten examples
+    // and how many more the list leaves out.
+    const scripts = screen.getByRole("region", { name: "Unsupported script" })
+    expect(within(scripts).getByText(/^60 /)).toBeTruthy()
+    expect(within(scripts).getByText("unsupported-script")).toBeTruthy()
+    expect(within(scripts).getAllByText(/^pg0\d\d_sec001\.html$/)).toHaveLength(10)
+    expect(within(scripts).getByText("+50 more not listed here. The repair request includes them all.")).toBeTruthy()
+    expect(screen.getByText("creditos.html")).toBeTruthy()
+    expect(screen.getByRole("region", { name: "Page outside the reading order" })).toBeTruthy()
+    // The summary says once, above the list, that the list is a sample.
+    expect(screen.getByText("The list below shows a few examples of each problem. The repair request lists every affected file.")).toBeTruthy()
+  })
+
+  // The review says which activities it found and what Studio can edit, not
+  // only that there is nothing to classify.
+  it("reports the activities it recognized and those Studio's editor can't edit", async () => {
+    previewImport.mockResolvedValue({
+      isAdtBundle: true,
+      legacyRecovery: false,
+      label: "workbook",
+      title: "Workbook",
+      coverBase64: null,
+      sourceLanguage: "es",
+      outputLanguages: [],
+      runtimeFeatures: { activities: true },
+      pageCount: 4,
+      glossaryEntryCount: 0,
+      tocEntryCount: 0,
+      translationLanguageCount: 0,
+      contentChanged: false,
+      exportComparisonStatus: "unchanged",
+      activityReview: {
+        inventoryVersion: null,
+        items: [
+          {
+            sectionId: "pg001_sec001", href: "pg001_sec001.html", declaredType: "activity_custom", detectedType: "activity_custom", suggestedType: "activity_custom",
+            kind: "custom", status: "confirmed", supportsStudioEditing: false, reasons: [], signals: [], validationErrors: [], textPreview: "",
+          },
+          {
+            sectionId: "pg002_sec001", href: "pg002_sec001.html", declaredType: "activity_matching", detectedType: "activity_matching", suggestedType: "activity_matching",
+            kind: "known", status: "confirmed", supportsStudioEditing: false, reasons: [], signals: [], validationErrors: [], textPreview: "",
+          },
+          {
+            sectionId: "pg003_sec001", href: "pg003_sec001.html", declaredType: "activity_fill_in_the_blank", detectedType: "activity_fill_in_the_blank", suggestedType: "activity_fill_in_the_blank",
+            kind: "known", status: "confirmed", supportsStudioEditing: true, reasons: [], signals: [], validationErrors: [], textPreview: "",
+          },
+          {
+            sectionId: "qz001", href: "qz001.html", declaredType: "activity_quiz", detectedType: "activity_quiz", suggestedType: "activity_quiz",
+            kind: "quiz", status: "confirmed", supportsStudioEditing: true, reasons: [], signals: [], validationErrors: [], textPreview: "",
+          },
+        ],
+        needsReviewCount: 0,
+        quizCount: 1,
+        activityCount: 3,
+        typeOptions: [],
+      },
+      compatibility: { supported: true, issues: [] },
+      match: { confidence: "none", recommendedProjectLabel: null, candidates: [] },
+    })
+
+    const view = render(<ImportProject />)
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement
+    fireEvent.change(input, {
+      target: { files: [new File(["zip"], "workbook.zip", { type: "application/zip" })] },
+    })
+
+    expect(await screen.findByText("4 found, none to classify")).toBeTruthy()
+    expect(screen.getByText(/^Keep 4 /)).toBeTruthy()
+    expect(screen.getByText("2 of them keep their own scripts: Studio’s activity editor can’t edit them")).toBeTruthy()
+  })
+
+  it("says which activity pages will also need a fix after the repair", async () => {
+    const candidate = (sectionId: string) => ({
+      sectionId,
+      href: `${sectionId}.html`,
+      declaredType: null,
+      detectedType: null,
+      suggestedType: "activity_custom_external",
+      kind: "candidate",
+      status: "needs-review",
+      supportsStudioEditing: false,
+      reasons: ["invalid-structure"],
+      signals: [],
+      validationErrors: ["The activity <section> has no accessible name."],
+      textPreview: "Match the words.",
+      previewHtml: "<html><body><section></section></body></html>",
+    })
+    previewImport.mockResolvedValue({
+      isAdtBundle: true,
+      legacyRecovery: false,
+      label: "both-book",
+      title: "Both book",
+      coverBase64: null,
+      sourceLanguage: "en",
+      outputLanguages: [],
+      runtimeFeatures: {},
+      pageCount: 2,
+      glossaryEntryCount: 0,
+      tocEntryCount: 0,
+      translationLanguageCount: 0,
+      contentChanged: true,
+      exportComparisonStatus: "changed",
+      activityReview: {
+        inventoryVersion: 2,
+        items: [candidate("pg001_sec001"), candidate("pg002_sec001")],
+        needsReviewCount: 2,
+        quizCount: 0,
+        activityCount: 2,
+        typeOptions: ["activity_custom_external"],
+      },
+      compatibility: {
+        supported: false,
+        issues: [{ code: "unexpected-bundle-entry", pageHref: "notes/" }],
+      },
+      agentGuide: {
+        status: "current",
+        currentVersion: 2,
+        files: {
+          agentsMd: { present: true, version: 2, current: true },
+          claudeMd: { present: true, version: 2, current: true },
+        },
+        currentGuide: "<!-- adt-studio-agent-guide: 2 -->\n# Editing Both book",
+        repairPrompt: "Repair this exported ADT and classify its activity pages.",
+        activityPrompt: "Classify the activity pages.",
+      },
+      match: { confidence: "none", recommendedProjectLabel: null, candidates: [] },
+    })
+
+    const view = render(<ImportProject />)
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement
+    fireEvent.change(input, {
+      target: { files: [new File(["zip"], "both.zip", { type: "application/zip" })] },
+    })
+
+    expect(await screen.findByText(/to fix before import/)).toBeTruthy()
+    // Without this, the activities surface only after the repaired ZIP comes back.
+    expect(screen.getByText(/activity type is missing or unclear/)).toBeTruthy()
+    expect(screen.getByText(/The repair request includes them/)).toBeTruthy()
+    // The type choice itself still waits for an archive without file problems.
+    expect(screen.queryByRole("button", { name: /Review 2 activities/ })).toBeNull()
   })
 
   it("does not offer local projects as import destinations", async () => {

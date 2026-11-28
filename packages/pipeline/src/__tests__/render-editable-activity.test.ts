@@ -32,6 +32,17 @@ const mcActivity = (overrides?: Partial<EditableActivity>): EditableActivity =>
   }) as EditableActivity
 
 describe("remapEditableActivities", () => {
+  it("rebases live Preview activity images without modifying stored activity values", () => {
+    const activity = mcActivity()
+    if (activity.kind !== "multiple-choice") throw new Error("fixture kind")
+    const image = activity.steps[0].options[0].image!
+    image.src = "/api/books/original/images/cat"
+    const { activity: resolved } = resolveEditableActivityImages(activity, new Map(), { previewLabel: "copy" })
+    expect(JSON.stringify(resolved)).toContain("/api/books/copy/images/cat")
+    expect(image.src).toBe("/api/books/original/images/cat")
+    image.src = "https://example.test/api/books/original/images/cat"
+    expect(JSON.stringify(resolveEditableActivityImages(activity, new Map(), { previewLabel: "copy" }).activity)).toContain(image.src)
+  })
   const a = mcActivity()
   const b = mcActivity({ sectionType: "activity_true_false" })
   const c = mcActivity({ enabled: false })

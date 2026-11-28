@@ -1,9 +1,11 @@
-import type { TranslationSaveResponse, WordTimestampSaveRequest, WordTimestampSaveResponse } from "@adt/types"
+import type { TranslationSaveResponse, WordTimestampSaveRequest, WordTimestampSaveResponse, BookRecoveryCopyResult } from "@adt/types"
 export type { WordTimestampEditGuard, WordTimestampSaveResponse } from "@adt/types"
 import { i18n } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
 import type { OutputSkipRequest } from "@adt/types"
 import type { OutputStatus, OutputSummary, OutputStageSummaryResponse, OutputRunScope, OutputReviewRequest, OutputDisclosureOptions, OutputReplacement, StageName } from "@adt/types"
+import type { PackagingStatus, SectioningModeState } from "@adt/types"
+import { sectioningErrorMessage } from "@/lib/sectioning-error"
 import { isElectron } from "@/lib/utils"
 import { readEventStream } from "@/api/sse"
 import {
@@ -70,6 +72,8 @@ import type {
   PublishComment,
   PublishStepId,
   PublishStepStatus,
+  SetupRecommendation,
+  SetupRecommendationWarning,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
 import {
@@ -180,7 +184,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     let details: unknown
     try {
       const parsed = JSON.parse(text) as { error?: string; code?: string; details?: unknown }
-      message = parsed.error
+      message = sectioningErrorMessage(parsed.error, parsed.code)
       code = typeof parsed.code === "string" ? parsed.code : null
       details = parsed.details
     } catch {
@@ -613,7 +617,29 @@ export interface AiEditHistoryTurn {
   instruction: string
   attempts: Array<{ reasoning: string; timestamp: string; cached: boolean }>
   verify?: { applied: boolean; reason: string }
+  unsupported?: { reason: string }
 }
+
+export interface AiEditVerification {
+  applied: boolean
+  reason: string
+}
+
+export type AiEditResult =
+  | {
+      status: "applied"
+      html: string
+      reasoning: string
+      activityAnswers?: Record<string, string>
+      verification?: AiEditVerification
+      sectionIndex?: number
+    }
+  | {
+      status: "unsupported"
+      reason: string
+      reasoning: string
+      sectionIndex?: number
+    }
 
 export interface PageDetail {
   sectioningSynchronization?: import("@adt/types").SectioningSynchronization | null
@@ -1281,10 +1307,11 @@ export const api = {
     label: string,
     pageId: string,
     activities: Record<string, EditableActivity>,
+    baseVersion: number,
   ) =>
     request<{ version: number }>(`/books/${label}/pages/${pageId}/editable-activities`, {
       method: "PUT",
-      body: JSON.stringify({ activities }),
+      body: JSON.stringify({ activities, baseVersion }),
     }),
 
   getActivityStructure: (label: string, pageId: string, sectionIndex: number) =>
@@ -1388,14 +1415,28 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
-  createBook: (label: string, pdf: File, config?: Record<string, unknown>) => {
+  /** Auto mode (issue #333): settings recommended from the PDF before the book exists. */
+  recommendSetup: async (pdf: File, apiKey: string, signal?: AbortSignal) => {
+    const formData = new FormData()
+    formData.append("pdf", pdf)
+    return request<SetupRecommendation>("/setup-recommendation", {
+      method: "POST",
+      headers: await buildApiHeaders(apiKey),
+      body: formData,
+      signal,
+    })
+  },
+
+  createBook: (label: string, pdf: File, config?: Record<string, unknown>, setupRecommendationId?: string) => {
     const formData = new FormData()
     formData.append("label", label)
     formData.append("pdf", pdf)
     if (config) {
       formData.append("config", JSON.stringify(config))
     }
-    return request<BookSummary>("/books", {
+    if (setupRecommendationId) formData.append("setupRecommendationId", setupRecommendationId)
+    // The book is made even when its setup recommendation can't be saved with it; the warning says why.
+    return request<BookSummary & { setupRecommendationWarning?: SetupRecommendationWarning }>("/books", {
       method: "POST",
       body: formData,
     })
@@ -1403,6 +1444,11 @@ export const api = {
 
   deleteBook: (label: string) =>
     request<{ ok: boolean }>(`/books/${label}`, { method: "DELETE" }),
+
+  recoverBookCopy: (sourceLabel: string, label: string) =>
+    request<BookRecoveryCopyResult>(`/books/${sourceLabel}/recover-copy`, {
+      method: "POST", body: JSON.stringify({ label, preserveOriginal: true }),
+    }),
 
   previewImport: (zip: File) => {
     const formData = new FormData()
@@ -1559,9 +1605,9 @@ export const api = {
   saveStoryboard: (
     label: string,
     pageId: string,
-    data: { sectioning?: unknown; rendering?: unknown; renderingInSync?: boolean; baseVersion?: number }
+    data: { sectioning?: unknown; rendering?: unknown; renderingInSync?: boolean; baseVersion?: number; renderingBaseVersion?: number }
   ) =>
-    request<{ sectioningVersion: number | null; renderingVersion: number | null }>(
+    request<import("@adt/types").StoryboardSaveResult>(
       `/books/${label}/pages/${pageId}/storyboard`,
       { method: "PUT", body: JSON.stringify(data) }
     ),
@@ -1690,19 +1736,14 @@ export const api = {
     apiKey: string,
     currentHtml: string | undefined,
     baseVersion: number,
+    renderingBaseVersion: number,
   ) =>
-    request<{
-      taskId?: string
-      status?: string
-      html?: string
-      reasoning?: string
-      activityAnswers?: Record<string, string>
-    }>(
+    request<{ taskId: string; status: "submitted" } | AiEditResult>(
       `/books/${label}/pages/${pageId}/sections/${sectionIndex}/ai-edit`,
       {
         method: "POST",
         headers: await buildApiHeaders(apiKey),
-        body: JSON.stringify({ instruction, currentHtml, baseVersion }),
+        body: JSON.stringify({ instruction, currentHtml, baseVersion, renderingBaseVersion }),
         signal: AbortSignal.timeout(30_000),
       }
     ),
@@ -1950,6 +1991,21 @@ export const api = {
       { method: "POST", body: JSON.stringify({ version, baseVersion }) }
     ),
 
+  inspectHistoryRecovery: (label: string, signal?: AbortSignal) =>
+    request<import("@adt/types").HistoryRecoveryStatus>(`/books/${label}/history-recovery`, { signal }),
+
+  checkpointHistory: (label: string, body: import("@adt/types").HistoryCheckpointRequest) =>
+    request<import("@adt/types").HistoryRecoveryReceipt>(`/books/${label}/history-recovery/checkpoint`, { method: "POST", body: JSON.stringify(body) }),
+
+  repairHistory: (label: string, body: import("@adt/types").HistoryRepairRequest) =>
+    request<import("@adt/types").HistoryRecoveryReceipt>(`/books/${label}/history-recovery/repair`, { method: "POST", body: JSON.stringify(body) }),
+
+  getHistoryRecoveryAudit: (label: string, requestId: string) =>
+    request<unknown[]>(`/books/${label}/history-recovery/audit/${requestId}`),
+
+  getSectioningModeState: (label: string) =>
+    request<SectioningModeState>(`/books/${label}/sectioning-state`),
+
   getBookConfig: (label: string) =>
     request<BookConfigResponse>(`/books/${label}/config`),
 
@@ -2183,7 +2239,7 @@ export const api = {
       { method: "POST" },
     ),
 
-  getStepStatus: (label: string) =>
+  getStepStatus: (label: string, signal?: AbortSignal) =>
     request<{
       sourceUpdateStages: string[]
       stages: Record<string, string>
@@ -2195,8 +2251,9 @@ export const api = {
       publicationAgeMs?: number
       runStatus: "idle" | "running" | "cancelling" | "cancelled" | "completed" | "failed"
       pendingDecisions: PendingDecision[]
+      coverage?: import("@adt/types").StoryboardCoverage
       protectedWork?: Array<import("@adt/types").AuthoredReplacement & { pageNumber?: number }>
-    }>(`/books/${label}/step-status`),
+    }>(`/books/${label}/step-status`, { signal }),
 
   getTTS: (label: string) =>
     request<TTSResponse>(`/books/${label}/tts`),
@@ -2285,7 +2342,7 @@ export const api = {
     request<{ tasks: TaskInfoResponse[] }>(`/books/${label}/tasks`),
 
   getPackageAdtStatus: (label: string) =>
-    request<{ label: string; hasAdt: boolean; version?: string }>(
+    request<PackagingStatus>(
       `/books/${label}/package-adt/status`
     ),
 
@@ -2531,7 +2588,7 @@ export const api = {
     })
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: res.statusText }))
-      throw new Error(body.error ?? `SCORM export failed: ${res.status}`)
+      throw new ApiError(sectioningErrorMessage(body.error, body.code) ?? i18n._(msg`Request failed: ${res.status}`), res.status, body.code)
     }
     const buf = await res.arrayBuffer()
     return new Blob([buf], { type: "application/zip" })
@@ -2551,7 +2608,7 @@ export const api = {
     })
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: res.statusText }))
-      throw new Error(body.error ?? `ADT export failed: ${res.status}`)
+      throw new ApiError(sectioningErrorMessage(body.error, body.code) ?? i18n._(msg`Request failed: ${res.status}`), res.status, body.code)
     }
     const buf = await res.arrayBuffer()
     return new Blob([buf], { type: "application/zip" })

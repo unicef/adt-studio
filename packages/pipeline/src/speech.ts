@@ -1,9 +1,4 @@
 import { inputSignature } from "./output-freshness.js"
-
-/** Active membership owns context; ID prefixes are only a legacy fallback. */
-export function speechPageId(id: string, pageIds: readonly string[] = []): string | undefined {
-  return id.endsWith("_easy_read") ? undefined : pageIds[0] ?? /^(pg\d+)/.exec(id)?.[1]
-}
 import { storeImmutableAsset } from "@adt/storage"
 import fs from "node:fs"
 import path from "node:path"
@@ -16,9 +11,12 @@ import {
   DEFAULT_ELEVENLABS_VOICE_ID,
   ELEVENLABS_SHIPPED_VOICE_NAMES,
   isTtsExcluded,
+  EMPTY_AUTHORED_ELEMENT_AUDIO_IDS,
+  isAuthoredElementAudioId,
   normalizeVoiceMapEntry,
   voiceSlotEntryId,
   parseVoicesConfigEntries,
+  type AuthoredElementAudioIds,
   type SpeechConfig,
   type SpeechFileEntry,
   type TTSProviderConfig,
@@ -42,8 +40,37 @@ import {
   transcribeWithWhisper,
 } from "@adt/llm"
 import { getBaseLanguage, normalizeLocale } from "./language-context.js"
-import { computeEntryTimeRanges, buildPageTranscript, type BatchEntry } from "./speech-batch.js"
+import { computeEntryTimeRanges, buildPageTranscript, supportsPageBatchedSpeech, type BatchEntry } from "./speech-batch.js"
 import { sliceWav, wavDurationSeconds, findQuietCutSeconds } from "./audio-wav.js"
+
+/** Active membership owns context; ID prefixes are only a legacy fallback. */
+export function speechPageId(
+  id: string,
+  pageIds: readonly string[] = [],
+  authoredElementAudioIds: AuthoredElementAudioIds = EMPTY_AUTHORED_ELEMENT_AUDIO_IDS,
+): string | undefined {
+  return id.endsWith("_easy_read") || isAuthoredElementAudioId(id, authoredElementAudioIds)
+    ? undefined
+    : pageIds[0] ?? /^(pg\d+)/.exec(id)?.[1]
+}
+
+/**
+ * Page batching is an explicit provider/config decision. `speechPageId` owns
+ * the id-level exclusion (`_easy_read`, `_audio`), so this predicate only
+ * decides whether a resolved page may take the page-batch path.
+ */
+export function isPageBatchableSpeech(provider: string, language: string, speechConfig?: SpeechConfig): boolean {
+  return speechConfig?.batch_by_page === true && provider === "gemini" && supportsPageBatchedSpeech(language)
+}
+
+export function isBatchableSpeechEntry(
+  pageId: string | undefined,
+  provider: string,
+  language: string,
+  speechConfig?: SpeechConfig,
+): boolean {
+  return pageId !== undefined && isPageBatchableSpeech(provider, language, speechConfig)
+}
 
 // ---------------------------------------------------------------------------
 // Emoji stripping
@@ -616,26 +643,50 @@ export function parseElevenLabsErrorStatus(message: string): number | null {
 
 // Transport-level failures never reach an HTTP status, so they're matched by
 // name. Kept deliberately narrow: these are node/undici network errors, not
-// free-text from an upstream response body.
-const ELEVENLABS_NETWORK_ERROR_RE =
-  /fetch failed|ECONNRESET|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN|ENOTFOUND|socket hang up|network|aborted due to timeout/i
+// free-text from an upstream response body. `terminated` is undici's error for
+// a connection dropped mid-response; `timed out` is the OpenAI synthesizer's
+// own no-response timeout.
+const TTS_NETWORK_ERROR_RE =
+  /fetch failed|terminated|ECONNRESET|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN|ENOTFOUND|socket hang up|network|aborted due to timeout|timed out/i
 
-export type ElevenLabsTtsErrorKind = "rate-limit" | "transient" | "permanent"
+export type TtsErrorKind = "rate-limit" | "transient" | "permanent"
+export type ElevenLabsTtsErrorKind = TtsErrorKind
 
 /**
- * Whether an ElevenLabs TTS failure is worth retrying.
+ * Whether a TTS failure is worth retrying. Both the ElevenLabs and the OpenAI
+ * synthesizers format HTTP failures as `... failed (<status>): <body>`.
  *
  * Keyed on the HTTP status rather than the response body. Matching free text
  * (e.g. `/try again/i`) misclassifies permanent 4xx responses whose body
  * happens to contain those words, burning five backoff waits — up to ~60s —
  * per entry on a request that will never succeed.
  */
-export function classifyElevenLabsTtsError(message: string): ElevenLabsTtsErrorKind {
+export function classifyTtsError(message: string): TtsErrorKind {
   const status = parseElevenLabsErrorStatus(message)
   if (status === 429) return "rate-limit"
   if (status !== null) return status >= 500 && status <= 599 ? "transient" : "permanent"
   // No status → never reached the API. Retry genuine transport errors only.
-  return ELEVENLABS_NETWORK_ERROR_RE.test(message) ? "transient" : "permanent"
+  return TTS_NETWORK_ERROR_RE.test(message) ? "transient" : "permanent"
+}
+
+export const classifyElevenLabsTtsError = classifyTtsError
+
+// OpenAI TTS quotas are far above our concurrency, so there's no limiter, but
+// transport failures arrive in bursts: a dropped network path fails every
+// in-flight request at once (#1067). Retry those and 429/5xx with jittered
+// backoff, so a burst of 30 dropped requests doesn't retry in lockstep.
+export const OPENAI_TTS_MAX_RETRIES = 4
+export const OPENAI_TTS_BASE_RETRY_DELAY_MS = 1_000
+export const OPENAI_TTS_MAX_RETRY_DELAY_MS = 15_000
+
+/** Backoff for retry attempt `attemptCount` (1-based): exponential, capped,
+ *  then scaled into [50%, 100%] by `random` to spread a burst of retries. */
+export function openAiTtsRetryDelayMs(attemptCount: number, random: () => number = Math.random): number {
+  const ceiling = Math.min(
+    OPENAI_TTS_BASE_RETRY_DELAY_MS * 2 ** (attemptCount - 1),
+    OPENAI_TTS_MAX_RETRY_DELAY_MS,
+  )
+  return Math.round(ceiling * (0.5 + random() / 2))
 }
 
 /** Exponential backoff for retry attempt `attemptCount` (1-based). */
@@ -878,12 +929,15 @@ export function findAdjacentSpeechText(
   index: number,
   direction: 1 | -1,
   speechConfig: Parameters<typeof isTtsExcluded>[1],
+  authoredElementAudioIds: AuthoredElementAudioIds = EMPTY_AUTHORED_ELEMENT_AUDIO_IDS,
 ): string | undefined {
+  if (isAuthoredElementAudioId(entries[index]?.id ?? "", authoredElementAudioIds)) return undefined
   const wantEasyRead = EASY_READ_ID_RE.test(entries[index]?.id ?? "")
   for (let i = index + direction; i >= 0 && i < entries.length; i += direction) {
     const entry = entries[i]
+    if (isAuthoredElementAudioId(entry.id, authoredElementAudioIds)) continue
     if (EASY_READ_ID_RE.test(entry.id) !== wantEasyRead) continue
-    if (isTtsExcluded(entry.id, speechConfig)) continue
+    if (isTtsExcluded(entry.id, speechConfig, authoredElementAudioIds)) continue
     const text = stripEmojis(entry.text).trim()
     if (isSpeakableText(text)) return text
   }
