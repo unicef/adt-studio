@@ -1,5 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import type { BookMetadata } from "@adt/types"
+import { i18n } from "@lingui/core"
+import { msg } from "@lingui/core/macro"
+import { toast } from "sonner"
+import type { BookMetadata, SetupRecommendationWarning } from "@adt/types"
 import { api } from "@/api/client"
 
 export function useBooks() {
@@ -61,10 +64,25 @@ export function useCreateBook() {
       config?: Record<string, unknown>
       setupRecommendationId?: string
     }) => api.createBook(label, pdf, config, setupRecommendationId),
-    onSuccess: () => {
+    onSuccess: (book) => {
       queryClient.invalidateQueries({ queryKey: ["books"] })
+      if (book.setupRecommendationWarning) warnSetupRecommendationNotSaved(book.setupRecommendationWarning)
     },
   })
+}
+
+/**
+ * The book was made with the chosen settings, but the AI setup's record (its findings and AI calls)
+ * couldn't be kept in the book folder. Said once, as a toast: nothing about the book needs doing.
+ */
+function warnSetupRecommendationNotSaved(warning: SetupRecommendationWarning) {
+  const title =
+    warning.reason === "expired"
+      ? i18n._(msg`Your book was created, but the AI setup's notes expired before they could be saved with it.`)
+      : warning.reason === "other-pdf"
+        ? i18n._(msg`Your book was created, but the AI setup's notes were made for another PDF, so they weren't saved with it.`)
+        : i18n._(msg`Your book was created, but the AI setup's notes couldn't be saved with it.`)
+  toast.warning(title, { description: warning.reason === "failed" ? warning.message : undefined })
 }
 
 export function useDeleteBook() {

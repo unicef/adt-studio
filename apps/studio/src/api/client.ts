@@ -3,7 +3,6 @@ export type { WordTimestampEditGuard, WordTimestampSaveResponse } from "@adt/typ
 import { i18n } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
 import type { OutputSkipRequest } from "@adt/types"
-import type { SetupRecommendation } from "@adt/types"
 import type { OutputStatus, OutputSummary, OutputStageSummaryResponse, OutputRunScope, OutputReviewRequest, OutputDisclosureOptions, OutputReplacement, StageName } from "@adt/types"
 import type { PackagingStatus, SectioningModeState } from "@adt/types"
 import { sectioningErrorMessage } from "@/lib/sectioning-error"
@@ -73,6 +72,8 @@ import type {
   PublishComment,
   PublishStepId,
   PublishStepStatus,
+  SetupRecommendation,
+  SetupRecommendationWarning,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
 import {
@@ -1434,7 +1435,8 @@ export const api = {
       formData.append("config", JSON.stringify(config))
     }
     if (setupRecommendationId) formData.append("setupRecommendationId", setupRecommendationId)
-    return request<BookSummary>("/books", {
+    // The book is made even when its setup recommendation can't be saved with it; the warning says why.
+    return request<BookSummary & { setupRecommendationWarning?: SetupRecommendationWarning }>("/books", {
       method: "POST",
       body: formData,
     })
