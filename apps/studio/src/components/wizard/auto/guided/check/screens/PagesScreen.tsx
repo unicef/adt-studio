@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from "react"
+import { useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react"
 import { useStore } from "@tanstack/react-form"
 import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import { FileText, Scissors } from "lucide-react"
@@ -80,6 +80,25 @@ export function PagesScreen({ pageCount }: { pageCount: number }) {
     form.setFieldValue("endPage", String(hi))
     form.setFieldValue("scope", lo === 1 && hi === total ? "whole" : "range")
   }
+  // The slider's thumbs never cross: the end being moved stops at the other one (as the inputs do).
+  // Which end that is, is known when the drag (or a key) starts; Radix swaps the thumbs on crossing.
+  const grab = useRef<0 | 1 | null>(null)
+  const onGrab = (e: PointerEvent<HTMLElement>) => {
+    const r = e.currentTarget.getBoundingClientRect()
+    const v = 1 + ((e.clientX - r.left) / Math.max(1, r.width)) * (total - 1)
+    grab.current = start === end ? (v > end ? 1 : 0) : Math.abs(v - start) <= Math.abs(v - end) ? 0 : 1
+  }
+  const onKeyGrab = (e: KeyboardEvent<HTMLElement>) => {
+    const thumbs = [...e.currentTarget.querySelectorAll("[role='slider']")]
+    const i = thumbs.indexOf(e.target as Element)
+    grab.current = i === 0 || i === 1 ? i : null
+  }
+  const onSlide = ([a, b]: number[]) => {
+    if (a === undefined || b === undefined) return
+    if (grab.current === 1) return setRange(start, Math.max(start, a === start ? b : a))
+    if (grab.current === 0) return setRange(Math.min(end, b === end ? a : b), end)
+    setRange(a, b)
+  }
   const setScope = (next: "whole" | "split") => {
     form.setFieldValue("scope", next)
     form.setFieldValue("startPage", "1")
@@ -91,11 +110,11 @@ export function PagesScreen({ pageCount }: { pageCount: number }) {
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="text-[14px] text-muted-foreground">
-            <Trans>This PDF has {pageCount} pages.</Trans>
+            <Plural value={pageCount} one="This PDF has # page." other="This PDF has # pages." />
           </span>
           <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <span className="text-[22px] font-semibold leading-tight tracking-[-0.01em] lg:text-[26px]">
-              {split ? <Trans>Split into parts</Trans> : whole ? <Trans>All {pageCount} pages</Trans> : <Trans>Pages {start}–{end}</Trans>}
+              {split ? <Trans>Split into parts</Trans> : whole ? <Plural value={pageCount} one="The only page" other="All # pages" /> : start === end ? <Trans>Page {start}</Trans> : <Trans>Pages {start}–{end}</Trans>}
             </span>
             {split ? (
               <button type="button" onClick={() => setScope("whole")} className={cn("shrink-0 text-[13.5px]", SCOPE_LINK)}>
@@ -124,7 +143,7 @@ export function PagesScreen({ pageCount }: { pageCount: number }) {
           <div className="@container flex items-center gap-3 rounded-2xl bg-muted/40 p-3 sm:gap-5 sm:px-5">
             <EndPage file={file} page={start} label={t`From`} />
             <div className="flex min-w-0 flex-1 flex-col items-center gap-2">
-              <Slider aria-label={t`Pages to convert`} min={1} max={total} step={1} minStepsBetweenThumbs={0} value={[start, end]} onValueChange={([a, b]) => setRange(a!, b!)} color={getPresetAccent(null).bg} />
+              <Slider aria-label={t`Pages to convert`} min={1} max={total} step={1} minStepsBetweenThumbs={0} value={[start, end]} onPointerDownCapture={onGrab} onKeyDownCapture={onKeyGrab} onValueChange={onSlide} onValueCommit={() => (grab.current = null)} color={getPresetAccent(null).bg} />
               <span className="text-[12.5px] font-medium tabular-nums text-muted-foreground">
                 <Plural value={count} one="# page" other="# pages" />
               </span>

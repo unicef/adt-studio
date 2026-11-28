@@ -19,13 +19,17 @@ export function useScopeSummary(numPages: number): ReactNode {
   const start = parseInt(useStore(form.store, (s) => s.values.startPage)) || 1
   const end = parseInt(useStore(form.store, (s) => s.values.endPage)) || numPages
   if (scope === "range" && (start > 1 || end < numPages))
-    return (
+    return start === end ? (
+      <Trans>
+        Page {start} of {numPages}
+      </Trans>
+    ) : (
       <Trans>
         Pages {start}–{end} of {numPages}
       </Trans>
     )
-  if (scope === "split") return <Trans>{numPages} pages, split into parts</Trans>
-  return <Trans>{numPages} pages</Trans>
+  if (scope === "split") return <Plural value={numPages} one="# page, split into parts" other="# pages, split into parts" />
+  return <Plural value={numPages} one="# page" other="# pages" />
 }
 
 function useScope() {

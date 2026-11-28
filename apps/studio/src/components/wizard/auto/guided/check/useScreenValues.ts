@@ -1,4 +1,5 @@
 import { useStore } from "@tanstack/react-form"
+import { plural } from "@lingui/core/macro"
 import { useLingui } from "@lingui/react/macro"
 import type { SetupRecommendation } from "@adt/types"
 import { languageName } from "../shared/languageName"
@@ -21,7 +22,7 @@ export function useScreenValues(rec: SetupRecommendation | null, derived: Derive
     const words = plainTitle(id, derived.effective[id]?.value)
     return words ? i18n._(words) : String(derived.effective[id]?.value ?? "")
   }
-  const pages = scope === "split" ? t`Split into parts` : scope === "range" && (start > 1 || end < pageCount) ? t`Pages ${start}–${end}` : t`All ${pageCount} pages`
+  const pages = scope === "split" ? t`Split into parts` : scope === "range" && (start > 1 || end < pageCount) ? start === end ? t`Page ${start}` : t`Pages ${start}–${end}` : plural(pageCount, { one: "The only page", other: "All # pages" })
   const facts = activityFacts(rec, derived.current)
   // The person's own answers ("Yes, a few"), named only when the screen asked both questions.
   const answer = (id: "exercises" | "diagrams", label: string) => {
