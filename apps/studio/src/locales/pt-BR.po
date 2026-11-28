@@ -75,6 +75,9 @@ msgstr "(padrão)"
 msgid "(empty)"
 msgstr "(vazio)"
 
+msgid "(my guess)"
+msgstr "(meu palpite)"
+
 msgid "(no instruction text)"
 msgstr "(sem texto de instrução)"
 
@@ -121,6 +124,10 @@ msgstr "{0, plural, one {# imagem selecionada} other {# imagens selecionadas}}"
 #. placeholder {0}: p.optionalDone.length
 msgid "{0, plural, one {# output} other {# outputs}}"
 msgstr "{0, plural, one {# saída} other {# saídas}}"
+
+#. placeholder {0}: flow.pageCount
+msgid "{0, plural, one {# page · ready} other {# pages · ready}}"
+msgstr "{0, plural, one {# página · pronta} other {# páginas · prontas}}"
 
 #. placeholder {0}: preview.addedPageNumbers.length
 #. placeholder {0}: result.addedPages
@@ -384,10 +391,6 @@ msgstr "{0} de {1} páginas não têm texto extraído"
 msgid "{0} pages"
 msgstr "{0} páginas"
 
-#. placeholder {0}: flow.pageCount
-msgid "{0} pages · ready"
-msgstr "{0} páginas · pronto"
-
 #. placeholder {0}: split.totalPages
 #. placeholder {1}: split.exportedParts
 msgid "{0} pages · split into {1} parts"
@@ -543,6 +546,9 @@ msgstr "{count, plural, one {uma caixa de texto} other {# caixas de texto}}"
 msgid "{count, plural, one {a text field} other {# text fields}}"
 msgstr "{count, plural, one {um campo de texto} other {# campos de texto}}"
 
+msgid "{count, plural, one {Only that page is converted.} other {Only those # pages are converted.}}"
+msgstr "{count, plural, one {Só essa página é convertida.} other {Só essas # páginas são convertidas.}}"
+
 msgid "{count, plural, one {the first version you've shared} other {# versions shared}}"
 msgstr "{count, plural, one {a primeira versão que você compartilhou} other {# versões compartilhadas}}"
 
@@ -639,6 +645,12 @@ msgstr "Tamanho de {label} no celular"
 msgid "{label}: {said}"
 msgstr "{label}: {said}"
 
+msgid "{label}. {line}."
+msgstr "{label}. {line}."
+
+msgid "{label}. {line}. {looks}"
+msgstr "{label}. {line}. {looks}"
+
 msgid "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 msgstr "{merged, plural, =0 {0 de {total} páginas mescladas} one {# de {total} páginas mescladas} other {# de {total} páginas mescladas}}"
 
@@ -660,23 +672,38 @@ msgstr "Faltam {missingForCurrentStage} resultados de idioma. Execute novamente 
 msgid "{missingForCurrentStage} speech outputs are missing. Re-run to generate the missing items."
 msgstr "Faltam {missingForCurrentStage} resultados de fala. Execute novamente para gerar os itens ausentes."
 
+msgid "{name}: {setTo}"
+msgstr "{name}: {setTo}"
+
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} sinalizados"
 
-msgid "{numPages} pages"
-msgstr "{numPages} páginas"
+msgid "{numPages, plural, one {# page, split into parts} other {# pages, split into parts}}"
+msgstr "{numPages, plural, one {# página, dividida em partes} other {# páginas, divididas em partes}}"
 
-msgid "{numPages} pages, split into parts"
-msgstr "{numPages} páginas, divididas em partes"
+msgid "{numPages, plural, one {# page} other {# pages}}"
+msgstr "{numPages, plural, one {# página} other {# páginas}}"
+
+msgid "{pageCount, plural, one {# page · read} other {# pages · read}}"
+msgstr "{pageCount, plural, one {# página · lida} other {# páginas · lidas}}"
+
+msgid "{pageCount, plural, one {# page · reading} other {# pages · reading}}"
+msgstr "{pageCount, plural, one {# página · lendo} other {# páginas · lendo}}"
+
+msgid "{pageCount, plural, one {Pick the pages to convert. The only page is selected.} other {Pick the pages to convert. All # are selected.}}"
+msgstr "{pageCount, plural, one {Escolha as páginas a converter. A única página está selecionada.} other {Escolha as páginas a converter. Todas as # estão selecionadas.}}"
+
+msgid "{pageCount, plural, one {The only page} other {All # pages}}"
+msgstr "{pageCount, plural, one {A única página} other {Todas as # páginas}}"
+
+msgid "{pageCount, plural, one {This PDF has # page.} other {This PDF has # pages.}}"
+msgstr "{pageCount, plural, one {Este PDF tem # página.} other {Este PDF tem # páginas.}}"
 
 msgid "{pageCount} {pageCount, plural, one {page} other {pages}}"
 msgstr "{pageCount} {pageCount, plural, one {página} other {páginas}}"
 
 msgid "{pageCount} pages"
 msgstr "{pageCount} páginas"
-
-msgid "{pageCount} pages · reading"
-msgstr "{pageCount} páginas · lendo"
 
 msgid "{pageLabel} · left on version {version}"
 msgstr "{pageLabel} · deixado na versão {version}"
@@ -849,9 +876,6 @@ msgstr "{total, plural, one {# comentário esperando} other {# comentários espe
 msgid "{total} here"
 msgstr "{total} aqui"
 
-msgid "{totalPages, plural, one {The page will be converted} other {All # pages will be converted}}"
-msgstr "{totalPages, plural, one {A página será convertida} other {Todas as # páginas serão convertidas}}"
-
 msgid "{totalPages} pages"
 msgstr "{totalPages} páginas"
 
@@ -896,14 +920,20 @@ msgid "<0>Another ADT Studio took over sharing on this Cloudflare account.</0> R
 msgstr "<0>Outro ADT Studio assumiu o compartilhamento nesta conta da Cloudflare.</0> Os leitores continuam acessando o link; reconecte aqui para gerenciá-lo e ver os novos comentários."
 
 #. placeholder {0}: run.name
-msgid "<0>Another book is already called {0}.</0> <1>Choose a new name above and set it up again.</1>"
-msgstr "<0>Já existe um livro chamado {0}.</0> <1>Escolha outro nome acima e configure de novo.</1>"
+msgid "<0>Another book is already called {0}.</0> <1>Choose a new name and set it up again.</1>"
+msgstr "<0>Já existe um livro chamado {0}.</0> <1>Escolha um novo nome e configure de novo.</1>"
+
+msgid "<0>Done.</0> “{name}” is set up and split into parts. Open it to share the parts; each person converts their own pages."
+msgstr "<0>Pronto.</0> “{name}” está configurado e dividido em partes. Abra-o para compartilhar as partes; cada pessoa converte as suas páginas."
+
+msgid "<0>Done.</0> “{name}” is set up, but I couldn't start the conversion. Start it from the book page."
+msgstr "<0>Pronto.</0> “{name}” está configurado, mas não consegui iniciar a conversão. Inicie-a pela página do livro."
 
 msgid "<0>Done.</0> “{name}” is set up. I've started making its first pages; open the book to follow along."
 msgstr "<0>Pronto.</0> “{name}” está configurado. Já comecei a fazer as primeiras páginas; abra o livro para acompanhar."
 
-msgid "<0>Done.</0> “{name}” is set up. Start the conversion from the book page."
-msgstr "<0>Pronto.</0> “{name}” está configurado. Comece a conversão pela página do livro."
+msgid "<0>Done.</0> “{name}” is set up. Set up an AI provider in Settings, then start the conversion from the book page."
+msgstr "<0>Pronto.</0> “{name}” está configurado. Configure um provedor de IA em Configurações e depois inicie a conversão pela página do livro."
 
 msgid "<0>Drop a PDF and I'll read it.</0> Together we pick the best settings for this book; the conversion starts only after you set it up."
 msgstr "<0>Arraste um PDF para cá e eu leio.</0> Juntos escolhemos as melhores configurações para este livro; a conversão só começa depois que você o configurar."
@@ -935,11 +965,20 @@ msgstr "<0>Pode mandar quando quiser.</0> Antes de começar, confiro se o PDF ab
 msgid "<0>Some pictures run across two pages.</0> So I'll join each pair of facing pages into one screen, and those pictures stay whole."
 msgstr "<0>Algumas ilustrações ocupam a página dupla.</0> Então vou juntar cada página dupla em uma tela, e essas ilustrações ficam inteiras."
 
+msgid "<0>Split into parts.</0> The book is set up without converting it, so each person can convert their own pages."
+msgstr "<0>Dividir em partes.</0> O livro é configurado sem ser convertido, para que cada pessoa converta as suas páginas."
+
 msgid "<0>That file isn't a PDF.</0> Choose a PDF and I'll read it."
 msgstr "<0>Esse arquivo não é um PDF.</0> Escolha um PDF e eu leio."
 
 msgid "<0>That's the setup.</0> Give the book a name and I'll set it up; the conversion starts after that."
 msgstr "<0>Configuração pronta.</0> Dê um nome ao livro e eu o configuro; a conversão começa depois disso."
+
+msgid "<0>That's the setup.</0> Give the book a name and I'll set it up; with Split, each person converts their own pages."
+msgstr "<0>Configuração pronta.</0> Dê um nome ao livro e eu o configuro; com Dividir, cada pessoa converte as suas páginas."
+
+msgid "<0>That's the setup.</0> Give the book a name and I'll set it up; you start the conversion from the book page once an AI provider is set up."
+msgstr "<0>Configuração pronta.</0> Dê um nome ao livro e eu o configuro; você inicia a conversão pela página do livro quando houver um provedor de IA configurado."
 
 msgid "<0>The sharing service isn't answering.</0> Readers may not reach the link, and new feedback shows up once it's back."
 msgstr "<0>O serviço de compartilhamento não está respondendo.</0> Os leitores podem não conseguir acessar o link, e o feedback novo aparece quando ele voltar."
@@ -964,6 +1003,9 @@ msgstr "<0>Seu livro é diagramado em pares:</0> texto numa página, ilustraçã
 
 msgid "<0>Your PDF already has facing pages side by side</0> on one wide page, so each one stays one screen. Nothing needs joining."
 msgstr "<0>Seu PDF já traz cada página dupla inteira</0> numa página larga, então cada uma continua sendo uma tela. Não é preciso juntar nada."
+
+msgid "<0>Your pick: {name}.</0> I'll make every page this way."
+msgstr "<0>Sua escolha: {name}.</0> Vou fazer todas as páginas assim."
 
 msgid "<0>Your pick: facing pages joined.</0> Each pair of pages becomes one wide screen. Pages that don't belong together are joined too."
 msgstr "<0>Sua escolha: páginas duplas unidas.</0> Cada par de páginas vira uma tela larga. Até páginas que não formam uma dupla são unidas."
@@ -1574,9 +1616,6 @@ msgstr "Passos para adicionar um livro"
 msgid "Add Book: Choose a preset"
 msgstr "Adicionar livro: Escolher uma predefinição"
 
-msgid "Add Book: Upload PDF"
-msgstr "Adicionar livro: Enviar PDF"
-
 msgid "Add caption…"
 msgstr "Adicionar texto alternativo…"
 
@@ -1952,9 +1991,6 @@ msgstr "As {0} páginas foram mescladas"
 
 msgid "All {count} books in Library"
 msgstr "Todos os {count} livros na Biblioteca"
-
-msgid "All {pageCount} pages"
-msgstr "Todas as {pageCount} páginas"
 
 msgid "All categories"
 msgstr "Todas as categorias"
@@ -2628,6 +2664,9 @@ msgstr "Os metadados do livro (título, autores, editora) foram extraídos desta
 msgid "Book model overrides updated."
 msgstr "Substituições de modelos do livro atualizadas."
 
+msgid "Book name"
+msgstr "Nome do livro"
+
 msgid "Book no longer on this computer"
 msgstr "Livro não está mais neste computador"
 
@@ -3174,9 +3213,6 @@ msgstr "Escolher imagens..."
 
 msgid "Choose more than one correct answer."
 msgstr "Escolher mais de uma resposta correta."
-
-msgid "Choose pages"
-msgstr "Escolher páginas"
 
 msgid "Choose Provider"
 msgstr "Escolher provedor"
@@ -3876,9 +3912,6 @@ msgstr "Não foi possível salvar o glossário. Seu rascunho foi mantido; verifi
 
 msgid "Counting occurrences…"
 msgstr "Contando ocorrências…"
-
-msgid "Counting pages…"
-msgstr "Contando páginas…"
 
 msgid "Course"
 msgstr "Curso"
@@ -6203,11 +6236,11 @@ msgstr "HTML de origem · {pageCount} páginas"
 msgid "HTML5 + EPUB"
 msgstr "HTML5 + EPUB"
 
-msgid "I can't reach your AI provider. You seem to be offline."
-msgstr "Não consigo acessar seu provedor de IA. Parece que você está offline."
-
 msgid "I could read the book only once this time, so I'd rather ask you."
 msgstr "Desta vez consegui ler o livro só uma vez, então prefiro perguntar a você."
+
+msgid "I couldn't open this PDF."
+msgstr "Não consegui abrir este PDF."
 
 msgid "I couldn't tell from the PDF. It's found when the pages are read."
 msgstr "Não deu para saber pelo PDF. Ele é identificado quando as páginas são lidas."
@@ -6687,6 +6720,9 @@ msgstr "É quase só texto, como um artigo ou um relatório."
 
 msgid "It is mostly words. Pictures are few or small."
 msgstr "É quase só texto. As ilustrações são poucas ou pequenas."
+
+msgid "It may be damaged, have no pages, or be too large. Try another file, or set this book up yourself."
+msgstr "Ele pode estar danificado, não ter páginas ou ser grande demais. Tente outro arquivo ou configure este livro você mesmo."
 
 msgid "It no longer opens. Sharing again makes a new one."
 msgstr "Ele não abre mais. Compartilhar novamente cria um novo."
@@ -7926,6 +7962,12 @@ msgstr "Minha primeira leitura das páginas escolheu esta. Quando li o livro pel
 
 msgid "My guess"
 msgstr "Meu palpite"
+
+msgid "My guess: {label}. {line}."
+msgstr "Meu palpite: {label}. {line}."
+
+msgid "My guess: {label}. {line}. {looks}"
+msgstr "Meu palpite: {label}. {line}. {looks}"
 
 msgid "My second reading picked this one."
 msgstr "Minha segunda leitura escolheu esta."
@@ -9433,6 +9475,15 @@ msgstr "Página {pageNumber} · Seção {sectionNumber}"
 msgid "page {shownStr}"
 msgstr "página {shownStr}"
 
+msgid "Page {start}"
+msgstr "Página {start}"
+
+msgid "Page {start} is selected."
+msgstr "A página {start} está selecionada."
+
+msgid "Page {start} of {numPages}"
+msgstr "Página {start} de {numPages}"
+
 msgid "Page context"
 msgstr "Contexto da página"
 
@@ -9566,6 +9617,9 @@ msgstr "páginas {shownStr}"
 
 msgid "Pages {start}–{end}"
 msgstr "Páginas {start}–{end}"
+
+msgid "Pages {start}–{end} are selected."
+msgstr "As páginas {start}–{end} estão selecionadas."
 
 msgid "Pages {start}–{end} of {numPages}"
 msgstr "Páginas {start}–{end} de {numPages}"
@@ -9792,9 +9846,6 @@ msgstr "Escolha Individual aqui. Depois, na etapa de Extração, una apenas os p
 
 msgid "Pick the languages you want to translate to. The book's original language stays as-is."
 msgstr "Escolha os idiomas para os quais deseja traduzir. O idioma original do livro permanece como está."
-
-msgid "Pick the pages to convert. All {pageCount} are selected."
-msgstr "Escolha as páginas para converter. Todas as {pageCount} estão selecionadas."
 
 msgid "Pick this one"
 msgstr "Escolher esta"
@@ -10786,9 +10837,6 @@ msgstr "Remover termo manual do glossário"
 #. placeholder {0}: page.pageNumber
 msgid "Remove page {0} from the quiz"
 msgstr "Remover a página {0} do questionário"
-
-msgid "Remove PDF"
-msgstr "Remover PDF"
 
 msgid "Remove picture"
 msgstr "Remover imagem"
@@ -12029,6 +12077,9 @@ msgstr "Defina sua chave de API para gerar automaticamente"
 msgid "Sets the default layout used when a section has no specific strategy assigned."
 msgstr "Define o layout padrão usado quando uma seção não tem estratégia específica atribuída."
 
+msgid "Sets the spelling and the voices."
+msgstr "Define a ortografia e as vozes."
+
 msgid "Sets the spelling and the voices. The book isn't translated."
 msgstr "Define a ortografia e as vozes. O livro não é traduzido."
 
@@ -12174,9 +12225,6 @@ msgstr "O compartilhamento parou antes de terminar e nada foi compartilhado. Ten
 
 msgid "Sharing stopped before it finished."
 msgstr "O compartilhamento parou antes de terminar."
-
-msgid "Sharing the work with others? <0>Split into parts</0>"
-msgstr "Vai dividir o trabalho com outras pessoas? <0>Dividir em partes</0>"
 
 msgid "Sharing..."
 msgstr "Compartilhando..."
@@ -13548,8 +13596,8 @@ msgstr "A mensagem leva o título, o link e o código."
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "O modelo detecta caixas delimitadoras para que cada elemento visual possa ser armazenado e disposto separadamente."
 
-msgid "The name of this book in your library. Use letters, numbers and dashes, with no spaces."
-msgstr "O nome deste livro na sua biblioteca. Use letras, números e hifens, sem espaços."
+msgid "The name of this book in your library. Use letters, numbers, dots, dashes and underscores, with no spaces."
+msgstr "O nome deste livro na sua biblioteca. Use letras, números, pontos, hifens e sublinhados, sem espaços."
 
 msgid "The only activities are colouring or drawing."
 msgstr "As únicas atividades são colorir ou desenhar."
@@ -13746,6 +13794,9 @@ msgstr "O mesmo data-id é usado em mais de uma página."
 msgid "The same edition in every language."
 msgstr "A mesma edição em todos os idiomas."
 
+msgid "The same language, so nothing is translated."
+msgstr "O mesmo idioma, então nada é traduzido."
+
 msgid "The saved content changed. Your draft is retained. Refresh and review the current versions before retrying."
 msgstr "O conteúdo salvo mudou. Seu rascunho foi mantido. Atualize e revise as versões atuais antes de tentar novamente."
 
@@ -13802,6 +13853,9 @@ msgstr "O sumário."
 
 msgid "The tasks are only colouring or drawing."
 msgstr "As tarefas são só colorir ou desenhar."
+
+msgid "The text is translated into it."
+msgstr "O texto é traduzido para ele."
 
 msgid "The TOC lists the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "O sumário lista as seções classificadas posicionadas pelo Storyboard. Termine o Storyboard antes de executar esta etapa."
@@ -14236,9 +14290,6 @@ msgstr "Esta parte não pode ser mesclada"
 
 msgid "This part doesn't match this book"
 msgstr "Esta parte não corresponde a este livro"
-
-msgid "This PDF has {pageCount} pages."
-msgstr "Este PDF tem {pageCount} páginas."
 
 msgid "This permanently deletes every uploaded video and clears all section assignments. This can't be undone."
 msgstr "Isso exclui permanentemente todos os vídeos enviados e limpa todas as atribuições de seção. Isso não pode ser desfeito."
@@ -15302,6 +15353,9 @@ msgstr "Não encontramos o link deste livro"
 msgid "We couldn't load your shared books"
 msgstr "Não conseguimos carregar seus livros compartilhados"
 
+msgid "We couldn't open this PDF"
+msgstr "Não conseguimos abrir este PDF"
+
 msgid "We couldn't read this book"
 msgstr "Não foi possível ler este livro"
 
@@ -15650,6 +15704,9 @@ msgstr "Agora você está usando o ADT Studio {label}"
 msgid "You're offline"
 msgstr "Você está offline"
 
+msgid "You're offline, so I can't reach your AI provider."
+msgstr "Você está offline, então não consigo acessar seu provedor de IA."
+
 #. placeholder {0}: connection.latest_version
 msgid "You're on version {0}."
 msgstr "Você está na versão {0}."
@@ -15704,6 +15761,15 @@ msgstr "Seu livro"
 
 msgid "Your book is online"
 msgstr "Seu livro está online"
+
+msgid "Your book was created, but the AI setup's notes couldn't be saved with it."
+msgstr "Seu livro foi criado, mas as notas da configuração com IA não puderam ser salvas com ele."
+
+msgid "Your book was created, but the AI setup's notes expired before they could be saved with it."
+msgstr "Seu livro foi criado, mas as notas da configuração com IA expiraram antes de serem salvas com ele."
+
+msgid "Your book was created, but the AI setup's notes were made for another PDF, so they weren't saved with it."
+msgstr "Seu livro foi criado, mas as notas da configuração com IA eram de outro PDF, então não foram salvas com ele."
 
 msgid "Your books will live in your own Cloudflare account."
 msgstr "Seus livros viverão na sua própria conta Cloudflare."
@@ -15770,9 +15836,6 @@ msgstr "Seu PDF é digitalizado (o texto não pode ser selecionado), então não
 
 msgid "Your pick"
 msgstr "Sua escolha"
-
-msgid "Your pick."
-msgstr "Sua escolha."
 
 msgid "Your pick. The text is translated into it."
 msgstr "Sua escolha. O texto é traduzido para ele."

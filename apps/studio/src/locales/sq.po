@@ -77,6 +77,9 @@ msgstr "(parazgjedhje)"
 msgid "(empty)"
 msgstr "(bosh)"
 
+msgid "(my guess)"
+msgstr "(hamendësimi im)"
+
 msgid "(no instruction text)"
 msgstr "(pa tekst udhëzimi)"
 
@@ -123,6 +126,10 @@ msgstr "{0, plural, one {# imazh i zgjedhur} other {# imazhe të zgjedhura}}"
 #. placeholder {0}: p.optionalDone.length
 msgid "{0, plural, one {# output} other {# outputs}}"
 msgstr "{0, plural, one {# rezultat} other {# rezultate}}"
+
+#. placeholder {0}: flow.pageCount
+msgid "{0, plural, one {# page · ready} other {# pages · ready}}"
+msgstr "{0, plural, one {# faqe · gati} other {# faqe · gati}}"
 
 #. placeholder {0}: preview.addedPageNumbers.length
 #. placeholder {0}: result.addedPages
@@ -386,10 +393,6 @@ msgstr "{0} nga {1} faqe nuk kanë tekst të nxjerrë"
 msgid "{0} pages"
 msgstr "{0} faqe"
 
-#. placeholder {0}: flow.pageCount
-msgid "{0} pages · ready"
-msgstr "{0} faqe · gati"
-
 #. placeholder {0}: split.totalPages
 #. placeholder {1}: split.exportedParts
 msgid "{0} pages · split into {1} parts"
@@ -545,6 +548,9 @@ msgstr "{count, plural, one {një kuti teksti} other {# kuti teksti}}"
 msgid "{count, plural, one {a text field} other {# text fields}}"
 msgstr "{count, plural, one {një fushë teksti} other {# fusha teksti}}"
 
+msgid "{count, plural, one {Only that page is converted.} other {Only those # pages are converted.}}"
+msgstr "{count, plural, one {Konvertohet vetëm ajo faqe.} other {Konvertohen vetëm ato # faqe.}}"
+
 msgid "{count, plural, one {the first version you've shared} other {# versions shared}}"
 msgstr "{count, plural, one {versioni i parë që keni ndarë} other {# versione të ndara}}"
 
@@ -641,6 +647,12 @@ msgstr "Madhësia e {label} në celular"
 msgid "{label}: {said}"
 msgstr "{label}: {said}"
 
+msgid "{label}. {line}."
+msgstr "{label}. {line}."
+
+msgid "{label}. {line}. {looks}"
+msgstr "{label}. {line}. {looks}"
+
 msgid "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 msgstr "{merged, plural, =0 {0 nga {total} faqe të bashkuara} one {# nga {total} faqe të bashkuara} other {# nga {total} faqe të bashkuara}}"
 
@@ -662,23 +674,38 @@ msgstr "Mungojnë {missingForCurrentStage} rezultate gjuhësore. Ekzekutojeni s�
 msgid "{missingForCurrentStage} speech outputs are missing. Re-run to generate the missing items."
 msgstr "Mungojnë {missingForCurrentStage} rezultate të të folurit. Ekzekutojeni sërish për të gjeneruar elementet që mungojnë."
 
+msgid "{name}: {setTo}"
+msgstr "{name}: {setTo}"
+
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} të shënuara"
 
-msgid "{numPages} pages"
-msgstr "{numPages} faqe"
+msgid "{numPages, plural, one {# page, split into parts} other {# pages, split into parts}}"
+msgstr "{numPages, plural, one {# faqe, e ndarë në pjesë} other {# faqe, të ndara në pjesë}}"
 
-msgid "{numPages} pages, split into parts"
-msgstr "{numPages} faqe, të ndara në pjesë"
+msgid "{numPages, plural, one {# page} other {# pages}}"
+msgstr "{numPages, plural, one {# faqe} other {# faqe}}"
+
+msgid "{pageCount, plural, one {# page · read} other {# pages · read}}"
+msgstr "{pageCount, plural, one {# faqe · e lexuar} other {# faqe · të lexuara}}"
+
+msgid "{pageCount, plural, one {# page · reading} other {# pages · reading}}"
+msgstr "{pageCount, plural, one {# faqe · po lexohet} other {# faqe · po lexohen}}"
+
+msgid "{pageCount, plural, one {Pick the pages to convert. The only page is selected.} other {Pick the pages to convert. All # are selected.}}"
+msgstr "{pageCount, plural, one {Zgjidhni faqet për t'u konvertuar. Faqja e vetme është e zgjedhur.} other {Zgjidhni faqet për t'u konvertuar. Të # faqet janë të zgjedhura.}}"
+
+msgid "{pageCount, plural, one {The only page} other {All # pages}}"
+msgstr "{pageCount, plural, one {Faqja e vetme} other {Të # faqet}}"
+
+msgid "{pageCount, plural, one {This PDF has # page.} other {This PDF has # pages.}}"
+msgstr "{pageCount, plural, one {Ky PDF ka # faqe.} other {Ky PDF ka # faqe.}}"
 
 msgid "{pageCount} {pageCount, plural, one {page} other {pages}}"
 msgstr "{pageCount} {pageCount, plural, one {faqe} other {faqe}}"
 
 msgid "{pageCount} pages"
 msgstr "{pageCount} faqe"
-
-msgid "{pageCount} pages · reading"
-msgstr "{pageCount} faqe · po lexoj"
 
 msgid "{pageLabel} · left on version {version}"
 msgstr "{pageLabel} · lënë në versionin {version}"
@@ -851,9 +878,6 @@ msgstr "{total, plural, one {# koment në pritje} other {# komente në pritje}}"
 msgid "{total} here"
 msgstr "{total} këtu"
 
-msgid "{totalPages, plural, one {The page will be converted} other {All # pages will be converted}}"
-msgstr "{totalPages, plural, one {Faqja do të konvertohet} other {Të gjitha # faqet do të konvertohen}}"
-
 msgid "{totalPages} pages"
 msgstr "{totalPages} faqe"
 
@@ -898,14 +922,20 @@ msgid "<0>Another ADT Studio took over sharing on this Cloudflare account.</0> R
 msgstr "<0>Një ADT Studio tjetër e mori përsipër ndarjen në këtë llogari Cloudflare.</0> Lexuesit ende e hapin lidhjen; rilidhuni këtu për ta menaxhuar dhe për të parë komentet e reja."
 
 #. placeholder {0}: run.name
-msgid "<0>Another book is already called {0}.</0> <1>Choose a new name above and set it up again.</1>"
-msgstr "<0>Një libër tjetër quhet tashmë {0}.</0> <1>Zgjidhni një emër të ri më lart dhe konfigurojeni përsëri.</1>"
+msgid "<0>Another book is already called {0}.</0> <1>Choose a new name and set it up again.</1>"
+msgstr "<0>Një libër tjetër quhet tashmë {0}.</0> <1>Zgjidhni një emër të ri dhe konfigurojeni sërish.</1>"
+
+msgid "<0>Done.</0> “{name}” is set up and split into parts. Open it to share the parts; each person converts their own pages."
+msgstr "<0>U krye.</0> “{name}” është konfiguruar dhe ndarë në pjesë. Hapeni për të ndarë pjesët; secili person konverton faqet e veta."
+
+msgid "<0>Done.</0> “{name}” is set up, but I couldn't start the conversion. Start it from the book page."
+msgstr "<0>U krye.</0> “{name}” është konfiguruar, por nuk e nisa dot konvertimin. Niseni nga faqja e librit."
 
 msgid "<0>Done.</0> “{name}” is set up. I've started making its first pages; open the book to follow along."
 msgstr "<0>U krye.</0> “{name}” u konfigurua. Kam nisur të bëj faqet e para; hapni librin për ta ndjekur."
 
-msgid "<0>Done.</0> “{name}” is set up. Start the conversion from the book page."
-msgstr "<0>U krye.</0> “{name}” u konfigurua. Nisni konvertimin nga faqja e librit."
+msgid "<0>Done.</0> “{name}” is set up. Set up an AI provider in Settings, then start the conversion from the book page."
+msgstr "<0>U krye.</0> “{name}” është konfiguruar. Konfiguroni një ofrues IA-je te Cilësimet, pastaj nisni konvertimin nga faqja e librit."
 
 msgid "<0>Drop a PDF and I'll read it.</0> Together we pick the best settings for this book; the conversion starts only after you set it up."
 msgstr "<0>Lëshoni një PDF dhe unë do ta lexoj.</0> Bashkë zgjedhim cilësimet më të mira për këtë libër; konvertimi nis vetëm pasi ta konfiguroni."
@@ -937,11 +967,20 @@ msgstr "<0>Gati kur të jeni.</0> Kontrolloj që PDF-ja hapet para se të nisim,
 msgid "<0>Some pictures run across two pages.</0> So I'll join each pair of facing pages into one screen, and those pictures stay whole."
 msgstr "<0>Disa figura shtrihen në dy faqe.</0> Prandaj do ta bashkoj çdo çift faqesh përballë në një ekran, dhe ato figura mbeten të plota."
 
+msgid "<0>Split into parts.</0> The book is set up without converting it, so each person can convert their own pages."
+msgstr "<0>Ndaje në pjesë.</0> Libri konfigurohet pa u konvertuar, që secili person të konvertojë faqet e veta."
+
 msgid "<0>That file isn't a PDF.</0> Choose a PDF and I'll read it."
 msgstr "<0>Ky skedar nuk është PDF.</0> Zgjidhni një PDF dhe unë do ta lexoj."
 
 msgid "<0>That's the setup.</0> Give the book a name and I'll set it up; the conversion starts after that."
 msgstr "<0>Ky është konfigurimi.</0> Jepini librit një emër dhe unë do ta konfiguroj; konvertimi nis pas kësaj."
+
+msgid "<0>That's the setup.</0> Give the book a name and I'll set it up; with Split, each person converts their own pages."
+msgstr "<0>Ky është konfigurimi.</0> Jepini librit një emër dhe unë e konfiguroj; me Ndarjen, secili person konverton faqet e veta."
+
+msgid "<0>That's the setup.</0> Give the book a name and I'll set it up; you start the conversion from the book page once an AI provider is set up."
+msgstr "<0>Ky është konfigurimi.</0> Jepini librit një emër dhe unë e konfiguroj; ju e nisni konvertimin nga faqja e librit sapo të ketë një ofrues IA-je të konfiguruar."
 
 msgid "<0>The sharing service isn't answering.</0> Readers may not reach the link, and new feedback shows up once it's back."
 msgstr "<0>Shërbimi i ndarjes nuk po përgjigjet.</0> Lexuesit mund të mos arrijnë te lidhja, dhe komentet e reja shfaqen sapo ai të rikthehet."
@@ -966,6 +1005,9 @@ msgstr "<0>Libri juaj është ndërtuar në çifte:</0> një faqe me tekst përb
 
 msgid "<0>Your PDF already has facing pages side by side</0> on one wide page, so each one stays one screen. Nothing needs joining."
 msgstr "<0>PDF-ja juaj i ka tashmë faqet përballë krah për krah</0> në një faqe të gjerë, prandaj secila mbetet një ekran. Nuk ka nevojë për bashkim."
+
+msgid "<0>Your pick: {name}.</0> I'll make every page this way."
+msgstr "<0>Zgjedhja juaj: {name}.</0> Do t'i bëj të gjitha faqet kështu."
 
 msgid "<0>Your pick: facing pages joined.</0> Each pair of pages becomes one wide screen. Pages that don't belong together are joined too."
 msgstr "<0>Zgjedhja juaj: faqet përballë të bashkuara.</0> Çdo çift faqesh bëhet një ekran i gjerë. Bashkohen edhe faqet që nuk shkojnë bashkë."
@@ -1576,9 +1618,6 @@ msgstr "Hapat e shtimit të librit"
 msgid "Add Book: Choose a preset"
 msgstr "Shto Libër: Zgjidh një paracaktim"
 
-msgid "Add Book: Upload PDF"
-msgstr "Shto Libër: Ngarko PDF"
-
 msgid "Add caption…"
 msgstr "Shto titull…"
 
@@ -1954,9 +1993,6 @@ msgstr "Të {0} faqet janë bashkuar"
 
 msgid "All {count} books in Library"
 msgstr "Të gjithë {count} librat në Bibliotekë"
-
-msgid "All {pageCount} pages"
-msgstr "Të gjitha {pageCount} faqet"
 
 msgid "All categories"
 msgstr "Të gjitha kategoritë"
@@ -2630,6 +2666,9 @@ msgstr "Të dhënat e librit (titulli, autorët, botuesi) u morën nga kjo pjes�
 msgid "Book model overrides updated."
 msgstr "Mbivendosjet e modeleve të librit u përditësuan."
 
+msgid "Book name"
+msgstr "Emri i librit"
+
 msgid "Book no longer on this computer"
 msgstr "Libri nuk është më në këtë kompjuter"
 
@@ -3176,9 +3215,6 @@ msgstr "Zgjidhni imazhe..."
 
 msgid "Choose more than one correct answer."
 msgstr "Zgjidh më shumë se një përgjigje të saktë."
-
-msgid "Choose pages"
-msgstr "Zgjidhni faqet"
 
 msgid "Choose Provider"
 msgstr "Zgjidhni Ofruesin"
@@ -3878,9 +3914,6 @@ msgstr "Fjalorthi nuk mund të ruhej. Drafti juaj është ruajtur; kontrolloni n
 
 msgid "Counting occurrences…"
 msgstr "Po numërohen ndodhitë…"
-
-msgid "Counting pages…"
-msgstr "Duke numëruar faqet…"
 
 msgid "Course"
 msgstr "Kurs"
@@ -6205,11 +6238,11 @@ msgstr "Burimi HTML · {pageCount} faqe"
 msgid "HTML5 + EPUB"
 msgstr "HTML5 + EPUB"
 
-msgid "I can't reach your AI provider. You seem to be offline."
-msgstr "Nuk po lidhem dot me ofruesin tuaj të AI. Duket se jeni offline."
-
 msgid "I could read the book only once this time, so I'd rather ask you."
 msgstr "Këtë herë munda ta lexoj librin vetëm një herë, ndaj më mirë po ju pyes."
+
+msgid "I couldn't open this PDF."
+msgstr "Nuk e hapa dot këtë PDF."
 
 msgid "I couldn't tell from the PDF. It's found when the pages are read."
 msgstr "Nuk e dallova dot nga PDF-ja. Gjendet kur lexohen faqet."
@@ -6689,6 +6722,9 @@ msgstr "Është kryesisht tekst, si një artikull ose raport."
 
 msgid "It is mostly words. Pictures are few or small."
 msgstr "Është kryesisht tekst. Figurat janë të pakta ose të vogla."
+
+msgid "It may be damaged, have no pages, or be too large. Try another file, or set this book up yourself."
+msgstr "Mund të jetë i dëmtuar, pa faqe ose shumë i madh. Provoni një skedar tjetër ose konfigurojeni vetë këtë libër."
 
 msgid "It no longer opens. Sharing again makes a new one."
 msgstr "Nuk hapet më. Duke e ndarë përsëri krijohet një e re."
@@ -7928,6 +7964,12 @@ msgstr "Leximi im i parë i faqeve zgjodhi këtë. Kur e lexova librin për her�
 
 msgid "My guess"
 msgstr "Hamendësimi im"
+
+msgid "My guess: {label}. {line}."
+msgstr "Hamendësimi im: {label}. {line}."
+
+msgid "My guess: {label}. {line}. {looks}"
+msgstr "Hamendësimi im: {label}. {line}. {looks}"
 
 msgid "My second reading picked this one."
 msgstr "Leximi im i dytë zgjodhi këtë."
@@ -9435,6 +9477,15 @@ msgstr "Faqja {pageNumber} · Seksioni {sectionNumber}"
 msgid "page {shownStr}"
 msgstr "faqja {shownStr}"
 
+msgid "Page {start}"
+msgstr "Faqja {start}"
+
+msgid "Page {start} is selected."
+msgstr "Faqja {start} është e zgjedhur."
+
+msgid "Page {start} of {numPages}"
+msgstr "Faqja {start} nga {numPages}"
+
 msgid "Page context"
 msgstr "Konteksti i faqes"
 
@@ -9568,6 +9619,9 @@ msgstr "faqet {shownStr}"
 
 msgid "Pages {start}–{end}"
 msgstr "Faqet {start}–{end}"
+
+msgid "Pages {start}–{end} are selected."
+msgstr "Faqet {start}–{end} janë të zgjedhura."
 
 msgid "Pages {start}–{end} of {numPages}"
 msgstr "Faqet {start}–{end} nga {numPages}"
@@ -9794,9 +9848,6 @@ msgstr "Zgjidhni Të vetëm këtu. Më vonë, në fazën e Nxjerrjes, bashkoni v
 
 msgid "Pick the languages you want to translate to. The book's original language stays as-is."
 msgstr "Zgjidhni gjuhët në të cilat dëshironi të përktheni. Gjuha origjinale e librit mbetet ashtu siç është."
-
-msgid "Pick the pages to convert. All {pageCount} are selected."
-msgstr "Zgjidhni faqet për t'u konvertuar. Të gjitha {pageCount} janë zgjedhur."
 
 msgid "Pick this one"
 msgstr "Zgjidh këtë"
@@ -10788,9 +10839,6 @@ msgstr "Hiq termin manual të glosariumit"
 #. placeholder {0}: page.pageNumber
 msgid "Remove page {0} from the quiz"
 msgstr "Hiq faqen {0} nga kuizi"
-
-msgid "Remove PDF"
-msgstr "Hiq PDF-në"
 
 msgid "Remove picture"
 msgstr "Hiq figurën"
@@ -12031,6 +12079,9 @@ msgstr "Vendosni çelësin tuaj API për gjenerim automatik"
 msgid "Sets the default layout used when a section has no specific strategy assigned."
 msgstr "Vendos paraqitjen e paracaktuar që përdoret kur një seksion nuk ka strategji specifike të caktuar."
 
+msgid "Sets the spelling and the voices."
+msgstr "Përcakton drejtshkrimin dhe zërat."
+
 msgid "Sets the spelling and the voices. The book isn't translated."
 msgstr "Përcakton drejtshkrimin dhe zërat. Libri nuk përkthehet."
 
@@ -12176,9 +12227,6 @@ msgstr "Ndarja u ndal para se të përfundonte dhe asgjë nuk u nda. Të provoni
 
 msgid "Sharing stopped before it finished."
 msgstr "Ndarja u ndal para se të përfundonte."
-
-msgid "Sharing the work with others? <0>Split into parts</0>"
-msgstr "Po e ndani punën me të tjerët? <0>Ndaje në pjesë</0>"
 
 msgid "Sharing..."
 msgstr "Po ndahet..."
@@ -13550,8 +13598,8 @@ msgstr "Mesazhi përmban titullin, lidhjen dhe kodin."
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "Modeli zbulон kufijtë e elementeve vizualë që çdo element mund të ruhet dhe të vendoset veçmas."
 
-msgid "The name of this book in your library. Use letters, numbers and dashes, with no spaces."
-msgstr "Emri i këtij libri në bibliotekën tuaj. Përdorni shkronja, numra dhe viza, pa hapësira."
+msgid "The name of this book in your library. Use letters, numbers, dots, dashes and underscores, with no spaces."
+msgstr "Emri i këtij libri në bibliotekën tuaj. Përdorni shkronja, numra, pika, viza dhe nënvizime, pa hapësira."
 
 msgid "The only activities are colouring or drawing."
 msgstr "Aktivitetet e vetme janë ngjyrosja ose vizatimi."
@@ -13748,6 +13796,9 @@ msgstr "I njëjti data-id përdoret në më shumë se një faqe."
 msgid "The same edition in every language."
 msgstr "I njëjti botim në çdo gjuhë."
 
+msgid "The same language, so nothing is translated."
+msgstr "E njëjta gjuhë, prandaj nuk përkthehet asgjë."
+
 msgid "The saved content changed. Your draft is retained. Refresh and review the current versions before retrying."
 msgstr "Përmbajtja e ruajtur ka ndryshuar. Drafti juaj ruhet. Rifreskoni dhe shqyrtoni versionet aktuale para se të provoni sërish."
 
@@ -13804,6 +13855,9 @@ msgstr "Tabela e përmbajtjes."
 
 msgid "The tasks are only colouring or drawing."
 msgstr "Detyrat janë vetëm ngjyrosje ose vizatim."
+
+msgid "The text is translated into it."
+msgstr "Teksti përkthehet në të."
 
 msgid "The TOC lists the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "TOC liston seksionet e shtypura të vendosura nga Storyboard. Përfundo Storyboard para se të ekzekutosh këtë fazë."
@@ -14238,9 +14292,6 @@ msgstr "Kjo pjesë nuk mund të bashkohet"
 
 msgid "This part doesn't match this book"
 msgstr "Kjo pjesë nuk përputhet me këtë libër"
-
-msgid "This PDF has {pageCount} pages."
-msgstr "Kjo PDF ka {pageCount} faqe."
 
 msgid "This permanently deletes every uploaded video and clears all section assignments. This can't be undone."
 msgstr "Kjo fshin përgjithmonë çdo video të ngarkuar dhe pastron të gjitha caktimet e seksioneve. Ky veprim nuk mund të zhbëhet."
@@ -15304,6 +15355,9 @@ msgstr "Nuk e gjetëm lidhjen e këtij libri"
 msgid "We couldn't load your shared books"
 msgstr "Nuk mundëm të ngarkojmë librat tuaj të ndarë"
 
+msgid "We couldn't open this PDF"
+msgstr "Nuk e hapëm dot këtë PDF"
+
 msgid "We couldn't read this book"
 msgstr "Nuk arritëm ta lexonim këtë libër"
 
@@ -15652,6 +15706,9 @@ msgstr "Tani po përdor ADT Studio {label}"
 msgid "You're offline"
 msgstr "Jeni offline"
 
+msgid "You're offline, so I can't reach your AI provider."
+msgstr "Jeni jashtë linje, prandaj nuk e arrij dot ofruesin tuaj të IA-së."
+
 #. placeholder {0}: connection.latest_version
 msgid "You're on version {0}."
 msgstr "Jeni në versionin {0}."
@@ -15706,6 +15763,15 @@ msgstr "Libri yt"
 
 msgid "Your book is online"
 msgstr "Libri juaj është online"
+
+msgid "Your book was created, but the AI setup's notes couldn't be saved with it."
+msgstr "Libri juaj u krijua, por shënimet e konfigurimit me IA nuk u ruajtën dot me të."
+
+msgid "Your book was created, but the AI setup's notes expired before they could be saved with it."
+msgstr "Libri juaj u krijua, por shënimet e konfigurimit me IA skaduan para se të ruheshin me të."
+
+msgid "Your book was created, but the AI setup's notes were made for another PDF, so they weren't saved with it."
+msgstr "Libri juaj u krijua, por shënimet e konfigurimit me IA ishin për një PDF tjetër, prandaj nuk u ruajtën me të."
 
 msgid "Your books will live in your own Cloudflare account."
 msgstr "Librat tuaj do të jetojnë në llogarinë tuaj Cloudflare."
@@ -15772,9 +15838,6 @@ msgstr "PDF-ja juaj është e skanuar (fjalët e saj nuk mund të zgjidhen), nda
 
 msgid "Your pick"
 msgstr "Zgjedhja juaj"
-
-msgid "Your pick."
-msgstr "Zgjedhja juaj."
 
 msgid "Your pick. The text is translated into it."
 msgstr "Zgjedhja juaj. Teksti përkthehet në të."
