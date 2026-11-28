@@ -301,7 +301,8 @@ books/
 └── {label}/
     ├── {label}.db          SQLite database (pages, images, node_data, llm_log)
     ├── config.yaml         Per-book config overrides (merges onto global config.yaml)
-    ├── .debug-images/      Hash-named PNG screenshots used by visual-review logs
+    ├── setup-recommendation.json  Add Book assistant's recommendation and the config it applied (books made with it)
+    ├── .debug-images/      Hash-named images the LLM log shows: visual-review screenshots, the assistant's page images
     └── images/
         ├── pg001_page.png  Full-page render (2x scale, ~144 DPI)
         ├── pg001_img001.png Extracted image

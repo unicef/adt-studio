@@ -1,0 +1,9 @@
+/* Inline page citations. The animation stops under reduced motion. */
+
+/* The pages in the citation card sit on a track that slides as you flip (all drawn already). */
+.cite-track { transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1); will-change: transform; }
+.cite-card { transform-origin: var(--radix-hover-card-content-transform-origin); }
+
+@media (prefers-reduced-motion: reduce) {
+  .cite-track { transition: none; }
+}

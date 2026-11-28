@@ -550,3 +550,14 @@ export function getCountriesForLanguage(langCode: string): { suggested: Country[
 export function findLanguage(code: string): Language | undefined {
   return SUPPORTED_LANGUAGES.find((l) => l.code === code)
 }
+
+/**
+ * Whether a language or country search finds an entry: an empty query finds every one; otherwise
+ * one of its `names` (a name, a name in another language, a code) contains the query, ignoring
+ * case (in `locale` when the names are in that language).
+ */
+export function matchesSearch(query: string, names: readonly string[], locale?: string): boolean {
+  const lower = (text: string) => (locale ? text.toLocaleLowerCase(locale) : text.toLowerCase())
+  const q = lower(query)
+  return !q || names.some((name) => lower(name).includes(q))
+}

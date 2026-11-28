@@ -9,6 +9,7 @@ import {
   getDisplayName,
   findLanguage,
   getCountriesForLanguage,
+  matchesSearch,
   normalizeLocale,
   type Language,
 } from "@/lib/languages"
@@ -78,7 +79,7 @@ export function LanguagePicker({
         { code: lockedLang.code, label: lockedLang.name, sublabel: lockedLang.code },
       ]
       const addCountry = (c: { code: string; name: string }) => {
-        if (!q || c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)) {
+        if (matchesSearch(q, [c.name, c.code])) {
           const locale = `${lockedLang.code}-${c.code.toUpperCase()}`
           result.push({
             code: locale,
@@ -96,10 +97,7 @@ export function LanguagePicker({
     }
     // Phase 1: show languages
     const q = search.toLowerCase()
-    return SUPPORTED_LANGUAGES.filter(
-      (l) =>
-        !q || l.name.toLowerCase().includes(q) || l.code.toLowerCase().includes(q)
-    ).map((l) => ({
+    return SUPPORTED_LANGUAGES.filter((l) => matchesSearch(q, [l.name, l.code])).map((l) => ({
       code: l.code,
       label: l.name,
       sublabel: l.code,

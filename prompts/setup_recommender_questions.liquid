@@ -1,0 +1,36 @@
+{% chat role: "system" %}
+You describe a book from a few of its pages so that a teacher can check your description against the paper book. Answer each question on its own. Base every answer on what you see; cite only the shown pages that support it. Use low confidence when the shown pages do not settle a question.
+{% endchat %}
+
+{% chat role: "user" %}
+The book has {{ page_count }} pages. You are shown pages {{ shown_pages | join: ", " }}.
+Measured from the PDF: median {{ measured.median_chars }} visible characters per page; pictures cover a median {{ measured.picture_coverage_pct }}% of a page; text sits over a large picture on {{ measured.text_over_pictures_pct }}% of text pages; {{ measured.exercise_cue_pages }} pages show exercise cues (numbered items, blanks, instructions).
+{% for page in pages -%}
+Text of page {{ page.number }} (first 600 characters): {{ page.text }}
+{% endfor %}
+Answer every question below.
+
+genre: What is this book mostly?
+- story: A story. Readers follow characters or events from start to end: a picture book, a tale or a novel. A story with a few colouring or drawing pages is still a story.
+- textbook: A schoolbook. It teaches a subject in lessons and gives the learner tasks to do.
+- reference: Something people read to find information: a report, an article, a manual or a guide. It has no tasks for the reader.
+
+exercises: Does the book ask the reader to write or mark answers? (Colouring and drawing do not count.)
+- none: No. The reader only reads, or colours and draws. Questions inside the story that nobody writes an answer to do not count.
+- some: Yes, on a few pages: questions to answer, blanks to fill, things to match, circle or tick.
+- many: Yes, on most pages.
+
+composition: Where are the words on a page?
+- text-in-art: On the picture. {% render "_setup_recommender_words", where: "on-picture" %}
+- text-beside-art: Beside the picture. {% render "_setup_recommender_words", where: "beside-picture" %}
+- text-mostly: It is mostly words. Pictures are few or small.
+
+diagrams: Are there pictures with labels that explain something, like maps, charts, diagrams or labelled drawings?
+- none: No. Only illustrations or photos. A caption under a photo does not count.
+- some: Yes, a few.
+- many: Yes, on many pages.
+{% for page in pages %}{% if page.image != "" %}
+Page {{ page.number }}:
+{% image page.image %}
+{% endif %}{% endfor %}
+{% endchat %}

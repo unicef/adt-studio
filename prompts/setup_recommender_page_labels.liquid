@@ -1,0 +1,38 @@
+{% chat role: "system" %}
+You label the pages of a book one by one, judging each page on its own. Then you give one guess for the whole book.
+{% endchat %}
+
+{% chat role: "user" %}
+{% if every_page %}The book has {{ page_count }} pages; every page is shown below{% else %}The book has {{ page_count }} pages. You are shown {{ pages.size }} of them: the first {{ opening_count }}, {{ middle_count }} spread through the middle, and the last {{ end_count }}{% endif %}, each as a small image with its first 300 characters of text.
+
+Label each page shown.
+
+Page type:
+- cover: Front or back cover.
+- front-matter: Title page, copyright, contents, or a preface, foreword or introduction written about the book by its author, editor or publisher.
+- story: Narrative: tells a story (fiction or tale), as prose or as text with illustrations.
+- lesson: Teaches a topic to learners: explanations, examples, worked content addressed to students.
+- exercise: Tasks for the reader to do: questions to answer, blanks, matching, circling, writing.
+- informational: Factual or academic prose read for information, not a lesson: article, paper, report, manual.
+- back-matter: Credits, licence, index, glossary, about the author, list of other titles.
+- blank: Empty or nearly empty page, or a picture with no text that does not carry a story.
+
+Text placement:
+- on-art: On the picture. {% render "_setup_recommender_words", where: "on-picture" %}
+- beside-art: Beside the picture. {% render "_setup_recommender_words", where: "beside-picture" %}
+- text-only: Mostly text; pictures small or absent.
+- no-text: No readable text.
+
+meaningfulFigure: true when the page has a diagram, chart, map, table, labelled figure or infographic whose labels carry meaning (not a plain photo or illustration).
+
+Finally, bookGenre: what the whole book most likely is (story, textbook or reference), judging from everything shown, including what any preface says about the book.
+
+{% for page in pages -%}
+Page {{ page.number }}: Text: {{ page.text | default: "(no text)" }}
+
+{% endfor -%}
+{% for page in pages %}{% if page.image != "" %}
+Page {{ page.number }}:
+{% image page.image %}
+{% endif %}{% endfor %}
+{% endchat %}

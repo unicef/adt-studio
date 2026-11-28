@@ -1,0 +1,253 @@
+import { useState } from "react"
+import { BookOpen, Loader2, X } from "lucide-react"
+import { Trans, useLingui } from "@lingui/react/macro"
+import * as DialogPrimitive from "@radix-ui/react-dialog"
+import {
+  Dialog,
+  DialogDescription,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { type PresetConfig, type ExampleBook } from "@/components/wizard/core/constants"
+import { usePdfPreviewPages } from "@/components/wizard/core/pdf/usePdfPreviewPages"
+
+type EmbedTab = "pdf" | "adt"
+
+function PdfCanvasPreview({
+  src,
+  title,
+}: {
+  src?: string
+  title: string
+}) {
+  const { t } = useLingui()
+  const { pages, isLoading, error } = usePdfPreviewPages({
+    src,
+    mode: "all",
+  })
+
+  if (!src) {
+    return (
+      <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+        <Trans>No preview available.</Trans>
+      </div>
+    )
+  }
+
+  return (
+    <div className="relative h-full w-full overflow-auto bg-muted" aria-label={title}>
+      {isLoading && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-muted">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <Trans>Loading preview...</Trans>
+          </div>
+        </div>
+      )}
+
+      {error ? (
+        <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted-foreground">
+          <Trans>Unable to render PDF preview.</Trans>
+        </div>
+      ) : (
+        <div className="mx-auto flex min-h-full w-full max-w-[1100px] flex-col items-center gap-4 p-4">
+          {pages.map((pageDataUrl, index) => (
+            <img
+              key={`${index + 1}-${pageDataUrl.slice(0, 24)}`}
+              src={pageDataUrl}
+              alt={t`${title} - page ${index + 1}`}
+              className="w-full bg-card shadow-sm"
+              loading="lazy"
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function BookItem({
+  book,
+  selected,
+  onSelect,
+}: {
+  book: ExampleBook
+  selected: boolean
+  onSelect: () => void
+}) {
+  const { i18n } = useLingui()
+
+  if (book.comingSoon) {
+    return (
+      <div className="w-full rounded-md border border-border px-3 py-2.5 opacity-50 cursor-not-allowed">
+        <span className="text-sm text-muted-foreground leading-snug">
+          {i18n._(book.title)}{" "}
+          <span className="text-xs italic">
+            (<Trans>coming soon</Trans>)
+          </span>
+        </span>
+      </div>
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={[
+        "w-full rounded-md border px-3 py-2.5 text-left text-sm leading-snug transition-colors",
+        selected
+          ? "border-brand-600 bg-card text-brand-600 font-medium"
+          : "border-border text-foreground hover:border-brand-600/50",
+      ].join(" ")}
+    >
+      {i18n._(book.title)}
+    </button>
+  )
+}
+
+interface ExamplesModalProps {
+  open: boolean
+  onClose: () => void
+  preset: PresetConfig
+}
+
+export function ExamplesModal({ open, onClose, preset }: ExamplesModalProps) {
+  const { i18n, t } = useLingui()
+
+  const availableBooks = preset.exampleBooks.filter((b) => !b.comingSoon)
+  const [selectedBook, setSelectedBook] = useState<ExampleBook>(
+    () => availableBooks[0] ?? preset.exampleBooks[0],
+  )
+  const [activeTab, setActiveTab] = useState<EmbedTab>("pdf")
+
+  const pdfUrl = selectedBook.pdfUrl
+  const embedUrl = activeTab === "pdf" ? pdfUrl : selectedBook.adtUrl
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogPortal>
+        <DialogOverlay />
+        <DialogPrimitive.Content
+          className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2
+            w-[95vw] max-w-5xl h-[88vh] flex flex-col md:flex-row rounded-lg bg-card shadow-lg
+            overflow-hidden border border-border
+            data-[state=open]:animate-in data-[state=closed]:animate-out
+            data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0
+            data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+        >
+          <div className="shrink-0 flex flex-col w-full md:w-[240px] max-h-[38%] md:max-h-none overflow-y-auto border-b md:border-b-0 md:border-r border-border">
+            <div className="px-5 pt-5 pb-4">
+              <DialogTitle className="text-base font-bold text-foreground leading-snug mb-1.5">
+                {i18n._(preset.title)}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground leading-[18px]">
+                {i18n._(preset.description)}
+              </DialogDescription>
+            </div>
+
+            <div className="px-5 pb-4">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                <Trans>Recommended for</Trans>
+              </p>
+              <ul className="flex flex-col gap-2">
+                {preset.recommendedFor.map((item) => (
+                  <li key={i18n._(item)} className="flex items-start gap-2">
+                    <BookOpen className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" />
+                    <span className="text-xs text-foreground leading-[18px]">
+                      {i18n._(item)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="mx-5 border-t border-border" />
+
+            <div className="px-5 py-4 flex flex-col gap-3 flex-1">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                  <Trans>Example Books</Trans>
+                </p>
+                <p className="text-xs text-muted-foreground leading-[18px]">
+                  <Trans>
+                    Real books processed with this preset — before and after.
+                  </Trans>
+                </p>
+              </div>
+              <div className="flex flex-col gap-2">
+                {preset.exampleBooks.map((book) => (
+                  <BookItem
+                    key={i18n._(book.title)}
+                    book={book}
+                    selected={selectedBook === book}
+                    onSelect={() => {
+                      setSelectedBook(book)
+                      setActiveTab("pdf")
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex-1 flex flex-col min-w-0">
+            <Tabs
+              value={activeTab}
+              onValueChange={(value) => setActiveTab(value as EmbedTab)}
+              className="flex flex-1 flex-col min-h-0"
+            >
+              <TabsList className="h-auto w-full justify-start rounded-none bg-transparent p-0 border-b border-border shrink-0">
+                <TabsTrigger
+                  value="pdf"
+                  className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-muted-foreground shadow-none data-[state=active]:border-brand-600 data-[state=active]:bg-transparent data-[state=active]:text-brand-600 data-[state=active]:shadow-none"
+                >
+                  <Trans>Original PDF</Trans>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="adt"
+                  className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-muted-foreground shadow-none data-[state=active]:border-brand-600 data-[state=active]:bg-transparent data-[state=active]:text-brand-600 data-[state=active]:shadow-none"
+                >
+                  <Trans>ADT Book</Trans>
+                </TabsTrigger>
+              </TabsList>
+
+              <div className="flex-1 overflow-hidden">
+                {embedUrl ? (
+                  activeTab === "adt" ? (
+                    <div className="w-full h-full p-4 bg-muted">
+                      <iframe
+                        key={embedUrl}
+                        src={embedUrl}
+                        title={t`ADT Book - ${i18n._(selectedBook.title)}`}
+                        className="w-full h-full border-0 rounded-md bg-white"
+                      />
+                    </div>
+                  ) : (
+                    <PdfCanvasPreview
+                      src={selectedBook.pdfUrl}
+                      title={t`Original PDF - ${i18n._(selectedBook.title)}`}
+                    />
+                  )
+                ) : (
+                  <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                    <Trans>No preview available.</Trans>
+                  </div>
+                )}
+              </div>
+            </Tabs>
+          </div>
+
+          <DialogPrimitive.Close
+            className="absolute right-3 top-3 rounded-sm p-1 text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
+            aria-label={t`Close`}
+          >
+            <X className="h-4 w-4" />
+          </DialogPrimitive.Close>
+        </DialogPrimitive.Content>
+      </DialogPortal>
+    </Dialog>
+  )
+}

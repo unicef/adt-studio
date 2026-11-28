@@ -38,6 +38,7 @@ export function StepperInput({
   className,
   wrapperClassName,
   onBlur,
+  onKeyDown,
   ...input
 }: StepperInputProps) {
   const [draft, setDraft] = useState<string | null>(null)
@@ -95,6 +96,11 @@ export function StepperInput({
         onBlur={(e) => {
           setDraft(null)
           onBlur?.(e)
+        }}
+        onKeyDown={(e) => {
+          // Enter settles the number as blur does: the field shows the value it was clamped to.
+          if (e.key === "Enter") setDraft(null)
+          onKeyDown?.(e)
         }}
         className={cn(
           "h-full w-full min-w-0 border-0 bg-transparent px-1 text-center text-sm tabular-nums outline-none placeholder:text-muted-foreground",

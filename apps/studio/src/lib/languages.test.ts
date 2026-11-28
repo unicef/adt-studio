@@ -3,6 +3,7 @@ import {
   findLanguage,
   getCountriesForLanguage,
   getDisplayName,
+  matchesSearch,
   normalizeLocale,
 } from "./languages"
 
@@ -67,5 +68,13 @@ describe("languages", () => {
   it("normalizes Urdu locale casing", () => {
     expect(normalizeLocale("ur_pk")).toBe("ur-PK")
     expect(normalizeLocale("UR")).toBe("ur")
+  })
+
+  it("finds an entry when any of its names contains the search, ignoring case", () => {
+    expect(matchesSearch("", ["Spanish"])).toBe(true)
+    expect(matchesSearch("span", ["Spanish", "es"])).toBe(true)
+    expect(matchesSearch("ES", ["Spanish", "es"])).toBe(true)
+    expect(matchesSearch("espa", ["Spanish", "Español"], "pt-BR")).toBe(true)
+    expect(matchesSearch("fr", ["Spanish", "es"])).toBe(false)
   })
 })

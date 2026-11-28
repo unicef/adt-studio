@@ -822,3 +822,28 @@ export * from "./history-recovery.js"
 export { PackageOwnershipReceipt, DerivedWebpubFiles } from "./package-ownership.js"
 
 export { type TextDirection, getTextDirection } from "./text-direction.js"
+
+export {
+  SetupBookFactId,
+  SetupSettingId,
+  SetupSettings,
+  SetupSettingPick,
+  SetupDecided,
+  SetupFact,
+  SetupPageRange,
+  SetupQuestionAnswer,
+  SetupReadings,
+  SetupRecommendation,
+  setupFactsKey,
+  SETUP_FACT_OPTIONS,
+  SetupFactValue,
+  SETUP_PAGE_TYPES,
+  type SetupPageType,
+  SETUP_TEXT_PLACEMENTS,
+  type SetupTextPlacement,
+  SETUP_RULE_IDS,
+  SetupRuleId,
+  SETUP_RECOMMENDATION_ERROR_CODES,
+  type SetupRecommendationErrorCode,
+  SetupRecommendationWarning,
+} from "./setup-recommendation.js"

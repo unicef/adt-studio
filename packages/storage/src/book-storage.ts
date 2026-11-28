@@ -14,6 +14,7 @@ import { historyBookId, insertNodeVersion, checkpointBeforeRetirement, readIdent
 import { parseHistoricalPayload } from "./history-integrity.js"
 import { assertHistoryEvidence } from "./history-schema.js"
 import { invalidateSectioningLifecycle } from "./sectioning-transition.js"
+import { setupNoteImageHashes } from "./setup-notes.js"
 
 const storageDirectories = new WeakMap<Storage, string>()
 
@@ -97,7 +98,9 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     clearExtractedData(): void {
       transaction(() => checkpointBeforeRetirement(db))
       clearImageFiles(paths.imagesDir)
-      clearImageFiles(paths.debugImagesDir)
+      // The assistant's page images stay with its LLM log rows, which Extract keeps too.
+      const setupImages = setupNoteImageHashes(db)
+      clearImageFiles(paths.debugImagesDir, (file) => setupImages.has(path.basename(file, ".png")))
       clearExtractedRows(db)
     },
 
@@ -681,9 +684,10 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
   return storage
 }
 
-function clearImageFiles(imagesDir: string): void {
+function clearImageFiles(imagesDir: string, keep?: (file: string) => boolean): void {
   const imageFiles = fs.readdirSync(imagesDir)
   for (const file of imageFiles) {
+    if (keep?.(file)) continue
     fs.rmSync(path.join(imagesDir, file), {
       recursive: true,
       force: true,
