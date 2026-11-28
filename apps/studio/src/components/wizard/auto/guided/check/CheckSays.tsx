@@ -13,13 +13,13 @@ import { ASK_WHY, KIND_SAYS } from "../shared/words"
 import { LARGE_BOOK, screenFacts, type ScreenId } from "./screens"
 import { useBookLanguage } from "./screens/LanguageScreen"
 
+type Props = { rec: SetupRecommendation; derived: Derived; screen: ScreenId; file: File | null | undefined; pageCount: number }
+
 /**
  * The assistant's one line about the decision on screen: what it found and why (the rulebook's
  * reason), or why it asks. The first screen opens with the kind of book it found. On Pages it
  * suggests a few pages for a big book.
  */
-type Props = { rec: SetupRecommendation; derived: Derived; screen: ScreenId; file: File | null | undefined; pageCount: number }
-
 export function CheckSays(props: Props) {
   return (
     <>
