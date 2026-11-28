@@ -74,10 +74,11 @@ export function LanguageScreen({ rec }: { rec: SetupRecommendation }) {
       label={<Trans>Language of the book</Trans>}
       title={shown ? nameOf(shown, true) : <Trans>The book&apos;s own language</Trans>}
       hint={
+        // The badge already says "Your pick": the line says what the pick does.
         changed ? (
-          <Trans>Your pick. The text is translated into it.</Trans>
+          <Trans>The text is translated into it.</Trans>
         ) : variety ? (
-          <Trans>Your pick.</Trans>
+          <Trans>The same language, so nothing is translated.</Trans>
         ) : !found ? (
           <Trans>I couldn&apos;t tell from the PDF. It&apos;s found when the pages are read.</Trans>
         ) : source === "ai" ? (
