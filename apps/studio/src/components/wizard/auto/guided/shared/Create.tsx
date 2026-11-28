@@ -17,7 +17,7 @@ export function CreateFailed({ run, current, onRetry, onRename }: { run: CreateR
       <p>
         {taken ? (
           <Trans>
-            <strong className="font-semibold">Another book is already called {run.name}.</strong> <span className="text-muted-foreground">Choose a new name above and set it up again.</span>
+            <strong className="font-semibold">Another book is already called {run.name}.</strong> <span className="text-muted-foreground">Choose a new name and set it up again.</span>
           </Trans>
         ) : (
           <Trans>

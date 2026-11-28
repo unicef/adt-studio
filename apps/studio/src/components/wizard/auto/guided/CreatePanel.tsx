@@ -11,13 +11,22 @@ export function CreateSays({ run, onRetry, onRename }: { run: CreateRun; onRetry
   if (run.status === "done")
     return (
       <p>
+        {/* Why the conversion did or didn't start: it starts here unless the book is split or no AI provider is set up. */}
         {run.extract && !run.warning ? (
           <Trans>
             <strong className="font-semibold">Done.</strong> “{name}” is set up. I&apos;ve started making its first pages; open the book to follow along.
           </Trans>
+        ) : run.warning ? (
+          <Trans>
+            <strong className="font-semibold">Done.</strong> “{name}” is set up, but I couldn&apos;t start the conversion. Start it from the book page.
+          </Trans>
+        ) : run.split ? (
+          <Trans>
+            <strong className="font-semibold">Done.</strong> “{name}” is set up and split into parts. Open it to share the parts; each person converts their own pages.
+          </Trans>
         ) : (
           <Trans>
-            <strong className="font-semibold">Done.</strong> “{name}” is set up. Start the conversion from the book page.
+            <strong className="font-semibold">Done.</strong> “{name}” is set up. Set up an AI provider in Settings, then start the conversion from the book page.
           </Trans>
         )}
       </p>

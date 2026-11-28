@@ -6,6 +6,7 @@ import { useLanguageName } from "../shared/languageName"
 import type { SetupRecommendation } from "@adt/types"
 import { RULE_WHY, SETTING_VALUE } from "../../engine/words"
 import { useWizardForm } from "../../../core/wizardForm"
+import { useBookCreation } from "../../../core/useBookCreation"
 import type { Derived } from "../shared/useAnswers"
 import { Chip } from "../shared/bubbles"
 import { ASK_WHY, KIND_SAYS } from "../shared/words"
@@ -131,11 +132,29 @@ function Says({ rec, derived, screen, file, pageCount }: Props) {
     const rule = facts.includes("exercises") ? derived.fromAnswers.activitiesGenerator?.rule : derived.fromAnswers.figureExtraction?.rule
     return <p>{ask ? i18n._(ask) : why(rule)}</p>
   }
+  return <NameSays />
+}
+
+/** Name and set up: what happens after (the conversion starts here unless the book is split or no AI provider is set up). */
+function NameSays() {
+  const form = useWizardForm()
+  const values = useStore(form.store, (s) => s.values)
+  const { willExtract } = useBookCreation()
   return (
     <p>
-      <Trans>
-        <strong className="font-semibold">That&apos;s the setup.</strong> Give the book a name and I&apos;ll set it up; the conversion starts after that.
-      </Trans>
+      {willExtract(values) ? (
+        <Trans>
+          <strong className="font-semibold">That&apos;s the setup.</strong> Give the book a name and I&apos;ll set it up; the conversion starts after that.
+        </Trans>
+      ) : values.scope === "split" ? (
+        <Trans>
+          <strong className="font-semibold">That&apos;s the setup.</strong> Give the book a name and I&apos;ll set it up; with Split, each person converts their own pages.
+        </Trans>
+      ) : (
+        <Trans>
+          <strong className="font-semibold">That&apos;s the setup.</strong> Give the book a name and I&apos;ll set it up; you start the conversion from the book page once an AI provider is set up.
+        </Trans>
+      )}
     </p>
   )
 }
