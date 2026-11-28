@@ -18,17 +18,21 @@ import {
  * The type choice for one page, as a filterable single-select list (Primer's
  * SelectPanel, Carbon's radio group): "Not an activity" on its own, types that
  * fit the controls found, then every type, each with what the learner does.
- * Suggestions are marked by their group, never preselected.
+ * Suggestions are marked by their group, never preselected. A page whose type
+ * is accepted but fails its checks offers "Keep {type}" first, also not
+ * preselected: a person confirms it (#1155).
  */
 export function ActivityTypePanel({
   item,
   options,
+  keepType,
   value,
   hasSelection,
   onChange,
 }: {
   item: ActivityReviewItem
   options: string[]
+  keepType?: string
   value: string | null | undefined
   hasSelection: boolean
   onChange: (value: string | null) => void
@@ -45,8 +49,8 @@ export function ActivityTypePanel({
   const matches = (label: string, description: string) => !needle
     || label.toLocaleLowerCase().includes(needle)
     || description.toLocaleLowerCase().includes(needle)
-  const suggested = suggestedTypesFor(item.controls).filter((type) => options.includes(type))
-  const others = options.filter((type) => !suggested.includes(type))
+  const suggested = suggestedTypesFor(item.controls).filter((type) => options.includes(type) && type !== keepType)
+  const others = options.filter((type) => !suggested.includes(type) && type !== keepType)
   const notActivityLabel = t`Not an activity`
   const notActivityText = t`Keep it as reading content. Its controls stay as they are.`
 
@@ -68,6 +72,13 @@ export function ActivityTypePanel({
     </div>
   )
 
+  const keepLabel = keepType ? t`Keep ${typeLabel(keepType)}` : ""
+  const keepText = t`Import it with this type. The accessibility problems stay as they are.`
+  // The type itself is filtered out of the lists below, so match its own
+  // label and description here too.
+  const keep = keepType && (matches(keepLabel, keepText) || matches(typeLabel(keepType), typeDescription(keepType)))
+    ? [option(keepType, keepLabel, keepText)]
+    : []
   const notActivity = matches(notActivityLabel, notActivityText) ? [option(null, notActivityLabel, notActivityText)] : []
   const suggestedOptions = suggested
     .filter((type) => matches(typeLabel(type), typeDescription(type)))
@@ -75,7 +86,7 @@ export function ActivityTypePanel({
   const otherOptions = others
     .filter((type) => matches(typeLabel(type), typeDescription(type)))
     .map((type) => option(type, typeLabel(type), typeDescription(type)))
-  const empty = notActivity.length + suggestedOptions.length + otherOptions.length === 0
+  const empty = keep.length + notActivity.length + suggestedOptions.length + otherOptions.length === 0
 
   return (
     <div className="flex min-h-0 flex-col">
@@ -94,6 +105,7 @@ export function ActivityTypePanel({
         </label>
       </div>
       <div role="radiogroup" aria-label={t`Activity type for ${item.href}`} className="min-h-0 flex-1 overflow-y-auto py-1">
+        {group(<Trans>Current type</Trans>, keep)}
         {group(<Trans>Not an activity</Trans>, notActivity)}
         {group(<Trans>Suggested for {controlsLabel(item.controls)}</Trans>, suggestedOptions)}
         {group(suggested.length > 0 ? <Trans>All types</Trans> : <Trans>Activity types</Trans>, otherOptions)}

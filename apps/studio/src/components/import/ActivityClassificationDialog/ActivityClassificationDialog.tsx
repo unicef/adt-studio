@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { ArrowLeft, ArrowRight, Check, Puzzle } from "lucide-react"
-import { Trans, useLingui } from "@lingui/react/macro"
+import { Plural, Trans, useLingui } from "@lingui/react/macro"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils"
 
 import { ActivityTypePanel } from "./ActivityTypePanel"
 import {
+  activityReviewKind,
+  failsOnlyChecks,
   hasDecision,
   pageName,
   useActivityReasonLabel,
@@ -30,6 +32,13 @@ const CONTROL_OUTLINE = "<style>input:not([type=hidden]),button,select,textarea,
 
 function withControlsOutlined(html: string): string {
   return /<\/head>/i.test(html) ? html.replace(/<\/head>/i, `${CONTROL_OUTLINE}</head>`) : CONTROL_OUTLINE + html
+}
+
+/** The type a page whose checks failed already has. The server's suggestion is
+ * the markup's type spelled as the import accepts it: a raw
+ * `activity_custom-drag` would make the import fail. */
+function keepType(item: ActivityReview["items"][number]): string {
+  return item.suggestedType
 }
 
 export function ActivityClassificationDialog({
@@ -53,6 +62,7 @@ export function ActivityClassificationDialog({
     () => review.items.filter((item) => item.status === "needs-review"),
     [review.items],
   )
+  const kind = activityReviewKind(review.items)
   const [activeSectionId, setActiveSectionId] = useState(items[0]?.sectionId ?? "")
 
   useEffect(() => {
@@ -88,9 +98,15 @@ export function ActivityClassificationDialog({
               <Puzzle className="size-4" />
             </span>
             <div>
-              <DialogTitle className="text-base"><Trans>Choose activity types</Trans></DialogTitle>
+              <DialogTitle className="text-base">
+                {kind === "checks" ? <Trans>Confirm activity pages</Trans> : kind === "mixed" ? <Trans>Review activity pages</Trans> : <Trans>Choose activity types</Trans>}
+              </DialogTitle>
               <DialogDescription className="mt-1 text-xs">
-                <Trans>These pages have controls a learner can use. Tell ADT Studio what each one is.</Trans>
+                {kind === "checks"
+                  ? <Trans>Their activity type is accepted, but they fail accessibility checks for it. Keep each type, or choose another.</Trans>
+                  : kind === "mixed"
+                    ? <Trans>Some pages need an activity type, and others fail accessibility checks for theirs. Tell ADT Studio what each one is.</Trans>
+                    : <Trans>These pages have controls a learner can use. Tell ADT Studio what each one is.</Trans>}
               </DialogDescription>
             </div>
           </div>
@@ -156,7 +172,11 @@ export function ActivityClassificationDialog({
                             ? decisions[item.sectionId] === null
                               ? t`Not an activity`
                               : activityTypeLabel(decisions[item.sectionId] ?? item.suggestedType)
-                            : t`Has ${controlsLabel(item.controls)}`}
+                            : failsOnlyChecks(item)
+                              ? <Plural value={item.validationErrors.length} one="# problem found" other="# problems found" />
+                              : item.controls?.length
+                                ? t`Has ${controlsLabel(item.controls)}`
+                                : reasonLabel(item.reasons[0])}
                         </span>
                       </span>
                     </Button>
@@ -193,11 +213,19 @@ export function ActivityClassificationDialog({
                   )}
                 </div>
                 <p className="shrink-0 border-t border-border px-5 py-2.5 text-xs text-muted-foreground">
-                  {/* Say why this page needs a type; "no activity type" is only
-                      true for controls found without a marker. */}
-                  {activeItem.reasons.length === 0 || activeItem.reasons.includes("interactive-unmarked")
-                    ? <Trans>Outlined: {controlsLabel(activeItem.controls)} found on this page, with no activity type.</Trans>
-                    : <>{reasonLabel(activeItem.reasons[0])} <Trans>Outlined: {controlsLabel(activeItem.controls)} found on this page.</Trans></>}
+                  {/* Say why this page is here; "no activity type" is only true
+                      for controls found without a marker, and a page whose type
+                      is accepted only failed its checks (#1155). */}
+                  {failsOnlyChecks(activeItem)
+                    ? <>
+                        <Trans>Its type, {activityTypeLabel(keepType(activeItem))}, is accepted, but <Plural value={activeItem.validationErrors.length} one="# accessibility problem was found" other="# accessibility problems were found" /> for it. Keeping the type imports the page as it is.</Trans>
+                        {activeItem.controls?.length ? <> <Trans>Outlined: {controlsLabel(activeItem.controls)} found on this page.</Trans></> : null}
+                      </>
+                    : activeItem.reasons.length === 0 || activeItem.reasons.includes("interactive-unmarked")
+                      ? <Trans>Outlined: {controlsLabel(activeItem.controls)} found on this page, with no activity type.</Trans>
+                      : activeItem.controls?.length
+                        ? <>{reasonLabel(activeItem.reasons[0])} <Trans>Outlined: {controlsLabel(activeItem.controls)} found on this page.</Trans></>
+                        : reasonLabel(activeItem.reasons[0])}
                 </p>
               </section>
               <aside className="flex w-[22rem] shrink-0 flex-col border-l border-border bg-background">
@@ -205,6 +233,7 @@ export function ActivityClassificationDialog({
                   key={activeItem.sectionId}
                   item={activeItem}
                   options={options}
+                  keepType={failsOnlyChecks(activeItem) ? keepType(activeItem) : undefined}
                   hasSelection={activeItemHasDecision}
                   value={activeItemHasDecision ? decisions[activeItem.sectionId] : undefined}
                   onChange={(value) => onDecision(activeItem.sectionId, value)}

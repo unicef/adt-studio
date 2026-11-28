@@ -18,6 +18,7 @@ import {
 import type { AnyImportPreview, AdtBundleImportPreview } from "@/api/client"
 import { isAdtBundleImportPreview, isPartImportPreview } from "@/api/client"
 import type { FriendlyError } from "@/hooks/use-archive-error"
+import { activityReviewKind } from "@/components/import/ActivityClassificationDialog/activity-labels"
 import { FEATURES, featureStatus } from "./helpers"
 
 export type Tone = "green" | "amber" | "red" | "blue"
@@ -83,6 +84,8 @@ export function useReviewModel(
   preview: AnyImportPreview,
   unresolvedActivityCount: number,
   validationError: FriendlyError | null,
+  /** Activity pages already answered in the dialog. */
+  decidedSectionIds: ReadonlySet<string>,
 ): ReviewModel {
   const { t, i18n } = useLingui()
   const locale = i18n?.locale ?? "en"
@@ -213,13 +216,14 @@ export function useReviewModel(
     const recoveredCount = recovered.length
     // Quizzes included, as in the Activities check; they all have an editor.
     const activities = (adt.activityReview?.activityCount ?? 0) + (adt.activityReview?.quizCount ?? 0)
+    const kind = activityReviewKind(adt.activityReview?.items ?? [])
     const withoutEditor = (adt.activityReview?.items ?? []).filter((item) => (
       item.suggestedType !== "activity_quiz" && !item.supportsStudioEditing
     )).length
     return [
       { title: t`Archive checked`, text: t`${plural(adt.pageCount, { one: "# page", other: "# pages" })} and ${plural(imageCount, { one: "# image", other: "# images" })} read`, state: "done", status: t`Done` },
       ...(total > 0 ? [{
-        title: t`Choose activity types`,
+        title: kind === "checks" ? t`Confirm activity pages` : kind === "mixed" ? t`Review activity pages` : t`Choose activity types`,
         text: t`Needed before import`,
         state: unresolvedActivityCount > 0 ? "todo" as const : "done" as const,
         status: unresolvedActivityCount > 0 ? t`${set} of ${total}` : t`Done`,
@@ -259,6 +263,11 @@ export function useReviewModel(
     const issueCount = countOf(() => true)
     const mode: ReviewMode = repair ? "repair" : unresolvedActivityCount > 0 ? "activity" : "ready"
     const activityTotal = (adt.activityReview?.activityCount ?? 0) + (adt.activityReview?.quizCount ?? 0)
+    // Describe only the pages still to answer, as the banner does: once one
+    // group is decided, the rest may all need a type or all need confirming.
+    const activityKind = activityReviewKind((adt.activityReview?.items ?? []).filter((item) => (
+      !decidedSectionIds.has(item.sectionId)
+    )))
     const outputs = adt.outputLanguages?.length ?? 0
     const source = languageName(adt.sourceLanguage, locale)
     const changes: Record<AdtBundleImportPreview["exportComparisonStatus"], { status: Status; value: string; state: CheckState }> = {
@@ -279,7 +288,11 @@ export function useReviewModel(
     const status: Status = repair
       ? { tone: "red", icon: TriangleAlert, title: t`${issueCount} {issueCount, plural, one {problem} other {problems}} to fix before import`, text: t`ADT Studio found the book, but these files don’t follow the editing rules. An AI assistant can fix them.` }
       : mode === "activity"
-        ? { tone: "amber", icon: Puzzle, title: t`${unresolvedActivityCount} {unresolvedActivityCount, plural, one {activity page needs} other {activity pages need}} a type`, text: t`Choose how ADT Studio should treat them after import, or let your AI assistant classify them.` }
+        ? activityKind === "checks"
+          ? { tone: "amber", icon: Puzzle, title: t`${unresolvedActivityCount} {unresolvedActivityCount, plural, one {activity page fails} other {activity pages fail}} accessibility checks`, text: t`Their activity type is accepted. Confirm each page to import it as it is, or choose another type.` }
+          : activityKind === "mixed"
+            ? { tone: "amber", icon: Puzzle, title: t`${unresolvedActivityCount} activity {unresolvedActivityCount, plural, one {page needs} other {pages need}} review`, text: t`Some need an activity type, and others fail accessibility checks for theirs. Review them before import.` }
+            : { tone: "amber", icon: Puzzle, title: t`${unresolvedActivityCount} {unresolvedActivityCount, plural, one {activity page needs} other {activity pages need}} a type`, text: t`Choose how ADT Studio should treat them after import, or let your AI assistant classify them.` }
         : change.status
     return {
       mode,
@@ -314,7 +327,11 @@ export function useReviewModel(
           // "Nothing to classify" alone read the same for a book whose
           // activities were all recognized and for one with none at all.
           value: unresolvedActivityCount > 0
-            ? t`${unresolvedActivityCount} {unresolvedActivityCount, plural, one {needs} other {need}} a type`
+            ? activityKind === "checks"
+              ? t`${unresolvedActivityCount} to confirm`
+              : activityKind === "mixed"
+                ? t`${unresolvedActivityCount} to review`
+                : t`${unresolvedActivityCount} {unresolvedActivityCount, plural, one {needs} other {need}} a type`
             : activityTotal > 0 ? t`${activityTotal} found, none to classify` : t`None found`,
           state: unresolvedActivityCount > 0 ? "warn" : "ok",
         },
