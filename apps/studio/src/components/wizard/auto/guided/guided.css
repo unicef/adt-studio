@@ -119,6 +119,12 @@
    rides along inside the page's snapshot (where it would sit at the wrong place). */
 .gd-bar { view-transition-name: gd-bar; }
 
+/* A step that doesn't fit even with its pictures at their smallest (Guided.tsx useSqueeze): the
+   lines that are also in the card's hover and in Explain the options give way, and a pick's long
+   name takes a smaller size. */
+[data-gd-tight] .gd-optional { display: none !important; }
+@media (min-width: 1024px) { [data-gd-tight] .gd-pick-title { font-size: 26px; } }
+
 /* Between Check screens: the new screen slides in from the side the flow went (data-dir), and in
    the fixed bottom bar only the parts that change move: the title and count, the button label,
    Back, and the progress segments filling. The bar itself never moves. */

@@ -65,7 +65,7 @@ export function SurePick({ picture, pictureKey, label, title, hint, result, afte
             </span>
           )}
           <span className="flex flex-wrap items-center gap-2" style={{ viewTransitionName: swapName(`${labelId}-title`, typeof title === "string" ? title : ""), viewTransitionClass: "gd-swap gd-swap-start" } as CSSProperties}>
-            <span className="text-[26px] font-semibold leading-tight tracking-[-0.02em] lg:text-[32px]">{title}</span>
+            <span className="gd-pick-title text-[26px] font-semibold leading-tight tracking-[-0.02em] lg:text-[32px]">{title}</span>
             {(badge || changed) && <PickBadge changed={changed} />}
           </span>
           {hint && <span className="text-[15.5px] leading-snug text-muted-foreground lg:text-[16.5px]">{hint}</span>}

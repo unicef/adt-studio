@@ -110,7 +110,7 @@ function AtAGlance({ strategy }: { strategy: string }) {
       {at && (
         <>
           {/* On a short window the books it suits (and, shorter still, how it reads on a phone) give way: they're in each card's hover and in Explain the options. */}
-          <span className="flex items-start gap-2 [@media(max-height:820px)]:hidden">
+          <span className="gd-optional flex items-start gap-2 [@media(max-height:820px)]:hidden">
             <ThumbsUp aria-hidden className="mt-[3px] size-4 shrink-0 text-brand-500" />
             <span>
               <span className="font-medium">
@@ -119,7 +119,7 @@ function AtAGlance({ strategy }: { strategy: string }) {
               <span className="text-muted-foreground">{i18n._(at.best)}</span>
             </span>
           </span>
-          <span className="flex items-start gap-2 [@media(max-height:780px)]:hidden">
+          <span className="gd-optional flex items-start gap-2 [@media(max-height:780px)]:hidden">
             <Smartphone aria-hidden className="mt-[3px] size-4 shrink-0 text-brand-500" />
             <span>
               <span className="font-medium">
@@ -128,7 +128,7 @@ function AtAGlance({ strategy }: { strategy: string }) {
               <span className="text-muted-foreground">{i18n._(at.phone)}</span>
             </span>
           </span>
-          <span className="flex items-start gap-2">
+          <span className="gd-optional flex items-start gap-2">
             <TriangleAlert aria-hidden className="mt-[3px] size-4 shrink-0 text-amber-500" />
             <span>
               <span className="font-medium">

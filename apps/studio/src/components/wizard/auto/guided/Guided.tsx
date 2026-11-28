@@ -295,6 +295,8 @@ function useWide(): boolean {
  * pictures give up the difference (--gd-squeeze, in page units), down to each one's smallest size.
  * Measured from no squeeze every time, so a shorter step gets its pictures back.
  */
+const TIGHT = "data-gd-tight"
+
 function useSqueeze(scroller: RefObject<HTMLElement | null>, page: RefObject<HTMLElement | null>, scale: number) {
   useLayoutEffect(() => {
     const sc = scroller.current
@@ -309,26 +311,37 @@ function useSqueeze(scroller: RefObject<HTMLElement | null>, page: RefObject<HTM
       // eslint-disable-next-line lingui/no-unlocalized-strings -- a CSS variable
       const now = parseFloat(el.style.getPropertyValue("--gd-squeeze")) || 0
       if (slack >= -1 && (slack < 24 || now === 0)) return
-      let q = 0
-      el.style.setProperty("--gd-squeeze", "0px")
       const set = (v: number) => el.style.setProperty("--gd-squeeze", `${v}px`)
       const fits = () => sc.scrollHeight - sc.clientHeight <= 1
-      for (let i = 0; i < 3 && !fits(); i++) {
-        q = Math.min(400, q + (sc.scrollHeight - sc.clientHeight) / scale)
-        set(Math.ceil(q))
+      /** The least squeeze that fits; false when even the smallest pictures don't. */
+      const search = (): boolean => {
+        let q = 0
+        set(0)
+        for (let i = 0; i < 3 && !fits(); i++) {
+          q = Math.min(400, q + (sc.scrollHeight - sc.clientHeight) / scale)
+          set(Math.ceil(q))
+        }
+        if (q === 0) return true
+        if (!fits()) return false
+        // Several pictures may give up the same squeeze, so it can overshoot: find the least that fits.
+        let lo = 0
+        let hi = Math.ceil(q)
+        while (hi - lo > 4) {
+          const mid = Math.round((lo + hi) / 2)
+          set(mid)
+          if (fits()) hi = mid
+          else lo = mid
+        }
+        set(hi)
+        return true
       }
-      if (q === 0) return
-      // Several pictures may give up the same squeeze, so it can overshoot: find the least that fits.
-      let lo = 0
-      let hi = Math.ceil(q)
-      if (!fits()) return
-      while (hi - lo > 4) {
-        const mid = Math.round((lo + hi) / 2)
-        set(mid)
-        if (fits()) hi = mid
-        else lo = mid
+      // Pictures first; when that isn't enough (a long pick's words), the extra lines that are also
+      // in each card's hover and in Explain the options give way too (guided.css, .gd-optional).
+      el.removeAttribute(TIGHT)
+      if (!search()) {
+        el.setAttribute(TIGHT, "")
+        search()
       }
-      set(hi)
     }
     // Sizes change on every frame while something grows or shrinks (a panel morphing): an overflow
     // is fixed at once (no scrollbar), anything else waits until it settles.

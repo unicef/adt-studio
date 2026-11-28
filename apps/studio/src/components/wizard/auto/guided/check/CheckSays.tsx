@@ -117,9 +117,8 @@ function Says({ rec, derived, screen, file, pageCount }: Props) {
       return (
         <p>
           <Trans>
-            <strong className="font-semibold">Your pick: {name}.</strong>
-          </Trans>{" "}
-          {i18n._(layout.means)}
+            <strong className="font-semibold">Your pick: {name}.</strong> I&apos;ll make every page this way.
+          </Trans>
         </p>
       )
     }
