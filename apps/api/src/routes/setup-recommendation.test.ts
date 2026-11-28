@@ -254,13 +254,18 @@ describe("saving the recommendation with the book", () => {
     it("extracts, keeping the notes, their LLM log and their images", async () => {
       const { bookDir, storage, options } = await bookWithNotes("noted")
       try {
+        // What an Extract run clears first: the notes' images stay, named by their kept log rows.
+        storage.clearExtractedData()
         expect(await extractPDF(options, storage, { emit() {} })).toBe("extracted")
       } finally {
         storage.close()
       }
       expect(readExtractionManifest(bookDir)?.status).toBe("complete")
       expect(fs.existsSync(path.join(bookDir, "setup-recommendation.json"))).toBe(true)
-      expect(fs.readdirSync(path.join(bookDir, ".debug-images"))).toHaveLength(1)
+      const [image] = fs.readdirSync(path.join(bookDir, ".debug-images"))
+      expect(image).toMatch(/^[0-9a-f]{16}\.png$/)
+      const res = await app.request(`/books/noted/debug/llm-image/${image!.slice(0, 16)}`)
+      expect(res.status).toBe(200)
     })
 
     it("still refuses an image the setup notes' AI calls don't name", async () => {

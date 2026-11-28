@@ -6,6 +6,7 @@ import { openCoordinatedDatabase } from "./database-admission.js"
 import { BookRecoveryCopyAudit, BookFontRegistry, FONT_REGISTRY_NODE, FONT_REGISTRY_ITEM_ID, ExtractionManifest, PROJECT_IDENTITY_FILE, ProjectIdentity, type ExtractionInputs } from "@adt/types"
 import { assertBookWriter, BookBusyError, isBookWriterArtifact } from "./book-writer.js"
 import { ExtractionAdmissionError } from "./extraction-error.js"
+import { SETUP_RECOMMENDATION_FILE, SETUP_RECOMMENDER_LOG_STEP, setupNoteImageHashes } from "./setup-notes.js"
 import { isConfigRecoveryEvidence, readSectioningLifecycle, SECTIONING_LIFECYCLE } from "./sectioning-transition.js"
 
 export const EXTRACTION_MANIFEST_FILE = "extraction.json"
@@ -93,14 +94,6 @@ function isInitialRecoveryEvidence(bookDir: string, name: string): boolean {
   } catch { return false }
 }
 
-/**
- * The Add Book assistant's notes on a new book (#333): the recommendation it made from this PDF,
- * its AI calls in the LLM log (step `setup-recommender`), and the page images those calls were
- * sent, in `.debug-images`. They describe how the book was set up, like its configuration; they
- * are not extraction output, and the LLM log is kept across a re-extraction anyway.
- */
-export const SETUP_RECOMMENDATION_FILE = "setup-recommendation.json"
-export const SETUP_RECOMMENDER_LOG_STEP = "setup-recommender"
 const DEBUG_IMAGE_NAME = /^([0-9a-f]{16})\.png$/
 
 function assertInitialDestination(bookDir: string, sourceHash: string): void {
@@ -184,11 +177,7 @@ function assertInitialDestination(bookDir: string, sourceHash: string): void {
         if (name === "llm_log" && setupNotes) {
           // Only the setup notes' own AI calls, and every image left in .debug-images named by one of them.
           if (db.get("SELECT 1 FROM llm_log WHERE step IS NOT ? LIMIT 1", [SETUP_RECOMMENDER_LOG_STEP])) throw new ExtractionAdmissionError("EXTRACTION_LEGACY")
-          const named = new Set<string>()
-          for (const row of db.all("SELECT data FROM llm_log", []) as Array<{ data: string }>) {
-            const entry = JSON.parse(row.data) as { messages?: Array<{ content?: Array<{ type?: string; hash?: unknown }> }> }
-            for (const message of entry.messages ?? []) for (const part of message.content ?? []) if (part.type === "image" && typeof part.hash === "string") named.add(part.hash)
-          }
+          const named = setupNoteImageHashes(db)
           if ([...debugImages].some((hash) => !named.has(hash))) throw new ExtractionAdmissionError("EXTRACTION_LEGACY")
           debugImages.clear()
           continue
