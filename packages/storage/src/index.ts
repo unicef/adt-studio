@@ -19,7 +19,7 @@ export { bookAssetExists } from "./immutable-assets.js"
 export { retainInvalidBookConfig, atomicBookFile, configHash, readConfigText, readSectioningLifecycle, writeSectioningLifecycle, invalidateSectioningLifecycle, recoverSectioningTransition, publishSectioningTransition, SECTIONING_JOURNAL, SECTIONING_LIFECYCLE } from "./sectioning-transition.js"
 
 export { ExtractionAdmissionError } from "./extraction-error.js"
-export { EXTRACTION_MANIFEST_FILE, extractionHash, readExtractionManifest, writeExtractionManifest, hashExtractionAsset, flushExtractionAsset, syncDirectory, inspectExtractionDestination, verifyExtractionInventory, assertExtractionReadable } from "./extraction-manifest.js"
+export { EXTRACTION_MANIFEST_FILE, extractionHash, readExtractionManifest, writeExtractionManifest, hashExtractionAsset, flushExtractionAsset, syncDirectory, inspectExtractionDestination, verifyExtractionInventory, assertExtractionReadable, SETUP_RECOMMENDATION_FILE, SETUP_RECOMMENDER_LOG_STEP } from "./extraction-manifest.js"
 export { getStorageBookDir } from "./book-storage.js"
 
 export { insertNodeVersion, readIdentityHistory, importHistoryReservations, historyBookId } from "./history-evidence.js"

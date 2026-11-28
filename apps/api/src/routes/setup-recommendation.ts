@@ -26,7 +26,7 @@ import { z } from "zod"
 import { AiProviderError, createLLMModel, createPromptEngine, createRateLimiter, formatProviderError, type LlmLogEntry } from "@adt/llm"
 import { profileBookAsync, renderBookPagesAsync } from "@adt/pdf"
 import { createSemaphore, loadConfig, recommendSetup } from "@adt/pipeline"
-import { createBookStorage } from "@adt/storage"
+import { createBookStorage, SETUP_RECOMMENDATION_FILE } from "@adt/storage"
 import { DEFAULT_LLM_MODEL_ID, type SetupRecommendation, type SetupRecommendationErrorCode } from "@adt/types"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
 
@@ -134,7 +134,7 @@ export function attachSetupRecommendation(
     storage.close()
   }
   fs.writeFileSync(
-    path.join(path.resolve(book.booksDir), book.label, "setup-recommendation.json"),
+    path.join(path.resolve(book.booksDir), book.label, SETUP_RECOMMENDATION_FILE),
     JSON.stringify({ recommendation: h.recommendation, appliedConfig: applied.config ?? null }, null, 2),
   )
   held.delete(id)

@@ -3,9 +3,9 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { Hono } from "hono"
-import type { RecommendSetupOptions } from "@adt/pipeline"
+import { extractPDF, prepareExtractionAdmission, type RecommendSetupOptions } from "@adt/pipeline"
 import { AiProviderError } from "@adt/llm"
-import { openBookDb } from "@adt/storage"
+import { createBookStorage, openBookDb, readExtractionManifest, withBookWriter } from "@adt/storage"
 import { z } from "zod"
 import { errorHandler } from "../middleware/error-handler.js"
 import { createBookRoutes } from "./books.js"
@@ -230,6 +230,55 @@ describe("saving the recommendation with the book", () => {
     expect(fs.readdirSync(path.join(tmpDir, "imaged", ".debug-images"))).toEqual([`${hashes[0]}.png`])
     const res = await app.request(`/books/imaged/debug/llm-image/${hashes[0]}`)
     expect(res.status).toBe(200)
+  })
+
+  describe("a book made with the setup notes can still be extracted", () => {
+    /** A book made from a recommendation whose AI call was sent page 1's image: notes, log row and image saved. */
+    const bookWithNotes = async (label: string) => {
+      fs.writeFileSync(configPath, "structure_types: {}\nrole_types: {}\ndefault_model: nowhere:model\n")
+      recommend.impl = async (o) => {
+        const [drawn] = await o.renderPages([{ pages: [1], size: 64 }])
+        const image = Buffer.from(drawn!.get(1)!).toString("base64")
+        await o.model
+          .generateObject({ schema: z.object({}), prompt: "setup_recommender_questions", context: { page_count: 2, shown_pages: [1], pages: [{ number: 1, text: "", image }] }, log: { taskType: "setup-recommender", promptName: "setup_recommender_questions" } })
+          .catch(() => undefined)
+        return { id: o.id }
+      }
+      const pdf = blankPdf(2)
+      await createBook(label, pdf, await recommendFor(pdf))
+      const bookDir = path.join(tmpDir, label)
+      expect(fs.readdirSync(path.join(bookDir, ".debug-images"))).toHaveLength(1)
+      return { bookDir, storage: createBookStorage(label, tmpDir), options: { pdfPath: path.join(bookDir, `${label}.pdf`), startPage: 1, endPage: 2 } }
+    }
+
+    it("extracts, keeping the notes, their LLM log and their images", async () => {
+      const { bookDir, storage, options } = await bookWithNotes("noted")
+      try {
+        expect(await extractPDF(options, storage, { emit() {} })).toBe("extracted")
+      } finally {
+        storage.close()
+      }
+      expect(readExtractionManifest(bookDir)?.status).toBe("complete")
+      expect(fs.existsSync(path.join(bookDir, "setup-recommendation.json"))).toBe(true)
+      expect(fs.readdirSync(path.join(bookDir, ".debug-images"))).toHaveLength(1)
+    })
+
+    it("still refuses an image the setup notes' AI calls don't name", async () => {
+      const { bookDir, storage, options } = await bookWithNotes("stray")
+      storage.close()
+      fs.writeFileSync(path.join(bookDir, ".debug-images", "0123456789abcdef.png"), "x")
+      expect(() => withBookWriter(bookDir, () => prepareExtractionAdmission(bookDir, options))).toThrow("EXTRACTION_LEGACY")
+    })
+
+    it("still refuses LLM log rows from any other step", async () => {
+      const { bookDir, storage, options } = await bookWithNotes("other-step")
+      try {
+        storage.appendLlmLog({ requestId: "r", timestamp: new Date().toISOString(), taskType: "image-filtering", promptName: "p", modelId: "m", cacheHit: false, success: true, errorCount: 0, attempt: 0, durationMs: 1, messages: [] } as never)
+      } finally {
+        storage.close()
+      }
+      expect(() => withBookWriter(bookDir, () => prepareExtractionAdmission(bookDir, options))).toThrow("EXTRACTION_LEGACY")
+    })
   })
 
   it("still makes the book, with a warning, when saving the recommendation into it fails", async () => {

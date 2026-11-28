@@ -93,11 +93,23 @@ function isInitialRecoveryEvidence(bookDir: string, name: string): boolean {
   } catch { return false }
 }
 
+/**
+ * The Add Book assistant's notes on a new book (#333): the recommendation it made from this PDF,
+ * its AI calls in the LLM log (step `setup-recommender`), and the page images those calls were
+ * sent, in `.debug-images`. They describe how the book was set up, like its configuration; they
+ * are not extraction output, and the LLM log is kept across a re-extraction anyway.
+ */
+export const SETUP_RECOMMENDATION_FILE = "setup-recommendation.json"
+export const SETUP_RECOMMENDER_LOG_STEP = "setup-recommender"
+const DEBUG_IMAGE_NAME = /^([0-9a-f]{16})\.png$/
+
 function assertInitialDestination(bookDir: string, sourceHash: string): void {
   const label = path.basename(bookDir)
   const allowedFiles = new Set([`${label}.pdf`, `${label}.db`, `${label}.db-wal`, `${label}.db-shm`, "config.yaml", "part.json", ".book-writer.json"])
   const emptyDirectories = new Set(["images", ".debug-images", "videos", `${label}.db.lock`, ".book-writer.json.recovery"])
   const fontFiles = new Set<string>()
+  let setupNotes = false
+  const debugImages = new Set<string>()
   for (const entry of fs.readdirSync(bookDir, { withFileTypes: true })) {
     if (entry.isSymbolicLink()) throw new ExtractionAdmissionError("EXTRACTION_LEGACY")
     if (isBookWriterArtifact(bookDir, entry.name)) continue
@@ -118,6 +130,23 @@ function assertInitialDestination(bookDir: string, sourceHash: string): void {
       } catch { throw new ExtractionAdmissionError("EXTRACTION_LEGACY") }
       continue
     }
+    if (entry.isFile() && entry.name === SETUP_RECOMMENDATION_FILE) {
+      try {
+        const notes = JSON.parse(fs.readFileSync(path.join(bookDir, entry.name), "utf8")) as unknown
+        if (typeof notes !== "object" || notes === null || typeof (notes as { recommendation?: unknown }).recommendation !== "object") throw new Error("Not setup notes")
+      } catch { throw new ExtractionAdmissionError("EXTRACTION_LEGACY") }
+      setupNotes = true
+      continue
+    }
+    // The setup notes' page images: each must be named by one of their LLM log rows (checked below).
+    if (entry.isDirectory() && entry.name === ".debug-images" && fs.readdirSync(path.join(bookDir, entry.name)).length > 0) {
+      for (const image of fs.readdirSync(path.join(bookDir, entry.name), { withFileTypes: true })) {
+        const hash = image.isFile() ? DEBUG_IMAGE_NAME.exec(image.name)?.[1] : undefined
+        if (!hash) throw new ExtractionAdmissionError("EXTRACTION_LEGACY")
+        debugImages.add(hash)
+      }
+      continue
+    }
     if (entry.isDirectory() && entry.name === "fonts") {
       // Uploaded fonts are initial configuration inputs, but the directory is
       // not a blanket exception for unknown content or symlinks. Validate its
@@ -136,8 +165,9 @@ function assertInitialDestination(bookDir: string, sourceHash: string): void {
   }
   const pdf = path.join(bookDir, `${label}.pdf`)
   if (fs.existsSync(pdf) && extractionHash(fs.readFileSync(pdf)) !== sourceHash) throw new ExtractionAdmissionError("EXTRACTION_SOURCE_CHANGED")
+  if (debugImages.size && !setupNotes) throw new ExtractionAdmissionError("EXTRACTION_LEGACY")
   if (!fs.existsSync(path.join(bookDir, `${label}.db`))) {
-    if (fontFiles.size) throw new ExtractionAdmissionError("EXTRACTION_LEGACY")
+    if (fontFiles.size || debugImages.size) throw new ExtractionAdmissionError("EXTRACTION_LEGACY")
     return
   }
   try {
@@ -151,11 +181,25 @@ function assertInitialDestination(bookDir: string, sourceHash: string): void {
       const tables = db.all("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'") as Array<{ name: string }>
       for (const { name } of tables) {
         if (name === "schema_version") continue
+        if (name === "llm_log" && setupNotes) {
+          // Only the setup notes' own AI calls, and every image left in .debug-images named by one of them.
+          if (db.get("SELECT 1 FROM llm_log WHERE step IS NOT ? LIMIT 1", [SETUP_RECOMMENDER_LOG_STEP])) throw new ExtractionAdmissionError("EXTRACTION_LEGACY")
+          const named = new Set<string>()
+          for (const row of db.all("SELECT data FROM llm_log", []) as Array<{ data: string }>) {
+            const entry = JSON.parse(row.data) as { messages?: Array<{ content?: Array<{ type?: string; hash?: unknown }> }> }
+            for (const message of entry.messages ?? []) for (const part of message.content ?? []) if (part.type === "image" && typeof part.hash === "string") named.add(part.hash)
+          }
+          if ([...debugImages].some((hash) => !named.has(hash))) throw new ExtractionAdmissionError("EXTRACTION_LEGACY")
+          debugImages.clear()
+          continue
+        }
         const query = name === "node_data" || name === "node_current"
           ? `SELECT 1 FROM ${name} WHERE node NOT IN ('metadata', 'font-registry', 'font-assignment') LIMIT 1`
           : `SELECT 1 FROM "${name.replaceAll('"', '""')}" LIMIT 1`
         if (db.get(query)) throw new ExtractionAdmissionError("EXTRACTION_LEGACY")
       }
+      // Images with no setup AI calls in the log to name them.
+      if (debugImages.size) throw new ExtractionAdmissionError("EXTRACTION_LEGACY")
     })
   } catch (error) { if (error instanceof BookBusyError) throw error; throw new ExtractionAdmissionError("EXTRACTION_LEGACY") }
 }
