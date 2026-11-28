@@ -138,6 +138,10 @@ msgstr "{0, plural, one {# página} other {# páginas}}"
 msgid "{0, plural, one {# page} other {# pages}} and {imageCount, plural, one {# image} other {# images}} read"
 msgstr "{0, plural, one {# página} other {# páginas}} y {imageCount, plural, one {# imagen} other {# imágenes}} leídas"
 
+#. placeholder {0}: hw.cores ?? 0
+msgid "{0, plural, one {# processor core} other {# processor cores}}"
+msgstr "{0, plural, one {# núcleo de procesador} other {# núcleos de procesador}}"
+
 #. placeholder {0}: thread.replyCount
 msgid "{0, plural, one {# reply} other {# replies}}"
 msgstr "{0, plural, one {# respuesta} other {# respuestas}}"
@@ -157,10 +161,6 @@ msgstr "{0, plural, one {# tarea hereda este modelo} other {# tareas heredan est
 #. placeholder {0}: reader.commentCount
 msgid "{0, plural, one {comment} other {comments}}"
 msgstr "{0, plural, one {comentario} other {comentarios}}"
-
-#. placeholder {0}: health.modelCount
-#~ msgid "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
-#~ msgstr "{0, plural, one {Conectado correctamente: # modelo disponible.} other {Conectado correctamente: # modelos disponibles.}}"
 
 #. placeholder {0}: state.days
 msgid "{0, plural, one {day} other {days}}"
@@ -279,6 +279,10 @@ msgstr "{0} hallazgos señalados en esta revisión"
 #. placeholder {0}: filtered.length
 msgid "{0} fonts"
 msgstr "{0} fuentes"
+
+#. placeholder {0}: hw.memoryGb
+msgid "{0} GB of memory"
+msgstr "{0} GB de memoria"
 
 #. placeholder {0}: state.data.issueCount
 #. placeholder {1}: state.data.checkpointable
@@ -705,9 +709,6 @@ msgstr "{providerKey, select, other {Tu clave de {name} fue rechazada}}"
 
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}}"
 msgstr "{regionCount} {regionCount, plural, one {región} other {regiones}}"
-
-#~ msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
-#~ msgstr "{regionCount} {regionCount, plural, one {región detectada} other {regiones detectadas}}"
 
 #. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
 msgid "{rejectedProviderKey, select, other {API Key Settings — the {rejectedName} key was rejected}}"
@@ -1752,9 +1753,6 @@ msgstr "Superposición por IA"
 msgid "AI provider connected. Your book can be processed now."
 msgstr "Proveedor de IA conectado. Ya se puede procesar tu libro."
 
-#~ msgid "AI provider credentials"
-#~ msgstr "Credenciales de proveedores de IA"
-
 msgid "AI providers"
 msgstr "Proveedores de IA"
 
@@ -1878,9 +1876,6 @@ msgstr "ya está allí"
 
 msgid "Also delete the sharing service and every shared book from my Cloudflare account"
 msgstr "Eliminar también el servicio para compartir y todos los libros compartidos de mi cuenta de Cloudflare"
-
-#~ msgid "Also regenerate these pages and replace their saved content"
-#~ msgstr "También regenerar estas páginas y reemplazar su contenido guardado"
 
 msgid "Also used by {readerNames} unless that provider has its own key."
 msgstr "También la usa {readerNames}, salvo que ese proveedor tenga su propia clave."
@@ -2200,6 +2195,9 @@ msgstr "Autores"
 msgid "Auto"
 msgstr "Automático"
 
+msgid "Auto is off: this computer can run full effects."
+msgstr "Automático está desactivado: este ordenador puede usar todos los efectos."
+
 msgid "Auto keeps charts, labeled images, and complex infographics together while leaving headings, callouts, and conventional tables for accessible HTML."
 msgstr "Auto mantiene juntos los gráficos, las imágenes etiquetadas y las infografías complejas, mientras deja los encabezados, los recuadros y las tablas convencionales para un HTML accesible."
 
@@ -2212,6 +2210,12 @@ msgstr "Auto recomendado"
 #. placeholder {0}: i18n._(presetLabel)
 msgid "Auto recommended for {0}"
 msgstr "Auto recomendado para {0}"
+
+msgid "Auto turned this on because your system asks for less motion."
+msgstr "Automático lo activó porque tu sistema pide menos movimiento."
+
+msgid "Auto turned this on for this computer: <0/>."
+msgstr "Automático lo activó para este ordenador: <0/>."
 
 msgid "Auto-build assessments and key-term lists."
 msgstr "Crea automáticamente evaluaciones y listas de términos clave."
@@ -2750,6 +2754,9 @@ msgstr "Cambiar y enviar"
 msgid "Change how you share"
 msgstr "Cambia cómo compartes"
 
+msgid "Change in Settings"
+msgstr "Cambiar en Configuración"
+
 msgid "Change language"
 msgstr "Cambiar idioma"
 
@@ -3128,9 +3135,6 @@ msgstr "próximamente"
 msgid "Coming soon"
 msgstr "Próximamente"
 
-msgid "Coming soon — not wired up yet."
-msgstr "Próximamente — aún no conectado."
-
 msgid "Command palette"
 msgstr "Paleta de comandos"
 
@@ -3243,17 +3247,11 @@ msgstr "Configura la información básica del documento y las rutas de archivo"
 msgid "Configure features to include in the export"
 msgstr "Configura las características a incluir en la exportación"
 
-#~ msgid "Configure the credentials used by AI features on this device."
-#~ msgstr "Configura las credenciales que usan las funciones de IA en este dispositivo."
-
 msgid "Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine."
 msgstr "Configura las credenciales de los proveedores usadas cuando ADT Studio ejecuta pasos de la pipeline de IA en esta máquina."
 
 msgid "Configure voices and accents"
 msgstr "Configurar voces y acentos"
-
-#~ msgid "Configured on server"
-#~ msgstr "Configurado en el servidor"
 
 msgid "Confirm merge"
 msgstr "Confirmar fusión"
@@ -3554,9 +3552,6 @@ msgstr "No se pudo cargar el contenido guardado."
 
 msgid "Could not load saved content. Retry"
 msgstr "No se pudo cargar el contenido guardado. Reintentar"
-
-#~ msgid "Could not load the AI provider catalogue."
-#~ msgstr "No se pudo cargar el catálogo de proveedores de IA."
 
 msgid "Could not load the book outline."
 msgstr "No se pudo cargar el esquema del libro."
@@ -4523,6 +4518,9 @@ msgstr "Idioma de edición"
 msgid "Edits go to this Tailwind variant prefix"
 msgstr "Las ediciones van a este prefijo de variante Tailwind"
 
+msgid "Effects are reduced everywhere in Studio."
+msgstr "Los efectos están reducidos en todo Studio."
+
 msgid "Effort"
 msgstr "Esfuerzo"
 
@@ -5280,6 +5278,9 @@ msgstr "Paquete ADT completo — páginas HTML, imágenes, audio, cuestionarios 
 msgid "Full control over render strategies, pruning, and filters."
 msgstr "Control total sobre estrategias de renderizado, poda y filtros."
 
+msgid "Full effects are always used on this computer."
+msgstr "Siempre se usan todos los efectos en este ordenador."
+
 msgid "Full project backup & transfer"
 msgstr "Respaldo y transferencia completa del proyecto"
 
@@ -5603,6 +5604,9 @@ msgstr "Nivel de Grado"
 msgid "Grammar and fluency"
 msgstr "Gramática y fluidez"
 
+msgid "graphics drawn without the GPU"
+msgstr "gráficos dibujados sin la GPU"
+
 msgid "Grid view"
 msgstr "Vista de cuadrícula"
 
@@ -5882,9 +5886,6 @@ msgstr "Recorte de imágenes"
 
 msgid "Image Cropping Prompt"
 msgstr "Prompt de recorte de imagen"
-
-#~ msgid "Image edit complete"
-#~ msgstr "Edición de imagen completada"
 
 msgid "Image Edit Prompt"
 msgstr "Prompt de edición de imagen"
@@ -6422,9 +6423,6 @@ msgstr "Teclado y navegación"
 msgid "Keyboard shortcuts"
 msgstr "Atajos de teclado"
 
-#~ msgid "Keys are stored locally in this browser or desktop session and are sent only with run requests."
-#~ msgstr "Las claves se almacenan localmente en este navegador o sesión de escritorio y solo se envían con solicitudes de ejecución."
-
 msgid "Keys are stored locally on this device — never sent anywhere else."
 msgstr "Las claves se guardan localmente en este dispositivo — nunca se envían a ningún otro lugar."
 
@@ -6722,9 +6720,6 @@ msgstr "Cargar los últimos valores guardados"
 
 msgid "Loading accessibility summary..."
 msgstr "Cargando resumen de accesibilidad..."
-
-#~ msgid "Loading AI providers…"
-#~ msgstr "Cargando proveedores de IA…"
 
 msgid "Loading beta versions…"
 msgstr "Cargando versiones beta…"
@@ -7191,9 +7186,6 @@ msgstr "Tamaño Mín (px)"
 msgid "Min width"
 msgstr "Ancho mín"
 
-msgid "Minimise onboarding and list-reorder animations."
-msgstr "Minimizar animaciones de incorporación y reordenamiento de listas."
-
 msgid "Minimize"
 msgstr "Minimizar"
 
@@ -7324,8 +7316,8 @@ msgstr "La mayoría de los comentarios abiertos"
 msgid "Most used"
 msgstr "Más usado"
 
-msgid "motion animation accessibility"
-msgstr "movimiento animación accesibilidad"
+msgid "motion animation blur performance slow computer accessibility"
+msgstr "movimiento animación desenfoque rendimiento ordenador lento accesibilidad"
 
 msgid "Move down"
 msgstr "Mover hacia abajo"
@@ -8127,9 +8119,6 @@ msgstr "Aún no hay nada resuelto"
 msgid "Nothing split yet"
 msgstr "Nada dividido aún"
 
-#~ msgid "Nothing to classify"
-#~ msgstr "Nada que clasificar"
-
 msgid "Nothing to edit yet"
 msgstr "Todavía no hay nada que editar"
 
@@ -8332,9 +8321,6 @@ msgstr "Abrir todos en el Storyboard"
 
 msgid "Open an ADT project that <0>already exists</0> — a backup, a book part, or one exported by someone else. Nothing is converted. <1>.zip → added as-is</1>"
 msgstr "Abre un proyecto ADT que <0>ya existe</0> — una copia de seguridad, una parte de un libro, o uno exportado por otra persona. Nada se convierte. <1>.zip → añadido tal cual</1>"
-
-#~ msgid "Open API key settings"
-#~ msgstr "Abrir configuración de claves API"
 
 msgid "Open command palette"
 msgstr "Abrir paleta de comandos"
@@ -8877,9 +8863,6 @@ msgstr "Páginas del intervalo seleccionado"
 msgid "Pages in this part"
 msgstr "Páginas de esta parte"
 
-#~ msgid "Pages listed below will keep their saved content unless you choose to replace them. All other pages will be regenerated."
-#~ msgstr "Las páginas indicadas abajo conservarán su contenido guardado a menos que elijas reemplazarlo. Todas las demás páginas se regenerarán."
-
 msgid "pages per quiz"
 msgstr "páginas por cuestionario"
 
@@ -8891,9 +8874,6 @@ msgstr "Páginas revisadas"
 
 msgid "Pages to review"
 msgstr "Páginas por revisar"
-
-#~ msgid "Pages with manual edits or unknown authorship:"
-#~ msgstr "Páginas con cambios manuales o autoría desconocida:"
 
 msgid "Pages, edits and generated features"
 msgstr "Páginas, ediciones y funciones generadas"
@@ -9368,9 +9348,6 @@ msgstr "El proveedor \"{providerId}\" no admite la generación de texto."
 msgid "Provider \"{providerId}\" is not registered. Add its API keys in Settings or choose another model."
 msgstr "El proveedor \"{providerId}\" no está registrado. Agrega sus claves de API en Configuración o elige otro modelo."
 
-#~ msgid "Provider credentials"
-#~ msgstr "Credenciales del proveedor"
-
 msgid "Provider credentials saved."
 msgstr "Credenciales de proveedores guardadas."
 
@@ -9379,9 +9356,6 @@ msgstr "Documentación del proveedor"
 
 msgid "providers api key credentials endpoint"
 msgstr "proveedores clave API credenciales punto final"
-
-#~ msgid "Providers unavailable"
-#~ msgstr "Proveedores no disponibles"
 
 msgid "Provides consistent HTML/CSS patterns for LLM-generated pages."
 msgstr "Proporciona patrones HTML/CSS consistentes para páginas generadas por LLM."
@@ -9847,8 +9821,8 @@ msgstr "Recortar desde la página"
 msgid "Rectangle"
 msgstr "Rectángulo"
 
-msgid "Reduce motion"
-msgstr "Reducir movimiento"
+msgid "Reduce effects"
+msgstr "Reducir efectos"
 
 msgid "Reference"
 msgstr "Referencia"
@@ -10905,9 +10879,6 @@ msgstr "Sección sin tipo"
 msgid "Sectioning"
 msgstr "Seccionamiento"
 
-#~ msgid "Sectioning has changed since some sections were rendered. Open a section and use “Re-render this section” to update it, or re-run Storyboard to regenerate every page."
-#~ msgstr "El seccionamiento ha cambiado desde que se renderizaron algunas secciones. Abre una sección y usa “Re-renderizar esta sección” para actualizarla, o vuelve a ejecutar Storyboard para regenerar todas las páginas."
-
 msgid "Sectioning mode"
 msgstr "Modo de sección"
 
@@ -11445,6 +11416,12 @@ msgstr "Iniciar sesión solo funciona cuando ADT Studio y tu navegador se ejecut
 msgid "Similarity"
 msgstr "Similitud"
 
+msgid "Simpler animations and no blur or 3D, so Studio stays smooth on slower computers."
+msgstr "Animaciones más sencillas, sin desenfoque ni 3D, para que Studio siga fluido en ordenadores más lentos."
+
+msgid "Simpler animations and no blur, for slower computers."
+msgstr "Animaciones más sencillas y sin desenfoque, para ordenadores más lentos."
+
 msgid "Simplified Easy Read text variants."
 msgstr "Variantes de texto simplificadas de Lectura Fácil."
 
@@ -11515,6 +11492,9 @@ msgstr "Pequeño"
 msgid "Smart Cropping"
 msgstr "Recorte Inteligente"
 
+msgid "So it stays smooth on this computer: <0/>."
+msgstr "Para que siga fluido en este ordenador: <0/>."
+
 msgid "So only this computer can share or change your books."
 msgstr "Así solo este ordenador puede compartir o cambiar tus libros."
 
@@ -11523,10 +11503,6 @@ msgstr "Actualización de software"
 
 msgid "Software update status"
 msgstr "Estado de la actualización de software"
-
-#. placeholder {0}: warnings.length
-#~ msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
-#~ msgstr "Parte del contenido quedó fuera del paquete: {0} secciones renderizadas de {pageList} no tienen una sección de origen verificada y no pudieron incluirse. Su contenido e historial se conservan. Revisa sus identidades de sección en Storyboard y vuelve a crear el paquete."
 
 #. placeholder {0}: ownership.length
 msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageTotal} page(s) (showing up to 20): {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
@@ -11967,6 +11943,9 @@ msgstr "Estructura cada página en un árbol de secciones y nodos."
 msgid "Studio couldn't open this page right now. Open it in the Storyboard to see it."
 msgstr "Studio no pudo abrir esta página ahora. Ábrela en el Storyboard para verla."
 
+msgid "Studio switched to reduced effects"
+msgstr "Studio pasó a usar efectos reducidos"
+
 msgid "Style"
 msgstr "Estilo"
 
@@ -12133,10 +12112,6 @@ msgstr "Tarea completada"
 msgid "Task failed"
 msgstr "La tarea falló"
 
-#. placeholder {0}: d.error
-#~ msgid "Task failed: {0}"
-#~ msgstr "La tarea falló: {0}"
-
 msgid "Task failed: {taskError}"
 msgstr "Error en la tarea: {taskError}"
 
@@ -12208,9 +12183,6 @@ msgstr "Los términos fueron seleccionados por IA del libro. Edita una definici�
 
 msgid "Terms, character names, or phrases the judge should preserve or prefer."
 msgstr "Términos, nombres de personajes o frases que el juez debe preservar o preferir."
-
-#~ msgid "Test connection"
-#~ msgstr "Probar conexión"
 
 msgid "Test notification"
 msgstr "Probar notificación"
@@ -12383,9 +12355,6 @@ msgstr "Los comentarios que dejó la gente se conservan. Puedes reanudar el comp
 
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "La comunidad de organismos vivos en un lugar y la forma en que interactúan entre sí y con su entorno."
-
-#~ msgid "The connection check could not be completed."
-#~ msgstr "No se pudo completar la comprobación de la conexión."
 
 msgid "The connection to Cloudflare dropped or timed out. Check your internet, then try again — anything already set up is kept."
 msgstr "La conexión con Cloudflare se cortó o tardó demasiado. Revisa tu conexión a internet y vuelve a intentarlo; lo que ya está configurado se conserva."
@@ -12872,9 +12841,6 @@ msgstr "Este libro está completamente ensamblado"
 msgid "This book is not on this computer."
 msgstr "Este libro no está en este equipo."
 
-#~ msgid "This book is still open in another process. Close it there before recovering a copy."
-#~ msgstr "Este libro sigue abierto en otro proceso. Ciérralo allí antes de recuperar una copia."
-
 msgid "This book is temporarily unavailable. Its saved content is preserved. Try opening it for details and retry after resolving the reported problem."
 msgstr "Este libro no está disponible temporalmente. Su contenido guardado se conserva. Intenta abrirlo para ver los detalles y vuelve a intentarlo después de resolver el problema indicado."
 
@@ -13108,9 +13074,6 @@ msgstr "Este proyecto se creó a partir de una publicación ADT exportada, por l
 msgid "This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used."
 msgstr "Este aviso instruye al LLM cómo evaluar el HTML renderizado contra la página original. La selección arriba controla qué plantilla se usa."
 
-#~ msgid "This provider does not require local credentials."
-#~ msgstr "Este proveedor no requiere credenciales locales."
-
 msgid "This provider has no automatic connection check."
 msgstr "Este proveedor no tiene verificación automática de conexión."
 
@@ -13155,9 +13118,6 @@ msgstr "Esto restaura la fuente predeterminada en todas las páginas y borra los
 
 msgid "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. Replacing this page later requires a separate confirmation."
 msgstr "Esto restaura el último Seccionamiento generado para esta página. Tu versión editada permanece en el historial. Las demás páginas conservan sus ediciones. Reemplazar esta página más adelante requiere una confirmación aparte."
-
-#~ msgid "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. This page can be regenerated on the next Re-run."
-#~ msgstr "Esto restaura la última división en secciones generada para esta página. Tu versión editada permanece en el historial. Las demás páginas conservan sus cambios. Esta página podrá regenerarse en la próxima ejecución."
 
 msgid "This screen couldn’t load"
 msgstr "Esta pantalla no pudo cargarse"
@@ -14517,6 +14477,9 @@ msgstr "Tu servicio para compartir no responde, así que lo que dice esta págin
 
 msgid "Your sharing service needs an update first"
 msgstr "Tu servicio para compartir necesita una actualización primero"
+
+msgid "Your system asks for less motion, so animations stay reduced."
+msgstr "Tu sistema pide menos movimiento, así que las animaciones siguen reducidas."
 
 msgid "Z → A"
 msgstr "Z → A"
