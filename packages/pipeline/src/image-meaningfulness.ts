@@ -443,6 +443,8 @@ export function buildHashDedupPlan(
   storage: Storage,
   pages: Array<{ pageId: string }>,
   classificationOf: (pageId: string) => ImageClassificationOutput | undefined,
+  /** When given, only images stored with one of these sources are planned. */
+  sources?: ReadonlySet<string>,
 ): HashDedupPlan {
   return planHashDedup(
     pages.flatMap((page) => {
@@ -450,7 +452,9 @@ export function buildHashDedupPlan(
       if (!classification) return []
       return [{
         pageId: page.pageId,
-        images: storage.getPageImages(page.pageId),
+        images: sources
+          ? storage.getPageImages(page.pageId, true).filter((image) => sources.has(image.storedAsset?.source ?? ""))
+          : storage.getPageImages(page.pageId),
         classification,
         figureInvolvedIds: figureInvolvedImageIds(getExtractionDebug(storage, page.pageId)),
       }]

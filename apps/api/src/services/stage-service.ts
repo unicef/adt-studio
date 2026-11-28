@@ -69,6 +69,8 @@ export interface StageRunOptions {
   toStage: string
   /** When true, skip page-sectioning and only re-render from existing section data. */
   renderOnly?: boolean
+  /** Extract re-run request (SPEC-0003 RAC-21), re-checked at every admission. */
+  extraction?: import("@adt/types").ExtractRerunRequest
   beforeRun?: () => void
   /** Cancellation signal for the run. Aborts in-flight LLM calls and stops the
    *  runner at the next checkpoint. Set by the service per job. */
@@ -159,7 +161,7 @@ export function createStageService(
       await withBookWriter(requireExistingBook(label, options.booksDir), async () => {
         try {
           job.controller.signal.throwIfAborted()
-          prepareSectioningRun(label, options.booksDir, options.fromStage as StageName, options.toStage as StageName, options.configPath)
+          prepareSectioningRun(label, options.booksDir, options.fromStage as StageName, options.toStage as StageName, options.configPath, options.extraction)
           options.beforeRun?.()
           await runner.run(label, effectiveOptions, progress)
         } catch (err) {

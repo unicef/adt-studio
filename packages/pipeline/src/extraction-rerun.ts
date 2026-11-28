@@ -1,6 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
-import { PIPELINE, type ExtractRerunAction, type ExtractRerunBlockedReason, type ExtractRerunStatus } from "@adt/types"
+import { PIPELINE, type ExtractRerunAction, type ExtractRerunBlockedReason, type ExtractRerunRequest, type ExtractRerunStatus } from "@adt/types"
 import { ExtractionAdmissionError, getStorageBookDir, readExtractionManifest, type ExtractOnlyInspection, type Storage } from "@adt/storage"
 
 /** `none`: no extraction.json (a book never extracted, or extracted before the
@@ -74,4 +74,19 @@ export function readExtractRerunStatus(storage: Storage, runActive: boolean): Ex
     stepRuns: storage.getStepRuns(),
     isPart: fs.existsSync(path.join(bookDir, "part.json")),
   })
+}
+
+/** Blocked reasons of a book that is Extract-only and offers no action. Every
+ * other reason, including one added later, means the book is not Extract-only. */
+const EXTRACT_ONLY_REASONS: ReadonlySet<ExtractRerunBlockedReason | null> = new Set([null, "part-book", "extraction-inconsistent"])
+
+/** SPEC-0003 RAC-21 admission of a resume request, re-checked under the writer
+ * lease by every caller. False: the book is not Extract-only, and the caller
+ * keeps today's refusal. Throws before any write when the book is Extract-only
+ * and the request no longer matches it. */
+export function admitExtractResume(storage: Storage, request: ExtractRerunRequest): boolean {
+  const status = readExtractRerunStatus(storage, false)
+  if (!status.actions.length && !EXTRACT_ONLY_REASONS.has(status.blockedReason)) return false
+  if (!status.actions.includes("resume") || status.attemptId !== request.attemptId) throw new ExtractionAdmissionError("EXTRACTION_RERUN_STALE")
+  return true
 }

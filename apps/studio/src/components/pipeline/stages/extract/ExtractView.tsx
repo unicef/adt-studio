@@ -123,7 +123,7 @@ function PageCard({
 export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onSelectPage }: { bookLabel: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {
   const { t } = useLingui()
   const { data: pages, isLoading } = usePages(bookLabel)
-  const { stageState, stepState, queueRun } = useBookRun()
+  const { stageState, stepState, queueRun, extractRerun } = useBookRun()
   const { apiKey } = useApiKey()
   const { available: hasStructuredTextProvider, ready: providerStatusReady } = useBookStructuredTextStatus(bookLabel)
   const selectedPageId = selectedPageIdProp ?? null
@@ -148,11 +148,19 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
   // "running"/"queued" (never idle), so this doesn't hide progressive pages.
   const extractInterrupted = hasPages && extractState === "idle"
   const showRunCard = extractError || extractInterrupted ? true : !hasPages
+  // The server offers a resume when only Extract output exists and some Extract
+  // steps are unfinished (SPEC-0003 RAC-21): Retry then runs those steps on the
+  // existing pages. Without the offer, a book with pages cannot run Extract.
+  const canResume = extractRerun?.actions.includes("resume") ?? false
+  const resumeAttemptId = extractRerun?.attemptId ?? null
 
   const handleRetryExtract = useCallback(() => {
     if (!hasStructuredTextProvider || extractRunning) return
-    queueRun({ fromStage: "extract", toStage: "extract", apiKey })
-  }, [hasStructuredTextProvider, extractRunning, apiKey, queueRun])
+    queueRun({
+      fromStage: "extract", toStage: "extract", apiKey,
+      ...(canResume ? { extraction: { action: "resume" as const, attemptId: resumeAttemptId } } : {}),
+    })
+  }, [hasStructuredTextProvider, extractRunning, apiKey, queueRun, canResume, resumeAttemptId])
 
   const pageList = pages ?? []
   const warnPages = pageList.filter((p) => p.extractionWarning)
@@ -253,7 +261,7 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
       {showRunCard ? (
         <div className="flex flex-col gap-4">
           <MissingKeyNotice bookLabel={bookLabel} />
-          {hasPages && !extractRunning && (
+          {hasPages && !extractRunning && !canResume && (
             <div className="mb-4">
               <LandingPageWarning
                 variant="prereq"
@@ -273,7 +281,7 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
             isRunning={extractRunning}
             completed={extractDone}
             onRun={handleRetryExtract}
-            disabled={(!extractError && !extractInterrupted) || !hasStructuredTextProvider || extractRunning || hasPages}
+            disabled={(!extractError && !extractInterrupted) || !hasStructuredTextProvider || extractRunning || (hasPages && !canResume)}
             disabledReason={
               providerStatusReady && !hasStructuredTextProvider ? (
                 <Trans>Connect an AI provider to retry.</Trans>

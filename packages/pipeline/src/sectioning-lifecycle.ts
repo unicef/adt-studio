@@ -1,8 +1,9 @@
-import { SectioningMode, PIPELINE, getStageClearOrder, type AppConfig, type StageName } from "@adt/types"
+import { SectioningMode, PIPELINE, getStageClearOrder, type AppConfig, type ExtractRerunRequest, type StageName } from "@adt/types"
 import {
   createBookStorage, withBookWriter, recoverSectioningTransition,
-  writeSectioningLifecycle, assertExtractionReadable, resolveBookPaths, type Storage,
+  writeSectioningLifecycle, assertExtractionReadable, resolveBookPaths, ExtractionAdmissionError, type Storage,
 } from "@adt/storage"
+import { admitExtractResume } from "./extraction-rerun.js"
 import { sectioningConfigInputs } from "./generation-config.js"
 import { loadBookConfig } from "./config.js"
 import { SectioningSafetyError } from "./sectioning-errors.js"
@@ -28,17 +29,24 @@ export function assertSectioningReplacementSafe(storage: Storage): void {
   }
 }
 
-export function prepareSectioningRun(label: string, booksRoot: string, from: StageName, _to: StageName, _configPath?: string): void {
+/** `extraction` is the run request's Extract re-run field (SPEC-0003 RAC-21).
+ * Without it, and for the retry and replace actions (RAC-22/23, not accepted
+ * yet), a run from Extract is refused exactly as before. */
+export function prepareSectioningRun(label: string, booksRoot: string, from: StageName, _to: StageName, _configPath?: string, extraction?: ExtractRerunRequest): void {
   const { bookDir } = resolveBookPaths(label, booksRoot)
   withBookWriter(bookDir, () => {
     recoverSectioningTransition(bookDir)
     assertExtractionReadable(bookDir)
     const storage = createBookStorage(label, booksRoot)
     try {
+      const resume = from === "extract" && extraction?.action === "resume"
+      if (resume && admitExtractResume(storage, extraction)) return
       if (from === "extract") assertSectioningReplacementSafe(storage)
       if (from === "extract" && storage.getPages().length) {
         throw new SectioningSafetyError("SECTIONING_REGENERATION_BLOCKED", "Re-extraction of an existing book requires preservation-safe CLI/Extract admission. Existing pages and assets are kept.")
       }
+      // A resume is admitted above or refused: it never becomes a first extraction.
+      if (resume) throw new ExtractionAdmissionError("EXTRACTION_RERUN_STALE")
     } finally { storage.close() }
   })
 }

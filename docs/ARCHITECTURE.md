@@ -185,6 +185,8 @@ Sectioning's book-level policies live in focused `packages/pipeline/src/` module
 
 The shared admission helper does not replace the book writer, reset-transaction checks or publication-time input/version checks. Those boundaries remain responsible for revalidation immediately before their mutations. `sectioning-errors.ts` owns the shared error class so callers and middleware preserve error identity without a lifecycle/publication import cycle.
 
+`prepareSectioningRun` refuses a run from Extract on a book that already has pages, with one exception (SPEC-0003 RAC-20/21). `extraction-rerun.ts` reads whether the book is Extract-only (`inspectExtractOnly` in `@adt/storage`: nothing but Extract output and pre-Extract configuration) and which re-run actions it allows; step-status reports the answer as `extractRerun`. A run request from Extract to Extract may carry `extraction: { action: "resume", attemptId }`. Each of the four admission points re-checks it under the writer lease: an action that is no longer offered, or an `attemptId` that no longer names the book's extraction record, is refused with `EXTRACTION_RERUN_STALE` before any write. An admitted resume clears nothing and does not read the PDF: `runExtractStep` runs only the Extract steps that are not done or skipped, on the existing pages, keeps every existing page image list, and skips segmentation and cropping for pages that already have that pass's record. A request without the field, and the `retry` and `replace` actions (RAC-22/23, not implemented yet), are refused as before.
+
 ## Data Flow
 
 ```
