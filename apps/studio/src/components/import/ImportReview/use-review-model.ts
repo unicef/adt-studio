@@ -12,6 +12,7 @@ import {
   Scissors,
   ShieldCheck,
   TriangleAlert,
+  Type,
   type LucideIcon,
 } from "lucide-react"
 import type { AnyImportPreview, AdtBundleImportPreview } from "@/api/client"
@@ -28,9 +29,20 @@ export interface Stat { value: string | null; label: string; long?: boolean }
 export interface Status { tone: Tone; icon: LucideIcon; title: string; text: string }
 export interface Check { icon: LucideIcon; label: string; value: string; state: CheckState }
 export interface Issue { file: string; text: string; code: string }
+/** All the problems of one type: its name, what it means, how many were
+ * found, a few examples, and how many more the list leaves out (the repair
+ * request includes them all). */
+export interface IssueGroup {
+  code: string
+  name: string
+  description: string
+  countLabel: string
+  examples: Array<{ file: string; detail?: string }>
+  moreLabel: string | null
+}
 /** One line of "Import will": done already, needs you before import, or
  * happens when you import (or later, for a part). */
-export interface Step { title: string; text: string; state: "done" | "todo" | "later"; status: string; noDivider?: boolean }
+export interface Step { title: string; text: string; state: "done" | "todo" | "later"; status: string }
 
 export interface ReviewModel {
   mode: ReviewMode
@@ -39,7 +51,10 @@ export interface ReviewModel {
   stats: Stat[]
   status: Status | null
   checks: Check[]
-  issues: Issue[]
+  issueGroups: IssueGroup[]
+  /** In repair mode, the activity pages the import will ask about once the
+   * files are fixed: the repair request already includes them. */
+  activityNotice: Status | null
   steps: Step[]
   facts: Array<{ label: string; value: string }> | null
 }
@@ -47,10 +62,11 @@ export interface ReviewModel {
 const STRUCTURE_CODES = new Set([
   "missing-editing-contract", "unsupported-editing-contract", "nested-page", "changed-page-structure",
   "missing-content-root", "multiple-content-roots", "missing-section", "multiple-sections",
-  "missing-section-type", "missing-data-id", "duplicate-data-id", "image-missing-data-id",
+  "missing-section-type", "missing-data-id", "duplicate-data-id", "cross-page-duplicate-data-id",
+  "image-missing-data-id",
 ])
 const FILE_CODES = new Set([
-  "unexpected-bundle-entry", "remote-asset", "unsafe-asset", "unsupported-stylesheet",
+  "unexpected-bundle-entry", "unlisted-root-page", "remote-asset", "unsafe-asset", "unsupported-stylesheet",
   "unsupported-script", "unsupported-asset-location", "missing-asset",
 ])
 
@@ -71,31 +87,55 @@ export function useReviewModel(
   const { t, i18n } = useLingui()
   const locale = i18n?.locale ?? "en"
 
-  const issueText = (code: string, file: string, detail?: string): string => {
-    const messages: Record<string, string> = {
-      "missing-editing-contract": t`manifest.json has no editing contract, so ADT Studio can’t match pages to the book.`,
-      "unsupported-editing-contract": t`manifest.json uses an editing contract version this ADT Studio doesn’t support.`,
-      "nested-page": t`Page HTML must stay at the top level of the archive.`,
-      "unexpected-bundle-entry": t`The archive contains a folder or file outside the standard ADT layout.`,
-      "changed-page-structure": t`The page’s element ids no longer match the page lists in manifest.json and content/pages.json.`,
-      "interleaved-reading-order": t`Sections of one page are split apart in the reading order.`,
-      "missing-content-root": t`The page is missing its #content element.`,
-      "multiple-content-roots": t`The page has more than one #content element.`,
-      "missing-section": t`The page is missing its main section.`,
-      "multiple-sections": t`The page has more than one main section.`,
-      "missing-section-type": t`The main section has no data-section-type.`,
-      "missing-data-id": t`Editable content is missing its data-id.`,
-      "duplicate-data-id": t`Two elements share a data-id but their content differs.`,
-      "image-missing-data-id": t`An image is missing its data-id.`,
-      "remote-asset": t`The page loads a file from the internet.`,
-      "unsafe-asset": t`The page points to a file outside the archive.`,
-      "unsupported-stylesheet": t`The page uses a custom stylesheet instead of the bundled styles.`,
-      "unsupported-script": t`The page uses an unsupported external script.`,
-      "unsupported-asset-location": t`Page media is outside the images folder.`,
-      "missing-asset": t`The page uses a file that isn’t in the archive.`,
-    }
-    const base = messages[code] ?? code
-    return detail && detail !== code && !file.includes(detail) ? `${base} ${detail}` : base
+  /** A short name for each problem type: the heading of its group. */
+  const issueNames: Record<string, string> = {
+    "missing-editing-contract": t`Missing editing contract`,
+    "unsupported-editing-contract": t`Unsupported editing contract`,
+    "nested-page": t`Page inside a folder`,
+    "unexpected-bundle-entry": t`File or folder outside the ADT layout`,
+    "unlisted-root-page": t`Page outside the reading order`,
+    "changed-page-structure": t`Page ids changed`,
+    "interleaved-reading-order": t`Page sections split apart`,
+    "missing-content-root": t`Missing #content element`,
+    "multiple-content-roots": t`More than one #content element`,
+    "missing-section": t`Missing main section`,
+    "multiple-sections": t`More than one main section`,
+    "missing-section-type": t`Section without a type`,
+    "missing-data-id": t`Content without a data-id`,
+    "duplicate-data-id": t`Repeated data-id with different content`,
+    "cross-page-duplicate-data-id": t`data-id used on more than one page`,
+    "image-missing-data-id": t`Image without a data-id`,
+    "remote-asset": t`File loaded from the internet`,
+    "unsafe-asset": t`File path outside the archive`,
+    "unsupported-stylesheet": t`Custom stylesheet`,
+    "unsupported-script": t`Unsupported script`,
+    "unsupported-asset-location": t`Media outside the images folder`,
+    "missing-asset": t`Missing file`,
+  }
+  /** What each problem type means, under its heading. */
+  const issueDescriptions: Record<string, string> = {
+    "missing-editing-contract": t`manifest.json has no editing contract, so ADT Studio can’t match pages to the book.`,
+    "unsupported-editing-contract": t`manifest.json uses an editing contract version this ADT Studio doesn’t support.`,
+    "nested-page": t`Page HTML must stay at the top level of the archive.`,
+    "unexpected-bundle-entry": t`The archive contains a folder or file outside the standard ADT layout.`,
+    "unlisted-root-page": t`An HTML page at the top of the archive isn’t in the book’s reading order (content/pages.json), so it can’t be imported.`,
+    "changed-page-structure": t`The page’s element ids no longer match the page lists in manifest.json and content/pages.json.`,
+    "interleaved-reading-order": t`Sections of one page are split apart in the reading order.`,
+    "missing-content-root": t`The page is missing its #content element.`,
+    "multiple-content-roots": t`The page has more than one #content element.`,
+    "missing-section": t`The page is missing its main section.`,
+    "multiple-sections": t`The page has more than one main section.`,
+    "missing-section-type": t`The main section has no data-section-type.`,
+    "missing-data-id": t`Editable content is missing its data-id.`,
+    "duplicate-data-id": t`Two elements share a data-id but their content differs.`,
+    "cross-page-duplicate-data-id": t`The same data-id is used on more than one page.`,
+    "image-missing-data-id": t`An image is missing its data-id.`,
+    "remote-asset": t`The page loads a file from the internet.`,
+    "unsafe-asset": t`The page points to a file outside the archive.`,
+    "unsupported-stylesheet": t`The page uses a custom stylesheet instead of the bundled styles.`,
+    "unsupported-script": t`The page uses an unsupported external script.`,
+    "unsupported-asset-location": t`Page media is outside the images folder.`,
+    "missing-asset": t`The page uses a file that isn’t in the archive.`,
   }
   const problems = (count: number) => count === 0 ? null : t`${count} {count, plural, one {problem} other {problems}}`
 
@@ -118,7 +158,8 @@ export function useReviewModel(
         { icon: FileText, label: t`PDF and settings`, value: t`Found`, state: "ok" },
         { icon: FolderPlus, label: t`New, separate project`, value: t`Yes`, state: "ok" },
       ],
-      issues: [],
+      issueGroups: [],
+      activityNotice: null,
       steps: [
         { title: t`Archive checked`, text: t`Part details, PDF and settings found`, state: "done", status: t`Done` },
         { title: t`Create the project`, text: t`Only pages ${range} of the book`, state: "later", status: t`On import` },
@@ -153,7 +194,8 @@ export function useReviewModel(
       { icon: FileText, label: t`Source PDF`, value: preview.hasSourcePdf ? t`Found` : t`Not included`, state: preview.hasSourcePdf ? "ok" : "off" },
       { icon: FolderPlus, label: t`New, separate project`, value: blocked ? t`Not created` : t`Yes`, state: blocked ? "off" : "ok" },
     ],
-    issues: [],
+    issueGroups: [],
+    activityNotice: null,
     steps: [
       { title: t`Archive checked`, text: preview.hasSourcePdf ? t`Project database and PDF found` : t`Project database found`, state: "done", status: t`Done` },
       { title: t`Create the project`, text: t`Separate from your other projects`, state: "later", status: t`On import` },
@@ -169,6 +211,11 @@ export function useReviewModel(
     const set = Math.max(0, total - unresolvedActivityCount)
     const recovered = FEATURES.filter((feature) => ["recovered", "partial"].includes(featureStatus(adt, feature.slug)))
     const recoveredCount = recovered.length
+    // Quizzes included, as in the Activities check; they all have an editor.
+    const activities = (adt.activityReview?.activityCount ?? 0) + (adt.activityReview?.quizCount ?? 0)
+    const withoutEditor = (adt.activityReview?.items ?? []).filter((item) => (
+      item.suggestedType !== "activity_quiz" && !item.supportsStudioEditing
+    )).length
     return [
       { title: t`Archive checked`, text: t`${plural(adt.pageCount, { one: "# page", other: "# pages" })} and ${plural(imageCount, { one: "# image", other: "# images" })} read`, state: "done", status: t`Done` },
       ...(total > 0 ? [{
@@ -179,13 +226,20 @@ export function useReviewModel(
       }] : []),
       { title: t`Create the project`, text: t`Separate from your other projects`, state: "later", status: t`On import` },
       { title: t`Use the exported pages`, text: t`They become the editable source`, state: "later", status: t`On import` },
+      ...(activities > 0 ? [{
+        title: t`Keep ${activities} {activities, plural, one {activity} other {activities}}`,
+        text: withoutEditor > 0
+          ? t`${withoutEditor} of them keep their own scripts: Studio’s activity editor can’t edit them`
+          : t`All of them can be edited in Studio’s activity editor`,
+        state: "later" as const,
+        status: t`On import`,
+      }] : []),
       ...(recoveredCount > 0 ? [{
         title: t`Recover ${recoveredCount} {recoveredCount, plural, one {feature} other {features}}`,
         // The Features column beside this list already names them.
         text: t`Listed under Features`,
         state: "later" as const,
         status: t`On import`,
-        noDivider: true,
       }] : []),
       { title: t`Open the book`, text: t`Right after import`, state: "later", status: t`On import` },
     ]
@@ -193,12 +247,18 @@ export function useReviewModel(
 
   function adtModel(adt: AdtBundleImportPreview): ReviewModel {
     const issues = adt.compatibility.issues
-    const structure = issues.filter((issue) => STRUCTURE_CODES.has(issue.code)).length
-    const files = issues.filter((issue) => FILE_CODES.has(issue.code)).length
-    const order = issues.filter((issue) => issue.code === "interleaved-reading-order").length
+    // The report lists a few examples of each type; the counts are the totals.
+    const counts = adt.compatibility.issueCounts
+    const countOf = (match: (code: string) => boolean) => counts
+      ? Object.entries(counts).reduce((sum, [code, count]) => sum + (match(code) ? count ?? 0 : 0), 0)
+      : issues.filter((issue) => match(issue.code)).length
+    const structure = countOf((code) => STRUCTURE_CODES.has(code))
+    const files = countOf((code) => FILE_CODES.has(code))
+    const order = countOf((code) => code === "interleaved-reading-order")
     const repair = !adt.compatibility.supported
-    const issueCount = issues.length
+    const issueCount = countOf(() => true)
     const mode: ReviewMode = repair ? "repair" : unresolvedActivityCount > 0 ? "activity" : "ready"
+    const activityTotal = (adt.activityReview?.activityCount ?? 0) + (adt.activityReview?.quizCount ?? 0)
     const outputs = adt.outputLanguages?.length ?? 0
     const source = languageName(adt.sourceLanguage, locale)
     const changes: Record<AdtBundleImportPreview["exportComparisonStatus"], { status: Status; value: string; state: CheckState }> = {
@@ -207,6 +267,15 @@ export function useReviewModel(
       unavailable: { status: { tone: "amber", icon: AlertCircle, title: t`This export has no fingerprints`, text: t`ADT Studio can’t tell whether its pages changed. They become the working source, so check generated features after import.` }, value: t`Can’t tell`, state: "warn" },
     }
     const change = changes[adt.exportComparisonStatus]
+    const pendingActivities = adt.activityReview?.needsReviewCount ?? 0
+    const activityNotice: Status | null = repair && pendingActivities > 0
+      ? {
+          tone: "amber",
+          icon: Puzzle,
+          title: t`${pendingActivities} {pendingActivities, plural, one {activity page also needs} other {activity pages also need}} a fix`,
+          text: t`Their activity type is missing or unclear, or they fail the accessibility checks for their type. ADT Studio asks about them once these problems are fixed. The repair request includes them, so your AI assistant can fix both at once.`,
+        }
+      : null
     const status: Status = repair
       ? { tone: "red", icon: TriangleAlert, title: t`${issueCount} {issueCount, plural, one {problem} other {problems}} to fix before import`, text: t`ADT Studio found the book, but these files don’t follow the editing rules. An AI assistant can fix them.` }
       : mode === "activity"
@@ -229,17 +298,51 @@ export function useReviewModel(
       checks: [
         { icon: FileCode2, label: t`Page structure and element ids`, value: problems(structure) ?? t`OK`, state: structure ? "bad" : "ok" },
         { icon: Image, label: t`Images and other files`, value: problems(files) ?? t`All present`, state: files ? "bad" : "ok" },
+        // The font the project will use; fixed-layout books set fonts per element.
+        ...(adt.bookFont ? [{
+          icon: Type,
+          label: t`Book font`,
+          value: adt.bookFont.detected
+            ? adt.bookFont.family
+            : t({ message: `${adt.bookFont.family} (default)`, context: "book font" }),
+          state: "ok" as const,
+        }] : []),
         { icon: ListOrdered, label: t`Reading order`, value: problems(order) ?? t`Intact`, state: order ? "bad" : "ok" },
         {
           icon: Puzzle,
           label: t`Activities`,
-          value: unresolvedActivityCount > 0 ? t`${unresolvedActivityCount} {unresolvedActivityCount, plural, one {needs} other {need}} a type` : t`Nothing to classify`,
+          // "Nothing to classify" alone read the same for a book whose
+          // activities were all recognized and for one with none at all.
+          value: unresolvedActivityCount > 0
+            ? t`${unresolvedActivityCount} {unresolvedActivityCount, plural, one {needs} other {need}} a type`
+            : activityTotal > 0 ? t`${activityTotal} found, none to classify` : t`None found`,
           state: unresolvedActivityCount > 0 ? "warn" : "ok",
         },
         { icon: ShieldCheck, label: t`Changes since export`, value: change.value, state: change.state },
         { icon: FolderPlus, label: t`New, separate project`, value: repair ? t`Not yet` : t`Yes`, state: repair ? "off" : "ok" },
       ],
-      issues: issues.map((issue) => ({ file: issue.pageHref, code: issue.code, text: issueText(issue.code, issue.pageHref, issue.detail) })),
+      activityNotice,
+      issueGroups: [...new Set(issues.map((issue) => issue.code))].map((code) => {
+        const examples = issues.filter((issue) => issue.code === code)
+        const count = counts?.[code] ?? examples.length
+        const more = count - examples.length
+        return {
+          code,
+          name: issueNames[code] ?? code,
+          description: issueDescriptions[code] ?? code,
+          countLabel: t`${count} {count, plural, one {issue} other {issues}}`,
+          examples: examples.map((issue) => ({
+            file: issue.pageHref,
+            // A stray entry's detail is its own name: show it once.
+            ...(issue.detail && issue.detail !== code && !issue.pageHref.includes(issue.detail)
+              ? { detail: issue.detail }
+              : {}),
+          })),
+          moreLabel: more > 0
+            ? t`+${more} more not listed here. The repair request includes them all.`
+            : null,
+        }
+      }),
       steps: adtSteps(adt),
       facts: null,
     }

@@ -24,7 +24,10 @@ import {
   buildTtsLogEntry,
   buildWordTimestampsLogEntry,
   classifyElevenLabsTtsError,
+  classifyTtsError,
   elevenLabsTtsRetryDelayMs,
+  openAiTtsRetryDelayMs,
+  OPENAI_TTS_MAX_RETRIES,
   parseElevenLabsErrorStatus,
   resolveNarratorLabel,
   overlayPrimaryVoices,
@@ -1585,6 +1588,55 @@ describe("classifyElevenLabsTtsError", () => {
 
   it("treats an unrecognised statusless error as permanent", () => {
     expect(classifyElevenLabsTtsError("ELEVENLABS_API_KEY is required")).toBe("permanent")
+  })
+})
+
+describe("classifyTtsError for OpenAI TTS (#1067)", () => {
+  const failure = (status: number, body: string) => `TTS request failed (${status}): ${body}`
+
+  it("retries rate limits and server errors", () => {
+    expect(classifyTtsError(failure(429, "Rate limit reached"))).toBe("rate-limit")
+    expect(classifyTtsError(failure(503, "Service unavailable"))).toBe("transient")
+  })
+
+  it("does not retry other 4xx", () => {
+    expect(classifyTtsError(failure(400, "Invalid voice"))).toBe("permanent")
+    expect(classifyTtsError(failure(401, "Incorrect API key provided"))).toBe("permanent")
+  })
+
+  it("retries dropped connections, including the cause the synthesizer appends", () => {
+    expect(classifyTtsError("fetch failed (UND_ERR_SOCKET: other side closed)")).toBe("transient")
+    expect(classifyTtsError("fetch failed (ECONNRESET: read ECONNRESET)")).toBe("transient")
+    // undici's error for a connection dropped while the audio was streaming.
+    expect(classifyTtsError("terminated (UND_ERR_SOCKET: other side closed)")).toBe("transient")
+  })
+
+  it("retries the synthesizer's own no-response timeout", () => {
+    expect(classifyTtsError("TTS request timed out: no response within 30s")).toBe("transient")
+  })
+
+  it("does not retry a missing key or other local errors", () => {
+    expect(classifyTtsError("OPENAI_API_KEY is required for TTS synthesis")).toBe("permanent")
+  })
+
+  it("classifies ElevenLabs messages the same way it always has", () => {
+    expect(classifyElevenLabsTtsError).toBe(classifyTtsError)
+  })
+})
+
+describe("openAiTtsRetryDelayMs", () => {
+  it("backs off exponentially, capped, with jitter between half and the full delay", () => {
+    expect(openAiTtsRetryDelayMs(1, () => 0)).toBe(500)
+    expect(openAiTtsRetryDelayMs(1, () => 1)).toBe(1_000)
+    expect(openAiTtsRetryDelayMs(3, () => 1)).toBe(4_000)
+    expect(openAiTtsRetryDelayMs(10, () => 1)).toBe(15_000)
+    expect(openAiTtsRetryDelayMs(10, () => 0)).toBe(7_500)
+  })
+
+  it("keeps the worst case for one entry well under a minute", () => {
+    let total = 0
+    for (let attempt = 1; attempt <= OPENAI_TTS_MAX_RETRIES; attempt++) total += openAiTtsRetryDelayMs(attempt, () => 1)
+    expect(total).toBe(15_000)
   })
 })
 

@@ -191,7 +191,7 @@ describe("global specialized model defaults", () => {
   it("returns built-in defaults when no overrides are configured", async () => {
     const response = await app().request("/config/specialized-model-defaults")
     expect(await response.json()).toEqual({
-      imageGeneration: "openai:gpt-image-2",
+      imageGeneration: "openai:gpt-image-2.6-flare",
       speechGeneration: "gpt-4o-mini-tts",
     })
   })

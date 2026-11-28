@@ -104,7 +104,7 @@ export function RevertSectioningEdits({
         affectedStages={downstreamAffected}
         headerStageSlug="sectioning"
         title={<Trans>Revert manual edits on page {pageNumber}?</Trans>}
-        description={<Trans>This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. This page can be regenerated on the next Re-run.</Trans>}
+        description={<Trans>This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. Replacing this page later requires a separate confirmation.</Trans>}
         confirmLabel={<Trans>Revert manual edits</Trans>}
         confirmColorClass="bg-sky-600 hover:bg-sky-700"
         confirmIcon={Undo2}

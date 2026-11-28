@@ -3,7 +3,7 @@ import { Trans } from "@lingui/react/macro"
 import { PencilLine, RefreshCw, TriangleAlert } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-export function DraftConflict({ error, paths, onResolve, wholeDocument = false }: { wholeDocument?: boolean; error: string | null; paths?: string[]; onResolve: (choice: "draft" | "latest") => void }) {
+export function DraftConflict({ error, paths, onResolve, wholeDocument = false, wholeActivity = false }: { wholeActivity?: boolean; wholeDocument?: boolean; error: string | null; paths?: string[]; onResolve: (choice: "draft" | "latest") => void }) {
   const keepDescriptionId = useId()
   const latestDescriptionId = useId()
   if (!error) return null
@@ -20,7 +20,9 @@ export function DraftConflict({ error, paths, onResolve, wholeDocument = false }
             {hasConflicts ? <Trans>Conflicting changes detected</Trans> : <Trans>Changes not saved</Trans>}
           </h3>
           <p className="text-[13px] leading-relaxed text-muted-foreground">
-            {hasConflicts && wholeDocument ? (
+            {hasConflicts && wholeActivity ? (
+              <Trans>This activity was rebuilt or replaced. Your draft is intact. Choose which complete activity to keep.</Trans>
+            ) : hasConflicts && wholeDocument ? (
               <Trans>The table of contents was reorganized or replaced. Your draft is intact. Choose which complete document to keep before editing again.</Trans>
             ) : hasConflicts ? (
               <Trans>This page was changed after you started editing, so some values are now out of sync. Your changes have not been saved.</Trans>
@@ -42,7 +44,7 @@ export function DraftConflict({ error, paths, onResolve, wholeDocument = false }
                 <Trans>Keep my changes</Trans>
               </Button>
               <p id={keepDescriptionId} className="text-xs leading-relaxed text-muted-foreground">
-                {wholeDocument ? <Trans>Keep your entire table of contents, including its chapter targets and order.</Trans> : <Trans>Keep the values you entered where changes overlap.</Trans>}
+                {wholeActivity ? <Trans>Keep your entire activity draft, including its questions and answers.</Trans> : wholeDocument ? <Trans>Keep your entire table of contents, including its chapter targets and order.</Trans> : <Trans>Keep the values you entered where changes overlap.</Trans>}
               </p>
             </div>
             <div className="space-y-1.5">
@@ -51,12 +53,12 @@ export function DraftConflict({ error, paths, onResolve, wholeDocument = false }
                 <Trans>Load latest saved values</Trans>
               </Button>
               <p id={latestDescriptionId} className="text-xs leading-relaxed text-muted-foreground">
-                {wholeDocument ? <Trans>Discard this draft and load the entire latest saved table of contents.</Trans> : <Trans>Replace your overlapping changes with the latest saved values.</Trans>}
+                {wholeActivity ? <Trans>Use the entire latest saved activity instead of this draft.</Trans> : wholeDocument ? <Trans>Discard this draft and load the entire latest saved table of contents.</Trans> : <Trans>Replace your overlapping changes with the latest saved values.</Trans>}
               </p>
             </div>
           </div>
           <p className="text-xs leading-relaxed text-muted-foreground">
-            {wholeDocument ? <Trans>Review the chosen document, then save again.</Trans> : <Trans>Your other edits will be kept. Review the result, then save again.</Trans>}
+            {wholeActivity ? <Trans>Review the chosen activity, then save again.</Trans> : wholeDocument ? <Trans>Review the chosen document, then save again.</Trans> : <Trans>Your other edits will be kept. Review the result, then save again.</Trans>}
           </p>
         </div>
       )}

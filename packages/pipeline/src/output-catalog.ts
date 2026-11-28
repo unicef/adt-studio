@@ -1,18 +1,34 @@
 import { buildOutputSources, firstCatalogEntries, conflictingCatalogHashes, translatedDisplayEntries, currentTranslationEntries } from "./output-sources.js"
 import { retainedCoreTts, retainedEasyRead } from "./retained-catalog.js"
-import { supportsPageBatchedSpeech } from "./speech-batch.js"
 import { buildImageTranslationConfig } from "./image-translation.js"
 import path from "node:path"
 import { bookAssetExists, type Storage } from "@adt/storage"
 import { createPromptEngine } from "@adt/llm"
-import { isTtsExcluded, voiceSlotEntryId, type AppConfig, type TextCatalogEntry, type TextCatalogOutput, type ImageCaptioningOutput, type TTSOutput, type WordTimestampOutput, type OutputStatus, type OutputMetadata, type TranslatedImageAsset } from "@adt/types"
+import { isTtsExcluded, voiceSlotEntryId, EMPTY_AUTHORED_ELEMENT_AUDIO_IDS, isAuthoredElementAudioId, type AppConfig, type AuthoredElementAudioIds, type TextCatalogEntry, type TextCatalogOutput, type ImageCaptioningOutput, type TTSOutput, type WordTimestampOutput, type OutputStatus, type OutputMetadata, type TranslatedImageAsset } from "@adt/types"
 import { buildCaptionConfig } from "./image-captioning.js"
 import { buildCatalogTranslationConfig, getTargetLanguages, translationInputSignature } from "./catalog-translation.js"
 import { conflictingEasyReadHashes, buildEasyReadConfig, easyReadInputSignature, flattenEasyReadEntries, indexEasyReadEntries } from "./easy-read.js"
-import { buildCoreTtsPreparationConfig, buildCoreTtsSourceContext, resolveCoreTtsSpeechCatalog, coreTtsInputBasis, loadCoreTtsProfiles, resolveCoreTtsProfile } from "./core-tts.js"
+import { buildCoreTtsPreparationConfig, buildCoreTtsSourceContext, resolveCoreTtsSpeechCatalog, coreTtsInputBasis, preparationNeighbors, loadCoreTtsProfiles, resolveCoreTtsProfile } from "./core-tts.js"
 import { normalizeLocale, getBaseLanguage } from "./language-context.js"
 import { deriveOutputStatus, inputSignature, outputIdentityKey, withOutputLocations } from "./output-freshness.js"
-import { speechPageId, isSpeakableText, computePageSpeechInputSignature, computeSpeechCacheKey, loadVoicesConfig, loadSpeechInstructions, resolveSpeechVoice, resolveSpeechFormat, resolveInstructions, stripEmojis, elevenLabsVoiceSettingsFromConfig, findAdjacentSpeechText } from "./speech.js"
+import { speechPageId, isBatchableSpeechEntry, isSpeakableText, computePageSpeechInputSignature, computeSpeechCacheKey, loadVoicesConfig, loadSpeechInstructions, resolveSpeechVoice, resolveSpeechFormat, resolveInstructions, stripEmojis, elevenLabsVoiceSettingsFromConfig, findAdjacentSpeechText } from "./speech.js"
+import { collectElementAudioTextIds } from "./element-audio-ids.js"
+
+/** The catalog id whose text is the adjacent ElevenLabs context, skipping
+ * element-audio entries so a script can never become a real entry's context. */
+export function adjacentSpeechContextId(
+  entries: TextCatalogEntry[],
+  index: number,
+  direction: 1 | -1,
+  text: string,
+  authoredElementAudioIds: AuthoredElementAudioIds = EMPTY_AUTHORED_ELEMENT_AUDIO_IDS,
+): string | undefined {
+  for (let candidate = index + direction; candidate >= 0 && candidate < entries.length; candidate += direction) {
+    if (isAuthoredElementAudioId(entries[candidate].id, authoredElementAudioIds)) continue
+    if (stripEmojis(entries[candidate].text).trim() === text) return entries[candidate].id
+  }
+  return undefined
+}
 
 export function captionInputSignature(options: { language: string; summary?: string; config: ReturnType<typeof buildCaptionConfig>; prompt: string }): string {
   return inputSignature({ language: options.language,
@@ -50,6 +66,7 @@ function projectOutputCatalog(options: Parameters<typeof readOutputCatalog>[0]):
       return images.get(id)!
     },
   }
+  const authoredElementAudioIds = collectElementAudioTextIds(storage)
   const assets = new Map<string, boolean>()
   const available = (relative: string) => {
     if (!assets.has(relative)) assets.set(relative, bookAssetExists(bookDir, relative))
@@ -166,7 +183,7 @@ function projectOutputCatalog(options: Parameters<typeof readOutputCatalog>[0]):
   preparation.promptSignature = prompt(preparation.promptName, preparation.modelId)
   const profiles = loadCoreTtsProfiles(configDir)
   const sourceCore = retainedCoreTts(storage, sourceLanguage, sources.map((entry) => entry.id))
-  const effectiveSourceCore = resolveCoreTtsSpeechCatalog({ entries: sources, language: sourceLanguage, config: preparation, profile: resolveCoreTtsProfile(sourceLanguage, profiles), previous: sourceCore })
+  const effectiveSourceCore = resolveCoreTtsSpeechCatalog({ entries: sources, language: sourceLanguage, config: preparation, profile: resolveCoreTtsProfile(sourceLanguage, profiles), previous: sourceCore, authoredElementAudioIds })
   const sourceContext = buildCoreTtsSourceContext(sources, effectiveSourceCore)
   const voices = loadVoicesConfig(configDir)
   const instructions = loadSpeechInstructions(configDir)
@@ -182,28 +199,29 @@ function projectOutputCatalog(options: Parameters<typeof readOutputCatalog>[0]):
     const coreById = new Map((core?.entries ?? []).map((entry) => [entry.id, entry]))
     const audio = ((storage.getLatestNodeData("tts", language) ?? storage.getLatestNodeData("tts", language.replace("-", "_")))?.data as TTSOutput | undefined)?.entries ?? []
     const timings = ((storage.getLatestNodeData("tts-timestamps", language) ?? storage.getLatestNodeData("tts-timestamps", language.replace("-", "_")))?.data as WordTimestampOutput | undefined)?.entries
-    const effectiveCore = resolveCoreTtsSpeechCatalog({ entries, language, config: preparation, profile, previous: core, sourceContext: language === sourceLanguage ? undefined : sourceContext })
+    const effectiveCore = resolveCoreTtsSpeechCatalog({ entries, language, config: preparation, profile, previous: core, sourceContext: language === sourceLanguage ? undefined : sourceContext, authoredElementAudioIds })
     const effectiveById = new Map(effectiveCore.entries.map((entry) => [entry.id, entry]))
-    const pageOf = (entry: TextCatalogEntry) => speechPageId(entry.id, entry.locations?.flatMap((location) => location.pageId ? [location.pageId] : []))
+    const pageOf = (entry: TextCatalogEntry) => speechPageId(entry.id, entry.locations?.flatMap((location) => location.pageId ? [location.pageId] : []), authoredElementAudioIds)
     const speechEntries = entries.map((entry) => ({ ...entry, text: effectiveById.get(entry.id)?.speechText ?? entry.text }))
     for (let index = 0; index < entries.length; index++) {
       const source = entries[index]
       const previous = effectiveById.get(source.id) ?? coreById.get(source.id)
-      const { signature, input } = coreTtsInputBasis({ entries, index, language, config: preparation, profile, sourceContext: language === sourceLanguage ? undefined : sourceContext })
+      const { signature, input } = coreTtsInputBasis({ entries, index, language, config: preparation, profile, sourceContext: language === sourceLanguage ? undefined : sourceContext, authoredElementAudioIds })
       const upstream = usesSourceText ? sourceStatus(source) : find("translation", source.id, language)
       const metadata: OutputMetadata | undefined = previous?.generation.mode === "manual" ? { ...previous, source: "manual" } : previous
       // Easy Read is read aloud unless muted in Read-Aloud Content (the
       // "easy-read" category) or per entry, as before this spec. The unused
       // `easy_read.tts` config field has no Studio control and must not gate it.
-      const speechExcluded = isTtsExcluded(source.id, config.speech) || (!!source.text.trim() && !isSpeakableText(stripEmojis(source.text).trim()))
+      const speechExcluded = isTtsExcluded(source.id, config.speech, authoredElementAudioIds) || (!!source.text.trim() && !isSpeakableText(stripEmojis(source.text).trim()))
       const prepStatus = add(withOutputLocations(deriveOutputStatus({ identity: { kind: "preparation", id: source.id, language }, signature,
         content: previous?.speechText, metadata, excluded: speechExcluded, usable: !!previous?.speechText?.trim(), fallback: previous?.fallbackReason, upstream: upstream ? [upstream] : [],
       }), source))
-      const contextWarnings = (input.enabled_transformations.length ? entries.slice(Math.max(0, index - 1), index + 2) : [source]).flatMap((entry) => {
+      const neighbors = input.enabled_transformations.length ? preparationNeighbors(entries, index, authoredElementAudioIds) : [source]
+      const contextWarnings = neighbors.flatMap((entry) => {
         const status = usesSourceText ? sourceStatus(entry) : find("translation", entry.id, language)
         return status ? [outputIdentityKey(status.identity)] : []
       })
-      inheritSourceConflicts(prepStatus, (input.enabled_transformations.length ? entries.slice(Math.max(0, index - 1), index + 2) : [source]).map((entry) => entry.id))
+      inheritSourceConflicts(prepStatus, neighbors.map((entry) => entry.id))
       if (input.enabled_transformations.length && language !== sourceLanguage) contextWarnings.push(outputIdentityKey({ kind: "preparation", id: source.id, language: sourceLanguage }))
       dependencies.set(outputIdentityKey(prepStatus.identity), contextWarnings)
       if (options.kinds && !options.kinds.some((kind) => kind === "audio" || kind === "timestamps")) continue
@@ -214,13 +232,13 @@ function projectOutputCatalog(options: Parameters<typeof readOutputCatalog>[0]):
         let speechSignature = computeSpeechCacheKey({ format: resolveSpeechFormat(voice.provider, config.speech?.format), sampleRate: config.speech?.sample_rate, bitRate: config.speech?.bit_rate, text, provider: voice.provider, model: voice.model, voice: voice.voice,
           instructions: ["openai", "gemini"].includes(voice.provider) ? resolveInstructions(language, instructions) : "",
           geminiTemperature: config.speech?.temperature, geminiSeed: config.speech?.seed,
-          elevenLabsPreviousText: voice.provider === "elevenlabs" && config.speech?.elevenlabs_use_context ? findAdjacentSpeechText(speechEntries, index, -1, config.speech) : undefined,
-          elevenLabsNextText: voice.provider === "elevenlabs" && config.speech?.elevenlabs_use_context ? findAdjacentSpeechText(speechEntries, index, 1, config.speech) : undefined,
+          elevenLabsPreviousText: voice.provider === "elevenlabs" && config.speech?.elevenlabs_use_context ? findAdjacentSpeechText(speechEntries, index, -1, config.speech, authoredElementAudioIds) : undefined,
+          elevenLabsNextText: voice.provider === "elevenlabs" && config.speech?.elevenlabs_use_context ? findAdjacentSpeechText(speechEntries, index, 1, config.speech, authoredElementAudioIds) : undefined,
           elevenLabsApplyTextNormalization: config.speech?.elevenlabs_apply_text_normalization, ...elevenLabsVoiceSettingsFromConfig(config.speech),
         })
         const pageId = pageOf(source)
-        if (prior?.pageBatchFallback !== "single-item" && config.speech?.batch_by_page && voice.provider === "gemini" && supportsPageBatchedSpeech(language) && pageId && !source.id.endsWith("_easy_read")) {
-          const context = speechEntries.filter((entry) => pageOf(entry) === pageId && !isTtsExcluded(entry.id, config.speech))
+        if (prior?.pageBatchFallback !== "single-item" && isBatchableSpeechEntry(pageId, voice.provider, language, config.speech)) {
+          const context = speechEntries.filter((entry) => pageOf(entry) === pageId && !isTtsExcluded(entry.id, config.speech, authoredElementAudioIds))
           speechSignature = computePageSpeechInputSignature({ entries: context, voice: voice.voice, model: voice.model, instructions: resolveInstructions(language, instructions), provider: voice.provider, geminiTemperature: config.speech?.temperature, geminiSeed: config.speech?.seed })
         }
         let usable = false
@@ -234,14 +252,13 @@ function projectOutputCatalog(options: Parameters<typeof readOutputCatalog>[0]):
           content: prior?.audioHash ?? prior?.fileName, metadata: audioMetadata, usable, recoverableFailure: !!prior, excluded: speechExcluded, upstream: [prepStatus],
         }), source))
         let speechContext = [source.id]
-        if (prior?.pageBatchFallback !== "single-item" && config.speech?.batch_by_page && voice.provider === "gemini" && supportsPageBatchedSpeech(language) && pageId && !source.id.endsWith("_easy_read")) {
-          speechContext = speechEntries.filter((entry) => pageOf(entry) === pageId && !isTtsExcluded(entry.id, config.speech)).map((entry) => entry.id)
+        if (prior?.pageBatchFallback !== "single-item" && isBatchableSpeechEntry(pageId, voice.provider, language, config.speech)) {
+          speechContext = speechEntries.filter((entry) => pageOf(entry) === pageId && !isTtsExcluded(entry.id, config.speech, authoredElementAudioIds)).map((entry) => entry.id)
         } else if (voice.provider === "elevenlabs" && config.speech?.elevenlabs_use_context) {
           for (const direction of [-1, 1] as const) {
-            const text = findAdjacentSpeechText(speechEntries, index, direction, config.speech)
-            for (let candidate = index + direction; text && candidate >= 0 && candidate < speechEntries.length; candidate += direction) {
-              if (stripEmojis(speechEntries[candidate].text).trim() === text) { speechContext.push(speechEntries[candidate].id); break }
-            }
+            const text = findAdjacentSpeechText(speechEntries, index, direction, config.speech, authoredElementAudioIds)
+            const contextId = text ? adjacentSpeechContextId(speechEntries, index, direction, text, authoredElementAudioIds) : undefined
+            if (contextId) speechContext.push(contextId)
           }
         }
         dependencies.set(outputIdentityKey(audioStatus.identity), speechContext.map((id) => outputIdentityKey({ kind: "preparation", id, language })))

@@ -1,6 +1,8 @@
 import fs from "node:fs"
+import path from "node:path"
 import { HTTPException } from "hono/http-exception"
-import { resolveBookPaths } from "@adt/storage"
+import { resolveBookPaths, BookBusyError } from "@adt/storage"
+import { BookLabel, BOOK_RECOVERY_PENDING_FILE } from "@adt/types"
 import { resolvePathWithin } from "./path-security.js"
 
 /** Check before admission and again when queued work starts. Opening storage or
@@ -9,7 +11,12 @@ import { resolvePathWithin } from "./path-security.js"
  * book has its database, or, before its first extraction, its source PDF. A
  * stale write never recreates either file. */
 export function requireExistingBook(label: string, booksDir: string): string {
+  const parsed = BookLabel.safeParse(label)
+  if (!parsed.success) throw new HTTPException(400, { message: parsed.error.message })
   const { bookDir } = resolveBookPaths(label, booksDir)
+  if (fs.existsSync(path.join(bookDir, BOOK_RECOVERY_PENDING_FILE))) {
+    throw new BookBusyError("This recovery copy has not been validated. The original book is preserved.")
+  }
   const isFile = (name: string) => {
     const file = resolvePathWithin(booksDir, label, name)
     return !!file && fs.existsSync(file) && fs.statSync(file).isFile()

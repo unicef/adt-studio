@@ -1,0 +1,33 @@
+/* The reading loader: the wizard's beam, then real pages with a thin scan line. Everything stops under reduced motion, leaving the wizard, a still beam and the pages. */
+
+/* The beam: a cone from the wand tip (left, middle) to the pages' height, fading out before the first page. It never overlaps a page. */
+.scan-beam { --scan-beam: var(--brand-400); }
+.dark .scan-beam { --scan-beam: var(--brand-700); }
+.scan-beam-cone {
+  position: absolute; inset: 0; pointer-events: none;
+  clip-path: polygon(0 45%, 100% 0, 100% 100%, 0 55%);
+  background: linear-gradient(to right, color-mix(in oklab, var(--scan-beam) 70%, transparent), color-mix(in oklab, var(--scan-beam) 22%, transparent) 75%, transparent);
+  animation: scan-beam-pulse 2.4s ease-in-out infinite;
+}
+@keyframes scan-beam-pulse { 0%, 100% { opacity: 0.65; } 50% { opacity: 1; } }
+/* Sparkles drift along the beam and fade out before reaching the pages. */
+.scan-spark {
+  position: absolute; left: 0; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 9999px; pointer-events: none;
+  background: #f5b83d; box-shadow: 0 0 6px #f5b83d; opacity: 0;
+  animation: scan-spark-drift 1.8s var(--lc-out, cubic-bezier(0.23, 1, 0.32, 1)) infinite;
+}
+@keyframes scan-spark-drift { 0% { left: 0; opacity: 0; } 20% { opacity: 1; } 75% { opacity: 0; } 100% { left: 80%; opacity: 0; } }
+
+/* Scan line: a thin glowing line walks down each page, page after page. Only 2px, so the page stays readable. */
+@keyframes scan-line-walk { 0% { top: 0; opacity: 0; } 8% { opacity: 1; } 70% { top: calc(100% - 2px); opacity: 1; } 76%, 100% { top: calc(100% - 2px); opacity: 0; } }
+.scan-line {
+  position: absolute; left: 0; right: 0; top: 0; height: 2px; pointer-events: none; opacity: 0;
+  background: var(--brand-500);
+  box-shadow: 0 0 6px 1px color-mix(in oklab, var(--brand-500) 55%, transparent);
+  animation: scan-line-walk 2.4s var(--lc-out, cubic-bezier(0.23, 1, 0.32, 1)) infinite both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scan-beam-cone { animation: none; opacity: 0.8; }
+  .scan-spark, .scan-line { animation: none; opacity: 0; }
+}

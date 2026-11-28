@@ -3,7 +3,7 @@ import type { ProgressEvent, TaskEvent } from "@adt/types"
 export type BookSSEEvent =
   | { type: "progress"; data: ProgressEvent }
   | { type: "stage-run-complete"; label: string }
-  | { type: "stage-run-error"; label: string; error: string }
+  | { type: "stage-run-error"; label: string; error: string; code?: string }
   | { type: "stage-run-cancelled"; label: string }
   | { type: "queue-next"; label: string; fromStage: string; toStage: string }
   | {

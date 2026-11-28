@@ -1,0 +1,1819 @@
+{
+  "target": "api",
+  "env": {
+    "when": "2026-11-20T22:13:24.614Z",
+    "windows": {
+      "Caption": "Microsoft Windows 11 Pro",
+      "Version": "10.0.26300",
+      "BuildNumber": "26300",
+      "OSArchitecture": "64-bit"
+    },
+    "filesystem": {
+      "DriveLetter": "C",
+      "FileSystem": "NTFS",
+      "DriveType": "Fixed"
+    },
+    "node": "v22.22.0",
+    "git": "e38a860f8cf148e5e9548a580dd0ac6da983ded8",
+    "branch": "spec/708-sectioning-mode-lifecycle",
+    "worktreeChanges": "M apps/studio/src/routeTree.gen.ts\n?? docs/verification/evidence/spec-0003-windows-smoke-2026-11-20/",
+    "defender": {
+      "AMServiceEnabled": true,
+      "AntivirusEnabled": true,
+      "RealTimeProtectionEnabled": true,
+      "OnAccessProtectionEnabled": true,
+      "BehaviorMonitorEnabled": true,
+      "IoavProtectionEnabled": true,
+      "IsTamperProtected": true,
+      "AMProductVersion": "4.18.26100.4",
+      "AntivirusSignatureVersion": "1.463.389.0"
+    },
+    "defenderExclusions": "N/A: Must be an administrator to view exclusions",
+    "controlledFolderAccess": "0"
+  },
+  "checks": [
+    {
+      "id": "ENV-defender-realtime-on",
+      "pass": true
+    },
+    {
+      "id": "BASE-open",
+      "pass": true,
+      "detail": 200
+    },
+    {
+      "id": "BASE-edit-saved",
+      "pass": true,
+      "detail": 200
+    },
+    {
+      "id": "BASE-close",
+      "pass": true,
+      "detail": {
+        "graceful": false,
+        "how": "TerminateProcess at idle (bare API has no window to close)",
+        "exit": {
+          "code": 1,
+          "signal": null
+        }
+      }
+    },
+    {
+      "id": "BASE-close-left-no-lease",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "BASE-history-after-close",
+      "pass": true,
+      "detail": [
+        "Education Activities — Test Set",
+        "Open-Ended Questions",
+        "WIN1 close-reopen edit"
+      ]
+    },
+    {
+      "id": "BASE-rows-preserved",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "BASE-reopen-shows-edit",
+      "pass": true,
+      "detail": "WIN1 close-reopen edit"
+    },
+    {
+      "id": "BASE-media-intact-after-reopen",
+      "pass": true
+    },
+    {
+      "id": "CYCLE-01-acquire-writer-killed",
+      "pass": true,
+      "detail": {
+        "atKill": [
+          ".book-writer.json.recovery.preparing-afa75ab6-631e-4f69-82e3-cc1288ab80d9"
+        ],
+        "afterKill": [
+          ".book-writer.json.recovery.preparing-afa75ab6-631e-4f69-82e3-cc1288ab80d9"
+        ],
+        "acked": 0,
+        "transportError": "ECONNRESET"
+      }
+    },
+    {
+      "id": "CYCLE-01-acquire-db-integrity",
+      "pass": true,
+      "detail": [
+        "ok"
+      ]
+    },
+    {
+      "id": "CYCLE-01-acquire-history-atomic",
+      "pass": true,
+      "detail": {
+        "tail": [
+          "Education Activities — Test Set",
+          "Open-Ended Questions",
+          "WIN1 close-reopen edit"
+        ],
+        "inflight": "CYCLE-01-acquire burst 1"
+      }
+    },
+    {
+      "id": "CYCLE-01-acquire-versioned-rows-preserved",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "CYCLE-01-acquire-media-and-files-preserved",
+      "pass": true,
+      "detail": {
+        "changed": [],
+        "removed": [],
+        "added": []
+      }
+    },
+    {
+      "id": "CYCLE-01-acquire-reopen-not-BOOK_BUSY",
+      "pass": true,
+      "detail": {
+        "attempts": [
+          200
+        ],
+        "leftOnDisk": [
+          ".book-writer.json.recovery.preparing-afa75ab6-631e-4f69-82e3-cc1288ab80d9"
+        ]
+      }
+    },
+    {
+      "id": "CYCLE-01-acquire-reopen-shows-last-committed",
+      "pass": true,
+      "detail": {
+        "title": "WIN1 close-reopen edit"
+      }
+    },
+    {
+      "id": "CYCLE-01-acquire-no-blocking-artifacts-after-reopen",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "CYCLE-01-acquire-edit-after-restart",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "title": "CYCLE-01-acquire post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-02-publish-writer-killed",
+      "pass": true,
+      "detail": {
+        "atKill": [
+          ".book-writer.json.preparing-e2ceb633-c2ee-4301-80ef-6ca25363ba9f",
+          ".book-writer.json.recovery"
+        ],
+        "afterKill": [
+          ".book-writer.json.preparing-e2ceb633-c2ee-4301-80ef-6ca25363ba9f",
+          ".book-writer.json.recovery"
+        ],
+        "acked": 0,
+        "transportError": "ECONNRESET"
+      }
+    },
+    {
+      "id": "CYCLE-02-publish-db-integrity",
+      "pass": true,
+      "detail": [
+        "ok"
+      ]
+    },
+    {
+      "id": "CYCLE-02-publish-history-atomic",
+      "pass": true,
+      "detail": {
+        "tail": [
+          "Open-Ended Questions",
+          "WIN1 close-reopen edit",
+          "CYCLE-01-acquire post-restart edit"
+        ],
+        "inflight": "CYCLE-02-publish burst 1"
+      }
+    },
+    {
+      "id": "CYCLE-02-publish-versioned-rows-preserved",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "CYCLE-02-publish-media-and-files-preserved",
+      "pass": true,
+      "detail": {
+        "changed": [],
+        "removed": [],
+        "added": []
+      }
+    },
+    {
+      "id": "CYCLE-02-publish-reopen-not-BOOK_BUSY",
+      "pass": true,
+      "detail": {
+        "attempts": [
+          200
+        ],
+        "leftOnDisk": [
+          ".book-writer.json.preparing-e2ceb633-c2ee-4301-80ef-6ca25363ba9f",
+          ".book-writer.json.recovery"
+        ]
+      }
+    },
+    {
+      "id": "CYCLE-02-publish-reopen-shows-last-committed",
+      "pass": true,
+      "detail": {
+        "title": "CYCLE-01-acquire post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-02-publish-no-blocking-artifacts-after-reopen",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "CYCLE-02-publish-edit-after-restart",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "title": "CYCLE-02-publish post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-03-held-writer-killed",
+      "pass": true,
+      "detail": {
+        "atKill": [
+          ".book-writer.json"
+        ],
+        "afterKill": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ],
+        "acked": 0,
+        "transportError": "ECONNRESET"
+      }
+    },
+    {
+      "id": "CYCLE-03-held-db-integrity",
+      "pass": true,
+      "detail": [
+        "ok"
+      ]
+    },
+    {
+      "id": "CYCLE-03-held-history-atomic",
+      "pass": true,
+      "detail": {
+        "tail": [
+          "WIN1 close-reopen edit",
+          "CYCLE-01-acquire post-restart edit",
+          "CYCLE-02-publish post-restart edit"
+        ],
+        "inflight": "CYCLE-03-held burst 1"
+      }
+    },
+    {
+      "id": "CYCLE-03-held-versioned-rows-preserved",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "CYCLE-03-held-media-and-files-preserved",
+      "pass": true,
+      "detail": {
+        "changed": [],
+        "removed": [],
+        "added": []
+      }
+    },
+    {
+      "id": "CYCLE-03-held-reopen-not-BOOK_BUSY",
+      "pass": true,
+      "detail": {
+        "attempts": [
+          200
+        ],
+        "leftOnDisk": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ]
+      }
+    },
+    {
+      "id": "CYCLE-03-held-reopen-shows-last-committed",
+      "pass": true,
+      "detail": {
+        "title": "CYCLE-02-publish post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-03-held-no-blocking-artifacts-after-reopen",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "CYCLE-03-held-edit-after-restart",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "title": "CYCLE-03-held post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-04-random-writer-killed",
+      "pass": true,
+      "detail": {
+        "atKill": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ],
+        "afterKill": [
+          ".book-writer.json"
+        ],
+        "acked": 0,
+        "transportError": "ECONNRESET"
+      }
+    },
+    {
+      "id": "CYCLE-04-random-db-integrity",
+      "pass": true,
+      "detail": [
+        "ok"
+      ]
+    },
+    {
+      "id": "CYCLE-04-random-history-atomic",
+      "pass": true,
+      "detail": {
+        "tail": [
+          "CYCLE-01-acquire post-restart edit",
+          "CYCLE-02-publish post-restart edit",
+          "CYCLE-03-held post-restart edit"
+        ],
+        "inflight": "CYCLE-04-random burst 1"
+      }
+    },
+    {
+      "id": "CYCLE-04-random-versioned-rows-preserved",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "CYCLE-04-random-media-and-files-preserved",
+      "pass": true,
+      "detail": {
+        "changed": [],
+        "removed": [],
+        "added": []
+      }
+    },
+    {
+      "id": "CYCLE-04-random-reopen-not-BOOK_BUSY",
+      "pass": true,
+      "detail": {
+        "attempts": [
+          200
+        ],
+        "leftOnDisk": [
+          ".book-writer.json"
+        ]
+      }
+    },
+    {
+      "id": "CYCLE-04-random-reopen-shows-last-committed",
+      "pass": true,
+      "detail": {
+        "title": "CYCLE-03-held post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-04-random-no-blocking-artifacts-after-reopen",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "CYCLE-04-random-edit-after-restart",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "title": "CYCLE-04-random post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-05-acquire-writer-killed",
+      "pass": true,
+      "detail": {
+        "atKill": [
+          ".book-writer.json.recovery.preparing-9b78952c-b2e2-4b32-a542-bbaf88969101"
+        ],
+        "afterKill": [
+          ".book-writer.json.recovery.preparing-9b78952c-b2e2-4b32-a542-bbaf88969101"
+        ],
+        "acked": 0,
+        "transportError": "ECONNRESET"
+      }
+    },
+    {
+      "id": "CYCLE-05-acquire-db-integrity",
+      "pass": true,
+      "detail": [
+        "ok"
+      ]
+    },
+    {
+      "id": "CYCLE-05-acquire-history-atomic",
+      "pass": true,
+      "detail": {
+        "tail": [
+          "CYCLE-02-publish post-restart edit",
+          "CYCLE-03-held post-restart edit",
+          "CYCLE-04-random post-restart edit"
+        ],
+        "inflight": "CYCLE-05-acquire burst 1"
+      }
+    },
+    {
+      "id": "CYCLE-05-acquire-versioned-rows-preserved",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "CYCLE-05-acquire-media-and-files-preserved",
+      "pass": true,
+      "detail": {
+        "changed": [],
+        "removed": [],
+        "added": []
+      }
+    },
+    {
+      "id": "CYCLE-05-acquire-reopen-not-BOOK_BUSY",
+      "pass": true,
+      "detail": {
+        "attempts": [
+          200
+        ],
+        "leftOnDisk": [
+          ".book-writer.json.recovery.preparing-9b78952c-b2e2-4b32-a542-bbaf88969101"
+        ]
+      }
+    },
+    {
+      "id": "CYCLE-05-acquire-reopen-shows-last-committed",
+      "pass": true,
+      "detail": {
+        "title": "CYCLE-04-random post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-05-acquire-no-blocking-artifacts-after-reopen",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "CYCLE-05-acquire-edit-after-restart",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "title": "CYCLE-05-acquire post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-06-publish-writer-killed",
+      "pass": true,
+      "detail": {
+        "atKill": [
+          ".book-writer.json.preparing-74fbcacc-3a24-4730-be6b-593c75df13ba",
+          ".book-writer.json.recovery"
+        ],
+        "afterKill": [
+          ".book-writer.json.preparing-74fbcacc-3a24-4730-be6b-593c75df13ba",
+          ".book-writer.json.recovery"
+        ],
+        "acked": 0,
+        "transportError": "ECONNRESET"
+      }
+    },
+    {
+      "id": "CYCLE-06-publish-db-integrity",
+      "pass": true,
+      "detail": [
+        "ok"
+      ]
+    },
+    {
+      "id": "CYCLE-06-publish-history-atomic",
+      "pass": true,
+      "detail": {
+        "tail": [
+          "CYCLE-03-held post-restart edit",
+          "CYCLE-04-random post-restart edit",
+          "CYCLE-05-acquire post-restart edit"
+        ],
+        "inflight": "CYCLE-06-publish burst 1"
+      }
+    },
+    {
+      "id": "CYCLE-06-publish-versioned-rows-preserved",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "CYCLE-06-publish-media-and-files-preserved",
+      "pass": true,
+      "detail": {
+        "changed": [],
+        "removed": [],
+        "added": []
+      }
+    },
+    {
+      "id": "CYCLE-06-publish-reopen-not-BOOK_BUSY",
+      "pass": true,
+      "detail": {
+        "attempts": [
+          200
+        ],
+        "leftOnDisk": [
+          ".book-writer.json.preparing-74fbcacc-3a24-4730-be6b-593c75df13ba",
+          ".book-writer.json.recovery"
+        ]
+      }
+    },
+    {
+      "id": "CYCLE-06-publish-reopen-shows-last-committed",
+      "pass": true,
+      "detail": {
+        "title": "CYCLE-05-acquire post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-06-publish-no-blocking-artifacts-after-reopen",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "CYCLE-06-publish-edit-after-restart",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "title": "CYCLE-06-publish post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-07-held-writer-killed",
+      "pass": true,
+      "detail": {
+        "atKill": [
+          ".book-writer.json"
+        ],
+        "afterKill": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ],
+        "acked": 0,
+        "transportError": "ECONNRESET"
+      }
+    },
+    {
+      "id": "CYCLE-07-held-db-integrity",
+      "pass": true,
+      "detail": [
+        "ok"
+      ]
+    },
+    {
+      "id": "CYCLE-07-held-history-atomic",
+      "pass": true,
+      "detail": {
+        "tail": [
+          "CYCLE-04-random post-restart edit",
+          "CYCLE-05-acquire post-restart edit",
+          "CYCLE-06-publish post-restart edit"
+        ],
+        "inflight": "CYCLE-07-held burst 1"
+      }
+    },
+    {
+      "id": "CYCLE-07-held-versioned-rows-preserved",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "CYCLE-07-held-media-and-files-preserved",
+      "pass": true,
+      "detail": {
+        "changed": [],
+        "removed": [],
+        "added": []
+      }
+    },
+    {
+      "id": "CYCLE-07-held-reopen-not-BOOK_BUSY",
+      "pass": true,
+      "detail": {
+        "attempts": [
+          200
+        ],
+        "leftOnDisk": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ]
+      }
+    },
+    {
+      "id": "CYCLE-07-held-reopen-shows-last-committed",
+      "pass": true,
+      "detail": {
+        "title": "CYCLE-06-publish post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-07-held-no-blocking-artifacts-after-reopen",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "CYCLE-07-held-edit-after-restart",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "title": "CYCLE-07-held post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-08-random-writer-killed",
+      "pass": true,
+      "detail": {
+        "atKill": [
+          ".book-writer.json.preparing-3ad96d7e-71f2-46a5-8f45-c2b9be4c753a",
+          ".book-writer.json.recovery"
+        ],
+        "afterKill": [
+          ".book-writer.json",
+          ".book-writer.json.recovery"
+        ],
+        "acked": 0,
+        "transportError": "ECONNRESET"
+      }
+    },
+    {
+      "id": "CYCLE-08-random-db-integrity",
+      "pass": true,
+      "detail": [
+        "ok"
+      ]
+    },
+    {
+      "id": "CYCLE-08-random-history-atomic",
+      "pass": true,
+      "detail": {
+        "tail": [
+          "CYCLE-05-acquire post-restart edit",
+          "CYCLE-06-publish post-restart edit",
+          "CYCLE-07-held post-restart edit"
+        ],
+        "inflight": "CYCLE-08-random burst 1"
+      }
+    },
+    {
+      "id": "CYCLE-08-random-versioned-rows-preserved",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "CYCLE-08-random-media-and-files-preserved",
+      "pass": true,
+      "detail": {
+        "changed": [],
+        "removed": [],
+        "added": []
+      }
+    },
+    {
+      "id": "CYCLE-08-random-reopen-not-BOOK_BUSY",
+      "pass": true,
+      "detail": {
+        "attempts": [
+          200
+        ],
+        "leftOnDisk": [
+          ".book-writer.json",
+          ".book-writer.json.recovery"
+        ]
+      }
+    },
+    {
+      "id": "CYCLE-08-random-reopen-shows-last-committed",
+      "pass": true,
+      "detail": {
+        "title": "CYCLE-07-held post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-08-random-no-blocking-artifacts-after-reopen",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "CYCLE-08-random-edit-after-restart",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "title": "CYCLE-08-random post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-09-acquire-writer-killed",
+      "pass": true,
+      "detail": {
+        "atKill": [
+          ".book-writer.json.recovery.preparing-7bf1e611-d1e0-42bf-9fe5-cd138c70a82a"
+        ],
+        "afterKill": [
+          ".book-writer.json.recovery.preparing-7bf1e611-d1e0-42bf-9fe5-cd138c70a82a"
+        ],
+        "acked": 0,
+        "transportError": "ECONNRESET"
+      }
+    },
+    {
+      "id": "CYCLE-09-acquire-db-integrity",
+      "pass": true,
+      "detail": [
+        "ok"
+      ]
+    },
+    {
+      "id": "CYCLE-09-acquire-history-atomic",
+      "pass": true,
+      "detail": {
+        "tail": [
+          "CYCLE-06-publish post-restart edit",
+          "CYCLE-07-held post-restart edit",
+          "CYCLE-08-random post-restart edit"
+        ],
+        "inflight": "CYCLE-09-acquire burst 1"
+      }
+    },
+    {
+      "id": "CYCLE-09-acquire-versioned-rows-preserved",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "CYCLE-09-acquire-media-and-files-preserved",
+      "pass": true,
+      "detail": {
+        "changed": [],
+        "removed": [],
+        "added": []
+      }
+    },
+    {
+      "id": "CYCLE-09-acquire-reopen-not-BOOK_BUSY",
+      "pass": true,
+      "detail": {
+        "attempts": [
+          200
+        ],
+        "leftOnDisk": [
+          ".book-writer.json.recovery.preparing-7bf1e611-d1e0-42bf-9fe5-cd138c70a82a"
+        ]
+      }
+    },
+    {
+      "id": "CYCLE-09-acquire-reopen-shows-last-committed",
+      "pass": true,
+      "detail": {
+        "title": "CYCLE-08-random post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-09-acquire-no-blocking-artifacts-after-reopen",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "CYCLE-09-acquire-edit-after-restart",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "title": "CYCLE-09-acquire post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-10-publish-writer-killed",
+      "pass": true,
+      "detail": {
+        "atKill": [
+          ".book-writer.json.preparing-02950470-ee45-4fce-a800-eee49481ed80",
+          ".book-writer.json.recovery"
+        ],
+        "afterKill": [
+          ".book-writer.json.preparing-02950470-ee45-4fce-a800-eee49481ed80",
+          ".book-writer.json.recovery"
+        ],
+        "acked": 0,
+        "transportError": "ECONNRESET"
+      }
+    },
+    {
+      "id": "CYCLE-10-publish-db-integrity",
+      "pass": true,
+      "detail": [
+        "ok"
+      ]
+    },
+    {
+      "id": "CYCLE-10-publish-history-atomic",
+      "pass": true,
+      "detail": {
+        "tail": [
+          "CYCLE-07-held post-restart edit",
+          "CYCLE-08-random post-restart edit",
+          "CYCLE-09-acquire post-restart edit"
+        ],
+        "inflight": "CYCLE-10-publish burst 1"
+      }
+    },
+    {
+      "id": "CYCLE-10-publish-versioned-rows-preserved",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "CYCLE-10-publish-media-and-files-preserved",
+      "pass": true,
+      "detail": {
+        "changed": [],
+        "removed": [],
+        "added": []
+      }
+    },
+    {
+      "id": "CYCLE-10-publish-reopen-not-BOOK_BUSY",
+      "pass": true,
+      "detail": {
+        "attempts": [
+          200
+        ],
+        "leftOnDisk": [
+          ".book-writer.json.preparing-02950470-ee45-4fce-a800-eee49481ed80",
+          ".book-writer.json.recovery"
+        ]
+      }
+    },
+    {
+      "id": "CYCLE-10-publish-reopen-shows-last-committed",
+      "pass": true,
+      "detail": {
+        "title": "CYCLE-09-acquire post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-10-publish-no-blocking-artifacts-after-reopen",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "CYCLE-10-publish-edit-after-restart",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "title": "CYCLE-10-publish post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-11-held-writer-killed",
+      "pass": true,
+      "detail": {
+        "atKill": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ],
+        "afterKill": [
+          ".book-writer.json"
+        ],
+        "acked": 0,
+        "transportError": "ECONNRESET"
+      }
+    },
+    {
+      "id": "CYCLE-11-held-db-integrity",
+      "pass": true,
+      "detail": [
+        "ok"
+      ]
+    },
+    {
+      "id": "CYCLE-11-held-history-atomic",
+      "pass": true,
+      "detail": {
+        "tail": [
+          "CYCLE-08-random post-restart edit",
+          "CYCLE-09-acquire post-restart edit",
+          "CYCLE-10-publish post-restart edit"
+        ],
+        "inflight": "CYCLE-11-held burst 1"
+      }
+    },
+    {
+      "id": "CYCLE-11-held-versioned-rows-preserved",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "CYCLE-11-held-media-and-files-preserved",
+      "pass": true,
+      "detail": {
+        "changed": [],
+        "removed": [],
+        "added": []
+      }
+    },
+    {
+      "id": "CYCLE-11-held-reopen-not-BOOK_BUSY",
+      "pass": true,
+      "detail": {
+        "attempts": [
+          200
+        ],
+        "leftOnDisk": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ]
+      }
+    },
+    {
+      "id": "CYCLE-11-held-reopen-shows-last-committed",
+      "pass": true,
+      "detail": {
+        "title": "CYCLE-10-publish post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-11-held-no-blocking-artifacts-after-reopen",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "CYCLE-11-held-edit-after-restart",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "title": "CYCLE-11-held post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-12-random-writer-killed",
+      "pass": true,
+      "detail": {
+        "atKill": [
+          ".book-writer.json",
+          ".book-writer.json.recovery"
+        ],
+        "afterKill": [
+          ".book-writer.json"
+        ],
+        "acked": 0,
+        "transportError": "ECONNRESET"
+      }
+    },
+    {
+      "id": "CYCLE-12-random-db-integrity",
+      "pass": true,
+      "detail": [
+        "ok"
+      ]
+    },
+    {
+      "id": "CYCLE-12-random-history-atomic",
+      "pass": true,
+      "detail": {
+        "tail": [
+          "CYCLE-09-acquire post-restart edit",
+          "CYCLE-10-publish post-restart edit",
+          "CYCLE-11-held post-restart edit"
+        ],
+        "inflight": "CYCLE-12-random burst 1"
+      }
+    },
+    {
+      "id": "CYCLE-12-random-versioned-rows-preserved",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "CYCLE-12-random-media-and-files-preserved",
+      "pass": true,
+      "detail": {
+        "changed": [],
+        "removed": [],
+        "added": []
+      }
+    },
+    {
+      "id": "CYCLE-12-random-reopen-not-BOOK_BUSY",
+      "pass": true,
+      "detail": {
+        "attempts": [
+          200
+        ],
+        "leftOnDisk": [
+          ".book-writer.json"
+        ]
+      }
+    },
+    {
+      "id": "CYCLE-12-random-reopen-shows-last-committed",
+      "pass": true,
+      "detail": {
+        "title": "CYCLE-11-held post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-12-random-no-blocking-artifacts-after-reopen",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "CYCLE-12-random-edit-after-restart",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "title": "CYCLE-12-random post-restart edit"
+      }
+    },
+    {
+      "id": "LIVE-holder-lease-published",
+      "pass": true
+    },
+    {
+      "id": "LIVE-open-refused",
+      "pass": true
+    },
+    {
+      "id": "LIVE-edit-refused",
+      "pass": true
+    },
+    {
+      "id": "LIVE-recover-copy-refused",
+      "pass": true,
+      "detail": {
+        "status": 409,
+        "json": {
+          "error": "BOOK_BUSY: This book may still be in use. Finish any active work and close other book apps, then retry. If it stays unavailable, go to Library, select this book, and choose Recover a copy. If recovery is also refused, restart your computer and try again.",
+          "code": "BOOK_BUSY"
+        }
+      }
+    },
+    {
+      "id": "LIVE-no-copy-created",
+      "pass": true
+    },
+    {
+      "id": "LIVE-lease-bytes-unchanged",
+      "pass": true
+    },
+    {
+      "id": "LIVE-files-unchanged",
+      "pass": true
+    },
+    {
+      "id": "LIVE-holder-killed-lease-retained",
+      "pass": true
+    },
+    {
+      "id": "LIVE-dead-holder-reclaimed-by-running-app",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "title": "CYCLE-12-random post-restart edit"
+      }
+    },
+    {
+      "id": "LIVE-no-blocking-artifacts",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "LIVE-not-landed",
+      "pass": true
+    },
+    {
+      "id": "FINAL-close",
+      "pass": true,
+      "detail": {
+        "graceful": false,
+        "how": "TerminateProcess at idle (bare API has no window to close)",
+        "exit": {
+          "code": 1,
+          "signal": null
+        }
+      }
+    },
+    {
+      "id": "FINAL-no-lease-left",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "FINAL-db-integrity",
+      "pass": true
+    },
+    {
+      "id": "FINAL-history-equals-every-committed-edit-in-order",
+      "pass": true,
+      "detail": {
+        "versions": 15,
+        "current": 15
+      }
+    },
+    {
+      "id": "FINAL-current-pointer-is-latest",
+      "pass": true
+    },
+    {
+      "id": "FINAL-no-versioned-row-lost-since-start",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "FINAL-media-and-files-preserved",
+      "pass": true,
+      "detail": {
+        "changed": [],
+        "removed": [],
+        "added": []
+      }
+    },
+    {
+      "id": "PIDREUSE-open-refused",
+      "pass": true
+    },
+    {
+      "id": "PIDREUSE-recover-copy-refused",
+      "pass": true,
+      "detail": {
+        "status": 409,
+        "json": {
+          "error": "BOOK_BUSY: This book may still be in use. Finish any active work and close other book apps, then retry. If it stays unavailable, go to Library, select this book, and choose Recover a copy. If recovery is also refused, restart your computer and try again.",
+          "code": "BOOK_BUSY"
+        }
+      }
+    },
+    {
+      "id": "PIDREUSE-no-copy-created",
+      "pass": true
+    },
+    {
+      "id": "PIDREUSE-original-lease-bytes-preserved",
+      "pass": true
+    },
+    {
+      "id": "PIDREUSE-original-files-unchanged",
+      "pass": true
+    },
+    {
+      "id": "PIDREUSE-original-still-refused",
+      "pass": true
+    },
+    {
+      "id": "UNVERIFIABLE-open-refused",
+      "pass": true
+    },
+    {
+      "id": "UNVERIFIABLE-recover-copy-201",
+      "pass": true,
+      "detail": {
+        "status": 201,
+        "json": {
+          "sourceLabel": "Education_Activities_v2",
+          "label": "win1-unverifiable-copy"
+        }
+      }
+    },
+    {
+      "id": "UNVERIFIABLE-copy-opens",
+      "pass": true,
+      "detail": 200
+    },
+    {
+      "id": "UNVERIFIABLE-copy-complete-and-identical",
+      "pass": true,
+      "detail": {
+        "missing": [],
+        "differing": []
+      }
+    },
+    {
+      "id": "UNVERIFIABLE-copy-keeps-quarantined-evidence-and-audit",
+      "pass": true,
+      "detail": [
+        ".book-recovery-688a3aa5-3481-406b-8cd1-78d65d3f1f36\\audit.json",
+        ".book-recovery-688a3aa5-3481-406b-8cd1-78d65d3f1f36\\locks\\.book-writer.json"
+      ]
+    },
+    {
+      "id": "UNVERIFIABLE-copy-db-integrity",
+      "pass": true
+    },
+    {
+      "id": "UNVERIFIABLE-original-lease-bytes-preserved",
+      "pass": true
+    },
+    {
+      "id": "UNVERIFIABLE-original-files-unchanged",
+      "pass": true
+    },
+    {
+      "id": "UNVERIFIABLE-original-still-refused",
+      "pass": true
+    }
+  ],
+  "notes": [
+    "launch 1: writer pid 23168",
+    "tracked non-DB files (media, PDF, assets, cache): 1053",
+    "PIDREUSE: injected lease left in place in its disposable copy (no lock was deleted)",
+    "UNVERIFIABLE: injected lease left in place in its disposable copy (no lock was deleted)"
+  ],
+  "cycles": [
+    {
+      "id": "CYCLE-01-acquire",
+      "mode": "acquire",
+      "kind": "process",
+      "watcherCode": 0,
+      "kill": {
+        "killed": true,
+        "mode": "acquire",
+        "killedAt": "2026-11-20T22:13:41.971Z",
+        "triggerArtifacts": [
+          ".book-writer.json.recovery.preparing-afa75ab6-631e-4f69-82e3-cc1288ab80d9"
+        ],
+        "artifactsAtKill": [
+          ".book-writer.json.recovery.preparing-afa75ab6-631e-4f69-82e3-cc1288ab80d9"
+        ],
+        "leaseAtKill": null,
+        "artifactsAfterKill": [
+          ".book-writer.json.recovery.preparing-afa75ab6-631e-4f69-82e3-cc1288ab80d9"
+        ]
+      },
+      "acked": 0,
+      "refusals": [],
+      "inflight": "CYCLE-01-acquire burst 1",
+      "transportError": "ECONNRESET",
+      "after": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        }
+      },
+      "transientLogLines": [],
+      "leftOnDisk": [
+        ".book-writer.json.recovery.preparing-afa75ab6-631e-4f69-82e3-cc1288ab80d9"
+      ],
+      "reopenAttempts": [
+        200
+      ],
+      "leftAfterReopen": []
+    },
+    {
+      "id": "CYCLE-02-publish",
+      "mode": "publish",
+      "kind": "process",
+      "watcherCode": 0,
+      "kill": {
+        "killed": true,
+        "mode": "publish",
+        "killedAt": "2026-11-20T22:13:46.058Z",
+        "triggerArtifacts": [
+          ".book-writer.json.preparing-e2ceb633-c2ee-4301-80ef-6ca25363ba9f",
+          ".book-writer.json.recovery"
+        ],
+        "artifactsAtKill": [
+          ".book-writer.json.preparing-e2ceb633-c2ee-4301-80ef-6ca25363ba9f",
+          ".book-writer.json.recovery"
+        ],
+        "leaseAtKill": null,
+        "artifactsAfterKill": [
+          ".book-writer.json.preparing-e2ceb633-c2ee-4301-80ef-6ca25363ba9f",
+          ".book-writer.json.recovery"
+        ]
+      },
+      "acked": 0,
+      "refusals": [],
+      "inflight": "CYCLE-02-publish burst 1",
+      "transportError": "ECONNRESET",
+      "after": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        }
+      },
+      "transientLogLines": [],
+      "leftOnDisk": [
+        ".book-writer.json.preparing-e2ceb633-c2ee-4301-80ef-6ca25363ba9f",
+        ".book-writer.json.recovery"
+      ],
+      "reopenAttempts": [
+        200
+      ],
+      "leftAfterReopen": []
+    },
+    {
+      "id": "CYCLE-03-held",
+      "mode": "held",
+      "kind": "process",
+      "watcherCode": 0,
+      "kill": {
+        "killed": true,
+        "mode": "held",
+        "killedAt": "2026-11-20T22:13:50.177Z",
+        "triggerArtifacts": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ],
+        "artifactsAtKill": [
+          ".book-writer.json"
+        ],
+        "leaseAtKill": "{\"token\":\"069f2ef6-46a1-4e04-8db5-828fecf47338\",\"pid\":23736,\"host\":\"<host>\",\"coordinatedDatabases\":[\"Education_Activities_v2.db\"]}",
+        "artifactsAfterKill": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ]
+      },
+      "acked": 0,
+      "refusals": [],
+      "inflight": "CYCLE-03-held burst 1",
+      "transportError": "ECONNRESET",
+      "after": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        }
+      },
+      "transientLogLines": [],
+      "leftOnDisk": [
+        ".book-writer.json",
+        "Education_Activities_v2.db.lock"
+      ],
+      "reopenAttempts": [
+        200
+      ],
+      "leftAfterReopen": []
+    },
+    {
+      "id": "CYCLE-04-random",
+      "mode": "random",
+      "kind": "process",
+      "watcherCode": 0,
+      "kill": {
+        "killed": true,
+        "mode": "random",
+        "randomSpinMicros": 19838,
+        "killedAt": "2026-11-20T22:13:54.252Z",
+        "triggerArtifacts": [
+          ".book-writer.json.recovery.preparing-ddb3e097-10d3-4467-a133-6954e248bd29"
+        ],
+        "artifactsAtKill": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ],
+        "leaseAtKill": "{\"token\":\"ddb3e097-10d3-4467-a133-6954e248bd29\",\"pid\":20552,\"host\":\"<host>\",\"coordinatedDatabases\":[\"Education_Activities_v2.db\"]}",
+        "artifactsAfterKill": [
+          ".book-writer.json"
+        ]
+      },
+      "acked": 0,
+      "refusals": [],
+      "inflight": "CYCLE-04-random burst 1",
+      "transportError": "ECONNRESET",
+      "after": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        }
+      },
+      "transientLogLines": [],
+      "leftOnDisk": [
+        ".book-writer.json"
+      ],
+      "reopenAttempts": [
+        200
+      ],
+      "leftAfterReopen": []
+    },
+    {
+      "id": "CYCLE-05-acquire",
+      "mode": "acquire",
+      "kind": "process",
+      "watcherCode": 0,
+      "kill": {
+        "killed": true,
+        "mode": "acquire",
+        "killedAt": "2026-11-20T22:13:58.302Z",
+        "triggerArtifacts": [
+          ".book-writer.json.recovery.preparing-9b78952c-b2e2-4b32-a542-bbaf88969101"
+        ],
+        "artifactsAtKill": [
+          ".book-writer.json.recovery.preparing-9b78952c-b2e2-4b32-a542-bbaf88969101"
+        ],
+        "leaseAtKill": null,
+        "artifactsAfterKill": [
+          ".book-writer.json.recovery.preparing-9b78952c-b2e2-4b32-a542-bbaf88969101"
+        ]
+      },
+      "acked": 0,
+      "refusals": [],
+      "inflight": "CYCLE-05-acquire burst 1",
+      "transportError": "ECONNRESET",
+      "after": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        }
+      },
+      "transientLogLines": [],
+      "leftOnDisk": [
+        ".book-writer.json.recovery.preparing-9b78952c-b2e2-4b32-a542-bbaf88969101"
+      ],
+      "reopenAttempts": [
+        200
+      ],
+      "leftAfterReopen": []
+    },
+    {
+      "id": "CYCLE-06-publish",
+      "mode": "publish",
+      "kind": "process",
+      "watcherCode": 0,
+      "kill": {
+        "killed": true,
+        "mode": "publish",
+        "killedAt": "2026-11-20T22:14:02.383Z",
+        "triggerArtifacts": [
+          ".book-writer.json.preparing-74fbcacc-3a24-4730-be6b-593c75df13ba",
+          ".book-writer.json.recovery"
+        ],
+        "artifactsAtKill": [
+          ".book-writer.json.preparing-74fbcacc-3a24-4730-be6b-593c75df13ba",
+          ".book-writer.json.recovery"
+        ],
+        "leaseAtKill": null,
+        "artifactsAfterKill": [
+          ".book-writer.json.preparing-74fbcacc-3a24-4730-be6b-593c75df13ba",
+          ".book-writer.json.recovery"
+        ]
+      },
+      "acked": 0,
+      "refusals": [],
+      "inflight": "CYCLE-06-publish burst 1",
+      "transportError": "ECONNRESET",
+      "after": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        }
+      },
+      "transientLogLines": [],
+      "leftOnDisk": [
+        ".book-writer.json.preparing-74fbcacc-3a24-4730-be6b-593c75df13ba",
+        ".book-writer.json.recovery"
+      ],
+      "reopenAttempts": [
+        200
+      ],
+      "leftAfterReopen": []
+    },
+    {
+      "id": "CYCLE-07-held",
+      "mode": "held",
+      "kind": "process",
+      "watcherCode": 0,
+      "kill": {
+        "killed": true,
+        "mode": "held",
+        "killedAt": "2026-11-20T22:14:06.470Z",
+        "triggerArtifacts": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ],
+        "artifactsAtKill": [
+          ".book-writer.json"
+        ],
+        "leaseAtKill": "{\"token\":\"d061d40c-b691-4eab-8c35-a1a959f2b7c1\",\"pid\":20620,\"host\":\"<host>\",\"coordinatedDatabases\":[\"Education_Activities_v2.db\"]}",
+        "artifactsAfterKill": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ]
+      },
+      "acked": 0,
+      "refusals": [],
+      "inflight": "CYCLE-07-held burst 1",
+      "transportError": "ECONNRESET",
+      "after": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        }
+      },
+      "transientLogLines": [],
+      "leftOnDisk": [
+        ".book-writer.json",
+        "Education_Activities_v2.db.lock"
+      ],
+      "reopenAttempts": [
+        200
+      ],
+      "leftAfterReopen": []
+    },
+    {
+      "id": "CYCLE-08-random",
+      "mode": "random",
+      "kind": "process",
+      "watcherCode": 0,
+      "kill": {
+        "killed": true,
+        "mode": "random",
+        "randomSpinMicros": 5058,
+        "killedAt": "2026-11-20T22:14:10.522Z",
+        "triggerArtifacts": [
+          ".book-writer.json.recovery.preparing-696b3ba4-12f7-4233-a504-8cdb14c46741"
+        ],
+        "artifactsAtKill": [
+          ".book-writer.json.preparing-3ad96d7e-71f2-46a5-8f45-c2b9be4c753a",
+          ".book-writer.json.recovery"
+        ],
+        "leaseAtKill": null,
+        "artifactsAfterKill": [
+          ".book-writer.json",
+          ".book-writer.json.recovery"
+        ]
+      },
+      "acked": 0,
+      "refusals": [],
+      "inflight": "CYCLE-08-random burst 1",
+      "transportError": "ECONNRESET",
+      "after": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        }
+      },
+      "transientLogLines": [],
+      "leftOnDisk": [
+        ".book-writer.json",
+        ".book-writer.json.recovery"
+      ],
+      "reopenAttempts": [
+        200
+      ],
+      "leftAfterReopen": []
+    },
+    {
+      "id": "CYCLE-09-acquire",
+      "mode": "acquire",
+      "kind": "process",
+      "watcherCode": 0,
+      "kill": {
+        "killed": true,
+        "mode": "acquire",
+        "killedAt": "2026-11-20T22:14:14.511Z",
+        "triggerArtifacts": [
+          ".book-writer.json.recovery.preparing-7bf1e611-d1e0-42bf-9fe5-cd138c70a82a"
+        ],
+        "artifactsAtKill": [
+          ".book-writer.json.recovery.preparing-7bf1e611-d1e0-42bf-9fe5-cd138c70a82a"
+        ],
+        "leaseAtKill": null,
+        "artifactsAfterKill": [
+          ".book-writer.json.recovery.preparing-7bf1e611-d1e0-42bf-9fe5-cd138c70a82a"
+        ]
+      },
+      "acked": 0,
+      "refusals": [],
+      "inflight": "CYCLE-09-acquire burst 1",
+      "transportError": "ECONNRESET",
+      "after": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        }
+      },
+      "transientLogLines": [],
+      "leftOnDisk": [
+        ".book-writer.json.recovery.preparing-7bf1e611-d1e0-42bf-9fe5-cd138c70a82a"
+      ],
+      "reopenAttempts": [
+        200
+      ],
+      "leftAfterReopen": []
+    },
+    {
+      "id": "CYCLE-10-publish",
+      "mode": "publish",
+      "kind": "process",
+      "watcherCode": 0,
+      "kill": {
+        "killed": true,
+        "mode": "publish",
+        "killedAt": "2026-11-20T22:14:18.498Z",
+        "triggerArtifacts": [
+          ".book-writer.json.preparing-02950470-ee45-4fce-a800-eee49481ed80",
+          ".book-writer.json.recovery"
+        ],
+        "artifactsAtKill": [
+          ".book-writer.json.preparing-02950470-ee45-4fce-a800-eee49481ed80",
+          ".book-writer.json.recovery"
+        ],
+        "leaseAtKill": null,
+        "artifactsAfterKill": [
+          ".book-writer.json.preparing-02950470-ee45-4fce-a800-eee49481ed80",
+          ".book-writer.json.recovery"
+        ]
+      },
+      "acked": 0,
+      "refusals": [],
+      "inflight": "CYCLE-10-publish burst 1",
+      "transportError": "ECONNRESET",
+      "after": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        }
+      },
+      "transientLogLines": [],
+      "leftOnDisk": [
+        ".book-writer.json.preparing-02950470-ee45-4fce-a800-eee49481ed80",
+        ".book-writer.json.recovery"
+      ],
+      "reopenAttempts": [
+        200
+      ],
+      "leftAfterReopen": []
+    },
+    {
+      "id": "CYCLE-11-held",
+      "mode": "held",
+      "kind": "process",
+      "watcherCode": 0,
+      "kill": {
+        "killed": true,
+        "mode": "held",
+        "killedAt": "2026-11-20T22:14:22.499Z",
+        "triggerArtifacts": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ],
+        "artifactsAtKill": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ],
+        "leaseAtKill": "{\"token\":\"d72805cb-1d15-4058-81c5-8086d53b68e8\",\"pid\":10232,\"host\":\"<host>\",\"coordinatedDatabases\":[\"Education_Activities_v2.db\"]}",
+        "artifactsAfterKill": [
+          ".book-writer.json"
+        ]
+      },
+      "acked": 0,
+      "refusals": [],
+      "inflight": "CYCLE-11-held burst 1",
+      "transportError": "ECONNRESET",
+      "after": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        }
+      },
+      "transientLogLines": [],
+      "leftOnDisk": [
+        ".book-writer.json",
+        "Education_Activities_v2.db.lock"
+      ],
+      "reopenAttempts": [
+        200
+      ],
+      "leftAfterReopen": []
+    },
+    {
+      "id": "CYCLE-12-random",
+      "mode": "random",
+      "kind": "process",
+      "watcherCode": 0,
+      "kill": {
+        "killed": true,
+        "mode": "random",
+        "randomSpinMicros": 9925,
+        "killedAt": "2026-11-20T22:14:26.555Z",
+        "triggerArtifacts": [
+          ".book-writer.json.recovery.preparing-e0ed5f6e-d9bd-4980-a641-58f7ceeaa55d"
+        ],
+        "artifactsAtKill": [
+          ".book-writer.json",
+          ".book-writer.json.recovery"
+        ],
+        "leaseAtKill": "{\"token\":\"e0ed5f6e-d9bd-4980-a641-58f7ceeaa55d\",\"pid\":23612,\"host\":\"<host>\",\"coordinatedDatabases\":[]}",
+        "artifactsAfterKill": [
+          ".book-writer.json"
+        ]
+      },
+      "acked": 0,
+      "refusals": [],
+      "inflight": "CYCLE-12-random burst 1",
+      "transportError": "ECONNRESET",
+      "after": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        }
+      },
+      "transientLogLines": [],
+      "leftOnDisk": [
+        ".book-writer.json"
+      ],
+      "reopenAttempts": [
+        200
+      ],
+      "leftAfterReopen": []
+    }
+  ],
+  "transient": [],
+  "phaseSummary": {
+    "acquire": {
+      "attempted": 3,
+      "killed": 3,
+      "leaseArtifactsAtKill": [
+        [
+          ".book-writer.json.recovery.preparing-afa75ab6-631e-4f69-82e3-cc1288ab80d9"
+        ],
+        [
+          ".book-writer.json.recovery.preparing-9b78952c-b2e2-4b32-a542-bbaf88969101"
+        ],
+        [
+          ".book-writer.json.recovery.preparing-7bf1e611-d1e0-42bf-9fe5-cd138c70a82a"
+        ]
+      ]
+    },
+    "publish": {
+      "attempted": 3,
+      "killed": 3,
+      "leaseArtifactsAtKill": [
+        [
+          ".book-writer.json.preparing-e2ceb633-c2ee-4301-80ef-6ca25363ba9f",
+          ".book-writer.json.recovery"
+        ],
+        [
+          ".book-writer.json.preparing-74fbcacc-3a24-4730-be6b-593c75df13ba",
+          ".book-writer.json.recovery"
+        ],
+        [
+          ".book-writer.json.preparing-02950470-ee45-4fce-a800-eee49481ed80",
+          ".book-writer.json.recovery"
+        ]
+      ]
+    },
+    "held": {
+      "attempted": 3,
+      "killed": 3,
+      "leaseArtifactsAtKill": [
+        [
+          ".book-writer.json"
+        ],
+        [
+          ".book-writer.json"
+        ],
+        [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ]
+      ]
+    },
+    "random": {
+      "attempted": 3,
+      "killed": 3,
+      "leaseArtifactsAtKill": [
+        [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ],
+        [
+          ".book-writer.json.preparing-3ad96d7e-71f2-46a5-8f45-c2b9be4c753a",
+          ".book-writer.json.recovery"
+        ],
+        [
+          ".book-writer.json",
+          ".book-writer.json.recovery"
+        ]
+      ]
+    }
+  }
+}

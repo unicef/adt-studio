@@ -1,6 +1,11 @@
-import { putSourceNodeData, putReflowableRendering, isFixedLayoutBook } from "@adt/pipeline"
+import { isFixedLayoutBook } from "@adt/pipeline"
 import { HTTPException } from "hono/http-exception"
 import { renderedSectionId, resolveRenderedSection, withLegacyRenderingOwnership } from "@adt/pipeline"
+import { withBookWriter, resolveBookPaths } from "@adt/storage"
+import {
+  createStoryboardPublication, FIXED_LAYOUT_SECTIONING_NODE, hasFixedLayoutSectioning, SectioningSafetyError,
+  processFixedLayoutPages, missingStoryboardInputMessage,
+} from "@adt/pipeline"
 import crypto from "node:crypto"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
@@ -8,7 +13,7 @@ import { createLLMModel, createPromptEngine } from "@adt/llm"
 import type { LLMModel, ResolvedCredentials } from "@adt/llm"
 import { renderPage, buildRenderStrategyResolver, buildBookFontsPromptContext, readTypography, buildTypographyCss, collectReferencedImageIds, collectSourcePageImages, createTemplateEngine, loadBookConfig, resolveBookLanguage, resolvePageDirection, createScreenshotRenderer, runVisualReviewLoop, DEFAULT_VISUAL_REVIEW_MODEL_ID, buildScreenshotHtml, SCREENSHOT_VIEWPORTS, inspectOrderingActivityHtml, validateRetainedHeadingHierarchy } from "@adt/pipeline"
 import type { VisualRefinementDeps } from "@adt/pipeline"
-import { PageSectioningOutput, WebRenderingOutput, webRenderingLLMSchema, editVerifyLLMSchema, DEFAULT_LLM_MODEL_ID } from "@adt/types"
+import { PageSectioningOutput, WebRenderingOutput, htmlEditLLMSchema, editVerifyLLMSchema, DEFAULT_LLM_MODEL_ID } from "@adt/types"
 import { loadStyleguideContent } from "./styleguide.js"
 
 export interface ReRenderOptions {
@@ -43,39 +48,217 @@ export interface AiEditSectionOptions {
   credentials: ResolvedCredentials
 }
 
-export interface AiEditSectionResult {
-  html: string
-  reasoning: string
-  activityAnswers?: Record<string, string>
+export interface AiEditVerification {
+  applied: boolean
+  reason: string
 }
 
-export async function reRenderPage(
-  options: ReRenderOptions
-): Promise<ReRenderResult> {
+export type AiEditSectionResult =
+  | {
+      status: "applied"
+      html: string
+      reasoning: string
+      activityAnswers?: Record<string, string>
+      verification?: AiEditVerification
+    }
+  | {
+      status: "unsupported"
+      reason: string
+      reasoning: string
+    }
+
+interface HtmlEditResponse {
+  reasoning: string
+  feasible: boolean
+  unsupported_reason: string
+  content: string
+}
+
+const IMAGE_TAG_REGEX = /<(img|source|image)\b(?:[^>"']|"[^"]*"|'[^']*')*>/gi
+const CSS_URL_REGEX = /url\(\s*(["']?)(.*?)\1\s*\)/gi
+const SVG_DATA_URI_REGEX = /^data:image\/svg\+xml([^,]*),(.*)$/is
+const HTML_ENTITY_REGEX = /&(?:quot|apos|amp|#34|#39|#x27);/gi
+const HTML_ENTITIES: Record<string, string> = {
+  "&quot;": '"',
+  "&#34;": '"',
+  "&apos;": "'",
+  "&#39;": "'",
+  "&#x27;": "'",
+  "&amp;": "&",
+}
+
+interface ImageReferences {
+  ids: Set<string>
+  urls: Set<string>
+  hasImgWithoutSource: boolean
+}
+
+function decodeEntities(value: string): string {
+  return value.replace(HTML_ENTITY_REGEX, (entity) => HTML_ENTITIES[entity.toLowerCase()] ?? entity)
+}
+
+function readAttribute(tag: string, name: string): string | undefined {
+  const match = new RegExp(`\\s${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'=<>\`]+))`, "i").exec(tag)
+  return match ? decodeEntities(match[1] ?? match[2] ?? match[3]) : undefined
+}
+
+function imageTagUrls(tagName: string, tag: string): string[] {
+  const attributes = tagName === "image" ? ["href", "xlink:href"] : ["src"]
+  const urls = attributes
+    .map((attribute) => readAttribute(tag, attribute)?.trim())
+    .filter((url): url is string => !!url)
+  const srcset = readAttribute(tag, "srcset")
+  if (srcset) {
+    urls.push(...srcset.split(",").map((candidate) => candidate.trim().split(/\s+/)[0]).filter(Boolean))
+  }
+  return urls
+}
+
+function cssImageUrls(html: string): string[] {
+  return [...decodeEntities(html).matchAll(CSS_URL_REGEX)]
+    .map((match) => match[2].trim())
+    .filter((url) => url && !url.startsWith("#"))
+}
+
+function svgDataUriContent(url: string): string | undefined {
+  const match = SVG_DATA_URI_REGEX.exec(url)
+  if (!match) return undefined
+  const [, parameters, data] = match
+  try {
+    return /;base64$/i.test(parameters) ? Buffer.from(data, "base64").toString("utf8") : decodeURIComponent(data)
+  } catch {
+    return undefined
+  }
+}
+
+function collectImageReferences(html: string): ImageReferences {
+  const references: ImageReferences = {
+    ids: new Set<string>(),
+    urls: new Set(cssImageUrls(html)),
+    hasImgWithoutSource: false,
+  }
+  for (const [tag, rawTagName] of html.matchAll(IMAGE_TAG_REGEX)) {
+    const tagName = rawTagName.toLowerCase()
+    const urls = imageTagUrls(tagName, tag)
+    for (const url of urls) references.urls.add(url)
+    if (tagName !== "img") continue
+    const id = readAttribute(tag, "data-id")
+    if (id !== undefined) references.ids.add(id)
+    if (urls.length === 0) references.hasImgWithoutSource = true
+  }
+  return references
+}
+
+export function findInventedImages(originalHtml: string, editedHtml: string): string[] {
+  const original = collectImageReferences(originalHtml)
+  const invented = new Set<string>()
+  for (const [tag, rawTagName] of editedHtml.matchAll(IMAGE_TAG_REGEX)) {
+    const tagName = rawTagName.toLowerCase()
+    const urls = imageTagUrls(tagName, tag)
+    if (tagName === "img") {
+      const id = readAttribute(tag, "data-id")
+      if (id !== undefined && !original.ids.has(id)) invented.add(urls[0] ?? id)
+      if (urls.length === 0 && !original.hasImgWithoutSource) invented.add(id ?? tag)
+    }
+    for (const url of urls) {
+      if (!original.urls.has(url)) invented.add(url)
+    }
+  }
+  for (const url of cssImageUrls(editedHtml)) {
+    if (original.urls.has(url)) continue
+    const svg = svgDataUriContent(url)
+    if (svg === undefined) {
+      invented.add(url)
+      continue
+    }
+    for (const nested of findInventedImages(originalHtml, svg)) invented.add(nested)
+  }
+  return [...invented]
+}
+
+export async function reRenderPage(options: ReRenderOptions): Promise<ReRenderResult> {
+  return (await reRenderPages([options]))[0]
+}
+
+export async function reRenderPages(options: ReRenderOptions[]): Promise<ReRenderResult[]> {
+  if (!options.length) return []
+  const { label, booksDir, configPath } = options[0]
+  if (options.some((item) => item.label !== label || item.booksDir !== booksDir || item.configPath !== configPath)) throw new Error("A rendering batch must belong to one book")
+  return withBookWriter(resolveBookPaths(label, booksDir).bookDir, async () => {
+    const storage = createBookStorage(label, booksDir)
+    try {
+      const publication = createStoryboardPublication(storage, label, booksDir, configPath)
+      const pages = new Set(publication.storage.getPages().map((page) => page.pageId))
+      const outside = options.filter(item => !pages.has(item.pageId)).map(item => item.pageId)
+      if (outside.length) throw new SectioningSafetyError("STORYBOARD_PAGE_OUTSIDE_WINDOW", `${outside.slice(0, 20).join(", ")}; total=${outside.length}`)
+      publication.assertScope([...new Set(options.map((item) => item.pageId))])
+      if (isFixedLayoutBook(loadBookConfig(label, booksDir, configPath))) {
+        if (options.some((item) => item.sectionIndex !== undefined)) {
+          throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", "A fixed-layout page must be re-rendered as a whole. Existing output is kept.")
+        }
+        if (options.some((item) => item.prompt?.trim())) {
+          throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", "Fixed-layout rendering uses extracted positioned content and cannot apply an LLM prompt. Existing output is kept.")
+        }
+        const pageIds = options.map((item) => item.pageId)
+        const unavailable: string[] = []
+        await processFixedLayoutPages(publication.storage, `/api/books/${label}/images`, pageIds, {
+          onPage: (id) => publication.publishPage(id),
+          onUnavailable: (id) => unavailable.push(id),
+        })
+        publication.publish()
+        if (unavailable.length) throw new SectioningSafetyError("STORYBOARD_PAGE_INPUT_MISSING", missingStoryboardInputMessage(unavailable))
+        return pageIds.map((pageId) => {
+          const row = storage.getLatestNodeData("web-rendering", pageId)!
+          return { version: row.version, rendering: row.data }
+        })
+      }
+      const unavailable: string[] = []
+      for (const item of options) {
+        try {
+          const renderedIds = await reRenderAdmittedPage(item, publication)
+          publication.publishPage(item.pageId, renderedIds)
+        } catch (error) {
+          if (!(error instanceof SectioningSafetyError) || error.code !== "STORYBOARD_PAGE_INPUT_MISSING") throw error
+          publication.discardPage(item.pageId)
+          unavailable.push(item.pageId)
+        }
+      }
+      publication.publish()
+      if (unavailable.length) throw new SectioningSafetyError("STORYBOARD_PAGE_INPUT_MISSING", missingStoryboardInputMessage(unavailable))
+      return options.map((item) => {
+        const row = storage.getLatestNodeData("web-rendering", item.pageId)!
+        return { version: row.version, rendering: row.data }
+      })
+    } finally { storage.close() }
+  })
+}
+
+async function reRenderAdmittedPage(
+  options: ReRenderOptions, publication: ReturnType<typeof createStoryboardPublication>,
+): Promise<string[]> {
   const { label, pageId, sectionIndex, prompt, booksDir, promptsDir, webAssetsDir, configPath, credentials } = options
 
-  const storage = createBookStorage(label, booksDir)
+  const storage = publication.storage
   let visualRefinement: VisualRefinementDeps | undefined
   // Book typography (editable size-per-role map), shared with every rendered page.
   const typography = readTypography(storage)
 
   try {
-    const structuringRow = storage.getLatestNodeData("page-sectioning", pageId)
-
-    if (!structuringRow) {
-      throw new Error(
-        "Page must have page-sectioning data before re-rendering"
-      )
+    const hasFixedTree = hasFixedLayoutSectioning(storage, pageId)
+    const fixedVersion = storage.getSelectedNodeVersion(FIXED_LAYOUT_SECTIONING_NODE, pageId)
+    if (sectionIndex !== undefined && hasFixedTree) {
+      throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", "A positioned page must be re-rendered as a whole before re-rendering a semantic section. Existing output is kept.")
     }
-
-    const structuringParsed = PageSectioningOutput.safeParse(structuringRow.data)
+    let structuringRow: ReturnType<typeof storage.getLatestNodeData> = null
+    try { structuringRow = storage.getLatestNodeData("page-sectioning", pageId) }
+    catch (error) { if (!(error instanceof SyntaxError)) throw error }
+    const structuringParsed = PageSectioningOutput.safeParse(structuringRow?.data)
     if (!structuringParsed.success) {
-      throw new Error("Invalid page-sectioning data")
+      throw new SectioningSafetyError("STORYBOARD_PAGE_INPUT_MISSING", missingStoryboardInputMessage([pageId]))
     }
     const sectioning = structuringParsed.data
-    const fixedRow = storage.getLatestNodeData("fixed-layout-sectioning", pageId)
     const legacyPositioned = sectioning.sections.some(section => section.sectionType === "fixed-layout-page" && section.viewport && section.placement)
-    if (fixedRow || legacyPositioned) {
+    if (hasFixedTree || legacyPositioned) {
       const config = loadBookConfig(label, booksDir, configPath)
       if (sectionIndex !== undefined || legacyPositioned || isFixedLayoutBook(config)) {
         throw new HTTPException(409, { message: "This page uses fixed layout. Run Sectioning and Storyboard after selecting a reflowable layout, or run Storyboard to rebuild fixed layout. Existing content has been preserved." })
@@ -208,9 +391,9 @@ export async function reRenderPage(
     )
 
     return storage.transaction(() => {
-      if (storage.getLatestNodeData("page-sectioning", pageId)?.version !== structuringRow.version ||
+      if (storage.getLatestNodeData("page-sectioning", pageId)?.version !== structuringRow?.version ||
           storage.getLatestNodeData("web-rendering", pageId)?.version !== initialRenderingRow?.version ||
-          storage.getLatestNodeData("fixed-layout-sectioning", pageId)?.version !== fixedRow?.version) {
+          storage.getSelectedNodeVersion(FIXED_LAYOUT_SECTIONING_NODE, pageId) !== fixedVersion) {
         throw new HTTPException(409, { message: "Page changed during re-rendering. The existing rendering has been preserved." })
       }
       let rendering = renderResult
@@ -225,17 +408,13 @@ export async function reRenderPage(
           return owner ? { ...entry, sectionIndex: sectioning.sections.indexOf(owner) } : entry
         }).sort((a, b) => a.sectionIndex - b.sectionIndex) }
       }
-      const version = sectionIndex === undefined
-        ? putReflowableRendering(storage, pageId, rendering)
-        : putSourceNodeData(storage, "web-rendering", pageId, rendering)
-      storage.clearNodesByType(["accessibility-assessment"])
-      return { version, rendering }
+      storage.putNodeData("web-rendering", pageId, rendering)
+      return renderResult.sections.flatMap(entry => renderedSectionId(entry) ?? [])
     })
   } finally {
     if (visualRefinement) {
       await visualRefinement.screenshotRenderer.close()
     }
-    storage.close()
   }
 }
 
@@ -345,9 +524,7 @@ export async function aiEditSection(
       }
     }
 
-    // Structural check only. We deliberately do NOT enforce data-id / image
-    // preservation here: the instruction may legitimately ask the LLM to remove
-    // or replace elements, and silently retrying three times hides that intent.
+    // Only invented images are rejected; removing or reordering existing images stays allowed.
     const validateEditedHtml = (rawHtml: string) => {
       const cleanedHtml = rawHtml
         .replace(/^```(?:html)?\s*\n?/i, "")
@@ -357,6 +534,12 @@ export async function aiEditSection(
         errors.push("Result must contain a <section> element")
       }
       errors.push(...validateRetainedHeadingHierarchy(currentHtml, cleanedHtml))
+      const inventedImages = findInventedImages(currentHtml, cleanedHtml)
+      if (inventedImages.length > 0) {
+        errors.push(
+          `AI editing cannot create or change images, but the result references images that are not in the current HTML: ${inventedImages.join(", ")}. Reuse only the images already in the section, or set feasible to false if the instruction needs new or changed images.`
+        )
+      }
       if (originalOrdering.isOrdering) {
         const ordering = inspectOrderingActivityHtml(cleanedHtml)
         if (!ordering.isOrdering) {
@@ -374,8 +557,8 @@ export async function aiEditSection(
     const correlationId = crypto.randomUUID()
 
     const runEditPass = async (previousAttemptFailure?: string) => {
-      const r = await model.generateObject<{ reasoning: string; content: string }>({
-        schema: webRenderingLLMSchema,
+      const r = await model.generateObject<HtmlEditResponse>({
+        schema: htmlEditLLMSchema,
         prompt: "html_edit",
         context: {
           current_html: currentHtml,
@@ -385,7 +568,12 @@ export async function aiEditSection(
           page_direction: pageDirection,
         },
         validate: (obj) => {
-          const resp = obj as { content: string }
+          const resp = obj as HtmlEditResponse
+          if (!resp.feasible) {
+            return resp.unsupported_reason.trim()
+              ? { valid: true, errors: [] }
+              : { valid: false, errors: ["unsupported_reason must explain why the instruction is not feasible"] }
+          }
           const check = validateEditedHtml(resp.content)
           return { valid: check.valid, errors: check.errors }
         },
@@ -399,12 +587,23 @@ export async function aiEditSection(
         },
       })
       return {
+        feasible: r.object.feasible,
+        unsupportedReason: r.object.unsupported_reason.trim(),
         html: validateEditedHtml(r.object.content).cleanedHtml,
         reasoning: r.object.reasoning,
       }
     }
 
-    let { html, reasoning } = await runEditPass()
+    const unsupported = (pass: { unsupportedReason: string; reasoning: string }): AiEditSectionResult => ({
+      status: "unsupported",
+      reason: pass.unsupportedReason,
+      reasoning: pass.reasoning,
+    })
+
+    const firstPass = await runEditPass()
+    if (!firstPass.feasible) return unsupported(firstPass)
+    let { html, reasoning } = firstPass
+    let verification: AiEditVerification | undefined
 
     // Lightweight verification: screenshot the edited HTML at desktop width and
     // ask a small vision model whether the instruction was actually applied.
@@ -485,21 +684,24 @@ export async function aiEditSection(
         })
       }
 
-      const verify = await runVerify(html)
+      verification = (await runVerify(html)).object
 
-      if (!verify.object.applied) {
-        const retry = await runEditPass(verify.object.reason)
+      if (!verification.applied) {
+        const retry = await runEditPass(verification.reason)
+        if (!retry.feasible) return unsupported(retry)
         html = retry.html
         reasoning = retry.reasoning
-        await runVerify(html)
+        verification = (await runVerify(html)).object
       }
     }
 
     const ordering = inspectOrderingActivityHtml(html)
     return {
+      status: "applied",
       html,
       reasoning,
       ...(ordering.contract ? { activityAnswers: ordering.contract.answers } : {}),
+      ...(verification ? { verification } : {}),
     }
   } finally {
     storage.close()

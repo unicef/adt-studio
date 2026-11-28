@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { openBookDb, createBookStorage } from "@adt/storage"
+import { openBookDb, createBookStorage, writeSectioningLifecycle } from "@adt/storage"
 import { unzipSync, zipSync } from "fflate"
 import { SCHEMA_VERSION } from "@adt/types"
 import { getSourceGenerationUpdates, keepSourceGeneration } from "@adt/pipeline"
@@ -15,6 +15,7 @@ import type {
 import { createBookEventBus } from "../services/book-event-bus.js"
 import { createPageErrorDecisions } from "../services/page-error-decisions.js"
 import { createBookRoutes } from "./books.js"
+import { createDebugRoutes } from "./debug.js"
 import { createStageRoutes } from "./stages.js"
 import { ADT_IMPORT_IN_PROGRESS_MARKER } from "../services/adt-import/marker.js"
 import { getBook } from "../services/book-service.js"
@@ -167,6 +168,21 @@ describe("POST /books", () => {
     ).toBe(true)
   })
 
+  it("still creates the book when the setup recommendation can't be attached, with a warning", async () => {
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append("label", "auto-book")
+    formData.append("pdf", new Blob(["%PDF-1.0 fake"], { type: "application/pdf" }), "test.pdf")
+    formData.append("setupRecommendationId", "expired-or-unknown")
+
+    const res = await app.request("/books", { method: "POST", body: formData })
+    expect(res.status).toBe(201)
+    const book = await res.json()
+    expect(book.label).toBe("auto-book")
+    expect(book.setupRecommendationWarning).toMatchObject({ reason: "expired", message: expect.stringMatching(/expired/) })
+    expect(fs.existsSync(path.join(tmpDir, "auto-book", "setup-recommendation.json"))).toBe(false)
+  })
+
   it("creates a book with config overrides", async () => {
     const app = createBookRoutes(tmpDir)
     const formData = new FormData()
@@ -294,7 +310,7 @@ describe("PUT /books/:label/config", () => {
   it("acknowledges effective settings before the next save, including inherited clears and map deletions", async () => {
     createTestBook("receipt")
     fs.writeFileSync(globalConfigPath, "toc_generation:\n  model: openai:gpt-4o-mini\n  max_retries: 3\nsection_types:\n  keep: Keep\n  remove: Remove\nstructure_types: {}\nrole_types: {}\n")
-    const app = createBookRoutes(tmpDir, undefined, globalConfigPath)
+    const app = createBookRoutes(tmpDir, undefined, globalConfigPath).route("/", createDebugRoutes(tmpDir, tmpDir, globalConfigPath))
     const save = (config: Record<string, unknown>) => app.request("/books/receipt/config", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ config, includeEffectiveConfig: true }) })
     const first = await save({ toc_generation: { max_retries: 4 }, section_types: { remove: null, added: "New" } })
     expect(first.status).toBe(200)
@@ -313,6 +329,8 @@ describe("PUT /books/:label/config", () => {
     const cleared = await save({})
     expect(cleared.status).toBe(200)
     expect((await cleared.json()).activeConfig).toMatchObject({ hasBookOverride: false, merged: { toc_generation: { max_retries: 3 } } })
+    expect((await (await app.request("/books/receipt/debug/config")).json()).hasBookOverride).toBe(false)
+    expect((await (await app.request("/books/receipt/config")).json()).config).toEqual({})
   })
 
   it("writes config overrides and returns them", async () => {
@@ -767,8 +785,12 @@ function addPagesAndRenderings(label: string, count: number): void {
         },
         images: [],
       })
+      storage.putNodeData("page-sectioning", pageId, { reasoning: "fixture", sections: [{
+        sectionId: `${pageId}_sec001`, sectionType: "text", pageNumber: i,
+        backgroundColor: "white", textColor: "black", isPruned: false, nodes: [],
+      }] })
       storage.putNodeData("web-rendering", pageId, {
-        sections: [{ html: `<p>Rendered page ${i}</p>` }],
+        sections: [{ sectionId: `${pageId}_sec001`, sectionIndex: 0, sectionType: "text", reasoning: "fixture", html: `<section data-section-id="${pageId}_sec001"><p>Rendered page ${i}</p></section>` }],
       })
     }
   } finally {
@@ -851,6 +873,7 @@ describe("POST /books/:label/stages/run", () => {
       },
     }
 
+    writeSectioningLifecycle(path.join(tmpDir, label), "dynamic", true)
     const app = createStageRoutes(stageService, mockEventBus, mockDecisions, tmpDir, "", "", globalConfigPath)
     const res = await app.request(`/books/${label}/stages/run`, {
       method: "POST",
@@ -874,7 +897,7 @@ describe("POST /books/:label/stages/run", () => {
       expect(verifyStorage.getLatestNodeData("web-rendering", "pg001")).not.toBeNull()
       const runs = new Map(verifyStorage.getStepRuns().map((r) => [r.step, r.status]))
       expect(runs.get("page-sectioning")).toBe("done")
-      expect(runs.has("web-rendering")).toBe(false)
+      expect(runs.get("web-rendering")).toBe("done")
     } finally {
       verifyStorage.close()
     }
@@ -1474,7 +1497,7 @@ describe("GET /books/:label/step-status", () => {
     expect(body.stages.extract).toBe("done")
   })
 
-  it("marks preview done when adt directory exists", async () => {
+  it("does not claim preview completion from an empty adt directory", async () => {
     createTestBook("preview-done")
     fs.mkdirSync(path.join(tmpDir, "preview-done", "adt"), { recursive: true })
 
@@ -1482,7 +1505,7 @@ describe("GET /books/:label/step-status", () => {
     const res = await app.request("/books/preview-done/step-status")
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.stages.preview).toBe("done")
+    expect(body.stages.preview).toBeUndefined()
   })
 
   it("returns 400 for invalid book labels", async () => {
@@ -1521,11 +1544,11 @@ describe("GET /books/:label/export-project", () => {
     expect(res.status).toBe(404)
   })
 
-  it("returns 500 when web assets directory is missing (prepare-export)", async () => {
+  it("returns 500 when a generated ADT export is missing web assets", async () => {
     createTestBook("missing-assets-export")
     addPagesAndRenderings("missing-assets-export", 1)
     const app = createBookRoutes(tmpDir, path.join(tmpDir, "no-web-assets"))
-    const res = await app.request("/books/missing-assets-export/prepare-export", { method: "POST" })
+    const res = await app.request("/books/missing-assets-export/prepare-export?format=adt", { method: "POST" })
     expect(res.status).toBe(500)
   })
 })
@@ -1863,6 +1886,51 @@ describe("POST /books/preview-import", () => {
     expect(body.agentGuide.activityPrompt).toContain("no section id is listed in both")
   })
 
+  it("puts the activity pages in the repair request when the archive also needs repair", async () => {
+    const app = createBookRoutes(tmpDir)
+    const files = unzipSync(createExportedAdtZip({
+      editingContractVersion: 2,
+      activityInventory: [],
+      sectionType: "activity_custom_crossword",
+      extraSectionHtml: '<button aria-label="Check crossword">Check</button>',
+    }))
+    files["notes/todo.txt"] = new TextEncoder().encode("left over")
+    const formData = new FormData()
+    formData.append("zip", new Blob([zipSync(files)], { type: "application/zip" }), "both.zip")
+
+    const res = await app.request("/books/preview-import", { method: "POST", body: formData })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.compatibility.supported).toBe(false)
+    expect(body.activityReview.needsReviewCount).toBe(1)
+    // The activity pages only surface once the files are fixed, so a repair
+    // request without them costs the person a second round with the assistant.
+    const request: string = body.agentGuide.repairPrompt
+    expect(request).toContain("<problems>")
+    expect(request).toContain("<activity_pages>")
+    expect(request).toMatch(/^- index\.html \(section pg001_sec001\): suggested activity_custom_crossword; missing-declaration/m)
+    // Each reason is explained once, not per page.
+    expect(request).toContain("- missing-declaration: the page has an activity type but is not listed in editingContract.activities")
+    expect(request).toContain("remove its entry from editingContract.nonActivities")
+    expect(request).not.toContain("<activity_review_candidates_json>")
+    expect(request).toMatch(/type you chose for each activity page/)
+  })
+
+  it("leaves activity pages out of the repair request when none need review", async () => {
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append(
+      "zip",
+      new Blob([createExportedAdtZip({ unsupportedStructure: true })], { type: "application/zip" }),
+      "unsupported-export.zip",
+    )
+
+    const res = await app.request("/books/preview-import", { method: "POST", body: formData })
+    const body = await res.json()
+    expect(body.activityReview.needsReviewCount).toBe(0)
+    expect(body.agentGuide.repairPrompt).not.toContain("<activity_pages>")
+  })
+
   it("reports unsupported exported HTML before import", async () => {
     const app = createBookRoutes(tmpDir)
     const formData = new FormData()
@@ -1886,14 +1954,14 @@ describe("POST /books/preview-import", () => {
       },
       agentGuide: {
         status: "missing",
-        currentVersion: 3,
+        currentVersion: 4,
         files: {
           agentsMd: { present: false, current: false },
           claudeMd: { present: false, current: false },
         },
       },
     })
-    expect(body.agentGuide.currentGuide).toContain("<!-- adt-studio-agent-guide: 3 -->")
+    expect(body.agentGuide.currentGuide).toContain("<!-- adt-studio-agent-guide: 4 -->")
     // A readable numbered list, not raw validator JSON: people read this
     // request in the review before handing it to an assistant.
     expect(body.agentGuide.repairPrompt).toContain("<problems>")
@@ -1930,46 +1998,46 @@ describe("POST /books/preview-import", () => {
       return response.json()
     }
 
-    const current = await preview(3, false)
+    const current = await preview(4, false)
     expect(current.agentGuide).toMatchObject({
       status: "current",
       files: {
-        agentsMd: { version: 3, current: true },
-        claudeMd: { version: 3, current: true },
+        agentsMd: { version: 4, current: true },
+        claudeMd: { version: 4, current: true },
       },
     })
     expect(current.agentGuide.repairPrompt).not.toContain(
       "<current_adt_agent_guide>",
     )
 
-    const partial = await preview(3, true)
+    const partial = await preview(4, true)
     expect(partial.agentGuide).toMatchObject({
       status: "partial",
       files: {
-        agentsMd: { version: 3, current: true },
+        agentsMd: { version: 4, current: true },
         claudeMd: { present: false, current: false },
       },
     })
 
-    // Exports made before the repair rules (version 2) get the current guide
-    // in their repair request.
-    const outdated = await preview(2, false)
+    // Exports made before the shorter guide with the ARIA-reference rules
+    // (version 3) get the current guide in their repair request.
+    const outdated = await preview(3, false)
     expect(outdated.agentGuide).toMatchObject({
       status: "outdated",
       files: {
-        agentsMd: { version: 2, current: false },
-        claudeMd: { version: 2, current: false },
+        agentsMd: { version: 3, current: false },
+        claudeMd: { version: 3, current: false },
       },
     })
     expect(outdated.agentGuide.repairPrompt).toContain("<current_adt_agent_guide>")
 
-    const newer = await preview(4, false)
+    const newer = await preview(5, false)
     expect(newer.agentGuide).toMatchObject({
       status: "current",
-      currentVersion: 3,
+      currentVersion: 4,
       files: {
-        agentsMd: { version: 4, current: true },
-        claudeMd: { version: 4, current: true },
+        agentsMd: { version: 5, current: true },
+        claudeMd: { version: 5, current: true },
       },
     })
   })
@@ -2081,6 +2149,36 @@ describe("POST /books/preview-import", () => {
       outputLanguages: ["es"],
       compatibility: { supported: true, issues: [] },
     })
+  })
+
+  // A legacy export has no manifest.json: asking for one at the ZIP root made
+  // assistants wonder whether to create it.
+  it("doesn't ask for manifest.json in the repaired ZIP when the bundle has none", async () => {
+    const app = createBookRoutes(tmpDir)
+    const files = unzipSync(createExportedAdtZip({ omitManifest: true }))
+    files["notes/todo.txt"] = new TextEncoder().encode("left over")
+    const formData = new FormData()
+    formData.append("zip", new Blob([zipSync(files)], { type: "application/zip" }), "legacy-export.zip")
+
+    const body = await (await app.request("/books/preview-import", { method: "POST", body: formData })).json()
+    expect(body.compatibility.supported).toBe(false)
+    const request: string = body.agentGuide.repairPrompt
+    expect(request).not.toContain("with manifest.json at the root of the ZIP")
+    expect(request).toContain("with the bundle's contents at the root of the ZIP")
+    expect(request).toContain("This bundle has no manifest.json: do not create one, and say so in your reply.")
+  })
+
+  it("keeps asking for manifest.json at the ZIP root when the bundle has one", async () => {
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append(
+      "zip",
+      new Blob([createExportedAdtZip({ unsupportedStructure: true })], { type: "application/zip" }),
+      "unsupported-export.zip",
+    )
+    const body = await (await app.request("/books/preview-import", { method: "POST", body: formData })).json()
+    expect(body.agentGuide.repairPrompt).toContain("with manifest.json at the root of the ZIP")
+    expect(body.agentGuide.repairPrompt).not.toContain("has no manifest.json")
   })
 
   it("does not misreport an incomplete legacy export as a missing project database", async () => {
@@ -2217,7 +2315,11 @@ describe("POST /books/import-adt", () => {
   it("creates a regular project from an exported ADT", async () => {
     const webAssetsDir = `${tmpDir}-web-assets`
     fs.mkdirSync(webAssetsDir, { recursive: true })
-    fs.writeFileSync(path.join(webAssetsDir, "base.js"), "void 0")
+    fs.mkdirSync(path.join(webAssetsDir, "libs/fontawesome/css"), { recursive: true })
+    fs.writeFileSync(path.join(webAssetsDir, "libs/fontawesome/css/all.min.css"), "/* test icons */")
+    for (const file of ["base.bundle.min.js", "base.bundle.local.js", "activities.bundle.local.js"]) {
+      fs.writeFileSync(path.join(webAssetsDir, file), "void 0")
+    }
     fs.writeFileSync(path.join(webAssetsDir, "fonts.css"), "body { font-family: serif; }")
     fs.writeFileSync(path.join(webAssetsDir, "tailwind_css.css"), "@tailwind utilities;")
     const app = createBookRoutes(tmpDir, webAssetsDir)
@@ -2470,19 +2572,15 @@ describe("POST /books/import", () => {
 })
 
 describe("GET /books/:label/export-adt", () => {
-  it("returns ZIP of the adt/ directory", async () => {
+  it("rejects an index-only bundle instead of downloading an incomplete ZIP", async () => {
     createTestBook("adt-export")
     addPagesAndRenderings("adt-export", 1)
     const adtDir = path.join(tmpDir, "adt-export", "adt")
     fs.mkdirSync(adtDir, { recursive: true })
     fs.writeFileSync(path.join(adtDir, "index.html"), "<html></html>")
-    const app = createBookRoutes(tmpDir)
+    const app = new Hono().onError(errorHandler).route("/", createBookRoutes(tmpDir))
     const res = await app.request("/books/adt-export/export-adt")
-    expect(res.status).toBe(200)
-    expect(res.headers.get("Content-Type")).toBe("application/zip")
-    const disposition = res.headers.get("Content-Disposition") ?? ""
-    expect(disposition).toContain('filename="adt-export-adt.zip"')
-    expect(disposition).toContain("filename*=UTF-8''")
+    expect(res.status).toBe(409)
   })
 
   it("returns 404 for missing book", async () => {
@@ -2881,4 +2979,15 @@ describe("book admission before the first extraction", () => {
     try { expect(retained.getLatestNodeData("metadata", "book")).toEqual(before) }
     finally { retained.close() }
   })
+})
+
+it.each(["[broken", "- a\n- b", "not a mapping"])("config GET returns the shared localizable error for malformed overrides: %s", async raw => {
+  createTestBook("bad-config")
+  const file = path.join(tmpDir, "bad-config", "config.yaml")
+  fs.writeFileSync(file, raw)
+  const app = new Hono().onError(errorHandler).route("/", createBookRoutes(tmpDir))
+  const response = await app.request("/books/bad-config/config")
+  expect(response.status).toBe(409)
+  expect(await response.json()).toMatchObject({ code: "BOOK_CONFIG_INVALID" })
+  expect(fs.readFileSync(file, "utf8")).toBe(raw)
 })

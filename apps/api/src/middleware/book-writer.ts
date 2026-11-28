@@ -1,9 +1,12 @@
 import type { MiddlewareHandler } from "hono"
-import { withBookWriter } from "@adt/storage"
+import { withBookWriter, ownsBookWriter, recoverSectioningTransition } from "@adt/storage"
 import { requireExistingBook } from "../utils/book-exists.js"
 
 const PUBLISH_WITHOUT_WRITES = ["/publication/comments", "/publication/room-ticket", "/publication/run/cancel"]
 const PUBLISH_RUNS = ["/publication", "/publication/versions"]
+// Spread applies reconcile from current membership, so order them before
+// admission, including the app's outer guard and the route's nested guard.
+const spreadApplies = new Map<string, Promise<unknown>>()
 
 /** Adapted from published SPEC-0010/#886. Reads remain read-only; queued runs
  * and cancellation are admitted by their service when execution starts. */
@@ -15,6 +18,17 @@ export function bookWriterMiddleware(booksDir: string): MiddlewareHandler {
     const suffix = c.req.path.split(`/books/${encodeURIComponent(label)}`)[1] ?? ""
     if (suffix === "" && c.req.method === "POST" && ["import", "import-adt", "preview-import"].includes(label)) return next()
     const bookDir = requireExistingBook(label, booksDir)
+    // Explicit recovery reads the stranded source without opening SQLite or
+    // changing its locks. It takes writer admission on a new destination only.
+    if (c.req.method === "POST" && suffix === "/recover-copy") return next()
+    // These POSTs are preview reads. Math transforms supplied HTML; CSS reads
+    // through shared database admission and compiles temporary/in-memory output,
+    // just like its GET counterpart. Neither grants the caller writer authority.
+    // Keep committed pages readable while another page is still rendering.
+    if (c.req.method === "POST" && [
+      "/adt-preview/convert-math",
+      "/adt-preview/content/tailwind_output.css",
+    ].includes(suffix)) return next()
     // Match #886: admission must not recreate a book after its deletion.
     if (suffix.startsWith("/stages") || suffix.startsWith("/tasks")) return next()
     // Shared-link feedback only reaches the publish Worker, and Stop only flags the run that
@@ -22,6 +36,25 @@ export function bookWriterMiddleware(booksDir: string): MiddlewareHandler {
     if (PUBLISH_WITHOUT_WRITES.some((prefix) => suffix.startsWith(prefix))) return next()
     // A share takes the lease itself, after telling a second share about the running one.
     if (c.req.method === "POST" && PUBLISH_RUNS.includes(suffix)) return next()
-    return withBookWriter(bookDir, next)
+    const admit = () => {
+      // Recheck existence when queued work actually starts.
+      const currentDir = requireExistingBook(label, booksDir)
+      return withBookWriter(currentDir, () => {
+        recoverSectioningTransition(currentDir)
+        return next()
+      })
+    }
+    if (c.req.method === "POST" && suffix === "/spreads/apply" && !ownsBookWriter(bookDir)) {
+      // Hono caches this body. Read it on arrival, before a disconnected client
+      // can make a delayed body read look like an empty spread selection.
+      const sent = c.req.json().catch(() => undefined)
+      const start = async () => { await sent; return admit() }
+      const run = (spreadApplies.get(bookDir) ?? Promise.resolve()).then(start, start)
+      spreadApplies.set(bookDir, run)
+      const forget = () => { if (spreadApplies.get(bookDir) === run) spreadApplies.delete(bookDir) }
+      run.then(forget, forget)
+      return run
+    }
+    return admit()
   }
 }

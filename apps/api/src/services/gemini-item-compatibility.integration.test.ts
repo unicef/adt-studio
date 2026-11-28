@@ -32,6 +32,11 @@ function statuses() {
   try { return readOutputCatalog({ storage: db, config: loadBookConfig(label, root, configPath()), bookDir: db.bookDir!, promptsDir, configDir: path.join(root, "config") }) }
   finally { db.close() }
 }
+function statusesWith(config: ReturnType<typeof loadBookConfig>) {
+  const db = storage()
+  try { return readOutputCatalog({ storage: db, config, bookDir: db.bookDir!, promptsDir, configDir: path.join(root, "config") }) }
+  finally { db.close() }
+}
 function generate(options: { voiceSlot?: "primary" | "secondary"; alignment?: boolean; signal?: AbortSignal; replace?: boolean } = {}) {
   const status = statuses().find((item) => item.identity.kind === "audio" && item.identity.id === "pg001_t001" && item.identity.voiceSlot === (options.voiceSlot ?? "primary"))!
   return createTTSRoutes(root, configPath(), undefined, promptsDir).request(`/books/${label}/tts/generate-one`, {
@@ -82,6 +87,35 @@ it("publishes truthful item evidence, remains current across neighbor changes, a
   expect(audio()!.data.entries[0]).toMatchObject(entry)
   source("Changed own text", "Changed neighbor")
   expect(item().updateNeeded).toBe(true)
+})
+
+it("AC-17: an element-audio entry never takes the page-batch signature", () => {
+  const db = storage()
+  try {
+    db.putNodeData("element-audio", "pg001", {
+      entries: [{ nodeId: "pg001_im001", text: "Mago" }],
+      generatedAt: "fixture",
+    })
+    db.putNodeData("text-catalog", "book", {
+      entries: [
+        { id: "pg001_t001", text: "Hello" },
+        { id: "pg001_t002", text: "Neighbor" },
+        { id: "pg001_im001_audio", text: "Mago" },
+      ],
+      generatedAt: "fixture",
+    })
+  } finally { db.close() }
+
+  const base = loadBookConfig(label, root, configPath())
+  const on = statusesWith(base)
+  const off = statusesWith({ ...base, speech: { ...(base.speech ?? {}), batch_by_page: false } })
+  const signature = (list: ReturnType<typeof statuses>, id: string) =>
+    list.find((item) => item.identity.kind === "audio" && item.identity.id === id)?.signature
+
+  expect(signature(on, "pg001_im001_audio")).toBeDefined()
+  expect(signature(on, "pg001_im001_audio")).toBe(signature(off, "pg001_im001_audio"))
+  expect(signature(on, "pg001_t001")).toBeDefined()
+  expect(signature(on, "pg001_t001")).not.toBe(signature(off, "pg001_t001"))
 })
 
 it("retains actual page context when alignment is available", async () => {

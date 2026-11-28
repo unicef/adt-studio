@@ -38,6 +38,7 @@ import { useFloatingSave } from "../../components/floating-save"
 import { CascadeResetDialog } from "../../components/CascadeResetDialog"
 import { useDownstreamWithOutput } from "@/hooks/use-downstream-with-output"
 import { RevertSectioningEdits } from "./RevertSectioningEdits"
+import { HistoryRecoveryLink } from "../../components/HistoryRecoveryLink"
 
 /** Book-local page IDs and versions do not identify an editing session. */
 export function SectioningPageDetail(props: ComponentProps<typeof SectioningPageSession>) {
@@ -437,7 +438,7 @@ function SectioningPageSession({
         />
       ) : null}
       {saveError ? (
-        <span className="text-xs text-destructive">{saveError}</span>
+        <span className="text-xs text-destructive">{saveError} <HistoryRecoveryLink bookLabel={bookLabel} error={saveError} /></span>
       ) : null}
       <div className="flex gap-1 ml-auto">{navigationArrows}</div>
     </div>

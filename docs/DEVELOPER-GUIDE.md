@@ -646,7 +646,7 @@ function YourPage() {
 
 ## 10. Entity Versioning
 
-All pipeline outputs are stored in the `node_data` table with a composite key of `(node, item_id, version)`. The storage layer **never overwrites** — every `putNodeData()` call inserts a new version row.
+All pipeline outputs are stored in the `node_data` table with a composite key of `(node, item_id, version)`. Every ordinary `putNodeData()` call inserts a new version row. The sole physical repair exception restores independently proven exact bytes to a damaged existing historical row, under an explicitly confirmed, scoped and audited recovery transaction; it does not authorize arbitrary historical edits or change current selection. See ADR 025 and the recovery invariants.
 
 ```typescript
 // Always inserts: version = MAX(version) + 1

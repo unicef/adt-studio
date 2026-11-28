@@ -29,7 +29,7 @@ These principles are non-negotiable and must guide every decision:
 
 1. **Book Level Storage**: All book data must be isolated to a single directory that can be zipped and shared. Never store book-specific data outside the book's directory.
 
-2. **Entity Level Versioning**: NEVER overwrite entities. Always create new versions with incremented version numbers. Users must be able to roll back.
+2. **Entity Level Versioning**: NEVER overwrite entities. Always create new versions with incremented version numbers. Users must be able to roll back. SPEC-0003 permits only explicitly confirmed physical recovery of a damaged historical tuple to verified exact bytes, with uninterrupted tuple evidence, a transaction-scoped permit and an immutable damage audit. A selected repaired row receives a new selected version. Arbitrary historical edits and regeneration in place remain forbidden.
 
 3. **LLM Level Caching**: Cache at the LLM call level only. Hash all ordered inputs to create cache keys. Pipeline reruns should be fast if parameters unchanged.
 

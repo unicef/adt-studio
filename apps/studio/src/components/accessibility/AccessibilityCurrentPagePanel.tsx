@@ -156,6 +156,7 @@ function FindingCard({
 }: {
   finding: AccessibilityFinding
   reviewOnly?: boolean
+  /** Fires on enter and on every move over a finding, so it must be idempotent. */
   onFindingHover?: (finding: AccessibilityFinding | null) => void
 }) {
   const { t } = useLingui()
@@ -169,6 +170,7 @@ function FindingCard({
         reviewOnly ? "border-sky-200 hover:border-sky-400/70" : FINDING_HOVER_BORDER[severity],
       )}
       onMouseEnter={() => onFindingHover?.(finding)}
+      onMouseMove={() => onFindingHover?.(finding)}
       onMouseLeave={() => onFindingHover?.(null)}
     >
       <div className="flex flex-wrap items-center gap-2">

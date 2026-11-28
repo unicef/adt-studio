@@ -22,7 +22,7 @@ import { applyImageVariants, applyTranslationsToDOM, loadTranslations } from "@/
 import { loadPagesManifest, loadTocManifest } from "@/shared/runtime/manifest-loader"
 import { loadGlossary } from "@/features/glossary/runtime/glossary-loader"
 import { loadTimecodes } from "@/features/audio/runtime/tts-loader"
-import { hasPersistedValue, setStorageMode } from "@/shared/state/persist"
+import { hasPersistedValue, setStorageMode, studioPreviewBookLabel } from "@/shared/state/persist"
 import {
   appConfigAtom,
   isSettingLocked,
@@ -406,12 +406,8 @@ export function subscribeLanguageChanges(): () => void {
  * parent listening.
  */
 export function subscribePreviewSettings(): () => void {
-  if (typeof window === "undefined") return () => {}
-  if (window.parent === window) return () => {}
-
-  const bookLabelMatch = window.location.pathname.match(/\/books\/([^/]+)\//)
-  if (!bookLabelMatch) return () => {}
-  const bookLabel = bookLabelMatch[1]
+  const bookLabel = studioPreviewBookLabel()
+  if (!bookLabel) return () => {}
 
   const store = getDefaultStore()
 

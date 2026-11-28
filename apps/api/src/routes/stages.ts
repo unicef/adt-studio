@@ -1,19 +1,23 @@
 import { requireExistingBook } from "../utils/book-exists.js"
+import { storyboardPackageComplete, currentStoryboardCoverage, currentStoryboardSourceWarnings } from "../services/storyboard-package-coverage.js"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
 import { streamSSE } from "hono/streaming"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
-import { createBookStorage, openBookDb } from "@adt/storage"
+import { createBookStorage, openBookDb, withBookWriter } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import { AuthoredRunOptions, OUTPUT_KIND_TO_STAGE, SourceGeneratorStep, OutputSkipRequest, OutputRunScope, StageName, STAGE_ORDER, STEP_TO_STAGE, PIPELINE, IMPORTED_ADT_LOCKED_STAGES, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
 import { assertStageRunModelCredentials } from "@adt/llm"
 import {
-  loadBookConfig,
+  loadBookConfig, AuthoredReplacementError,
   getSourceGenerationUpdates,
   keepSourceGeneration,
   withSourceGenerationTracking,
+  activeSectioningPages, sectioningReplacementSignature, admitSectioningRun, storyboardCoverage,
+  isFixedLayoutBook,
+  prepareSectioningRun,
   collectSpentSectionIds,
   retireSectionIds,
   NOTHING_RETIRED,
@@ -25,7 +29,7 @@ import type { StageService } from "../services/stage-service.js"
 import type { BookEventBus, BookSSEEvent } from "../services/book-event-bus.js"
 import type { PageErrorDecisions } from "../services/page-error-decisions.js"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
-import { assertAuthoredReplacement, protectedAuthoredRecords } from "../services/authored-output-service.js"
+import { protectedAuthoredRecords } from "../services/authored-output-service.js"
 import { retireWithPreservedRecordings, DETACHED_AUDIO_DIR } from "../services/detached-audio.js"
 
 const StageRunBody = z
@@ -43,8 +47,8 @@ const StageRunBody = z
  * Does this rerun delete the `page-sectioning` history that section ids are
  * allocated from?
  *
- * Only that node. `fixed-layout-sectioning` is cleared by a storyboard rerun
- * too, but its id is not allocated — `sectionFixedLayoutPage` derives the page's
+ * Only that node. Storyboard keeps `fixed-layout-sectioning` history and switches
+ * its active tree during publication. Its id is not allocated — `sectionFixedLayoutPage` derives the page's
  * single section id from the pageId alone, so regenerating it produces the same
  * id and nothing pinned to it was ever at risk. Retiring those ids would detach
  * every pinned video on each storyboard rerun of a fixed-layout book, and on a
@@ -129,11 +133,12 @@ export function retireSectionIdsForClearedSectioning(
 /** Invalidate downstream execution status while retaining authored output.
  *  The returned function is idempotent — only runs once even if called multiple times.
  *  Exported so tests can pin the preserve-retirement-clear boundary. */
-export function makeBeforeRun(label: string, fromStage: StageName, toStage: StageName, booksDir: string, outputScope?: OutputRunScope): () => void {
+export function makeBeforeRun(label: string, fromStage: StageName, toStage: StageName, booksDir: string, outputScope?: OutputRunScope, configPath?: string): () => void {
   let ran = false
   return () => {
     if (ran) return
     requireExistingBook(label, booksDir)
+    prepareSectioningRun(label, booksDir, fromStage, toStage, configPath)
     const storage = createBookStorage(label, booksDir)
     try {
       if (fromStage === "extract" && storage.getPages().length) {
@@ -163,15 +168,15 @@ export function makeBeforeRun(label: string, fromStage: StageName, toStage: Stag
         // clearExtractedData also clears step_runs
         storage.clearExtractedData()
       } else {
-        const nodes = getStageRerunClearNodes(fromStage, toStage)
+        // Content changes belong to the admitted worker: Sectioning has an
+        // explicit reset transaction; ordinary Storyboard publishes per page.
+        const nodes = fromStage === "sectioning" || fromStage === "storyboard"
+          ? [] : getStageRerunClearNodes(fromStage, toStage)
         if (nodes.length > 0) {
           withSourceGenerationTracking(storage, () => storage.clearNodesByType(nodes))
         }
-        if (fromStage === "storyboard" && typeof storage.clearDebugImages === "function") {
-          storage.clearDebugImages()
-        }
         // Clear step run records for all downstream stages
-        const stagesToClear = getStageClearOrder(fromStage)
+        const stagesToClear = fromStage === "sectioning" || fromStage === "storyboard" ? [] : getStageClearOrder(fromStage)
         const stepsToClear = PIPELINE
           .filter((s) => stagesToClear.includes(s.name))
           .flatMap((s) => s.steps.map((step) => step.name))
@@ -244,24 +249,38 @@ export function createStageRoutes(
     // a speech-only rerun must not demand the text default's key, and a
     // per-step model override must be credentialed too, not just the default.
     // Keyless providers pass through.
-    assertStageRunModelCredentials(
-      loadBookConfig(label, booksDir, configPath),
-      (fromIndex <= toIndex ? STAGE_ORDER.slice(fromIndex, toIndex + 1) : STAGE_ORDER)
-        .filter(stage => !outputScope?.selection?.identities || outputScope.selection.identities.some(identity => OUTPUT_KIND_TO_STAGE[identity.kind] === stage)),
-      credentials,
-    )
+    const config = loadBookConfig(label, booksDir, configPath)
+    const requestedStages = (fromIndex <= toIndex ? STAGE_ORDER.slice(fromIndex, toIndex + 1) : STAGE_ORDER)
+      .filter(stage => !outputScope?.selection?.identities || outputScope.selection.identities.some(identity => OUTPUT_KIND_TO_STAGE[identity.kind] === stage))
+    // Fixed Storyboard uses extracted positioned content, with no model call.
+    // Sectioning and any other requested generative stages still need keys.
+    const modelStages = isFixedLayoutBook(config)
+      ? requestedStages.filter((stage) => stage !== "storyboard") : requestedStages
+    assertStageRunModelCredentials(config, modelStages, credentials)
 
     console.log(
       `[stages] ${label}: ${fromStage}→${toStage}${renderOnly ? " (render-only)" : ""} ` +
       `credentialProviders=${Object.keys(credentials).join(",") || "(none)"}`,
     )
 
-    const prepare = makeBeforeRun(label, fromStage, toStage, booksDir, outputScope)
+    const activeRun = stageService.getStatus(label).active
+    if (activeRun?.status !== "running" && activeRun?.status !== "cancelling") {
+      withBookWriter(path.join(path.resolve(booksDir), parseBookLabel(label)), () => {
+        prepareSectioningRun(label, booksDir, fromStage, toStage, configPath)
+        const storage = createBookStorage(label, booksDir)
+        try {
+          admitSectioningRun(storage, label, booksDir, { fromStage, toStage, replaceManual, protectedReplacements, outputScope }, configPath, promptsDir)
+        }
+        finally { storage.close() }
+      })
+    }
+    const prepare = makeBeforeRun(label, fromStage, toStage, booksDir, outputScope, configPath)
     const clearData = () => {
       const storage = createBookStorage(label, booksDir)
       try {
-        assertAuthoredReplacement(storage, { fromStage, toStage, replaceManual, protectedReplacements })
-      } finally { storage.close() }
+        admitSectioningRun(storage, label, booksDir, { fromStage, toStage, replaceManual, protectedReplacements, outputScope }, configPath, promptsDir)
+      }
+      finally { storage.close() }
       prepare()
     }
 
@@ -396,105 +415,124 @@ export function createStageRoutes(
       }
     }
 
-    // Read step_runs from DB (or empty if no DB)
-    let stepRunRows: Array<{ step: string; status: string; error: string | null; message: string | null }> = []
-    let sourceUpdateStages: string[] = []
-    if (fs.existsSync(dbPath)) {
-      const storage = createBookStorage(safeLabel, booksDir)
-      try {
+    // One synchronous read scope: retain the same database admission through
+    // status, coverage and replacement disclosure, then release on every exit.
+    const storage = fs.existsSync(dbPath) ? createBookStorage(safeLabel, booksDir) : undefined
+    try {
+      // Read step_runs from DB (or empty if no DB)
+      let stepRunRows: Array<{ step: string; status: string; error: string | null; message: string | null }> = []
+      let sourceUpdateStages: string[] = []
+      if (storage) {
         stepRunRows = storage.getStepRuns()
         sourceUpdateStages = getSourceGenerationUpdates(storage).map(step => STEP_TO_STAGE[step])
-      } finally {
-        storage.close()
       }
-    }
 
-    const stepRunMap = new Map(stepRunRows.map((r) => [r.step, r]))
+      const stepRunMap = new Map(stepRunRows.map((r) => [r.step, r]))
 
-    // Build steps
-    const steps: Record<string, string> = {}
-    const stepErrors: Record<string, string> = {}
-    const stepMessages: Record<string, string> = {}
-    for (const stage of PIPELINE) {
-      for (const step of stage.steps) {
-        const row = stepRunMap.get(step.name)
-        let status = row?.status ?? "idle"
-        if (status === "running" && failedActiveSteps.has(step.name)) {
-          status = "error"
-          stepErrors[step.name] = active?.error ?? "Stage run failed"
-        }
-        steps[step.name] = status
-        if (row?.status === "error" && row.error) {
-          stepErrors[step.name] = row.error
-        }
-        // Surface the message for running steps (page X/Y) and for done steps
-        // (e.g. "Completed — 2 page(s) skipped") so a skip note survives refetch.
-        if ((status === "running" || status === "done") && row?.message) {
-          stepMessages[step.name] = row.message
+      // Build steps
+      const steps: Record<string, string> = {}
+      const stepErrors: Record<string, string> = {}
+      const stepMessages: Record<string, string> = {}
+      for (const stage of PIPELINE) {
+        for (const step of stage.steps) {
+          const row = stepRunMap.get(step.name)
+          let status = row?.status ?? "idle"
+          if (status === "running" && failedActiveSteps.has(step.name)) {
+            status = "error"
+            stepErrors[step.name] = active?.error ?? "Stage run failed"
+          }
+          steps[step.name] = status
+          if (row?.status === "error" && row.error) {
+            stepErrors[step.name] = row.error
+          }
+          // Surface the message for running steps (page X/Y) and terminal steps
+          // (e.g. "Completed — 2 page(s) skipped") so a skip note survives refetch.
+          if ((status === "running" || status === "done" || status === "skipped") && row?.message) {
+            stepMessages[step.name] = row.message
+          }
         }
       }
-    }
 
-    // Derive stage state from steps.
-    // Two sources of "queued":
-    //   queuedStages — explicit queue items waiting behind the active run.
-    //     These always override done (re-run data not yet cleared).
-    //   activeRunRange — stages within the currently executing job.
-    //     These only show as queued if their steps haven't completed yet.
-    const stages: Record<string, string> = {}
-    for (const stage of PIPELINE) {
-      const ss = stage.steps.map((s) => steps[s.name])
-      const allComplete = ss.length > 0 && ss.every((s) => s === "done" || s === "skipped")
-      if (ss.some((s) => s === "running")) {
-        stages[stage.name] = "running"
-      } else if (queuedStages.has(stage.name)) {
-        stages[stage.name] = "queued"
-      } else if (allComplete) {
-        stages[stage.name] = "done"
-      } else if (activeRunRange.has(stage.name)) {
-        stages[stage.name] = "queued"
-      } else if (ss.some((s) => s === "error")) {
-        stages[stage.name] = "error"
-      } else {
-        stages[stage.name] = "idle"
+      let coverage: ReturnType<typeof storyboardCoverage> | undefined
+      let packagedComplete = false
+      if (storage) {
+        const config = loadBookConfig(safeLabel, booksDir, configPath)
+        const pageIds = activeSectioningPages(storage, config, path.dirname(dbPath)).map(page => page.pageId)
+        coverage = currentStoryboardCoverage(storage, path.dirname(dbPath), pageIds)
+        if (currentStoryboardSourceWarnings(storage, path.dirname(dbPath), pageIds).length) sourceUpdateStages.push("storyboard")
+        packagedComplete = storyboardPackageComplete(storage, path.dirname(dbPath), pageIds, config)
+        if (!coverage.complete && ["done", "skipped"].includes(steps["web-rendering"])) steps["web-rendering"] = "idle"
       }
-    }
 
-    // Check if ADT is packaged (preview stage)
-    const adtDir = path.join(resolvedDir, safeLabel, "adt")
-    if (fs.existsSync(adtDir)) stages.preview = "done"
+      // Derive stage state from steps.
+      // Two sources of "queued":
+      //   queuedStages — explicit queue items waiting behind the active run.
+      //     These always override done (re-run data not yet cleared).
+      //   activeRunRange — stages within the currently executing job.
+      //     These only show as queued if their steps haven't completed yet.
+      const stages: Record<string, string> = {}
+      for (const stage of PIPELINE) {
+        const ss = stage.steps.map((s) => steps[s.name])
+        const allComplete = ss.length > 0 && ss.every((s) => s === "done" || s === "skipped")
+        if (ss.some((s) => s === "running")) {
+          stages[stage.name] = "running"
+        } else if (queuedStages.has(stage.name)) {
+          stages[stage.name] = "queued"
+        } else if (allComplete) {
+          stages[stage.name] = "done"
+        } else if (activeRunRange.has(stage.name)) {
+          stages[stage.name] = "queued"
+        } else if (ss.some((s) => s === "error")) {
+          stages[stage.name] = "error"
+        } else {
+          stages[stage.name] = "idle"
+        }
+      }
 
-    const hasStepErrors = Object.keys(stepErrors).length > 0
-    const hasStepMessages = Object.keys(stepMessages).length > 0
-    const error = active?.error ?? (hasStepErrors ? formatStepErrors(stepErrors) : null)
+      // Check if ADT is packaged (preview stage)
+      if (packagedComplete) stages.preview = "done"
 
-    // Expose the run's job status so `isCancelling` (and any future run-level
-    // state) survives a refresh, and any pending page-error decisions so the
-    // decision dialog can be recovered via polling after a reconnect/F5.
-    const runStatus = active?.status ?? "idle"
-    const pendingDecisions = decisions.getPendingDecisions(label)
+      const hasStepErrors = Object.keys(stepErrors).length > 0
+      const hasStepMessages = Object.keys(stepMessages).length > 0
+      const error = active?.error ?? (hasStepErrors ? formatStepErrors(stepErrors) : null)
 
-    let protectedWork: Array<import("@adt/types").AuthoredReplacement & { pageNumber?: number }> = []
-    if (fs.existsSync(dbPath)) {
-      const storage = createBookStorage(safeLabel, booksDir)
-      try {
-        const numbers = new Map(storage.getPages().map((p) => [p.pageId, p.pageNumber]))
-        protectedWork = protectedAuthoredRecords(storage).map((record) => ({ ...record, pageNumber: numbers.get(record.itemId) }))
-      } finally { storage.close() }
-    }
-    return c.json({
-      protectedWork,
-      stages,
-      steps,
-      sourceUpdateStages,
-      error,
-      stepErrors: hasStepErrors ? stepErrors : null,
-      stepMessages: hasStepMessages ? stepMessages : null,
-      runStatus,
-      runRevision,
-      publicationAgeMs,
-      pendingDecisions,
-    })
+      // Expose the run's job status so `isCancelling` (and any future run-level
+      // state) survives a refresh, and any pending page-error decisions so the
+      // decision dialog can be recovered via polling after a reconnect/F5.
+      const runStatus = active?.status ?? "idle"
+      const pendingDecisions = decisions.getPendingDecisions(label)
+
+      let protectedWork: Array<import("@adt/types").AuthoredReplacement & { pageNumber?: number }> = []
+      if (storage) {
+        const numbers = new Map(activeSectioningPages(storage, loadBookConfig(safeLabel, booksDir, configPath), path.dirname(dbPath)).map((p) => [p.pageId, p.pageNumber]))
+        const records = protectedAuthoredRecords(storage)
+        let signature: string | undefined
+        if (records.some(record => record.node === "page-sectioning")) {
+          try { signature = sectioningReplacementSignature(storage, safeLabel, booksDir, configPath, promptsDir) }
+          catch (error) {
+            // An unavailable replacement receipt must not hide usable status or
+            // prevent a genuine no-op. Admission still refuses replacement.
+            if (!(error instanceof AuthoredReplacementError)) throw error
+          }
+        }
+        protectedWork = records.filter(record => record.node !== "page-sectioning" || numbers.has(record.itemId))
+          .map(record => ({ ...record, ...(record.node === "page-sectioning" ? { sectioningInputSignature: signature } : {}), pageNumber: numbers.get(record.itemId) }))
+      }
+      return c.json({
+        protectedWork,
+        coverage,
+        stages,
+        steps,
+        sourceUpdateStages,
+        error,
+        stepErrors: hasStepErrors ? stepErrors : null,
+        stepMessages: hasStepMessages ? stepMessages : null,
+        runStatus,
+        runRevision,
+        publicationAgeMs,
+        pendingDecisions,
+      })
+    } finally { storage?.close() }
   })
 
   // GET /books/:label/stages/status — Always-on SSE stream for stage run events.
@@ -518,6 +556,11 @@ export function createStageRoutes(
           done = true
           unsubscribe()
         })
+
+        // Flush a frame after registration even when no new progress arrives.
+        // Reconnecting clients may have missed an already committed page.
+        try { await stream.writeSSE({ event: "ready", data: JSON.stringify({ label, runStatus: stageService.getStatus(label).active?.status ?? "idle" }) }) }
+        catch { done = true; unsubscribe(); return }
 
         // Keep streaming until the client disconnects
         while (!done) {
@@ -548,6 +591,7 @@ export function createStageRoutes(
                   data: JSON.stringify({
                     label: event.label,
                     error: event.error,
+                    code: event.code,
                   }),
                 })
               } else if (event.type === "stage-run-cancelled") {

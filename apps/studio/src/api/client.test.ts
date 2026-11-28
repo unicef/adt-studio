@@ -184,7 +184,7 @@ it("retains upstream structured codes and SPEC-0002 conflict status in the same 
   try {
     const error = await api.getPages("conflict-fixture").catch(error => error)
     expect(error).toBeInstanceOf(ApiError)
-    expect(error).toMatchObject({ status: 409, code: "VERSION_CONFLICT", message: "Changed elsewhere" })
+    expect(error).toMatchObject({ status: 409, code: "VERSION_CONFLICT", message: "The saved content changed. Your draft is retained. Refresh and review the current versions before retrying." })
   } finally { vi.unstubAllGlobals() }
 })
 

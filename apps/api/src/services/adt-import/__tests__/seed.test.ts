@@ -6,7 +6,7 @@ import path from "node:path"
 import { describe, expect, it } from "vitest"
 import { strToU8, unzipSync, zipSync } from "fflate"
 import yaml from "js-yaml"
-import { buildTextCatalog } from "@adt/pipeline"
+import { buildTextCatalog, reflowableBodyFontStyle } from "@adt/pipeline"
 import { createBookStorage } from "@adt/storage"
 
 import { listBooks } from "../../book-service.js"
@@ -61,6 +61,78 @@ describe("ADT recovery workspace", () => {
     } finally {
       storage.close()
     }
+  })
+
+  // #1158: an imported reflowable book keeps the font it was exported with.
+  it("restores the book font the exporter wrote into the page heads", () => {
+    const files = unzipSync(makeCurrentBundleWithExternallyAddedPage())
+    for (const href of ["index.html", "pg002_sec001.html"]) {
+      files[href] = strToU8(new TextDecoder().decode(files[href]).replace(
+        "<html>",
+        `<html><head>${reflowableBodyFontStyle("'Open Sans',Atkinson Hyperlegible,sans-serif")}</head>`,
+      ))
+    }
+    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-font-"))
+    temporaryRoots.push(booksDir)
+    const session = seedFromArchive(Buffer.from(zipSync(files)), booksDir, "open-sans.zip")
+    const config = yaml.load(fs.readFileSync(path.join(booksDir, session.label, "config.yaml"), "utf8")) as Record<string, unknown>
+    expect(config.reflowable_font).toBe("open-sans")
+  })
+
+  it("restores the book font a legacy export kept in assets/fonts.css", () => {
+    const files = unzipSync(makeCurrentBundleWithExternallyAddedPage())
+    files["assets/fonts.css"] = strToU8(
+      "body, p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, select {\n  font-family: 'Open Sans', 'Merriweather', sans-serif;\n}",
+    )
+    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-font-"))
+    temporaryRoots.push(booksDir)
+    const session = seedFromArchive(Buffer.from(zipSync(files)), booksDir, "legacy-font.zip")
+    const config = yaml.load(fs.readFileSync(path.join(booksDir, session.label, "config.yaml"), "utf8")) as Record<string, unknown>
+    expect(config.reflowable_font).toBe("open-sans")
+  })
+
+  // Some older exports (v0.7.0-rc.8 to v0.7.4-beta.1) embedded the fonts in
+  // fonts.css as base64, about 6.6 MB. The font is only a hint: skip the file
+  // instead of failing the import, as before #1158.
+  it("imports an export whose fonts.css is too big to read, leaving the font automatic", () => {
+    const files = unzipSync(makeCurrentBundleWithExternallyAddedPage())
+    files["assets/fonts.css"] = strToU8(
+      "body, p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, select {\n  font-family: 'Open Sans', sans-serif;\n}\n"
+        + `@font-face { src: url(data:font/woff2;base64,${"A".repeat(600 * 1024)}); }`,
+    )
+    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-font-"))
+    temporaryRoots.push(booksDir)
+    const session = seedFromArchive(Buffer.from(zipSync(files)), booksDir, "embedded-fonts.zip")
+    const config = yaml.load(fs.readFileSync(path.join(booksDir, session.label, "config.yaml"), "utf8")) as Record<string, unknown>
+    expect(config).not.toHaveProperty("reflowable_font")
+  })
+
+  it("leaves the font automatic when the pages declare none", () => {
+    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-font-"))
+    temporaryRoots.push(booksDir)
+    const session = seedFromArchive(makeCurrentBundleWithExternallyAddedPage(), booksDir, "plain.zip")
+    const config = yaml.load(fs.readFileSync(path.join(booksDir, session.label, "config.yaml"), "utf8")) as Record<string, unknown>
+    expect(config).not.toHaveProperty("reflowable_font")
+  })
+
+  // #1198: an imported book keeps the reader's default and locked settings.
+  it("keeps the reader settings the export was made with", () => {
+    const files = unzipSync(makeCurrentBundleWithExternallyAddedPage())
+    const config = JSON.parse(new TextDecoder().decode(files["assets/config.json"]))
+    files["assets/config.json"] = strToU8(JSON.stringify({
+      ...config,
+      defaultSettings: { dockLayout: { width: "full", position: "bottom", align: "spread" }, theme: "dark" },
+      lockedSettings: ["dockLayout", "theme"],
+    }))
+    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-settings-"))
+    temporaryRoots.push(booksDir)
+    const session = seedFromArchive(Buffer.from(zipSync(files)), booksDir, "settings.zip")
+    const bookConfig = yaml.load(fs.readFileSync(path.join(booksDir, session.label, "config.yaml"), "utf8")) as Record<string, unknown>
+    expect(bookConfig.default_settings).toEqual({
+      dock_layout: { width: "full", position: "bottom", align: "spread" },
+      theme: "dark",
+    })
+    expect(bookConfig.locked_settings).toEqual(["dockLayout", "theme"])
   })
 
   it("accepts quiz pages emitted before Studio added data-section-id", () => {
@@ -120,6 +192,7 @@ describe("ADT recovery workspace", () => {
     expect(assessArchive(diverged)).toEqual({
       supported: false,
       issues: [{ code: "duplicate-data-id", pageHref: "index.html", detail: "pg001_t001" }],
+      issueCounts: { "duplicate-data-id": 1 },
     })
     expect(previewAdtRecoveryImport(diverged).compatibility.supported).toBe(false)
   })
@@ -150,6 +223,7 @@ describe("ADT recovery workspace", () => {
         pageHref: "pg001_sec002.html",
         detail: "pg001 resumes after pg002_sec001",
       }],
+      issueCounts: { "interleaved-reading-order": 1 },
     })
   })
 
@@ -198,6 +272,19 @@ describe("ADT recovery workspace", () => {
     } finally {
       storage.close()
     }
+  })
+
+  // #1154: a root HTML page outside the reading order is named as a page, not
+  // as a stray folder, and is listed with the book's own problems.
+  it("reports a root HTML page that is not in the reading order as an unlisted page", () => {
+    const files = unzipSync(makeCurrentBundleWithExternallyAddedPage())
+    files["credits.html"] = strToU8("<!doctype html><html><body><p>Credits</p></body></html>")
+    files["notes.txt"] = strToU8("scratch")
+    const { issues } = assessArchive(Buffer.from(zipSync(files)))
+    expect(issues).toEqual([
+      { code: "unlisted-root-page", pageHref: "credits.html", detail: "credits.html" },
+      { code: "unexpected-bundle-entry", pageHref: "notes.txt", detail: "notes.txt" },
+    ])
   })
 
   it("rejects folders outside the canonical ADT bundle root", () => {

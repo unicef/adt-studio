@@ -93,6 +93,26 @@ describe("detectSpreads (seam continuity)", () => {
     expect(result.map((s) => s.lead).sort((a, b) => a - b)).toEqual([2, 4])
   })
 
+  it("with seam text counts, keeps a spread whose captions stay off the fold", () => {
+    const seam = textured(0)
+    const pages = [
+      page(1, blank(), blank()),
+      { ...page(2, blank(), seam, 600), textNearLeftEdge: 0, textNearRightEdge: 0 },
+      { ...page(3, seam, blank(), 450), textNearLeftEdge: 0, textNearRightEdge: 0 },
+    ]
+    expect(detectSpreads(pages).map((s) => s.lead)).toEqual([2])
+  })
+
+  it("with seam text counts, rejects a pair whose text reaches the fold", () => {
+    const grid = textured(0, 0.8)
+    const pages = [
+      page(1, blank(), blank()),
+      { ...page(2, textured(30), grid, 900), textNearLeftEdge: 0, textNearRightEdge: 120 },
+      { ...page(3, grid, textured(60), 850), textNearLeftEdge: 110, textNearRightEdge: 0 },
+    ]
+    expect(detectSpreads(pages)).toEqual([])
+  })
+
   it("returns nothing for a single page", () => {
     expect(detectSpreads([page(1, textured(1), textured(2))])).toEqual([])
   })
