@@ -11345,6 +11345,9 @@ msgstr "Run Easy Read"
 msgid "Run Extract"
 msgstr "Run Extract"
 
+msgid "Run Extract first. This book has no pages yet."
+msgstr "Run Extract first. This book has no pages yet."
+
 msgid "Run Glossary"
 msgstr "Run Glossary"
 
@@ -11485,6 +11488,9 @@ msgstr "Save checklist"
 
 msgid "Save failed"
 msgstr "Save failed"
+
+msgid "Save failed: {error}"
+msgstr "Save failed: {error}"
 
 msgid "Save history checkpoint"
 msgstr "Save history checkpoint"

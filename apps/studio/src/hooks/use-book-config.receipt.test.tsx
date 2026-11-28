@@ -16,7 +16,7 @@ vi.mock("@tanstack/react-router", () => ({ useNavigate: () => state.navigate, us
 vi.mock("@/components/close-guard/CloseGuard", () => ({ useCloseIntent: () => {} }))
 
 
-vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({ queueRun: state.queue, isRunning: state.running }) }))
+vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({ queueRun: state.queue, isRunning: state.running, stageState: () => "done" }) }))
 vi.mock("@/hooks/use-api-key", () => ({ useApiKey: () => ({ apiKey: "test-only" }), useBookStructuredTextAvailability: () => state.provider }))
 vi.mock("@/components/pipeline/pipeline-i18n", () => ({ getStageLabelI18n: (slug: string) => slug }))
 vi.mock("@/components/pipeline/settings-tabs", () => ({ getSettingsTabLabel: (_stage: string, tab: string) => tab }))

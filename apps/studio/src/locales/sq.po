@@ -11347,6 +11347,9 @@ msgstr "Ekzekuto Easy Read"
 msgid "Run Extract"
 msgstr "Ekzekuto Ekstraktimin"
 
+msgid "Run Extract first. This book has no pages yet."
+msgstr "Ekzekuto së pari Ekstraktimin. Ky libër ende nuk ka faqe."
+
 msgid "Run Glossary"
 msgstr "Ekzekuto Glosariumin"
 
@@ -11487,6 +11490,9 @@ msgstr "Ruaj listën e kontrollit"
 
 msgid "Save failed"
 msgstr "Ruajtja dështoi"
+
+msgid "Save failed: {error}"
+msgstr "Ruajtja dështoi: {error}"
 
 msgid "Save history checkpoint"
 msgstr "Ruaj pikën e rikuperimit të historikut"
