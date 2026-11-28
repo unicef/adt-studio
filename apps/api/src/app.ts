@@ -45,6 +45,7 @@ import { createCloudflareRoutes } from "./routes/cloudflare.js"
 import { createConnectionStore, resolvePublishStateDir } from "./services/cloudflare/connection-store.js"
 import { createCloudflareOAuthService } from "./services/cloudflare/oauth.js"
 import { createPublishRoutes } from "./routes/publications.js"
+import { createSetupRecommendationRoutes } from "./routes/setup-recommendation.js"
 import { removeAbandonedAdtImports } from "./services/adt-import/marker.js"
 
 // Resolve paths relative to monorepo root (2 levels up from apps/api/)
@@ -136,6 +137,7 @@ app.route(
   createStageRoutes(stageService, eventBus, pageErrorDecisions, booksDir, promptsDir, webAssetsDir, configPath)
 )
 app.route("/api", createTaskRoutes(taskService))
+app.route("/api", createSetupRecommendationRoutes(booksDir, configPath))
 app.route("/api", createPresetRoutes(configPath, booksDir))
 app.route("/api", createAdtPreviewRoutes(booksDir, webAssetsDir, configPath, promptsDir))
 app.route("/api", createSpeechConfigRoutes(configPath))

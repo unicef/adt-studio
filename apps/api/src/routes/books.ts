@@ -4,6 +4,7 @@ import { BookConfigError, effectiveSectioningMode, publishedAdtDirectory } from 
 import { getStageClearNodes, getStageClearOrder } from "@adt/types"
 import { bookWriterMiddleware } from "../middleware/book-writer.js"
 import fs from "node:fs"
+import { attachSetupRecommendation } from "./setup-recommendation.js"
 import { createHash } from "node:crypto"
 import { readRetainedPackageOwnership } from "../services/retained-package-reader.js"
 import { readPreviewAsset } from "../services/preview-asset-validator.js"
@@ -284,9 +285,9 @@ export function createBookRoutes(
       ? (JSON.parse(configJson as string) as Record<string, unknown>)
       : undefined
 
+    let book: ReturnType<typeof createBook>
     try {
-      const book = createBook(label, pdfBuffer, booksDir, configOverrides)
-      return c.json(book, 201)
+      book = createBook(label, pdfBuffer, booksDir, configOverrides)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       if (message.includes("already exists")) {
@@ -294,6 +295,24 @@ export function createBookRoutes(
       }
       throw new HTTPException(400, { message })
     }
+    // Auto mode (issue #333): keep the recommendation and its AI log with the
+    // book. The book already exists here, so a failure only adds a warning.
+    const setupRecommendationId = formData.get("setupRecommendationId")
+    if (typeof setupRecommendationId === "string" && setupRecommendationId) {
+      let setupRecommendationWarning: string | null = null
+      try {
+        const attached = attachSetupRecommendation(setupRecommendationId, path.join(path.resolve(booksDir), book.label), {
+          config: configOverrides,
+          pdf: pdfBuffer,
+        })
+        if (attached === "expired") setupRecommendationWarning = "The setup recommendation expired, so it was not saved with the book."
+        if (attached === "other-pdf") setupRecommendationWarning = "The setup recommendation was made for a different PDF, so it was not saved with the book."
+      } catch (err) {
+        setupRecommendationWarning = `The setup recommendation was not saved with the book: ${err instanceof Error ? err.message : String(err)}`
+      }
+      if (setupRecommendationWarning) return c.json({ ...book, setupRecommendationWarning }, 201)
+    }
+    return c.json(book, 201)
   })
 
   app.post("/books/preview-import", archiveImportBodyLimit, async (c) => {
