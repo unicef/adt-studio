@@ -6,18 +6,10 @@ import { cn } from "@/lib/utils"
 import { usePageThumb } from "../../../core/pdf/usePageThumb"
 import { useReturnFocus } from "../shared/useReturnFocus"
 
-/** One page in the trail, drawn only once it scrolls into view (a long book stays quick to open). */
-function TrailPage({ file, page, current, root, onPick }: { file: File; page: number; current: boolean; root: HTMLElement | null; onPick: () => void }) {
+/** One page in the trail, drawn only once it has scrolled into view (`seen`). */
+function TrailPage({ file, page, current, seen, onPick }: { file: File; page: number; current: boolean; seen: boolean; onPick: () => void }) {
   const { t } = useLingui()
   const ref = useRef<HTMLButtonElement>(null)
-  const [seen, setSeen] = useState(false)
-  useEffect(() => {
-    const el = ref.current
-    if (!el || seen) return
-    const io = new IntersectionObserver(([e]) => e?.isIntersecting && setSeen(true), { root, rootMargin: "300px" })
-    io.observe(el)
-    return () => io.disconnect()
-  }, [root, seen])
   // The page in focus scrolls into the middle of the trail.
   useEffect(() => {
     if (current) ref.current?.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" })
@@ -27,6 +19,7 @@ function TrailPage({ file, page, current, root, onPick }: { file: File; page: nu
     <button
       ref={ref}
       type="button"
+      data-page={page}
       onClick={onPick}
       aria-label={t`Page ${page}`}
       aria-current={current ? "page" : undefined}
@@ -44,6 +37,31 @@ function TrailPage({ file, page, current, root, onPick }: { file: File; page: nu
       <span className={cn("rounded-full px-1.5 text-[11px] font-semibold tabular-nums", current ? "bg-brand-500 text-white" : "text-muted-foreground")}>{page}</span>
     </button>
   )
+}
+
+/**
+ * The pages of the trail seen so far: one observer for the whole trail (a long book stays quick to
+ * open), each page drawn once it comes within 300px of view.
+ */
+function useSeenPages(root: HTMLElement | null, file: File, total: number): ReadonlySet<number> {
+  const [seen, setSeen] = useState<ReadonlySet<number>>(() => new Set())
+  useEffect(() => {
+    if (!root) return
+    // Each opening (and another PDF) starts from the pages in view.
+    setSeen(new Set())
+    const io = new IntersectionObserver(
+      (entries) => {
+        const come = entries.filter((e) => e.isIntersecting).map((e) => e.target as HTMLElement)
+        if (!come.length) return
+        for (const el of come) io.unobserve(el)
+        setSeen((s) => new Set([...s, ...come.map((el) => Number(el.dataset.page))]))
+      },
+      { root, rootMargin: "300px" },
+    )
+    for (const el of root.querySelectorAll<HTMLElement>("[data-page]")) io.observe(el)
+    return () => io.disconnect()
+  }, [root, file, total])
+  return seen
 }
 
 /** The page in focus, as large as the stage allows. */
@@ -83,6 +101,7 @@ export function PdfPages({ file, title, pageCount, open, onClose, onChange, lock
   }
   const pages = Array.from({ length: total }, (_, i) => i + 1)
   const returnFocus = useReturnFocus(open)
+  const seen = useSeenPages(trail, file, total)
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
@@ -131,7 +150,7 @@ export function PdfPages({ file, title, pageCount, open, onClose, onChange, lock
             className="flex shrink-0 gap-1 overflow-auto border-border bg-card p-2 max-sm:border-t sm:w-[124px] sm:flex-col sm:items-center sm:border-l sm:py-3 lg:w-[140px]"
           >
             {pages.map((n) => (
-              <TrailPage key={n} file={file} page={n} current={n === page} root={trail} onPick={() => go(n)} />
+              <TrailPage key={n} file={file} page={n} current={n === page} seen={seen.has(n)} onPick={() => go(n)} />
             ))}
           </div>
         </div>
