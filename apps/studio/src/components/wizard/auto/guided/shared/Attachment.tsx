@@ -1,6 +1,6 @@
 import { HardDrive } from "lucide-react"
 import { formatBytes } from "@/lib/utils"
-import { useScopeSummary } from "../../../core/fields/ScopeField"
+import { useScopeSummary } from "../../../core/fields/scope"
 import { Book3D } from "../../../core/Book3D"
 import type { UploadFlow } from "../../../start/upload/useUploadFlow"
 

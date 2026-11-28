@@ -7,7 +7,7 @@ import { PageRangeField } from "@/components/ui/page-range-field"
 import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/utils"
 import { getPresetAccent } from "../../../../core/constants"
-import { SCOPE_LINK } from "../../../../core/fields/ScopeField"
+import { SCOPE_LINK, SplitExplained } from "../../../../core/fields/scope"
 import { usePageThumb } from "../../../../core/pdf/usePageThumb"
 import { useWizardForm } from "../../../../core/wizardForm"
 
@@ -156,7 +156,7 @@ export function PagesScreen({ pageCount }: { pageCount: number }) {
       <Collapsible shown={split}>
         <p inert={!split} className="flex gap-2 rounded-xl bg-muted/60 px-3 py-2 text-[13px] leading-relaxed text-muted-foreground">
           <Scissors aria-hidden className="mt-0.5 size-4 shrink-0 text-brand-600" />
-          <Trans>Extraction is skipped now. After the book is created, use the Split & merge panel on its overview to export page-range parts and merge the completed results back.</Trans>
+          <SplitExplained />
         </p>
       </Collapsible>
 

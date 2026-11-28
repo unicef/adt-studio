@@ -6,6 +6,7 @@ import { useWizardForm } from "@/components/wizard/core/wizardForm"
 import { getPresetAccent } from "@/components/wizard/core/constants"
 import { Collapsible } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
+import { SplitExplained } from "../../core/fields/scope"
 import { PageRange } from "./PageRange"
 
 type ScopeValue = "whole" | "range" | "split"
@@ -59,11 +60,7 @@ export function Scope() {
 
       <Collapsible shown={scope === "split"}>
         <p className="pt-1 text-xs leading-relaxed text-muted-foreground">
-          <Trans>
-            Extraction is skipped now. After the book is created, use the Split &
-            merge panel on its overview to export page-range parts and merge the
-            completed results back.
-          </Trans>
+          <SplitExplained />
         </p>
       </Collapsible>
     </fieldset>
