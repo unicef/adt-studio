@@ -92,19 +92,31 @@ function PreviewSettingsListener(): null {
 // Apply the user's stored theme and follow the OS while set to "system".
 initTheme()
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <I18nProvider i18n={i18n}>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider delayDuration={300}>
-          <PreviewSettingsListener />
-          <LiveRegionAnnouncer>
-            <CloseGuardProvider>
-              <RouterProvider router={router} />
-            </CloseGuardProvider>
-          </LiveRegionAnnouncer>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </I18nProvider>
-  </StrictMode>,
-)
+// Dev server: a change that reaches this file (a .po catalog, a module without its own hot-update
+// boundary) runs it again, and a second createRoot on the same element freezes the tab. The second
+// run reloads the page instead.
+const hot = import.meta.hot
+if (hot?.data.mounted) window.location.reload()
+else {
+  if (hot) hot.data.mounted = true
+  mount()
+}
+
+function mount() {
+    createRoot(document.getElementById("root")!).render(
+    <StrictMode>
+      <I18nProvider i18n={i18n}>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider delayDuration={300}>
+            <PreviewSettingsListener />
+            <LiveRegionAnnouncer>
+              <CloseGuardProvider>
+                <RouterProvider router={router} />
+              </CloseGuardProvider>
+            </LiveRegionAnnouncer>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </I18nProvider>
+    </StrictMode>,
+  )
+}
