@@ -86,6 +86,8 @@ describe("SPEC-0003 Extract-only inspection", { timeout: 30_000 }, () => {
     fs.writeFileSync(path.join(edited.bookDir, "config.yaml"), "start_page: 1\n")
     fs.writeFileSync(path.join(edited.bookDir, "part.json"), "{}")
     fs.writeFileSync(path.join(edited.bookDir, PROJECT_IDENTITY_FILE), identity("pdf"))
+    // The Add Book assistant's notes describe the setup and are kept by every re-run.
+    fs.writeFileSync(path.join(edited.bookDir, "setup-recommendation.json"), JSON.stringify({ recommendation: {} }))
     expect(inspect(edited.booksRoot)).toEqual({ extractOnly: true })
 
     const failed = book()
@@ -124,6 +126,7 @@ describe("SPEC-0003 Extract-only inspection", { timeout: 30_000 }, () => {
     ["an ADT import marker", "not-pdf-source", "entry:.adt-import-current.json", bookDir => fs.writeFileSync(path.join(bookDir, ".adt-import-current.json"), "{}")],
     ["an unreadable project identity", "unrecognized-content", "file:.adt-project.json", bookDir => fs.writeFileSync(path.join(bookDir, PROJECT_IDENTITY_FILE), "{")],
     ["an unreadable Sectioning lifecycle", "unrecognized-content", "file:.sectioning-lifecycle.json", bookDir => fs.writeFileSync(path.join(bookDir, ".sectioning-lifecycle.json"), "{")],
+    ["unreadable setup notes", "unrecognized-content", "file:setup-recommendation.json", bookDir => fs.writeFileSync(path.join(bookDir, "setup-recommendation.json"), "{")],
     ["an unknown top-level file", "unrecognized-content", "entry:owner-notes.txt", bookDir => fs.writeFileSync(path.join(bookDir, "owner-notes.txt"), "notes")],
     ["an unknown top-level directory", "unrecognized-content", "entry:notes", bookDir => fs.mkdirSync(path.join(bookDir, "notes"))],
     ["an unregistered font file", "unrecognized-content", "file:fonts/stray.woff2", bookDir => { fs.mkdirSync(path.join(bookDir, "fonts")); fs.writeFileSync(path.join(bookDir, "fonts", "stray.woff2"), "font") }],

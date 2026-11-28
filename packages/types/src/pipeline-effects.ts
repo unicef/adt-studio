@@ -20,6 +20,9 @@ export type PipelineNodeName =
   // pipeline. Kept separate from `page-sectioning` (which always holds the
   // semantic tree) so switching render strategy never destroys sectioning.
   | "fixed-layout-sectioning"
+  // Authored per-element scripts (SPEC-0014). Not a pipeline output; it is
+  // the authoritative user input the text catalog derives from.
+  | "element-audio"
 
 /**
  * Shared, UI-agnostic cache/resource tags used by apps to derive
@@ -167,6 +170,7 @@ const NODE_CACHE_RESOURCES: Record<PipelineNodeName, readonly PipelineCacheResou
   "text-catalog-translation": ["text-catalog"],
   "positioned-text": ["pages"],
   "fixed-layout-sectioning": ["pages"],
+  "element-audio": [],
 }
 
 const CACHE_RESOURCE_ORDER: readonly PipelineCacheResource[] = [

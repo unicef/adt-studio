@@ -315,6 +315,19 @@ export {
 } from "./image-captioning.js"
 
 export {
+  ELEMENT_AUDIO_NODE,
+  ElementAudioEntry,
+  ElementAudioOutput,
+  elementAudioTextId,
+  parseElementAudioTextId,
+  isElementAudioTextId,
+  isElementAudioNodeId,
+  type AuthoredElementAudioIds,
+  EMPTY_AUTHORED_ELEMENT_AUDIO_IDS,
+  isAuthoredElementAudioId,
+} from "./element-audio.js"
+
+export {
   EDITABLE_ACTIVITY_NODE,
   BLANK_MARKER_RE,
   blankItemIdsInText,
@@ -812,3 +825,28 @@ export * from "./history-recovery.js"
 export { PackageOwnershipReceipt, DerivedWebpubFiles } from "./package-ownership.js"
 
 export { type TextDirection, getTextDirection } from "./text-direction.js"
+
+export {
+  SetupBookFactId,
+  SetupSettingId,
+  SetupSettings,
+  SetupSettingPick,
+  SetupDecided,
+  SetupFact,
+  SetupPageRange,
+  SetupQuestionAnswer,
+  SetupReadings,
+  SetupRecommendation,
+  setupFactsKey,
+  SETUP_FACT_OPTIONS,
+  SetupFactValue,
+  SETUP_PAGE_TYPES,
+  type SetupPageType,
+  SETUP_TEXT_PLACEMENTS,
+  type SetupTextPlacement,
+  SETUP_RULE_IDS,
+  SetupRuleId,
+  SETUP_RECOMMENDATION_ERROR_CODES,
+  type SetupRecommendationErrorCode,
+  SetupRecommendationWarning,
+} from "./setup-recommendation.js"

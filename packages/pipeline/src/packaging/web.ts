@@ -1,3 +1,4 @@
+import { serializeHtml } from "../html-serialize.js"
 import { setImmediate as yieldToEventLoop } from "node:timers/promises"
 import { storyboardSourceWarnings } from "../storyboard-source-state.js"
 import { recordPackagedOwners } from "./bundle-ownership.js"
@@ -41,8 +42,9 @@ import type {
   AdtExportLineage,
   PackagingWarning, AppConfig, OutputStatus,
 } from "@adt/types"
-import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE, resolveQuizId, withResolvedQuizIds } from "@adt/types"
+import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, EMPTY_AUTHORED_ELEMENT_AUDIO_IDS, isAuthoredElementAudioId, type AuthoredElementAudioIds, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE, resolveQuizId, withResolvedQuizIds } from "@adt/types"
 import { resolveNarratorLabel } from "../speech.js"
+import { collectElementAudioTextIds } from "../element-audio-ids.js"
 import {
   ADT_EDITING_CONTRACT_VERSION,
   GOOGLE_FONTS,
@@ -192,15 +194,19 @@ export function buildRuntimeTimecodeMap(
   speechConfig?: SpeechConfig,
   readySpeechIds?: ReadonlySet<string>,
   voiceSlot: "primary" | "secondary" = "primary",
+  elementAudioTextIds: AuthoredElementAudioIds = EMPTY_AUTHORED_ELEMENT_AUDIO_IDS,
 ): Record<string, RuntimeTimecodeEntry> {
   const map: Record<string, RuntimeTimecodeEntry> = {}
 
   for (const entry of Object.values(timestamps?.entries ?? {})) {
     if (resolveEntryVoiceSlot(entry) !== voiceSlot) continue
     const textId = entry.textId
+    // Authored scripts use block highlighting. The artifact set is the test:
+    // a legacy image id ending in `_audio` is not an authored script.
+    if (isAuthoredElementAudioId(textId, elementAudioTextIds)) continue
     if (entry.words.length === 0) continue
     if (readySpeechIds && !readySpeechIds.has(textId)) continue
-    if (isTtsExcluded(textId, speechConfig)) continue
+    if (isTtsExcluded(textId, speechConfig, elementAudioTextIds)) continue
     map[textId] = {
       timecodes: [
         null,
@@ -839,6 +845,7 @@ async function buildWebPackage(
     })
   }
 
+  const elementAudioTextIds = collectElementAudioTextIds(storage)
   const hasTTS = (features?.readAloud !== false) && outputLanguages.some((lang) => {
     const readyIds = new Set(speechEntries(lang).filter((entry) => entry.speechText).map((entry) => entry.id))
     const legacyLang = lang.replace("-", "_")
@@ -846,7 +853,7 @@ async function buildWebPackage(
       storage.getLatestNodeData("tts", lang) ??
       storage.getLatestNodeData("tts", legacyLang)
     const data = row?.data as TTSOutput | undefined
-    return data?.entries.some((entry) => readyIds.has(entry.textId) && !isTtsExcluded(entry.textId, speechConfig) &&
+    return data?.entries.some((entry) => readyIds.has(entry.textId) && !isTtsExcluded(entry.textId, speechConfig, elementAudioTextIds) &&
       (options.config
         ? freshness.some((output) => output.identity.kind === "audio" && output.identity.id === entry.textId && output.identity.language === lang && output.identity.voiceSlot === resolveEntryVoiceSlot(entry) && output.usable && !output.excluded)
         : fs.existsSync(path.join(bookDir, "audio", lang, entry.fileName)) || fs.existsSync(path.join(bookDir, "audio", legacyLang, entry.fileName)))) === true
@@ -954,7 +961,7 @@ async function buildWebPackage(
           if (options.config && !freshness.some((output) => output.identity.kind === "audio" && output.identity.id === entry.textId && output.identity.language === lang && output.identity.voiceSlot === resolveEntryVoiceSlot(entry) && output.usable && !output.excluded)) continue
           // Exclusions apply at packaging time too, so muting an element
           // takes effect without regenerating speech.
-          if (isTtsExcluded(entry.textId, speechConfig)) continue
+          if (isTtsExcluded(entry.textId, speechConfig, elementAudioTextIds)) continue
           const srcFile = path.join(bookDir, "audio", lang, entry.fileName)
           const legacySrcFile = path.join(bookDir, "audio", legacyLang, entry.fileName)
           const resolvedSrcFile = fs.existsSync(srcFile) ? srcFile : legacySrcFile
@@ -986,14 +993,14 @@ async function buildWebPackage(
     const timestamps = getWordTimestamps(storage, lang)
     const timingIds = (slot: "primary" | "secondary") => new Set(copiedBySlot[slot].filter((entry) => !options.config || freshness.some((output) => output.identity.kind === "timestamps" && output.identity.id === entry.textId && output.identity.language === lang && output.identity.voiceSlot === slot && output.usable)).map((entry) => entry.textId))
     const primaryTimecodes = highlightEnabled
-      ? buildRuntimeTimecodeMap(timestamps, speechConfig, timingIds("primary"), "primary")
+      ? buildRuntimeTimecodeMap(timestamps, speechConfig, timingIds("primary"), "primary", elementAudioTextIds)
       : {}
     writeJson(path.join(timecodeDir, "timecode_output.json"), primaryTimecodes)
     if (Object.keys(audioVoices.secondary.audios).length > 0) {
       writeJson(path.join(timecodeDir, "timecode_voices.json"), {
         primary: primaryTimecodes,
         secondary: highlightEnabled
-          ? buildRuntimeTimecodeMap(timestamps, speechConfig, timingIds("secondary"), "secondary")
+          ? buildRuntimeTimecodeMap(timestamps, speechConfig, timingIds("secondary"), "secondary", elementAudioTextIds)
           : {},
       })
     }
@@ -2189,7 +2196,7 @@ export function rewriteImageUrls(
     }
   }
 
-  const normalizedHtml = DomUtils.getOuterHTML(doc).replace(/(<img\b[^>]*?)\salt(?=[\s>])/g, "$1 alt=\"\"")
+  const normalizedHtml = serializeHtml(doc).replace(/(<img\b[^>]*?)\salt(?=[\s>])/g, "$1 alt=\"\"")
   return { html: normalizedHtml, referencedImages }
 }
 

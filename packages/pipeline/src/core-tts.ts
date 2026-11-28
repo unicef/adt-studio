@@ -8,7 +8,10 @@ import { z } from "zod"
 import {
   CoreTtsCatalogOutput as CoreTtsCatalogOutputSchema,
   containsLatexSpeechCandidate,
+  EMPTY_AUTHORED_ELEMENT_AUDIO_IDS,
+  isAuthoredElementAudioId,
   type AppConfig,
+  type AuthoredElementAudioIds,
   type CoreTtsCatalogEntry,
   type CoreTtsCatalogOutput,
   type CoreTtsTransformationKind,
@@ -194,6 +197,39 @@ interface PreparationInput {
   next_display_text: string | null
 }
 
+function adjacentPreparationEntry(
+  entries: TextCatalogEntry[],
+  index: number,
+  direction: 1 | -1,
+  authoredElementAudioIds: AuthoredElementAudioIds,
+): TextCatalogEntry | undefined {
+  for (let i = index + direction; i >= 0 && i < entries.length; i += direction) {
+    if (isAuthoredElementAudioId(entries[i].id, authoredElementAudioIds)) continue
+    return entries[i]
+  }
+  return undefined
+}
+
+/** The current entry plus its nearest non-element-audio neighbours. */
+export function preparationNeighbors(
+  entries: TextCatalogEntry[],
+  index: number,
+  authoredElementAudioIds: AuthoredElementAudioIds = EMPTY_AUTHORED_ELEMENT_AUDIO_IDS,
+): TextCatalogEntry[] {
+  const entry = entries[index]
+  if (!entry) return []
+  // Authored scripts take no neighbour context: editing a real neighbour must
+  // not make the script's preparation stale (SPEC-0014 AC-15).
+  if (isAuthoredElementAudioId(entry.id, authoredElementAudioIds)) return [entry]
+  const out: TextCatalogEntry[] = []
+  const previous = adjacentPreparationEntry(entries, index, -1, authoredElementAudioIds)
+  if (previous) out.push(previous)
+  out.push(entry)
+  const next = adjacentPreparationEntry(entries, index, 1, authoredElementAudioIds)
+  if (next) out.push(next)
+  return out
+}
+
 export function coreTtsInputBasis(options: {
   entries: TextCatalogEntry[]
   index: number
@@ -201,18 +237,21 @@ export function coreTtsInputBasis(options: {
   config: CoreTtsPreparationConfig
   profile: ResolvedCoreTtsProfile
   sourceContext?: Map<string, CoreTtsSourceContextEntry>
+  authoredElementAudioIds?: AuthoredElementAudioIds
 }) {
   const entry = options.entries[options.index]
   const enabled: CoreTtsTransformationKind[] = []
   if (options.config.latexToSpeech && containsLatexSpeechCandidate(entry.text)) enabled.push("latex-to-speech")
   if (options.config.languageNormalization && options.profile.guidance.trim()) enabled.push("language-normalization")
   const source = enabled.length ? options.sourceContext?.get(entry.id) : undefined
+  const authoredIds = options.authoredElementAudioIds ?? EMPTY_AUTHORED_ELEMENT_AUDIO_IDS
+  const authoredElementAudio = isAuthoredElementAudioId(entry.id, authoredIds)
   const input: PreparationInput = {
     id: entry.id, display_text: entry.text, enabled_transformations: enabled,
     source_display_text: source?.displayText ?? null,
     source_speech_text: source?.speechText ?? null,
-    previous_display_text: enabled.length ? options.entries[options.index - 1]?.text ?? null : null,
-    next_display_text: enabled.length ? options.entries[options.index + 1]?.text ?? null : null,
+    previous_display_text: enabled.length && !authoredElementAudio ? adjacentPreparationEntry(options.entries, options.index, -1, authoredIds)?.text ?? null : null,
+    next_display_text: enabled.length && !authoredElementAudio ? adjacentPreparationEntry(options.entries, options.index, 1, authoredIds)?.text ?? null : null,
   }
   const signature = inputSignature({
     language: normalizeLocale(options.language), input,
@@ -257,6 +296,7 @@ export function resolveCoreTtsSpeechCatalog(options: {
   previous?: CoreTtsCatalogOutput | null
   sourceContext?: Map<string, CoreTtsSourceContextEntry>
   now?: string
+  authoredElementAudioIds?: AuthoredElementAudioIds
 }): CoreTtsCatalogOutput {
   const now = options.now ?? new Date().toISOString()
   const prior = new Map((options.previous?.entries ?? []).map((entry) => [entry.id, entry]))
@@ -299,6 +339,7 @@ export async function prepareCoreTtsCatalog(options: {
   retryIds?: readonly string[]
   references?: OutputReference[]
   signal?: AbortSignal
+  authoredElementAudioIds?: AuthoredElementAudioIds
 }): Promise<CoreTtsCatalogOutput> {
   const language = normalizeLocale(options.language)
   const now = options.now ?? new Date().toISOString()

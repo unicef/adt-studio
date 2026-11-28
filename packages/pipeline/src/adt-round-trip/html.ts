@@ -1,3 +1,4 @@
+import { serializeHtml, serializeInnerHtml } from "../html-serialize.js"
 import { parseDocument, DomUtils } from "htmlparser2"
 import type { ContentNodeData } from "@adt/types"
 
@@ -440,8 +441,8 @@ export function projectImportedHtmlSection(
       true,
     )
     const content = contentRoot
-      ? DomUtils.getInnerHTML(contentRoot)
-      : body ? DomUtils.getInnerHTML(body) : DomUtils.getInnerHTML(doc)
+      ? serializeInnerHtml(contentRoot)
+      : body ? serializeInnerHtml(body) : serializeInnerHtml(doc)
     return projectImportedHtmlSection(
       `<section data-section-id="${escapeHtmlAttribute(expectedSectionId)}" data-section-type="content">${content}</section>`,
       expectedSectionId,
@@ -546,7 +547,7 @@ export function projectImportedHtmlSection(
   }
 
   return {
-    html: DomUtils.getOuterHTML(section),
+    html: serializeHtml(section),
     sectionType,
     nodes,
     images,
@@ -593,7 +594,7 @@ export function createSafeImportedHtmlPreview(
       }
     }
   }
-  const section = DomUtils.getInnerHTML(previewDocument)
+  const section = serializeInnerHtml(previewDocument)
   return `<!doctype html>
 <html lang="en">
 <head>

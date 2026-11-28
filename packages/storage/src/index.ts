@@ -20,6 +20,7 @@ export { retainInvalidBookConfig, atomicBookFile, configHash, readConfigText, re
 
 export { ExtractionAdmissionError } from "./extraction-error.js"
 export { EXTRACTION_MANIFEST_FILE, extractionHash, readExtractionManifest, writeExtractionManifest, hashExtractionAsset, flushExtractionAsset, syncDirectory, inspectExtractionDestination, verifyExtractionInventory, assertExtractionReadable } from "./extraction-manifest.js"
+export { SETUP_RECOMMENDATION_FILE, SETUP_RECOMMENDER_LOG_STEP } from "./setup-notes.js"
 export { getStorageBookDir } from "./book-storage.js"
 
 export { insertNodeVersion, readIdentityHistory, importHistoryReservations, historyBookId } from "./history-evidence.js"

@@ -216,6 +216,48 @@ describe("POST /books/:label/tts/generate-one", () => {
     ).toBe(true)
   })
 
+  it("AC-17/21: the one-item route treats authored audio as speech and a legacy _audio image as a caption", async () => {
+    const authoredLabel = "authored-audio"
+    seedBook(authoredLabel, [{ id: "pg001_im001_audio", text: "Mago" }])
+    const authoredStorage = createBookStorage(authoredLabel, tmpDir)
+    try {
+      authoredStorage.putNodeData("element-audio", "pg001", {
+        entries: [{ nodeId: "pg001_im001", text: "Mago" }],
+        generatedAt: new Date().toISOString(),
+      })
+    } finally {
+      authoredStorage.close()
+    }
+    // Muting captions must not silence the authored script.
+    fs.appendFileSync(configPath, "  excluded_categories:\n    - captions\n")
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          candidates: [{ content: { parts: [{ inlineData: { data: Buffer.from(new Uint8Array([1, 2, 3, 4])).toString("base64") } }] } }],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    )
+    const app = createTTSRoutes(tmpDir, configPath)
+    const authored = await app.request(`/books/${authoredLabel}/tts/generate-one`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Gemini-API-Key": "gm-test" },
+      body: JSON.stringify({ textId: "pg001_im001_audio", language: "en" }),
+    })
+    expect(authored.status).toBe(200)
+    expect((await authored.json()).entry.textId).toBe("pg001_im001_audio")
+
+    // The same id shape without the artifact is a caption and stays muted.
+    const legacyLabel = "legacy-audio"
+    seedBook(legacyLabel, [{ id: "pg003_im007_audio", text: "Mago" }])
+    const legacy = await app.request(`/books/${legacyLabel}/tts/generate-one`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Gemini-API-Key": "gm-test" },
+      body: JSON.stringify({ textId: "pg003_im007_audio", language: "en" }),
+    })
+    expect(legacy.status).toBe(409)
+  })
+
   it("treats excluded catalog entries as complete after generating the remaining audio", async () => {
     const label = "excluded-completion"
     seedBook(label, [

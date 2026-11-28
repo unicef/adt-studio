@@ -843,6 +843,21 @@ describe("quiz history retention on invalidation", () => {
     } finally { storage.close() }
   })
 
+  it("refuses to clear authored element-audio through any list", () => {
+    const { storage } = createTempStorage()
+    try {
+      storage.putNodeData("element-audio", "pg001", {
+        entries: [{ nodeId: "pg001_im001", text: "Mago" }],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+      expect(() => storage.clearNodesByType(["text-catalog", "element-audio"]))
+        .toThrow(/element-audio/)
+      expect(storage.getLatestNodeData("element-audio", "pg001")?.version).toBe(1)
+    } finally {
+      storage.close()
+    }
+  })
+
   it("rolls quiz invalidation and dependent deletion back with a failed transaction", () => {
     const { storage } = createTempStorage()
     try {

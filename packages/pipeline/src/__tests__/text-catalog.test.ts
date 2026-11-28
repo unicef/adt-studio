@@ -5,6 +5,7 @@ import {
   extractTextCatalogEntriesFromHtml,
   exportedActivityCatalogIds,
 } from "../text-catalog.js"
+import { collectElementAudioTextIds } from "../element-audio-ids.js"
 
 function createMockStorage(
   nodeData: Record<string, Record<string, unknown>>,
@@ -773,5 +774,365 @@ describe("extractTextCatalogEntriesFromHtml", () => {
       { id: "pg003_ac001", text: "Question" },
       { id: "pg003_ac002", text: "Answer" },
     ])
+  })
+})
+
+describe("buildTextCatalog — element-audio (SPEC-0014)", () => {
+  const page = pages[0]
+
+  const renderingFixture = (pageId = "pg001", nodeId = "pg001_im001") => ({
+    "web-rendering": {
+      [pageId]: {
+        sections: [{
+          sectionIndex: 0,
+          sectionType: "images_only",
+          reasoning: "",
+          html: `<section><img data-id="${nodeId}" src="placeholder" alt="Mago" /></section>`,
+        }],
+      },
+    },
+  })
+
+  const artifactFixture = (entries: Array<{ nodeId: string; text: string }>, pageId = "pg001") => ({
+    "element-audio": {
+      [pageId]: { entries, generatedAt: "2026-11-16T00:00:00.000Z" },
+    },
+  })
+
+  it("AC-2: emits the synthetic ${nodeId}_audio entry from the artifact", async () => {
+    const storage = createMockStorage({
+      ...renderingFixture(),
+      ...artifactFixture([{ nodeId: "pg001_im001", text: "Mago" }]),
+    })
+
+    const result = await buildTextCatalog(storage, [page])
+
+    expect(result.entries).toContainEqual({
+      id: "pg001_im001_audio",
+      text: "Mago",
+      locations: [{ pageId: "pg001", sectionId: "pg001_fixture_0", role: "element-audio" }],
+    })
+  })
+
+  it("AC-19: the synthetic entry carries pageId, sectionId and role element-audio", async () => {
+    const storage = createMockStorage({
+      ...renderingFixture(),
+      ...artifactFixture([{ nodeId: "pg001_im001", text: "Mago" }]),
+    })
+
+    const entry = (await buildTextCatalog(storage, [page])).entries.find((item) => item.id === "pg001_im001_audio")
+    expect(entry?.locations).toEqual([{ pageId: "pg001", sectionId: "pg001_fixture_0", role: "element-audio" }])
+  })
+
+  it("AC-24: a non-image artifact row is neither catalogued nor classified as authored", async () => {
+    const storage = createMockStorage({
+      "web-rendering": {
+        pg001: {
+          sections: [{
+            sectionIndex: 0,
+            sectionType: "content",
+            reasoning: "",
+            html: '<section><p data-id="pg001_t001">Body</p></section>',
+          }],
+        },
+      },
+      ...artifactFixture([{ nodeId: "pg001_t001", text: "Mago" }]),
+    })
+
+    const result = await buildTextCatalog(storage, [page])
+
+    expect(result.entries.find((entry) => entry.id === "pg001_t001_audio")).toBeUndefined()
+    expect(collectElementAudioTextIds(storage).has("pg001_t001_audio")).toBe(false)
+  })
+
+  it("AC-24: a cleared script is neither catalogued nor classified as authored", async () => {
+    const storage = createMockStorage({
+      ...renderingFixture(),
+      ...artifactFixture([{ nodeId: "pg001_im001", text: "   " }]),
+    })
+
+    const result = await buildTextCatalog(storage, [page])
+
+    expect(result.entries.find((entry) => entry.id === "pg001_im001_audio")).toBeUndefined()
+    expect(collectElementAudioTextIds(storage).has("pg001_im001_audio")).toBe(false)
+  })
+
+  it("AC-6: rebuilds re-emit the entry from the artifact", async () => {
+    const storage = createMockStorage({
+      ...renderingFixture(),
+      ...artifactFixture([{ nodeId: "pg001_im001", text: "Mago" }]),
+    })
+
+    const first = await buildTextCatalog(storage, [page])
+    const second = await buildTextCatalog(storage, [page])
+
+    expect(second.entries).toEqual(first.entries)
+    expect(second.entries).toContainEqual(expect.objectContaining({ id: "pg001_im001_audio", text: "Mago" }))
+  })
+
+  it("AC-23: does not synthesise the script when the page has no web-rendering (artifact kept)", async () => {
+    const storage = createMockStorage(artifactFixture([{ nodeId: "pg001_im001", text: "Mago" }]))
+
+    const result = await buildTextCatalog(storage, [page])
+
+    expect(result.entries).toEqual([])
+    expect(storage.getLatestNodeData("element-audio", "pg001")?.data).toMatchObject({
+      entries: [{ nodeId: "pg001_im001", text: "Mago" }],
+    })
+  })
+
+  it("AC-23: does not synthesise the script when the rendering is malformed (artifact kept)", async () => {
+    const storage = createMockStorage({
+      "web-rendering": { pg001: { sections: "not-an-array" } },
+      ...artifactFixture([{ nodeId: "pg001_im001", text: "Mago" }]),
+    }, false)
+
+    const result = await buildTextCatalog(storage, [page])
+
+    expect(result.entries).toEqual([])
+    expect(storage.getLatestNodeData("element-audio", "pg001")?.data).toMatchObject({
+      entries: [{ nodeId: "pg001_im001", text: "Mago" }],
+    })
+  })
+
+  it("AC-6: skips whitespace-only scripts", async () => {
+    const storage = createMockStorage({
+      "web-rendering": {
+        pg001: {
+          sections: [{
+            sectionIndex: 0,
+            sectionType: "images_only",
+            reasoning: "",
+            html: '<section><img data-id="pg001_im001" src="placeholder" alt="Mago" /><img data-id="pg001_im002" src="placeholder" alt="Dragón" /></section>',
+          }],
+        },
+      },
+      ...artifactFixture([
+        { nodeId: "pg001_im001", text: "   " },
+        { nodeId: "pg001_im002", text: "Mago" },
+      ]),
+    })
+
+    const result = await buildTextCatalog(storage, [page])
+
+    expect(result.entries.some((entry) => entry.id === "pg001_im001_audio")).toBe(false)
+    expect(result.entries).toContainEqual(expect.objectContaining({ id: "pg001_im002_audio", text: "Mago" }))
+  })
+
+  it("AC-6: a corrupt artifact does not break the catalog", async () => {
+    const storage = createMockStorage({
+      "web-rendering": {
+        pg001: {
+          sections: [{
+            sectionIndex: 0,
+            sectionType: "text",
+            reasoning: "",
+            html: '<section><p data-id="pg001_t001">Hello</p><img data-id="pg001_im001" src="placeholder" alt="Mago" /></section>',
+          }],
+        },
+      },
+      "element-audio": { pg001: { entries: "not-an-array", generatedAt: "t" } },
+    })
+
+    const result = await buildTextCatalog(storage, [page])
+
+    expect(result.entries.some((entry) => entry.id.endsWith("_audio"))).toBe(false)
+    expect(result.entries).toContainEqual(expect.objectContaining({ id: "pg001_t001", text: "Hello" }))
+  })
+
+  it("AC-23: an orphan nodeId is not synthesised (artifact kept)", async () => {
+    const storage = createMockStorage({
+      ...renderingFixture(),
+      ...artifactFixture([{ nodeId: "pg999_im999", text: "Orphan" }]),
+    })
+
+    const result = await buildTextCatalog(storage, [page])
+
+    expect(result.entries.some((entry) => entry.id === "pg999_im999_audio")).toBe(false)
+    expect(storage.getLatestNodeData("element-audio", "pg001")?.data).toMatchObject({
+      entries: [{ nodeId: "pg999_im999", text: "Orphan" }],
+    })
+  })
+
+  it("AC-23: a script in a pruned section is not synthesised (artifact kept)", async () => {
+    const storage = createMockStorage({
+      ...renderingFixture(),
+      "page-sectioning": {
+        pg001: {
+          reasoning: "",
+          sections: [{
+            sectionId: "pg001_s001",
+            sectionType: "images_only",
+            nodes: [],
+            backgroundColor: "white",
+            textColor: "black",
+            pageNumber: 1,
+            isPruned: true,
+          }],
+        },
+      },
+      ...artifactFixture([{ nodeId: "pg001_im001", text: "Mago" }]),
+    })
+
+    const result = await buildTextCatalog(storage, [page])
+
+    expect(result.entries.some((entry) => entry.id === "pg001_im001_audio")).toBe(false)
+    expect(storage.getLatestNodeData("element-audio", "pg001")?.data).toMatchObject({
+      entries: [{ nodeId: "pg001_im001", text: "Mago" }],
+    })
+  })
+
+  it("AC-22: a moved image keeps its script at the element's current page and section", async () => {
+    const movedPage = { pageId: "pg002", pageNumber: 2, text: "" }
+    const storage = createMockStorage({
+      ...renderingFixture("pg002", "pg001_im001"),
+      ...artifactFixture([{ nodeId: "pg001_im001", text: "Mago" }], "pg001"),
+    })
+
+    const result = await buildTextCatalog(storage, [page, movedPage])
+
+    expect(result.entries).toContainEqual({
+      id: "pg001_im001_audio",
+      text: "Mago",
+      locations: [{ pageId: "pg002", sectionId: "pg002_fixture_0", role: "element-audio" }],
+    })
+  })
+
+  it("AC-26: a duplicate nodeId keeps the first entry and does not hide the page", async () => {
+    const storage = createMockStorage({
+      "web-rendering": {
+        pg001: {
+          sections: [{
+            sectionIndex: 0,
+            sectionType: "images_only",
+            reasoning: "",
+            html: '<section><img data-id="pg001_im001" src="placeholder" alt="Mago" /><img data-id="pg001_im002" src="placeholder" alt="Dragón" /></section>',
+          }],
+        },
+      },
+      ...artifactFixture([
+        { nodeId: "pg001_im001", text: "Mago" },
+        { nodeId: "pg001_im001", text: "Maga" },
+        { nodeId: "pg001_im002", text: "Dragón" },
+      ]),
+    })
+
+    const result = await buildTextCatalog(storage, [page])
+
+    expect(result.entries).toContainEqual(expect.objectContaining({ id: "pg001_im001_audio", text: "Mago" }))
+    expect(result.entries).toContainEqual(expect.objectContaining({ id: "pg001_im002_audio", text: "Dragón" }))
+    expect(result.entries.filter((entry) => entry.id === "pg001_im001_audio")).toHaveLength(1)
+  })
+
+  it("AC-26: a first empty duplicate does not suppress a valid second entry", async () => {
+    const storage = createMockStorage({
+      ...renderingFixture(),
+      ...artifactFixture([
+        { nodeId: "pg001_im001", text: "   " },
+        { nodeId: "pg001_im001", text: "Mago" },
+      ]),
+    })
+
+    const result = await buildTextCatalog(storage, [page])
+
+    expect(result.entries).toContainEqual(expect.objectContaining({ id: "pg001_im001_audio", text: "Mago" }))
+  })
+
+  it("AC-26: a duplicate nodeId across two page artifacts is a visible conflict", async () => {
+    const movedPage = { pageId: "pg002", pageNumber: 2, text: "" }
+    const storage = createMockStorage({
+      ...renderingFixture("pg001", "pg001_im001"),
+      "element-audio": {
+        pg001: { entries: [{ nodeId: "pg001_im001", text: "Mago" }], generatedAt: "t" },
+        pg002: { entries: [{ nodeId: "pg001_im001", text: "Maga" }], generatedAt: "t" },
+      },
+    })
+
+    const result = await buildTextCatalog(storage, [page, movedPage])
+
+    expect(result.conflicts?.some((conflict) => conflict.id === "pg001_im001_audio")).toBe(true)
+  })
+
+  it("AC-22: a duplicate data-id across pages resolves to the first page", async () => {
+    const secondPage = { pageId: "pg002", pageNumber: 2, text: "" }
+    const storage = createMockStorage({
+      "web-rendering": {
+        pg001: {
+          sections: [{
+            sectionIndex: 0,
+            sectionType: "images_only",
+            reasoning: "",
+            html: '<section><img data-id="pg001_im001" src="placeholder" alt="Mago" /></section>',
+          }],
+        },
+        pg002: {
+          sections: [{
+            sectionIndex: 0,
+            sectionType: "images_only",
+            reasoning: "",
+            html: '<section><img data-id="pg001_im001" src="placeholder" alt="Mago" /></section>',
+          }],
+        },
+      },
+      ...artifactFixture([{ nodeId: "pg001_im001", text: "Mago" }]),
+    })
+
+    const entry = (await buildTextCatalog(storage, [page, secondPage])).entries.find((item) => item.id === "pg001_im001_audio")
+    expect(entry?.locations?.[0]).toMatchObject({ pageId: "pg001" })
+  })
+
+  it("AC-26: an invalid entry does not hide the valid entries on the page", async () => {
+    const storage = createMockStorage({
+      ...renderingFixture(),
+      ...artifactFixture([
+        { text: "missing nodeId" } as never,
+        { nodeId: "pg001_im001", text: "Mago" },
+      ]),
+    })
+
+    const result = await buildTextCatalog(storage, [page])
+
+    expect(result.entries).toContainEqual(expect.objectContaining({ id: "pg001_im001_audio", text: "Mago" }))
+  })
+
+  it("AC-14: no element-audio node leaves the catalog unchanged", async () => {
+    const storage = createMockStorage(renderingFixture())
+
+    const result = await buildTextCatalog(storage, [page])
+
+    expect(result.entries.some((entry) => entry.id.endsWith("_audio"))).toBe(false)
+  })
+
+  it("AC-19: a legacy real id ending _audio is recorded as a conflict, not thrown", async () => {
+    const storage = createMockStorage({
+      "web-rendering": {
+        pg001: {
+          sections: [{
+            sectionIndex: 0,
+            sectionType: "text",
+            reasoning: "",
+            html: '<section><span data-id="pg001_im001_audio">Legacy text</span><img data-id="pg001_im001" src="placeholder" alt="Mago" /></section>',
+          }],
+        },
+      },
+      ...artifactFixture([{ nodeId: "pg001_im001", text: "Mago" }]),
+    })
+
+    const result = await buildTextCatalog(storage, [page])
+
+    expect(result.conflicts?.some((conflict) => conflict.id === "pg001_im001_audio")).toBe(true)
+  })
+
+  it("AC-15: the synthetic entry does not alter existing entries", async () => {
+    const baselineStorage = createMockStorage(renderingFixture())
+    const baseline = await buildTextCatalog(baselineStorage, [page])
+
+    const withAudioStorage = createMockStorage({
+      ...renderingFixture(),
+      ...artifactFixture([{ nodeId: "pg001_im001", text: "Mago" }]),
+    })
+    const withAudio = await buildTextCatalog(withAudioStorage, [page])
+
+    expect(withAudio.entries.filter((entry) => !entry.id.endsWith("_audio"))).toEqual(baseline.entries)
   })
 })

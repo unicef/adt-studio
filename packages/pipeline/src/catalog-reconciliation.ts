@@ -1,3 +1,4 @@
+import { serializeHtml } from "./html-serialize.js"
 import { TTSOutput, WordTimestampOutput, voiceSlotEntryId } from "@adt/types"
 import { parseDocument, DomUtils } from "htmlparser2"
 import { publishSpeechOutput, bookAssetExists, type Storage } from "@adt/storage"
@@ -26,7 +27,7 @@ export function assignActivityIds(html: string, allocate: (oldId: string) => str
     }
     element.attribs["data-id"] = assigned.get(id)!
   }
-  return DomUtils.getOuterHTML(doc)
+  return serializeHtml(doc)
 }
 
 export function reconcileActivityIds(storage: Storage, pageId: string): void {

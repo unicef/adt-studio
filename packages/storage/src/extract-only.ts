@@ -5,6 +5,7 @@ import { EXTRACT_OWNED_NODES, EXTRACT_RETAINED_CONFIG_NODES, PROJECT_IDENTITY_FI
 import { isBookWriterArtifact } from "./book-writer.js"
 import { BOOK_TABLES } from "./db.js"
 import { EXTRACTION_MANIFEST_FILE, extractionHash, isInitialRecoveryEvidence, registeredUploadFontFiles } from "./extraction-manifest.js"
+import { SETUP_RECOMMENDATION_FILE } from "./setup-notes.js"
 import { isConfigRecoveryEvidence, readSectioningLifecycle, SECTIONING_JOURNAL, SECTIONING_LIFECYCLE } from "./sectioning-transition.js"
 
 /** `detail` names the first finding for logs and tests: a file, table, node or
@@ -59,6 +60,16 @@ function inspectFiles(bookDir: string, db: sqlite.Database): void {
         const lifecycle = readSectioningLifecycle(bookDir)
         if (!lifecycle) refuse("unrecognized-content", "file", name)
         if (lifecycle.sectioningReady) refuse("downstream-output", "file", name)
+        continue
+      }
+      if (name === SETUP_RECOMMENDATION_FILE) {
+        // The Add Book assistant's notes: how the book was set up, kept by every re-run.
+        let valid = false
+        try {
+          const notes = JSON.parse(fs.readFileSync(path.join(bookDir, name), "utf8")) as { recommendation?: unknown } | null
+          valid = typeof notes === "object" && notes !== null && typeof notes.recommendation === "object"
+        } catch { /* refused below */ }
+        if (!valid) refuse("unrecognized-content", "file", name)
         continue
       }
       if (name === PROJECT_IDENTITY_FILE) {

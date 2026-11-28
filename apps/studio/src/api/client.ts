@@ -72,6 +72,8 @@ import type {
   PublishComment,
   PublishStepId,
   PublishStepStatus,
+  SetupRecommendation,
+  SetupRecommendationWarning,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
 import {
@@ -1413,14 +1415,28 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
-  createBook: (label: string, pdf: File, config?: Record<string, unknown>) => {
+  /** Auto mode (issue #333): settings recommended from the PDF before the book exists. */
+  recommendSetup: async (pdf: File, apiKey: string, signal?: AbortSignal) => {
+    const formData = new FormData()
+    formData.append("pdf", pdf)
+    return request<SetupRecommendation>("/setup-recommendation", {
+      method: "POST",
+      headers: await buildApiHeaders(apiKey),
+      body: formData,
+      signal,
+    })
+  },
+
+  createBook: (label: string, pdf: File, config?: Record<string, unknown>, setupRecommendationId?: string) => {
     const formData = new FormData()
     formData.append("label", label)
     formData.append("pdf", pdf)
     if (config) {
       formData.append("config", JSON.stringify(config))
     }
-    return request<BookSummary>("/books", {
+    if (setupRecommendationId) formData.append("setupRecommendationId", setupRecommendationId)
+    // The book is made even when its setup recommendation can't be saved with it; the warning says why.
+    return request<BookSummary & { setupRecommendationWarning?: SetupRecommendationWarning }>("/books", {
       method: "POST",
       body: formData,
     })
