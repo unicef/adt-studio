@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode, type RefObject } from "react"
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react"
 import { flushSync } from "react-dom"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { FileDropOverlay } from "@/components/ui/file-drop-overlay"
@@ -29,13 +29,16 @@ import { Morph } from "./Morph"
 import { FlowTopBar } from "@/components/FlowTopBar"
 import { useNavigate } from "@tanstack/react-router"
 import { useLeaveGuard } from "./shared/LeaveGuard"
-import { BetaTag } from "../../start/ModeChoice"
+import { BetaTag } from "../../core/BetaTag"
+import { usePageScale } from "../../core/usePageScale"
+import { useSqueeze } from "./layout/useSqueeze"
+import { useWide } from "./layout/useWide"
+import { useHeldWhile } from "./shared/useHeldWhile"
 import { PdfRow } from "./pdf/PdfRow"
 import { Stepper } from "./Stepper"
 import { STEPS, type StepId } from "./steps"
 import { UploadPanel, UploadSays } from "./UploadPanel"
 import "./guided.css"
-
 
 /** How long the Check bubble stands alone before the first screen comes in under it. */
 const REVEAL_MS = 650
@@ -50,13 +53,6 @@ const READY_MS = 1100
  * stepper and, on wide screens, the list of screens beside it), then the progress and the end. The
  * steps already done (in the stepper) open again.
  */
-/** `value` while `active`; while not, the last value it had when it was. */
-function useHeldWhile<T>(active: boolean, value: T): T {
-  const [held, setHeld] = useState(value)
-  if (active && held !== value) setHeld(value)
-  return active ? value : held
-}
-
 export function Guided({ onManual, active = true }: { onManual: () => void; active?: boolean }) {
   const { t } = useLingui()
   const form = useWizardForm()
@@ -270,114 +266,3 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
   )
 }
 
-/**
- * How much the page scales up on a big window: 1 up to the desktop app's default window
- * (1440x900), then with the window (width and height both), up to 1.5. A desktop window is never
- * smaller than 1280x720, where the page stays at 1 and its spacing tightens instead.
- */
-// eslint-disable-next-line lingui/no-unlocalized-strings -- CSS media query
-const WIDE = "(min-width: 1024px)"
-
-/** The window is at least Tailwind's \`lg\` wide (where the page column widens). */
-function useWide(): boolean {
-  return useSyncExternalStore(
-    (on) => {
-      const mq = window.matchMedia(WIDE)
-      mq.addEventListener("change", on)
-      return () => mq.removeEventListener("change", on)
-    },
-    () => window.matchMedia(WIDE).matches,
-    () => false,
-  )
-}
-
-/**
- * Keeps a step from scrolling on a regular (laptop or bigger) window: when the page is taller than the window, its
- * pictures give up the difference (--gd-squeeze, in page units), down to each one's smallest size.
- * Measured from no squeeze every time, so a shorter step gets its pictures back.
- */
-const TIGHT = "data-gd-tight"
-
-function useSqueeze(scroller: RefObject<HTMLElement | null>, page: RefObject<HTMLElement | null>, scale: number) {
-  useLayoutEffect(() => {
-    const sc = scroller.current
-    const el = page.current
-    if (!sc || !el) return
-    const fit = () => {
-      // A phone scrolls anyway: its pictures keep their size.
-      if (!window.matchMedia(WIDE).matches) return el.style.setProperty("--gd-squeeze", "0px")
-      // Still fits with little room to spare: keep the pictures as they are, so a change on the
-      // page (a new language, a pick) never nudges everything by a few pixels.
-      const slack = sc.clientHeight - el.getBoundingClientRect().height
-      // eslint-disable-next-line lingui/no-unlocalized-strings -- a CSS variable
-      const now = parseFloat(el.style.getPropertyValue("--gd-squeeze")) || 0
-      if (slack >= 0 && (slack < 24 || now === 0)) return
-      const set = (v: number) => el.style.setProperty("--gd-squeeze", `${v}px`)
-      const fits = () => sc.scrollHeight - sc.clientHeight <= 0
-      /** The least squeeze that fits; false when even the smallest pictures don't. */
-      const search = (): boolean => {
-        let q = 0
-        set(0)
-        for (let i = 0; i < 3 && !fits(); i++) {
-          q = Math.min(400, q + (sc.scrollHeight - sc.clientHeight) / scale)
-          set(Math.ceil(q))
-        }
-        if (q === 0) return true
-        if (!fits()) return false
-        // Several pictures may give up the same squeeze, so it can overshoot: find the least that fits.
-        let lo = 0
-        let hi = Math.ceil(q)
-        while (hi - lo > 4) {
-          const mid = Math.round((lo + hi) / 2)
-          set(mid)
-          if (fits()) hi = mid
-          else lo = mid
-        }
-        set(hi)
-        return true
-      }
-      // Pictures first; when that isn't enough (a long pick's words), the extra lines that are also
-      // in each card's hover and in Explain the options give way too (guided.css, .gd-optional).
-      el.removeAttribute(TIGHT)
-      if (!search()) {
-        el.setAttribute(TIGHT, "")
-        search()
-      }
-    }
-    // Sizes change on every frame while something grows or shrinks (a panel morphing): an overflow
-    // is fixed at once (no scrollbar), anything else waits until it settles.
-    let timer = 0
-    const onResize = () => {
-      window.clearTimeout(timer)
-      if (sc.scrollHeight - sc.clientHeight > 0) fit()
-      else timer = window.setTimeout(fit, 160)
-    }
-    fit()
-    const ro = new ResizeObserver(onResize)
-    ro.observe(sc)
-    for (const child of el.children) ro.observe(child)
-    return () => {
-      ro.disconnect()
-      window.clearTimeout(timer)
-    }
-  }, [scroller, page, scale])
-}
-
-function usePageScale(ref: RefObject<HTMLElement | null>): { scale: number; vh: number } {
-  const [size, setSize] = useState({ scale: 1, vh: typeof window === "undefined" ? 9 : window.innerHeight / 100 })
-  useLayoutEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const fit = () => {
-      const s = Math.min(el.clientWidth / 1440, el.clientHeight / 920)
-      const scale = Math.round(Math.min(1.5, Math.max(1, s)) * 100) / 100
-      // A vh inside the scaled page is scaled too: --gd-vh is one hundredth of the window's height in page units.
-      setSize({ scale, vh: window.innerHeight / scale / 100 })
-    }
-    fit()
-    const ro = new ResizeObserver(fit)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [ref])
-  return size
-}

@@ -1,6 +1,6 @@
 /*
  * The option cards (the picture cards on the Check screens), in ADT colours (the --lc-* tokens
- * of look.css). Every animation stops under reduced motion.
+ * of core/look.css). Every animation stops under reduced motion.
  */
 
 /* Light picture cards: a quiet picture area, a plain label and a short line. The picked one

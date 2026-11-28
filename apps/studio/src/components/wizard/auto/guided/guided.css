@@ -1,6 +1,6 @@
 /*
  * Guided: calm single surfaces, soft shadows and a small orb, in ADT Studio's
- * own theme colours. It sits inside `.lc-root`, so it uses the tokens of shared/look.css (--lc-bubble,
+ * own theme colours. It sits inside `.lc-root`, so it uses the tokens of core/look.css (--lc-bubble,
  * --lc-accent…); this file adds the step colour.
  *
  *   --gd-step      the colour of the step on screen (stepper dots, ticks)
@@ -119,7 +119,7 @@
    rides along inside the page's snapshot (where it would sit at the wrong place). */
 .gd-bar { view-transition-name: gd-bar; }
 
-/* A step that doesn't fit even with its pictures at their smallest (Guided.tsx useSqueeze): the
+/* A step that doesn't fit even with its pictures at their smallest (layout/useSqueeze.ts): the
    lines that are also in the card's hover and in Explain the options give way, and a pick's long
    name takes a smaller size. */
 [data-gd-tight] .gd-optional { display: none !important; }

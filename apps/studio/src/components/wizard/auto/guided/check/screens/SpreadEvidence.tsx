@@ -4,7 +4,7 @@ import { BookOpen } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { usePageThumb } from "@/components/wizard/core/pdf/usePageThumb"
 import { cn } from "@/lib/utils"
-import { Illustration } from "../../shared/Illustration"
+import { Illustration } from "../../../../core/Illustration"
 
 /**
  * The evidence pages as the book shows them: facing pairs (8 and 9) together, any other page on

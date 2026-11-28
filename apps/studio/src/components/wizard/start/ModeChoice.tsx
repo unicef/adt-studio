@@ -1,19 +1,12 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react"
+import { useRef, type CSSProperties, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { ArrowRight, Check, SlidersHorizontal, Sparkles } from "lucide-react"
 import { FlowTopBar } from "@/components/FlowTopBar"
 import { cn } from "@/lib/utils"
-import { Illustration } from "../auto/guided/shared/Illustration"
-import "../auto/guided/shared/look.css"
-
-/** The Beta mark for the assistant's setup, here and in its own top bar. */
-export function BetaTag({ className }: { className?: string }) {
-  return (
-    <span className={cn("inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.06em] text-amber-800 ring-1 ring-amber-300/70 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-500/30", className)}>
-      <Trans>Beta</Trans>
-    </span>
-  )
-}
+import { BetaTag } from "../core/BetaTag"
+import { Illustration } from "../core/Illustration"
+import { usePageScale } from "../core/usePageScale"
+import "../core/look.css"
 
 function Way({ art, fallback, title, tag, text, points, cta, primary, onPick }: { art: string; fallback: ReactNode; title: ReactNode; tag?: ReactNode; text: ReactNode; points: ReactNode[]; cta: ReactNode; primary?: boolean; onPick: () => void }) {
   return (
@@ -66,16 +59,7 @@ export function ModeChoice({ onAuto, onManual }: { onAuto: () => void; onManual:
   // Like the assistant's pages: centred in the window, and scaled up on big windows (1 up to
   // 1440x920, then with the window, up to 1.5) instead of sitting small at the top.
   const scroller = useRef<HTMLDivElement>(null)
-  const [scale, setScale] = useState(1)
-  useLayoutEffect(() => {
-    const el = scroller.current
-    if (!el) return
-    const fit = () => setScale(Math.round(Math.min(1.5, Math.max(1, Math.min(el.clientWidth / 1440, el.clientHeight / 920))) * 100) / 100)
-    fit()
-    const ro = new ResizeObserver(fit)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
+  const { scale } = usePageScale(scroller)
   return (
     <div className="lc-root flex h-full min-h-0 flex-1 flex-col">
       <FlowTopBar title={t`Add Book`} contentWidth={1040 * scale} />

@@ -8,7 +8,7 @@ import { Attachment } from "./shared/Attachment"
 import { LC_PRIMARY } from "./shared/Create"
 import { useAssistantName } from "./shared/Assistant"
 import type { Pose } from "./shared/WizardPose"
-import { Illustration } from "./shared/Illustration"
+import { Illustration } from "../../core/Illustration"
 import { TourCoach, type CoachStop, type Side } from "./TourCoach"
 
 /** Where the assistant stands for each card, so the tour moves around instead of down a line. */

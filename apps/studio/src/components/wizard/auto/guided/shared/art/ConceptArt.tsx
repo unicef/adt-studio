@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import type { SetupBookFactId } from "@adt/types"
 import { cn } from "@/lib/utils"
-import { Illustration } from "../Illustration"
+import { Illustration } from "../../../../core/Illustration"
 
 /**
  * Small drawings that explain an idea (the kind of book, tasks that become activities, labelled
