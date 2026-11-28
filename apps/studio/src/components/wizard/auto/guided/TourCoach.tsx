@@ -21,31 +21,47 @@ const EDGE = 16
 type Rect = { left: number; top: number; width: number; height: number }
 type Layout = { side: Side; left: number; top: number; hole: Rect | null }
 
-const fits = (side: Side, t: DOMRect, w: number, h: number) => {
+/** The orb's size beside an item, and the gap between it and the bubble. */
+const ORB = 104
+const ORB_GAP = 10
+
+/** How far the coach would run past the window's edge on that side (0 when it fits). */
+const overflow = (side: Side, t: DOMRect, w: number, h: number) => {
   const vw = window.innerWidth
   const vh = window.innerHeight
-  if (side === "right") return t.right + GAP + w <= vw - EDGE
-  if (side === "left") return t.left - GAP - w >= EDGE
-  if (side === "below") return t.bottom + GAP + h <= vh - EDGE
-  if (side === "above") return t.top - GAP - h >= EDGE
-  return true
+  if (side === "right") return Math.max(0, t.right + GAP + w - (vw - EDGE))
+  if (side === "left") return Math.max(0, EDGE - (t.left - GAP - w))
+  if (side === "below") return Math.max(0, t.bottom + GAP + h - (vh - EDGE))
+  if (side === "above") return Math.max(0, EDGE - (t.top - GAP - h))
+  return 0
 }
 
-/** The spot for the assistant: its preferred side if there's room there, else the first side that fits. */
-function layout(stop: CoachStop, w: number, h: number): Layout {
+/**
+ * The spot for the assistant: its preferred side if there's room there, else the first side that
+ * fits, else the side it overflows least. The coach's size on each side comes from the bubble's
+ * height alone (the orb beside it, or above it), never from where it stands now, so the choice
+ * can't flip back and forth as the coach changes shape.
+ */
+function layout(stop: CoachStop, bubbleH: number): Layout {
   const vw = window.innerWidth
   const vh = window.innerHeight
   const t = stop.target?.current?.getBoundingClientRect()
-  if (!t || stop.side === "center") return { side: "center", left: (vw - w) / 2, top: Math.max(EDGE, vh * 0.42 - h / 2), hole: null }
+  const size = (side: Side) => (side === "right" || side === "left" ? { w: ORB + ORB_GAP + BUBBLE, h: Math.max(ORB, bubbleH) } : { w: BUBBLE, h: ORB + ORB_GAP + bubbleH })
+  if (!t || stop.side === "center") {
+    const h = 170 + 14 + bubbleH
+    return { side: "center", left: (vw - Math.min(BUBBLE + 80, vw - EDGE * 2)) / 2, top: Math.max(EDGE, vh * 0.42 - h / 2), hole: null }
+  }
   const order: Side[] = [stop.side, "right", "left", "below", "above"]
-  const side = order.find((s) => s !== "center" && fits(s, t, w, h)) ?? "below"
+  const miss = (s: Side) => overflow(s, t, size(s).w, size(s).h)
+  const side = order.find((s) => miss(s) === 0) ?? order.reduce((a, b) => (miss(b) < miss(a) ? b : a))
+  const { w, h } = size(side)
   const clampX = (x: number) => Math.max(EDGE, Math.min(vw - w - EDGE, x))
   const clampY = (y: number) => Math.max(EDGE, Math.min(vh - h - EDGE, y))
   const hole = { left: t.left - PAD, top: t.top - PAD, width: t.width + PAD * 2, height: t.height + PAD * 2 }
   if (side === "right") return { side, left: t.right + GAP, top: clampY(t.top + t.height / 2 - h / 2), hole }
   if (side === "left") return { side, left: t.left - GAP - w, top: clampY(t.top + t.height / 2 - h / 2), hole }
-  if (side === "below") return { side, left: clampX(t.left + t.width / 2 - w / 2), top: t.bottom + GAP, hole }
-  return { side, left: clampX(t.left + t.width / 2 - w / 2), top: t.top - GAP - h, hole }
+  if (side === "below") return { side, left: clampX(t.left + t.width / 2 - w / 2), top: clampY(t.bottom + GAP), hole }
+  return { side, left: clampX(t.left + t.width / 2 - w / 2), top: clampY(t.top - GAP - h), hole }
 }
 
 /**
@@ -60,6 +76,7 @@ export function TourCoach({ stops, at, onNext, onBack, onDone }: { stops: CoachS
   const last = at === stops.length - 1
   const box = useRef<HTMLDivElement>(null)
   const words = useRef<HTMLDivElement>(null)
+  const speech = useRef<HTMLDivElement>(null)
   const talking = useTalk(words, `tour-${at}`)
   const [pos, setPos] = useState<Layout | null>(null)
   // It glides between stops, but appears in place the first time (no slide in from a corner).
@@ -73,6 +90,10 @@ export function TourCoach({ stops, at, onNext, onBack, onDone }: { stops: CoachS
   const advance = last ? onDone : onNext
   const go = useRef(advance)
   go.current = advance
+  const back = useRef(onBack)
+  back.current = onBack
+  const done = useRef(onDone)
+  done.current = onDone
 
   // Focus comes into the coach for the tour (its main button, at every stop) and goes back to where
   // it was when the tour ends, so keyboard and screen-reader users land on the tour, not behind it.
@@ -107,23 +128,27 @@ export function TourCoach({ stops, at, onNext, onBack, onDone }: { stops: CoachS
         go.current()
       } else if (e.key === "ArrowLeft" && at > 0) {
         e.preventDefault()
-        onBack()
-      } else if (e.key === "Escape") onDone()
+        back.current()
+      } else if (e.key === "Escape") done.current()
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [at, onBack, onDone])
+  }, [at])
 
+  // The stops are made anew on every render of the page, so the stop is read through a ref: the
+  // coach is placed (and its item scrolled into view) once per stop, not on every render.
+  const stopRef = useRef(stop)
+  stopRef.current = stop
   useLayoutEffect(() => {
     const place = () => {
-      const me = box.current
-      if (!me) return
-      setPos(layout(stop, me.offsetWidth, me.offsetHeight))
+      const bubble = speech.current
+      if (!bubble) return
+      setPos(layout(stopRef.current, bubble.offsetHeight))
     }
-    stop.target?.current?.scrollIntoView({ block: "nearest", behavior: "smooth" })
+    stopRef.current.target?.current?.scrollIntoView({ block: "nearest", behavior: "smooth" })
     place()
     const ro = new ResizeObserver(place)
-    if (box.current) ro.observe(box.current)
+    if (speech.current) ro.observe(speech.current)
     window.addEventListener("resize", place)
     window.addEventListener("scroll", place, true)
     return () => {
@@ -131,7 +156,7 @@ export function TourCoach({ stops, at, onNext, onBack, onDone }: { stops: CoachS
       window.removeEventListener("resize", place)
       window.removeEventListener("scroll", place, true)
     }
-  }, [at, stop])
+  }, [at])
 
   const side = pos?.side ?? stop.side
   const big = side === "center"
@@ -156,9 +181,9 @@ export function TourCoach({ stops, at, onNext, onBack, onDone }: { stops: CoachS
         style={{ left: pos?.left ?? 0, top: pos?.top ?? 0, gap: big ? 14 : 10 }}
       >
         <span className="gd-tour-orb flex" style={{ viewTransitionName: "gd-orb" }}>
-          <WizardPose pose={stop.pose ?? "hello"} size={big ? 170 : 104} talking={talking} />
+          <WizardPose pose={stop.pose ?? "hello"} size={big ? 170 : ORB} talking={talking} />
         </span>
-        <div key={at} className={cn("gd-speech relative rounded-[22px] bg-[var(--lc-bubble)] px-5 py-4 text-[15.5px] leading-[1.5] lg:text-[16.5px]", big && "text-center")} data-side={side} style={{ width: big ? BUBBLE + 80 : BUBBLE }}>
+        <div key={at} ref={speech} className={cn("gd-speech relative rounded-[22px] bg-[var(--lc-bubble)] px-5 py-4 text-[15.5px] leading-[1.5] lg:text-[16.5px]", big && "text-center")} data-side={side} style={{ width: big ? `min(${BUBBLE + 80}px, calc(100vw - ${EDGE * 2}px))` : BUBBLE }}>
           <span aria-hidden className="gd-speech-tail" />
           <div ref={words}>
             <p>{stop.says}</p>
