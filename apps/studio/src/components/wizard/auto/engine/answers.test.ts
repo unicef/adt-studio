@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
-import type { SetupDecided, SetupRecommendation } from "@adt/types"
+import { SetupRecommendation, type SetupDecided } from "@adt/types"
 import asksKind from "./fixtures/asks-kind.json"
 import textbook from "./fixtures/textbook.json"
 import { factsThatMatter, fitPreset, fitStrategy, genreFor, proposedAnswers, settingsFor } from "./answers"
@@ -8,8 +8,8 @@ import { factsThatMatter, fitPreset, fitStrategy, genreFor, proposedAnswers, set
 vi.mock("@lingui/core/macro", () => ({ msg: (strings: TemplateStringsArray) => ({ id: strings.join("") }) }))
 vi.mock("@lingui/react/macro", () => ({ Trans: ({ children }: { children?: unknown }) => children, useLingui: () => ({ t: (s: TemplateStringsArray) => s.join("") }) }))
 
-const kindRec = asksKind as unknown as SetupRecommendation
-const textbookRec = textbook as unknown as SetupRecommendation
+const kindRec = SetupRecommendation.parse(asksKind)
+const textbookRec = SetupRecommendation.parse(textbook)
 
 describe("fitStrategy / fitPreset", () => {
   it("keeps a strategy the preset offers", () => {

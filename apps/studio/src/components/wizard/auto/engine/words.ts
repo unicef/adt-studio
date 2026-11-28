@@ -5,7 +5,7 @@
  */
 import type { MessageDescriptor } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
-import type { SetupBookFactId, SetupSettingId } from "@adt/types"
+import type { SetupBookFactId, SetupRuleId, SetupSettingId } from "@adt/types"
 
 export const FACT_SHORT: Record<SetupBookFactId, Record<string, MessageDescriptor>> = {
   genre: { story: msg`A story`, textbook: msg`A school book`, reference: msg`Information` },
@@ -85,8 +85,8 @@ export const SETTING_VALUE: Record<SetupSettingId, Record<string, { name: Messag
   },
 }
 
-/** Why the rulebook picked it (rule ids from packages/pipeline/src/setup-recommender/rules.ts). */
-export const RULE_WHY: Record<string, MessageDescriptor> = {
+/** Why the rulebook picked it, for every rule the engine has (SETUP_RULE_IDS in @adt/types). Looked up by any rule string. */
+export const RULE_WHY: Partial<Record<string, MessageDescriptor>> = {
   "genre-story": msg`Most of the pages we read tell a story.`,
   "genre-textbook": msg`Most of the pages we read teach lessons or set tasks.`,
   "genre-reference": msg`Most of the pages we read give information, with no tasks for the reader.`,
@@ -111,5 +111,5 @@ export const RULE_WHY: Record<string, MessageDescriptor> = {
   "figures-keep-together": msg`The book has labelled pictures like maps or diagrams.`,
   "figures-none": msg`The book has no labelled pictures.`,
   "figures-no-text-layer": msg`Your PDF is a scan (its words can't be selected), so there are no labels to keep together.`,
-}
+} satisfies Record<SetupRuleId, MessageDescriptor>
 

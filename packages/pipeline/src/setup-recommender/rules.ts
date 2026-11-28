@@ -3,24 +3,14 @@
  * settings. Every setting carries the id of the rule that fired, so the UI can
  * explain it in plain words (and translate it).
  */
-import { SetupSettingId, type SetupSettings } from "@adt/types"
+import { SETUP_FACT_OPTIONS, SetupBookFactId, SetupSettingId, type SetupRuleId, type SetupSettings } from "@adt/types"
 import type { MeasuredFacts } from "./facts.js"
 
-/** Facts about the book's content that the AI readings answer. */
-export interface BookFacts {
-  genre: "story" | "textbook" | "reference"
-  exercises: "none" | "some" | "many"
-  composition: "text-in-art" | "text-beside-art" | "text-mostly"
-  diagrams: "none" | "some" | "many"
-}
-export type BookFactId = keyof BookFacts
-export const BOOK_FACT_OPTIONS: { [K in BookFactId]: BookFacts[K][] } = {
-  genre: ["story", "textbook", "reference"],
-  exercises: ["none", "some", "many"],
-  composition: ["text-in-art", "text-beside-art", "text-mostly"],
-  diagrams: ["none", "some", "many"],
-}
-export const BOOK_FACT_IDS = Object.keys(BOOK_FACT_OPTIONS) as BookFactId[]
+/** Facts about the book's content that the AI readings answer (the wire schema's, packages/types). */
+export type BookFactId = SetupBookFactId
+export type BookFacts = { [K in BookFactId]: (typeof SETUP_FACT_OPTIONS)[K][number] }
+export const BOOK_FACT_OPTIONS = SETUP_FACT_OPTIONS
+export const BOOK_FACT_IDS: BookFactId[] = [...SetupBookFactId.options]
 
 /** The settings it picks: the wire schema's types (packages/types), so the two can't drift. */
 export type RecommendedSettings = SetupSettings
@@ -29,31 +19,7 @@ export const SETTING_IDS: SettingId[] = [...SetupSettingId.options]
 /** Settings fixed when the book is created: Extract can't re-run once the book has pages. */
 export const LOCKED_SETTINGS: SettingId[] = ["pageGrouping", "figureExtraction"]
 
-export type RuleId =
-  | "genre-story"
-  | "genre-textbook"
-  | "genre-reference"
-  | "render-reference-column"
-  | "render-textbook-ai"
-  | "render-keep-page"
-  | "render-overlay-no-text-layer"
-  | "render-overlay-no-text-beside"
-  | "render-side-by-side"
-  | "render-reflow"
-  | "group-joined-spreads"
-  | "group-facing-pages"
-  | "group-wide-pages"
-  | "group-single"
-  | "activities-on"
-  | "activities-few-cues"
-  | "activities-not-in-preset"
-  | "activities-none"
-  | "sections-split"
-  | "sections-school-book"
-  | "sections-page"
-  | "figures-keep-together"
-  | "figures-none"
-  | "figures-no-text-layer"
+export type RuleId = SetupRuleId
 
 export type Decided = { [K in SettingId]: { value: RecommendedSettings[K]; rule: RuleId } }
 
@@ -141,5 +107,5 @@ export function settingsChangedBy(d: MeasuredFacts, s: BookFacts, fact: BookFact
 
 /** A fact matters when some other answer would change a setting. */
 export function factMatters(d: MeasuredFacts, s: BookFacts, fact: BookFactId): boolean {
-  return (BOOK_FACT_OPTIONS[fact] as string[]).some((o) => o !== s[fact] && settingsChangedBy(d, s, fact, o).length > 0)
+  return (BOOK_FACT_OPTIONS[fact] as readonly string[]).some((o) => o !== s[fact] && settingsChangedBy(d, s, fact, o).length > 0)
 }

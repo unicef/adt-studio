@@ -11,6 +11,57 @@ import { z } from "zod"
 export const SetupBookFactId = z.enum(["genre", "exercises", "composition", "diagrams"])
 export type SetupBookFactId = z.infer<typeof SetupBookFactId>
 
+/**
+ * The answers each fact can take, in the order a question lists them. The one definition: the
+ * recommender's rulebook and prompts and Studio's questions all use it.
+ */
+export const SETUP_FACT_OPTIONS = {
+  genre: ["story", "textbook", "reference"],
+  exercises: ["none", "some", "many"],
+  composition: ["text-in-art", "text-beside-art", "text-mostly"],
+  diagrams: ["none", "some", "many"],
+} as const satisfies Record<SetupBookFactId, readonly string[]>
+
+/** Any fact's answer. */
+export const SetupFactValue = z.enum([...new Set(Object.values(SETUP_FACT_OPTIONS).flat())] as [string, ...string[]])
+
+/** What a page is, as the page-label reading labels it. */
+export const SETUP_PAGE_TYPES = ["cover", "front-matter", "story", "lesson", "exercise", "informational", "back-matter", "blank"] as const
+export type SetupPageType = (typeof SETUP_PAGE_TYPES)[number]
+/** Where a page's words sit, as the page-label reading labels it. */
+export const SETUP_TEXT_PLACEMENTS = ["on-art", "beside-art", "text-only", "no-text"] as const
+export type SetupTextPlacement = (typeof SETUP_TEXT_PLACEMENTS)[number]
+
+/** The rulebook's rules: each setting says which one picked it, so Studio can explain it in plain words. */
+export const SETUP_RULE_IDS = [
+  "genre-story",
+  "genre-textbook",
+  "genre-reference",
+  "render-reference-column",
+  "render-textbook-ai",
+  "render-keep-page",
+  "render-overlay-no-text-layer",
+  "render-overlay-no-text-beside",
+  "render-side-by-side",
+  "render-reflow",
+  "group-joined-spreads",
+  "group-facing-pages",
+  "group-wide-pages",
+  "group-single",
+  "activities-on",
+  "activities-few-cues",
+  "activities-not-in-preset",
+  "activities-none",
+  "sections-split",
+  "sections-school-book",
+  "sections-page",
+  "figures-keep-together",
+  "figures-none",
+  "figures-no-text-layer",
+] as const
+export const SetupRuleId = z.enum(SETUP_RULE_IDS)
+export type SetupRuleId = z.infer<typeof SetupRuleId>
+
 export const SetupSettingId = z.enum([
   "preset",
   "renderStrategy",
@@ -34,6 +85,7 @@ export type SetupSettings = z.infer<typeof SetupSettings>
 /** One setting with the rule that picked it. */
 export const SetupSettingPick = z.object({
   value: z.union([z.string(), z.boolean()]),
+  /** A SetupRuleId from the engine; Studio marks a setting the user picked as "user". */
   rule: z.string(),
 })
 
@@ -43,9 +95,9 @@ export type SetupDecided = z.infer<typeof SetupDecided>
 export const SetupFact = z.object({
   id: SetupBookFactId,
   /** The value used: the page-label reading (proposal), unless only one reading ran. */
-  value: z.string(),
+  value: SetupFactValue,
   /** The question reading's answer (second opinion). Null when it did not run. */
-  secondOpinion: z.string().nullable(),
+  secondOpinion: SetupFactValue.nullable(),
   /** The question reading's own words, to show the user. */
   reason: z.string().nullable(),
   /** Pages that show this fact. */
@@ -72,7 +124,7 @@ export type SetupPageRange = z.infer<typeof SetupPageRange>
 
 /** One answer of the questions reading, as the model gave it. */
 export const SetupQuestionAnswer = z.object({
-  answer: z.string(),
+  answer: SetupFactValue,
   confidence: z.enum(["low", "medium", "high"]),
   evidencePages: z.array(z.number().int()),
   reason: z.string(),
@@ -90,17 +142,17 @@ export const SetupReadings = z.object({
       pages: z.array(
         z.object({
           page: z.number().int(),
-          type: z.string(),
-          textPlacement: z.string(),
+          type: z.enum(SETUP_PAGE_TYPES),
+          textPlacement: z.enum(SETUP_TEXT_PLACEMENTS),
           meaningfulFigure: z.boolean(),
         }),
       ),
-      bookGenre: z.string(),
-      facts: z.record(SetupBookFactId, z.string()),
+      bookGenre: z.enum(SETUP_FACT_OPTIONS.genre),
+      facts: z.record(SetupBookFactId, SetupFactValue),
       /** Facts whose count was a close call (under 60% agreement, a tie, or too few pages). */
       flags: z.array(SetupBookFactId),
       /** Answers tied for the top count, per fact. */
-      ties: z.record(SetupBookFactId, z.array(z.string())),
+      ties: z.record(SetupBookFactId, z.array(SetupFactValue)),
       counts: z.object({
         body: z.number().int(),
         story: z.number().int(),
@@ -149,6 +201,7 @@ export const SetupRecommendation = z.object({
     /** Share of text pages whose words sit over a large picture in the PDF. */
     textOverPicturesShare: z.number().optional(),
     medianChars: z.number(),
+    /** The language the PDF tells without AI: the text's stop-word guess, else the PDF's language tag. */
     language: z.string().nullable(),
   }),
   /**
@@ -170,7 +223,7 @@ export const SetupRecommendation = z.object({
   settingEvidence: z.record(SetupSettingId, z.array(z.number().int())),
   lockedSettings: z.array(SetupSettingId),
   pageRange: SetupPageRange.nullable(),
-  pageLabels: z.array(z.object({ page: z.number().int(), type: z.string() })),
+  pageLabels: z.array(z.object({ page: z.number().int(), type: z.enum(SETUP_PAGE_TYPES) })),
   /** Both readings' parsed responses. Optional: recommendations saved before it was added don't have it. */
   readings: SetupReadings.optional(),
   /** Both AI readings ran; false when one failed and only the other was used. */

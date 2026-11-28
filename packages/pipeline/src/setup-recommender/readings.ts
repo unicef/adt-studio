@@ -20,6 +20,7 @@
 import { z } from "zod"
 import type { LLMModel, TokenUsage } from "@adt/llm"
 import type { BookProfile } from "@adt/pdf"
+import { SETUP_PAGE_TYPES, SETUP_TEXT_PLACEMENTS, type SetupPageType, type SetupTextPlacement } from "@adt/types"
 import type { MeasuredFacts } from "./facts.js"
 import { BOOK_FACT_IDS, BOOK_FACT_OPTIONS, type BookFactId, type BookFacts } from "./rules.js"
 
@@ -111,7 +112,7 @@ export interface QuestionsReading {
 
 function answerSchema(fact: BookFactId) {
   return z.object({
-    answer: z.enum(BOOK_FACT_OPTIONS[fact] as [string, ...string[]]),
+    answer: z.enum(BOOK_FACT_OPTIONS[fact] as readonly [string, ...string[]]),
     confidence: z.enum(["low", "medium", "high"]),
     evidencePages: z.array(z.number().int()),
     reason: z.string().describe("One short sentence a teacher can check against the pages."),
@@ -210,10 +211,10 @@ export function languageCode(answer: string | undefined): string | null {
 // ---------------------------------------------------------------------------
 
 // The page types and text placements a label can take (what each means is in the prompt).
-export const PAGE_TYPES = ["cover", "front-matter", "story", "lesson", "exercise", "informational", "back-matter", "blank"] as const
-export const PLACEMENTS = ["on-art", "beside-art", "text-only", "no-text"] as const
-export type PageType = (typeof PAGE_TYPES)[number]
-export type Placement = (typeof PLACEMENTS)[number]
+export const PAGE_TYPES = SETUP_PAGE_TYPES
+export const PLACEMENTS = SETUP_TEXT_PLACEMENTS
+export type PageType = SetupPageType
+export type Placement = SetupTextPlacement
 export interface PageLabel {
   page: number
   type: PageType
@@ -230,7 +231,7 @@ const PageLabelsSchema = z.object({
       meaningfulFigure: z.boolean(),
     }),
   ),
-  bookGenre: z.enum(["story", "textbook", "reference"]),
+  bookGenre: z.enum(BOOK_FACT_OPTIONS.genre),
 })
 
 const NON_VOTING: PageType[] = ["cover", "front-matter", "back-matter", "blank"]

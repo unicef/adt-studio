@@ -199,7 +199,7 @@ export function factQuestions(
     const value = proposal[id]
     const matters = bases.some((b) => factMatters(measured, b, id))
     const affectsLocked = bases.some((b) =>
-      (BOOK_FACT_OPTIONS[id] as string[]).some((o) => settingsChangedBy(measured, b, id, o).some((s) => LOCKED_SETTINGS.includes(s))),
+      (BOOK_FACT_OPTIONS[id] as readonly string[]).some((o) => settingsChangedBy(measured, b, id, o).some((s) => LOCKED_SETTINGS.includes(s))),
     )
     const other = second ? second[id] : null
     const disagree =
