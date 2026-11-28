@@ -71,9 +71,9 @@ body:
         - v0.10.1-beta.1
         - v0.10.0-beta.2
         - v0.10.0-beta.1
+        - v0.11.0
         - v0.10.0
         - v0.9.0
-        - v0.8.1
         - Older / unsure
     validations:
       required: true
