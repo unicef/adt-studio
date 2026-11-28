@@ -140,6 +140,10 @@ msgstr "{0, plural, one {# faqe} other {# faqe}}"
 msgid "{0, plural, one {# page} other {# pages}} and {imageCount, plural, one {# image} other {# images}} read"
 msgstr "{0, plural, one {# faqe} other {# faqe}} dhe {imageCount, plural, one {# imazh} other {# imazhe}} të lexuara"
 
+#. placeholder {0}: hw.cores ?? 0
+msgid "{0, plural, one {# processor core} other {# processor cores}}"
+msgstr "{0, plural, one {# bërthamë procesori} other {# bërthama procesori}}"
+
 #. placeholder {0}: thread.replyCount
 msgid "{0, plural, one {# reply} other {# replies}}"
 msgstr "{0, plural, one {# përgjigje} other {# përgjigje}}"
@@ -159,10 +163,6 @@ msgstr "{0, plural, one {# detyrë trashëgon këtë model} other {# detyra tras
 #. placeholder {0}: reader.commentCount
 msgid "{0, plural, one {comment} other {comments}}"
 msgstr "{0, plural, one {koment} other {komente}}"
-
-#. placeholder {0}: health.modelCount
-#~ msgid "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
-#~ msgstr "{0, plural, one {Lidhja u krye me sukses — # model në dispozicion.} other {Lidhja u krye me sukses — # modele në dispozicion.}}"
 
 #. placeholder {0}: state.days
 msgid "{0, plural, one {day} other {days}}"
@@ -281,6 +281,10 @@ msgstr "{0} gjetje të shënuara në këtë rishikim"
 #. placeholder {0}: filtered.length
 msgid "{0} fonts"
 msgstr "{0} fonte"
+
+#. placeholder {0}: hw.memoryGb
+msgid "{0} GB of memory"
+msgstr "{0} GB memorie"
 
 #. placeholder {0}: state.data.issueCount
 #. placeholder {1}: state.data.checkpointable
@@ -707,9 +711,6 @@ msgstr "{providerKey, select, other {Çelësi juaj i {name} u refuzua}}"
 
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}}"
 msgstr "{regionCount} {regionCount, plural, one {rajon} other {rajone}}"
-
-#~ msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
-#~ msgstr "{regionCount} {regionCount, plural, one {rajon} other {rajone}} të zbuluar"
 
 #. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
 msgid "{rejectedProviderKey, select, other {API Key Settings — the {rejectedName} key was rejected}}"
@@ -1754,9 +1755,6 @@ msgstr "Mbivendosje AI"
 msgid "AI provider connected. Your book can be processed now."
 msgstr "Ofruesi i AI u lidh. Libri juaj tani mund të përpunohet."
 
-#~ msgid "AI provider credentials"
-#~ msgstr "Kredencialet e ofruesve të IA-së"
-
 msgid "AI providers"
 msgstr "Ofruesit e AI"
 
@@ -1880,9 +1878,6 @@ msgstr "tashmë aty"
 
 msgid "Also delete the sharing service and every shared book from my Cloudflare account"
 msgstr "Fshi gjithashtu shërbimin e ndarjes dhe çdo libër të ndarë nga llogaria ime Cloudflare"
-
-#~ msgid "Also regenerate these pages and replace their saved content"
-#~ msgstr "Rigjenero edhe këto faqe dhe zëvendëso përmbajtjen e tyre të ruajtur"
 
 msgid "Also used by {readerNames} unless that provider has its own key."
 msgstr "Përdoret edhe nga {readerNames}, përveç nëse ai ofrues ka çelësin e vet."
@@ -2202,6 +2197,9 @@ msgstr "Autorët"
 msgid "Auto"
 msgstr "Automatik"
 
+msgid "Auto is off: this computer can run full effects."
+msgstr "Automatiku është joaktiv: ky kompjuter mund t’i shfaqë të gjitha efektet."
+
 msgid "Auto keeps charts, labeled images, and complex infographics together while leaving headings, callouts, and conventional tables for accessible HTML."
 msgstr "Modaliteti Auto i mban së bashku grafikët, imazhet me etiketa dhe infografikat komplekse, ndërsa titujt, kutitë e veçuara dhe tabelat e zakonshme i lë për HTML të qasshme."
 
@@ -2214,6 +2212,12 @@ msgstr "Rekomandohet Auto"
 #. placeholder {0}: i18n._(presetLabel)
 msgid "Auto recommended for {0}"
 msgstr "Auto rekomandohet për {0}"
+
+msgid "Auto turned this on because your system asks for less motion."
+msgstr "Automatiku e aktivizoi sepse sistemi juaj kërkon më pak lëvizje."
+
+msgid "Auto turned this on for this computer: <0/>."
+msgstr "Automatiku e aktivizoi për këtë kompjuter: <0/>."
 
 msgid "Auto-build assessments and key-term lists."
 msgstr "Ndërto automatikisht vlerësime dhe lista termash kyç."
@@ -2752,6 +2756,9 @@ msgstr "Ndrysho dhe dërgo"
 msgid "Change how you share"
 msgstr "Ndrysho mënyrën si ndan"
 
+msgid "Change in Settings"
+msgstr "Ndryshoje te Cilësimet"
+
 msgid "Change language"
 msgstr "Ndrysho gjuhën"
 
@@ -3130,9 +3137,6 @@ msgstr "së shpejti"
 msgid "Coming soon"
 msgstr "Së shpejti"
 
-msgid "Coming soon — not wired up yet."
-msgstr "Së shpejti — ende nuk është lidhur."
-
 msgid "Command palette"
 msgstr "Paleta e komandave"
 
@@ -3245,17 +3249,11 @@ msgstr "Konfiguroni informacionin bazë të dokumentit dhe shtigjet e skedarëve
 msgid "Configure features to include in the export"
 msgstr "Konfiguroni funksionet për t'i përfshirë në eksportim"
 
-#~ msgid "Configure the credentials used by AI features on this device."
-#~ msgstr "Konfiguroni kredencialet që përdoren nga veçoritë e IA-së në këtë pajisje."
-
 msgid "Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine."
 msgstr "Konfiguro kredencialet e ofruesve që përdoren kur ADT Studio ekzekuton hapat e pipeline-it të IA-së në këtë makinë."
 
 msgid "Configure voices and accents"
 msgstr "Konfiguroni zërat dhe thekset"
-
-#~ msgid "Configured on server"
-#~ msgstr "Konfiguruar në server"
 
 msgid "Confirm merge"
 msgstr "Konfirmoni bashkimin"
@@ -3556,9 +3554,6 @@ msgstr "Përmbajtja e ruajtur nuk mund të ngarkohej."
 
 msgid "Could not load saved content. Retry"
 msgstr "Përmbajtja e ruajtur nuk mund të ngarkohej. Provo përsëri"
-
-#~ msgid "Could not load the AI provider catalogue."
-#~ msgstr "Katalogu i ofruesve të IA-së nuk mund të ngarkohej."
 
 msgid "Could not load the book outline."
 msgstr "Struktura e librit nuk mund të ngarkohej."
@@ -4525,6 +4520,9 @@ msgstr "Gjuha e redaktimit"
 msgid "Edits go to this Tailwind variant prefix"
 msgstr "Ndryshimet shkojnë tek ky prefiks i variantit Tailwind"
 
+msgid "Effects are reduced everywhere in Studio."
+msgstr "Efektet janë të reduktuara kudo në Studio."
+
 msgid "Effort"
 msgstr "Përpjekje"
 
@@ -5282,6 +5280,9 @@ msgstr "Paketa e plotë ADT — faqe HTML, imazhe, audio, kuize dhe aplikacioni 
 msgid "Full control over render strategies, pruning, and filters."
 msgstr "Kontroll i plotë mbi strategjitë e renderimit, prerjes dhe filtrave."
 
+msgid "Full effects are always used on this computer."
+msgstr "Në këtë kompjuter përdoren gjithmonë të gjitha efektet."
+
 msgid "Full project backup & transfer"
 msgstr "Kopje rezervë dhe transferim i plotë i projektit"
 
@@ -5605,6 +5606,9 @@ msgstr "Niveli Shkollor"
 msgid "Grammar and fluency"
 msgstr "Gramatika dhe rrjedhshmëria"
 
+msgid "graphics drawn without the GPU"
+msgstr "grafika e vizatuar pa GPU"
+
 msgid "Grid view"
 msgstr "Pamje rrjeti"
 
@@ -5884,9 +5888,6 @@ msgstr "Prerja e Imazheve"
 
 msgid "Image Cropping Prompt"
 msgstr "Prompt i Prerjes së Imazheve"
-
-#~ msgid "Image edit complete"
-#~ msgstr "Modifikimi i imazhit u krye"
 
 msgid "Image Edit Prompt"
 msgstr "Prompt i Editimit të Imazhit"
@@ -6424,9 +6425,6 @@ msgstr "Tastierë dhe navigim"
 msgid "Keyboard shortcuts"
 msgstr "Shkurtesat e tastierës"
 
-#~ msgid "Keys are stored locally in this browser or desktop session and are sent only with run requests."
-#~ msgstr "Çelësat ruhen lokalisht në këtë shfletues ose sesion desktop dhe dërgohen vetëm me kërkesat e ekzekutimit."
-
 msgid "Keys are stored locally on this device — never sent anywhere else."
 msgstr "Çelësat ruhen lokalisht në këtë pajisje — nuk dërgohen kurrë diku tjetër."
 
@@ -6724,9 +6722,6 @@ msgstr "Ngarko vlerat e fundit të ruajtura"
 
 msgid "Loading accessibility summary..."
 msgstr "Duke ngarkuar përmbledhjen e aksesueshmërisë..."
-
-#~ msgid "Loading AI providers…"
-#~ msgstr "Po ngarkohen ofruesit e IA-së…"
 
 msgid "Loading beta versions…"
 msgstr "Po ngarkohen versionet beta…"
@@ -7193,9 +7188,6 @@ msgstr "Madhësia Minimale (px)"
 msgid "Min width"
 msgstr "Gjerësia minimale"
 
-msgid "Minimise onboarding and list-reorder animations."
-msgstr "Minimizo animacionet e hyrjes dhe riorganizimit të listës."
-
 msgid "Minimize"
 msgstr "Minimizo"
 
@@ -7326,8 +7318,8 @@ msgstr "Më shumë komente të hapura"
 msgid "Most used"
 msgstr "Më i përdorur"
 
-msgid "motion animation accessibility"
-msgstr "lëvizje animacion aksesueshmëri"
+msgid "motion animation blur performance slow computer accessibility"
+msgstr "lëvizje animacion turbullim performancë kompjuter i ngadaltë qasshmëri"
 
 msgid "Move down"
 msgstr "Zhvendos poshtë"
@@ -8129,9 +8121,6 @@ msgstr "Ende asgjë e zgjidhur"
 msgid "Nothing split yet"
 msgstr "Asgjë nuk është ndarë ende"
 
-#~ msgid "Nothing to classify"
-#~ msgstr "Asgjë për të klasifikuar"
-
 msgid "Nothing to edit yet"
 msgstr "Ende s'ka asgjë për të redaktuar"
 
@@ -8334,9 +8323,6 @@ msgstr "Hapi të gjitha në Storyboard"
 
 msgid "Open an ADT project that <0>already exists</0> — a backup, a book part, or one exported by someone else. Nothing is converted. <1>.zip → added as-is</1>"
 msgstr "Hap një projekt ADT që <0>tashmë ekziston</0> — një kopje rezervë, një pjesë libri, ose një i eksportuar nga dikush tjetër. Asgjë nuk konvertohet. <1>.zip → shtuar siç është</1>"
-
-#~ msgid "Open API key settings"
-#~ msgstr "Hap cilësimet e çelësave API"
 
 msgid "Open command palette"
 msgstr "Hap paletën e komandave"
@@ -8879,9 +8865,6 @@ msgstr "Faqet në intervalin e zgjedhur"
 msgid "Pages in this part"
 msgstr "Faqe në këtë pjesë"
 
-#~ msgid "Pages listed below will keep their saved content unless you choose to replace them. All other pages will be regenerated."
-#~ msgstr "Faqet e renditura më poshtë do ta ruajnë përmbajtjen e tyre, përveç nëse zgjidhni ta zëvendësoni. Të gjitha faqet e tjera do të rigjenerohen."
-
 msgid "pages per quiz"
 msgstr "faqe për kuiz"
 
@@ -8893,9 +8876,6 @@ msgstr "Faqe të rishikuara"
 
 msgid "Pages to review"
 msgstr "Faqet për t'u shqyrtuar"
-
-#~ msgid "Pages with manual edits or unknown authorship:"
-#~ msgstr "Faqe me ndryshime manuale ose autorësi të panjohur:"
 
 msgid "Pages, edits and generated features"
 msgstr "Faqet, redaktimet dhe veçoritë e gjeneruara"
@@ -9370,9 +9350,6 @@ msgstr "Ofruesi \"{providerId}\" nuk mbështet gjenerimin e tekstit."
 msgid "Provider \"{providerId}\" is not registered. Add its API keys in Settings or choose another model."
 msgstr "Ofruesi \"{providerId}\" nuk është i regjistruar. Shto çelësat e tij API te Cilësimet ose zgjidh një model tjetër."
 
-#~ msgid "Provider credentials"
-#~ msgstr "Kredencialet e ofruesit"
-
 msgid "Provider credentials saved."
 msgstr "Kredencialet e ofruesve u ruajtën."
 
@@ -9381,9 +9358,6 @@ msgstr "Dokumentacioni i ofruesit"
 
 msgid "providers api key credentials endpoint"
 msgstr "ofruesit çelësi api kredencialet pika fundore"
-
-#~ msgid "Providers unavailable"
-#~ msgstr "Ofruesit nuk janë të disponueshëm"
 
 msgid "Provides consistent HTML/CSS patterns for LLM-generated pages."
 msgstr "Siguron modele të qëndrueshme HTML/CSS për faqet e gjeneruara nga LLM."
@@ -9849,8 +9823,8 @@ msgstr "Rirritjo nga Faqja"
 msgid "Rectangle"
 msgstr "Drejtkëndësh"
 
-msgid "Reduce motion"
-msgstr "Redukto lëvizjen"
+msgid "Reduce effects"
+msgstr "Redukto efektet"
 
 msgid "Reference"
 msgstr "Referencë"
@@ -10907,9 +10881,6 @@ msgstr "Seksion pa lloj"
 msgid "Sectioning"
 msgstr "Seksionim"
 
-#~ msgid "Sectioning has changed since some sections were rendered. Open a section and use “Re-render this section” to update it, or re-run Storyboard to regenerate every page."
-#~ msgstr "Seksionimi ka ndryshuar që kur u renderizuan disa seksione. Hapni një seksion dhe përdorni “Ri-renderizo këtë seksion” për ta përditësuar, ose riekzekutoni Storyboard për të rigjeneruar çdo faqe."
-
 msgid "Sectioning mode"
 msgstr "Modaliteti i seksionimit"
 
@@ -11447,6 +11418,12 @@ msgstr "Hyrja funksionon vetëm kur ADT Studio dhe shfletuesi juaj funksionojnë
 msgid "Similarity"
 msgstr "Ngjashmëria"
 
+msgid "Simpler animations and no blur or 3D, so Studio stays smooth on slower computers."
+msgstr "Animacione më të thjeshta, pa turbullim e pa 3D, që Studio të mbetet i rrjedhshëm në kompjuterë më të ngadaltë."
+
+msgid "Simpler animations and no blur, for slower computers."
+msgstr "Animacione më të thjeshta dhe pa turbullim, për kompjuterë më të ngadaltë."
+
 msgid "Simplified Easy Read text variants."
 msgstr "Variante të thjeshtuara të tekstit Easy Read."
 
@@ -11517,6 +11494,9 @@ msgstr "I vogël"
 msgid "Smart Cropping"
 msgstr "Prerje Inteligjente"
 
+msgid "So it stays smooth on this computer: <0/>."
+msgstr "Që të mbetet i rrjedhshëm në këtë kompjuter: <0/>."
+
 msgid "So only this computer can share or change your books."
 msgstr "Kështu vetëm ky kompjuter mund të ndajë ose të ndryshojë librat tuaj."
 
@@ -11525,10 +11505,6 @@ msgstr "Përditësim softueri"
 
 msgid "Software update status"
 msgstr "Gjendja e përditësimit të softuerit"
-
-#. placeholder {0}: warnings.length
-#~ msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
-#~ msgstr "Një pjesë e përmbajtjes u la jashtë paketës: {0} seksione të paraqitura në {pageList} nuk kanë një seksion burimor të verifikuar, prandaj nuk mund të përfshiheshin. Përmbajtja dhe historiku i tyre ruhen. Kontrolloni identitetet e seksioneve në Storyboard dhe krijoni sërish paketën."
 
 #. placeholder {0}: ownership.length
 msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageTotal} page(s) (showing up to 20): {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
@@ -11969,6 +11945,9 @@ msgstr "Strukturon çdo faqe në një pemë seksionesh dhe nyjesh."
 msgid "Studio couldn't open this page right now. Open it in the Storyboard to see it."
 msgstr "Studio nuk mundi ta hapë këtë faqe tani. Hapeni në Storyboard për ta parë."
 
+msgid "Studio switched to reduced effects"
+msgstr "Studio kaloi në efekte të reduktuara"
+
 msgid "Style"
 msgstr "Stili"
 
@@ -12135,10 +12114,6 @@ msgstr "Detyra u krye"
 msgid "Task failed"
 msgstr "Detyra dështoi"
 
-#. placeholder {0}: d.error
-#~ msgid "Task failed: {0}"
-#~ msgstr "Detyra dështoi: {0}"
-
 msgid "Task failed: {taskError}"
 msgstr "Detyra dështoi: {taskError}"
 
@@ -12210,9 +12185,6 @@ msgstr "Termet u zgjodhën nga AI nga libri. Redakto një përkufizim ose emoji-
 
 msgid "Terms, character names, or phrases the judge should preserve or prefer."
 msgstr "Termat, emrat e karaktereve ose frazat që gjykatësi duhet të ruajë ose preferojë."
-
-#~ msgid "Test connection"
-#~ msgstr "Testo lidhjen"
 
 msgid "Test notification"
 msgstr "Testo njoftimin"
@@ -12385,9 +12357,6 @@ msgstr "Komentet që lanë njerëzit ruhen. Mund ta rifilloni ndarjen më vonë 
 
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "Bashkësia e organizmave të gjallë në një vend dhe mënyra si ndërveprojnë me njëri-tjetrin dhe mjedisin e tyre."
-
-#~ msgid "The connection check could not be completed."
-#~ msgstr "Kontrolli i lidhjes nuk mundi të përfundohet."
 
 msgid "The connection to Cloudflare dropped or timed out. Check your internet, then try again — anything already set up is kept."
 msgstr "Lidhja me Cloudflare u ndërpre ose zgjati shumë. Kontrolloni internetin, pastaj provoni përsëri — çdo gjë e konfiguruar ruhet."
@@ -12874,9 +12843,6 @@ msgstr "Ky libër është plotësisht i montuar"
 msgid "This book is not on this computer."
 msgstr "Ky libër nuk është në këtë kompjuter."
 
-#~ msgid "This book is still open in another process. Close it there before recovering a copy."
-#~ msgstr "Ky libër është ende i hapur në një proces tjetër. Mbylleni atje përpara se të rikuperoni një kopje."
-
 msgid "This book is temporarily unavailable. Its saved content is preserved. Try opening it for details and retry after resolving the reported problem."
 msgstr "Ky libër është përkohësisht i padisponueshëm. Përmbajtja e tij e ruajtur është e mbrojtur. Provoni ta hapni për hollësi dhe provoni përsëri pasi të zgjidhni problemin e raportuar."
 
@@ -13110,9 +13076,6 @@ msgstr "Ky projekt u krijua nga një botim ADT i eksportuar, prandaj nuk përfsh
 msgid "This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used."
 msgstr "Ky udhëzim i tregon LLM-it si të vlerësojë HTML-in e renderuar kundrejt faqes origjinale. Zgjedhja më lart kontrollon cilin shabllon përdoret."
 
-#~ msgid "This provider does not require local credentials."
-#~ msgstr "Ky ofrues nuk kërkon kredenciale lokale."
-
 msgid "This provider has no automatic connection check."
 msgstr "Ky ofrues nuk ka kontroll automatik të lidhjes."
 
@@ -13157,9 +13120,6 @@ msgstr "Kjo rikthen fontin e parazgjedhur në çdo faqe dhe pastron mbishkrimet 
 
 msgid "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. Replacing this page later requires a separate confirmation."
 msgstr "Kjo rikthen ndarjen e fundit të gjeneruar në seksione për këtë faqe. Versioni juaj i redaktuar mbetet në historik. Faqet e tjera i ruajnë ndryshimet e tyre. Zëvendësimi i kësaj faqeje më vonë kërkon konfirmim të veçantë."
-
-#~ msgid "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. This page can be regenerated on the next Re-run."
-#~ msgstr "Kjo rikthen ndarjen e fundit në seksione të gjeneruar për këtë faqe. Versioni juaj i redaktuar mbetet në historik. Faqet e tjera i ruajnë ndryshimet e tyre. Kjo faqe mund të rigjenerohet në ekzekutimin e ardhshëm."
 
 msgid "This screen couldn’t load"
 msgstr "Ky ekran nuk mund të ngarkohej"
@@ -14519,6 +14479,9 @@ msgstr "Shërbimi juaj i ndarjes nuk përgjigjet, prandaj ajo që thotë kjo faq
 
 msgid "Your sharing service needs an update first"
 msgstr "Shërbimi juaj i ndarjes ka nevojë së pari për një përditësim"
+
+msgid "Your system asks for less motion, so animations stay reduced."
+msgstr "Sistemi juaj kërkon më pak lëvizje, ndaj animacionet mbeten të reduktuara."
 
 msgid "Z → A"
 msgstr "Z → A"
