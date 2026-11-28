@@ -2,6 +2,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { usePageThumb } from "../../../core/pdf/usePageThumb"
+import { useReturnFocus } from "./useReturnFocus"
 
 function Big({ file, page }: { file: File; page: number }) {
   const src = usePageThumb(file, page, 420)
@@ -19,9 +20,10 @@ export function PageViewer({ file, pages, page, onPage, label }: { file: File; p
   const { t } = useLingui()
   const at = page === null ? -1 : pages.indexOf(page)
   const go = (step: number) => onPage(pages[(at + step + pages.length) % pages.length]!)
+  const returnFocus = useReturnFocus(page !== null)
   return (
     <Dialog open={page !== null} onOpenChange={(o) => !o && onPage(null)}>
-      <DialogContent className="max-w-[min(92vw,720px)] gap-3 rounded-[24px] p-4 sm:p-6" onKeyDown={(e) => (e.key === "ArrowRight" ? go(1) : e.key === "ArrowLeft" ? go(-1) : undefined)}>
+      <DialogContent onCloseAutoFocus={returnFocus} className="max-w-[min(92vw,720px)] gap-3 rounded-[24px] p-4 sm:p-6" onKeyDown={(e) => (e.key === "ArrowRight" ? go(1) : e.key === "ArrowLeft" ? go(-1) : undefined)}>
         <DialogTitle className="text-[17px] font-bold tracking-[-0.01em]">
           <Trans>Page {page}</Trans>
         </DialogTitle>

@@ -32,7 +32,7 @@ export function FactPick({ rec, fact, chat, file, sets, stacked }: { rec: SetupR
           {question}
         </p>
         <CompactOptionsContext.Provider value={stacked ? "all" : false}>
-          <PreviewChoices rec={rec} fact={fact} order={order} answers={derived.current} chosen={value} onAnswer={(v) => chat.answer(fact.id, v)} file={file} labelId={labelId} />
+          <PreviewChoices rec={rec} fact={fact} order={order} answers={derived.current} chosen={value} guessing={!(fact.id in chat.answers)} onAnswer={(v) => chat.answer(fact.id, v)} file={file} labelId={labelId} />
         </CompactOptionsContext.Provider>
       </div>
     )

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react"
+import { useId, useState, type ReactNode } from "react"
 import type { MessageDescriptor } from "@lingui/core"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { ArrowLeft, ArrowRight, Check, Smartphone, Sparkles, TriangleAlert, Zap } from "lucide-react"
@@ -10,6 +10,7 @@ import { WizardPose } from "./WizardPose"
 import { Screen } from "./Screen"
 import { screenPages, useScreenImages } from "./screens/pages"
 import type { LookOption } from "./PreviewChoices"
+import { useReturnFocus } from "./useReturnFocus"
 
 
 /**
@@ -18,7 +19,7 @@ import type { LookOption } from "./PreviewChoices"
  * it can be changed. Tabs, arrows or the arrow keys move between the options; the one shown can
  * be picked from here.
  */
-export function OptionsHelp({ open, onOpenChange, rec, options, page, chosen, file, onPick }: { open: boolean; onOpenChange: (open: boolean) => void; rec: SetupRecommendation; options: LookOption[]; page: number; chosen?: string; file: File | null | undefined; onPick: (value: string) => void }) {
+export function OptionsHelp({ open, onOpenChange, rec, options, page, chosen, guessing = false, file, onPick }: { open: boolean; onOpenChange: (open: boolean) => void; rec: SetupRecommendation; options: LookOption[]; page: number; chosen?: string; /** `chosen` is only the assistant's guess so far (an asked question not answered yet). */ guessing?: boolean; file: File | null | undefined; onPick: (value: string) => void }) {
   const [at, setAt] = useState(0)
   const [was, setWas] = useState(false)
   // Each time it opens, it starts on the picked option.
@@ -29,10 +30,13 @@ export function OptionsHelp({ open, onOpenChange, rec, options, page, chosen, fi
   const o = options[at]!
   const go = (d: number) => setAt((i) => (i + d + options.length) % options.length)
   const show = (value: string) => setAt(Math.max(0, options.findIndex((x) => x.value === value)))
-  const picked = chosen === o.value
+  const picked = chosen === o.value && !guessing
+  const returnFocus = useReturnFocus(open)
+  const ids = useId()
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        onCloseAutoFocus={returnFocus}
         className="flex h-[min(90vh,780px)] max-w-[min(94vw,980px)] flex-col gap-0 overflow-hidden rounded-[22px] p-0 outline-none focus:outline-none focus-visible:outline-none"
         onKeyDown={(e) => {
           if (e.target instanceof HTMLElement && e.target.closest("[role=tablist]")) return
@@ -47,8 +51,13 @@ export function OptionsHelp({ open, onOpenChange, rec, options, page, chosen, fi
           role="tablist"
           className="flex shrink-0 gap-1 overflow-x-auto border-b border-border px-4 pr-14 pt-4"
           onKeyDown={(e) => {
-            if (e.key === "ArrowRight") go(1)
-            else if (e.key === "ArrowLeft") go(-1)
+            // The arrows (and Home / End) move to another tab and focus it, as a tablist does.
+            const n = options.length
+            const to = e.key === "ArrowRight" ? (at + 1) % n : e.key === "ArrowLeft" ? (at - 1 + n) % n : e.key === "Home" ? 0 : e.key === "End" ? n - 1 : -1
+            if (to < 0) return
+            e.preventDefault()
+            setAt(to)
+            e.currentTarget.querySelectorAll<HTMLElement>("[role=tab]")[to]?.focus()
           }}
         >
           {options.map((x, i) => (
@@ -56,6 +65,8 @@ export function OptionsHelp({ open, onOpenChange, rec, options, page, chosen, fi
               key={x.value}
               type="button"
               role="tab"
+              id={`${ids}-tab-${i}`}
+              aria-controls={`${ids}-panel`}
               aria-selected={i === at}
               tabIndex={i === at ? 0 : -1}
               onClick={() => setAt(i)}
@@ -68,12 +79,12 @@ export function OptionsHelp({ open, onOpenChange, rec, options, page, chosen, fi
                 {x.art ?? <TabPicture rec={rec} option={x} page={page} file={file} />}
               </span>
               <span className="flex items-start gap-1 text-[12.5px] font-medium leading-tight">
-                {chosen === x.value && <Check aria-hidden className="mt-px size-3.5 shrink-0 stroke-[3]" />}
+                {chosen === x.value && !guessing && <Check aria-hidden className="mt-px size-3.5 shrink-0 stroke-[3]" />}
                 <span className="line-clamp-2">{x.label}</span>
               </span>
               {chosen === x.value && (
                 <span className="sr-only">
-                  <Trans>(your pick)</Trans>
+                  {guessing ? <Trans>(my guess)</Trans> : <Trans>(your pick)</Trans>}
                 </span>
               )}
               <span aria-hidden className={cn("absolute inset-x-2 bottom-0 h-[3px] rounded-full transition-colors", i === at ? "bg-brand-500" : "bg-transparent")} />
@@ -81,7 +92,7 @@ export function OptionsHelp({ open, onOpenChange, rec, options, page, chosen, fi
           ))}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div id={`${ids}-panel`} role="tabpanel" aria-labelledby={`${ids}-tab-${at}`} className="min-h-0 flex-1 overflow-y-auto">
           <CardBody key={o.value} o={o} options={options} rec={rec} page={page} file={file} show={show} />
         </div>
 

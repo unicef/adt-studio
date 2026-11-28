@@ -181,7 +181,7 @@ function LookCard({ rec, option, page, narrow, compact = false, chosen, first, o
  * would come out, drawn on one of the user's own pages, a plain label and one short line. The
  * picked card lifts with an accent edge; the others' pictures sit back a little.
  */
-export function LookChoices({ rec, options, page, chosen, onPick, file, labelId }: { rec: SetupRecommendation; options: LookOption[]; page: number; chosen?: string; onPick: (value: string, card: HTMLElement | null) => void; file: File | null | undefined; labelId: string }) {
+export function LookChoices({ rec, options, page, chosen, guessing, onPick, file, labelId }: { rec: SetupRecommendation; options: LookOption[]; page: number; chosen?: string; /** `chosen` is only the guess so far (Explain the options says "my guess", not "your pick"). */ guessing?: boolean; onPick: (value: string, card: HTMLElement | null) => void; file: File | null | undefined; labelId: string }) {
   const { ref, box } = useBox()
   const compact = useContext(CompactOptionsContext)
   // Under a pick, the cards are its other options: the picked one is already shown large above.
@@ -198,7 +198,7 @@ export function LookChoices({ rec, options, page, chosen, onPick, file, labelId 
       <div ref={ref} role="group" aria-labelledby={labelId} className="grid gap-3" style={{ gridTemplateColumns: narrow ? "minmax(0, 1fr)" : `repeat(${cols}, minmax(0, 1fr))` }}>
         {box.w > 0 && shown.map((o, i) => <LookCard key={o.value} rec={rec} option={o} page={page} narrow={narrow} compact={!!compact} chosen={chosen === o.value} first={i === 0} onPick={(card) => morph(() => onPick(o.value, card))} vtName={`opt-${labelId}-${o.value}`} file={file} />)}
       </div>
-      {explains && <OptionsHelp open={help} onOpenChange={setHelp} rec={rec} options={options} page={page} chosen={chosen} file={file} onPick={(v) => { setHelp(false); onPick(v, null) }} />}
+      {explains && <OptionsHelp open={help} onOpenChange={setHelp} rec={rec} options={options} page={page} chosen={chosen} guessing={guessing} file={file} onPick={(v) => { setHelp(false); onPick(v, null) }} />}
     </div>
   )
 }
@@ -208,7 +208,7 @@ export function LookChoices({ rec, options, page, chosen, onPick, file, labelId 
  * up, on the page that shows the fact, with what you'd get in plain words ("Picture beside the
  * words"), or the answer's own hint when that wouldn't tell the answers apart.
  */
-export function PreviewChoices({ rec, fact, order, answers, chosen, onAnswer, file, labelId }: { rec: SetupRecommendation; fact: SetupFact; order: string[]; answers: FactAnswers; chosen?: string; onAnswer: (value: string, card: HTMLElement | null) => void; file: File | null | undefined; labelId: string }) {
+export function PreviewChoices({ rec, fact, order, answers, chosen, guessing, onAnswer, file, labelId }: { rec: SetupRecommendation; fact: SetupFact; order: string[]; answers: FactAnswers; chosen?: string; guessing?: boolean; onAnswer: (value: string, card: HTMLElement | null) => void; file: File | null | undefined; labelId: string }) {
   const { i18n } = useLingui()
   const touched = settingsTouchedBy(rec, answers, fact.id)
   // The setting the answers differ on most visibly comes first.
@@ -229,7 +229,7 @@ export function PreviewChoices({ rec, fact, order, answers, chosen, onAnswer, fi
     guide: FACT_GUIDE[fact.id]?.[value],
     why: value === fact.value ? <FactWhy fact={fact} file={file} /> : fact.secondOpinion === value && fact.secondOpinion !== fact.value ? <SecondWhy fact={fact} /> : undefined,
   }))
-  return <LookChoices rec={rec} options={options} page={fact.evidencePages[0] ?? rec.previewPage} chosen={chosen} onPick={onAnswer} file={file} labelId={labelId} />
+  return <LookChoices rec={rec} options={options} page={fact.evidencePages[0] ?? rec.previewPage} chosen={chosen} guessing={guessing} onPick={onAnswer} file={file} labelId={labelId} />
 }
 
 /**

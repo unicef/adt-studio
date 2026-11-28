@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, FileText, FileUp } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { usePageThumb } from "../../../core/pdf/usePageThumb"
+import { useReturnFocus } from "../shared/useReturnFocus"
 
 /** One page in the trail, drawn only once it scrolls into view (a long book stays quick to open). */
 function TrailPage({ file, page, current, root, onPick }: { file: File; page: number; current: boolean; root: HTMLElement | null; onPick: () => void }) {
@@ -81,9 +82,11 @@ export function PdfPages({ file, title, pageCount, open, onClose, onChange, lock
     else if (e.key === "End") go(total)
   }
   const pages = Array.from({ length: total }, (_, i) => i + 1)
+  const returnFocus = useReturnFocus(open)
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
+        onCloseAutoFocus={returnFocus}
         overlayClassName="bg-black/45 backdrop-blur-[6px] data-[state=open]:duration-200 data-[state=closed]:duration-150"
         className="gd-sheet flex h-[min(90vh,860px)] max-w-[min(94vw,1120px)] flex-col gap-0 overflow-hidden rounded-[22px] p-0"
         onKeyDown={keys}

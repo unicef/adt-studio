@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { getBaseLanguage, getCountriesForLanguage, SUPPORTED_LANGUAGES } from "@/lib/languages"
 import { cn } from "@/lib/utils"
 import { languageName, regionName } from "../../shared/languageName"
+import { useReturnFocus } from "../../shared/useReturnFocus"
 import { inItself, ownName } from "../../shared/art/LanguageBook"
 
 export const region = (code: string | null) => (code && code.includes("-") ? code.split("-")[1]!.toLowerCase() : null)
@@ -24,13 +25,13 @@ export function endonym(code: string): string {
 }
 
 /** One variety: a radio styled as a chip. Chosen, it fills with the brand colour and shows a tick. */
-function VarietyChip({ label, on, note, onPick }: { label: ReactNode; on: boolean; note?: ReactNode; onPick: () => void }) {
+function VarietyChip({ label, on, tabbable = on, note, onPick }: { label: ReactNode; on: boolean; /** In the tab order: the checked one, or the first when none is. */ tabbable?: boolean; note?: ReactNode; onPick: () => void }) {
   return (
     <button
       type="button"
       role="radio"
       aria-checked={on}
-      tabIndex={on ? 0 : -1}
+      tabIndex={tabbable ? 0 : -1}
       onClick={onPick}
       className={cn(
         "inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[13.5px] font-medium ring-1 transition-[background-color,color,box-shadow,transform] duration-150 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 motion-reduce:transition-none",
@@ -201,6 +202,7 @@ function SearchBox({ ref, value, onChange, placeholder }: { ref: React.Ref<HTMLI
 export function LanguageChoice({ code, found, source, onPick }: { code: string | null; found: string | null; source: string | null | undefined; onPick: (code: string) => void }) {
   const { i18n } = useLingui()
   const [panel, setPanel] = useState<"language" | "variety" | null>(null)
+  const returnFocus = useReturnFocus(panel !== null)
   const foundNote = source === "ai" ? <Trans>from the pages</Trans> : <Trans>from the PDF</Trans>
   const base = code ? getBaseLanguage(code) : null
   const varieties = base ? getCountriesForLanguage(base).suggested : []
@@ -209,6 +211,8 @@ export function LanguageChoice({ code, found, source, onPick }: { code: string |
   // A fixed order (the one found first, then the usual ones, then a pick from More), so nothing moves under the pointer.
   const shown = [...new Set([fromBook, ...varieties.slice(0, 5).map((c) => c.code), now].filter((c): c is string => !!c))]
   const hidden = varieties.filter((c) => !shown.includes(c.code)).length
+  // Another language than the book's: the text is translated, so the variety line doesn't say it isn't.
+  const translates = !!found && !!base && getBaseLanguage(found) !== base
   const pickVariety = (country: string) => onPick(`${base}-${country.toUpperCase()}`)
   return (
     <>
@@ -220,13 +224,13 @@ export function LanguageChoice({ code, found, source, onPick }: { code: string |
                 <Trans>Which variety?</Trans>
               </p>
               <p className="text-[13px] text-muted-foreground">
-                <Trans>Sets the spelling and the voices. The book isn&apos;t translated.</Trans>
+                {translates ? <Trans>Sets the spelling and the voices.</Trans> : <Trans>Sets the spelling and the voices. The book isn&apos;t translated.</Trans>}
               </p>
             </div>
             <div role="radiogroup" aria-labelledby="gd-variety" onKeyDown={onRadioKeys} className="flex flex-wrap items-center gap-1.5">
               {!fromBook && <VarietyChip label={<Trans>Not sure</Trans>} on={!now} onPick={() => onPick(base)} />}
-              {shown.map((c) => (
-                <VarietyChip key={c} label={regionName(c, i18n.locale)} on={c === now} note={c === fromBook ? foundNote : undefined} onPick={() => pickVariety(c)} />
+              {shown.map((c, i) => (
+                <VarietyChip key={c} label={regionName(c, i18n.locale)} on={c === now} tabbable={c === now || (!now && !!fromBook && i === 0)} note={c === fromBook ? foundNote : undefined} onPick={() => pickVariety(c)} />
               ))}
               {hidden > 0 && (
                 <button type="button" aria-haspopup="dialog" aria-expanded={panel === "variety"} onClick={() => setPanel("variety")} className="lc-link h-9 px-2 text-[13.5px] font-medium">
@@ -241,7 +245,7 @@ export function LanguageChoice({ code, found, source, onPick }: { code: string |
         </button>
       </div>
       <Dialog open={panel !== null} onOpenChange={(o) => !o && setPanel(null)}>
-        <DialogContent className="flex max-h-[90vh] max-w-[min(94vw,460px)] flex-col gap-0 rounded-[24px] p-5 sm:p-6">
+        <DialogContent onCloseAutoFocus={returnFocus} className="flex max-h-[90vh] max-w-[min(94vw,460px)] flex-col gap-0 rounded-[24px] p-5 sm:p-6">
           {panel && <LanguagePanel key={panel} start={panel} current={code} found={found} foundNote={foundNote} onPick={onPick} onDone={() => setPanel(null)} />}
         </DialogContent>
       </Dialog>

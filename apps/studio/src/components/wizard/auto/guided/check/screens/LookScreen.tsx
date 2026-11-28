@@ -24,7 +24,7 @@ type Props = { rec: SetupRecommendation; chat: Answers; file: File | null | unde
  * screen, and tagged with how it's made: by the AI (slower, uses credits) or from a template.
  * When the engine asked (its readings disagree on where the words sit), the options start open.
  */
-function LayoutPick({ rec, chat, file, asked }: Props & { asked: boolean }) {
+function LayoutPick({ rec, chat, file, asked, guessing }: Props & { asked: boolean; /** Asked, and not answered yet. */ guessing: boolean }) {
   const { i18n, t } = useLingui()
   const derived = chat.derived!
   const value = String(derived.effective.renderStrategy?.value)
@@ -69,9 +69,11 @@ function LayoutPick({ rec, chat, file, asked }: Props & { asked: boolean }) {
     }),
   )
   const labelId = "gd-layout"
+  // eslint-disable-next-line lingui/no-unlocalized-strings -- a source id, never shown
+  const changed = derived.source("renderStrategy") === "changed"
   const means = SETTING_VALUE.renderStrategy[value]?.means
   // eslint-disable-next-line lingui/no-unlocalized-strings -- a setting id, never shown
-  const choices = <LookChoices rec={rec} options={options} page={rec.previewPage} chosen={value} onPick={(v) => chat.override("renderStrategy", v)} file={file} labelId={labelId} />
+  const choices = <LookChoices rec={rec} options={options} page={rec.previewPage} chosen={value} guessing={guessing && !changed} onPick={(v) => chat.override("renderStrategy", v)} file={file} labelId={labelId} />
   // Asked: the options are the question, side by side, as on any asked fact.
   if (asked)
     return (
@@ -82,8 +84,6 @@ function LayoutPick({ rec, chat, file, asked }: Props & { asked: boolean }) {
         {choices}
       </div>
     )
-  // eslint-disable-next-line lingui/no-unlocalized-strings -- a source id, never shown
-  const changed = derived.source("renderStrategy") === "changed"
   return (
     <SurePick
       picture={<span className={`grid shrink-0 place-items-center p-3 ${PICTURE}`}>{layoutArt(value)}</span>}
@@ -148,6 +148,6 @@ function AtAGlance({ strategy }: { strategy: string }) {
 export function LookScreen({ rec, chat, file }: Props) {
   const fact = screenFacts(rec, chat.derived!.current, "look")[0]
   return (
-    <LayoutPick rec={rec} chat={chat} file={file} asked={!!fact?.ask} />
+    <LayoutPick rec={rec} chat={chat} file={file} asked={!!fact?.ask} guessing={!!fact?.ask && !(fact.id in chat.answers)} />
   )
 }

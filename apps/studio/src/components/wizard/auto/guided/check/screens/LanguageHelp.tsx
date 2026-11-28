@@ -3,12 +3,14 @@ import { Trans } from "@lingui/react/macro"
 import { Languages, RefreshCw, Sparkles } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { WizardPose } from "../../shared/WizardPose"
+import { useReturnFocus } from "../../shared/useReturnFocus"
 
 /** What the two language choices do, in the assistant's words, for the "How do languages work?" link. */
 export function LanguageHelp({ open, onOpenChange, found }: { open: boolean; onOpenChange: (open: boolean) => void; found: string | null }) {
+  const returnFocus = useReturnFocus(open)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="top-[6vh] max-h-[88vh] max-w-[620px] translate-y-0 gap-0 overflow-y-auto p-0">
+      <DialogContent onCloseAutoFocus={returnFocus} className="top-[6vh] max-h-[88vh] max-w-[620px] translate-y-0 gap-0 overflow-y-auto p-0">
         <div className="flex items-center gap-3 border-b border-border px-6 py-5 pr-14">
           <WizardPose pose="hello" size={60} className="-my-2 shrink-0" />
           <div className="min-w-0">
