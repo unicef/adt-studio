@@ -23,30 +23,31 @@
 .gd-drop:focus-visible { outline: 2px solid var(--gd-step); outline-offset: 3px; }
 
 
-/* Morphs between steps, screens and picks (shared/motion.ts): named places move and resize, the rest crossfades. */
-::view-transition-group(*) { animation-duration: 0.45s; animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1); }
+/* Morphs between steps, screens and picks (shared/motion.ts): named places move and resize, the rest crossfades.
+   Only while a morph runs (motion.ts sets data-gd-morph on <html>), so other screens' view transitions keep their own timing. */
+:root[data-gd-morph]::view-transition-group(*) { animation-duration: 0.45s; animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1); }
 /* The top bar stays put: no slide, resize or crossfade when the step changes. */
-::view-transition-group(gd-topbar), ::view-transition-old(gd-topbar), ::view-transition-new(gd-topbar) { animation: none; }
-::view-transition-image-pair(*) { overflow: clip; }
-::view-transition-old(*), ::view-transition-new(*) { height: 100%; object-fit: none; object-position: top left; }
+:root[data-gd-morph]::view-transition-group(gd-topbar), :root[data-gd-morph]::view-transition-old(gd-topbar), :root[data-gd-morph]::view-transition-new(gd-topbar) { animation: none; }
+:root[data-gd-morph]::view-transition-image-pair(*) { overflow: clip; }
+:root[data-gd-morph]::view-transition-old(*), :root[data-gd-morph]::view-transition-new(*) { height: 100%; object-fit: none; object-position: top left; }
 /* Old and new crossfade together (same timing), so the screen never looks washed out halfway. */
-::view-transition-old(*), ::view-transition-new(*) { animation-duration: 0.3s; animation-timing-function: ease; }
+:root[data-gd-morph]::view-transition-old(*), :root[data-gd-morph]::view-transition-new(*) { animation-duration: 0.3s; animation-timing-function: ease; }
 /* The step dot and the rail's highlight are shapes, not content: they stretch as they move. */
-::view-transition-old(gd-step-dot), ::view-transition-new(gd-step-dot) { height: 100%; width: 100%; object-fit: fill; }
+:root[data-gd-morph]::view-transition-old(gd-step-dot), :root[data-gd-morph]::view-transition-new(gd-step-dot) { height: 100%; width: 100%; object-fit: fill; }
 /* Words that change in place (the pick's name, the language's bubbles and stamp; shared/motion.ts
    swapName): words that stay keep their name and just move (a plain crossfade of the same image),
    new words rise in and the old ones lift away, softly blurred. */
 /* Their snapshots aren't cropped, so a bubble keeps its tail and shadow while it moves. */
-::view-transition-image-pair(.gd-swap) { overflow: visible; }
-::view-transition-old(.gd-swap), ::view-transition-new(.gd-swap) { height: auto; object-fit: fill; }
-::view-transition-old(.gd-swap):only-child { animation: gd-swap-out 0.22s ease-in both; }
-::view-transition-new(.gd-swap):only-child { animation: gd-swap-in 0.45s cubic-bezier(0.32, 0.72, 0, 1) 0.08s both; }
+:root[data-gd-morph]::view-transition-image-pair(.gd-swap) { overflow: visible; }
+:root[data-gd-morph]::view-transition-old(.gd-swap), :root[data-gd-morph]::view-transition-new(.gd-swap) { height: auto; object-fit: fill; }
+:root[data-gd-morph]::view-transition-old(.gd-swap):only-child { animation: gd-swap-out 0.22s ease-in both; }
+:root[data-gd-morph]::view-transition-new(.gd-swap):only-child { animation: gd-swap-in 0.45s cubic-bezier(0.32, 0.72, 0, 1) 0.08s both; }
 @keyframes gd-swap-out { to { opacity: 0; transform: translateY(-6px) scale(0.96); filter: blur(3px); } }
 @keyframes gd-swap-in { from { opacity: 0; transform: translateY(8px) scale(0.96); filter: blur(3px); } }
-/* A picked card grows into the pick: its picture scales rather than crops. */
+/* An element that must not fly in a morph (a card picked from under a pick, PreviewChoices) loses its name. */
 [data-vt-off] { view-transition-name: none !important; }
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+  :root[data-gd-morph]::view-transition-group(*), :root[data-gd-morph]::view-transition-old(*), :root[data-gd-morph]::view-transition-new(*) { animation: none !important; }
 }
 
 /* The assistant (shared/Assistant.tsx): the book wizard's avatar, in a ring that ripples while it talks or thinks. */

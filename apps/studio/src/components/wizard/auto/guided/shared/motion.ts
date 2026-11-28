@@ -23,13 +23,25 @@ type ViewTransitionDoc = Document & { startViewTransition: (update: () => void) 
 // eslint-disable-next-line lingui/no-unlocalized-strings -- a CSS selector
 const DIALOG = "[role=dialog][data-state], [role=alertdialog][data-state]"
 
+/** Set on <html> while a morph runs: guided.css's view-transition timings apply to Add Book's morphs only. */
+// eslint-disable-next-line lingui/no-unlocalized-strings -- an attribute name
+const MORPHING = "data-gd-morph"
+let morphing = 0
+
 /**
  * Runs `update` as a morph: the old and new states are snapshotted around it and animated between.
  * While a dialog is on screen the change just happens (close the dialog first, then morph).
  */
 export function morph(update: () => void): void {
   if (!hasViewTransitions || motionOff() || document.querySelector(DIALOG)) return update()
-  ;(document as ViewTransitionDoc).startViewTransition(() => flushSync(update))
+  const root = document.documentElement
+  morphing++
+  root.setAttribute(MORPHING, "")
+  // A morph started while another runs skips the first one; the mark stays until the last ends.
+  const done = () => {
+    if (--morphing === 0) root.removeAttribute(MORPHING)
+  }
+  ;(document as ViewTransitionDoc).startViewTransition(() => flushSync(update)).finished.then(done, done)
 }
 
 /**
