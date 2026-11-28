@@ -1,4 +1,4 @@
-import { useRef, type CSSProperties, type ReactNode } from "react"
+import { useId, useRef, type CSSProperties, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { ArrowRight, Check, SlidersHorizontal, Sparkles } from "lucide-react"
 import { FlowTopBar } from "@/components/FlowTopBar"
@@ -8,13 +8,16 @@ import { Illustration } from "../core/Illustration"
 import { usePageScale } from "../core/usePageScale"
 import "../core/look.css"
 
+/**
+ * One way to set the book up, as a card: the whole card picks it (its button's hit area covers the
+ * card), while the button itself is only the action, described by the card's text.
+ */
 function Way({ art, fallback, title, tag, text, points, cta, primary, onPick }: { art: string; fallback: ReactNode; title: ReactNode; tag?: ReactNode; text: ReactNode; points: ReactNode[]; cta: ReactNode; primary?: boolean; onPick: () => void }) {
+  const id = useId()
   return (
-    <button
-      type="button"
-      onClick={onPick}
+    <div
       className={cn(
-        "group flex min-w-0 flex-col overflow-hidden rounded-[22px] bg-[var(--lc-bubble)] text-left shadow-[var(--lc-shadow)] ring-1 transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 active:translate-y-0 motion-reduce:transition-none",
+        "group relative flex min-w-0 flex-col overflow-hidden rounded-[22px] bg-[var(--lc-bubble)] text-left shadow-[var(--lc-shadow)] ring-1 transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-500 active:translate-y-0 motion-reduce:transition-none",
         primary ? "ring-brand-300 hover:ring-brand-500" : "ring-border hover:ring-brand-300",
       )}
     >
@@ -22,11 +25,11 @@ function Way({ art, fallback, title, tag, text, points, cta, primary, onPick }: 
         <Illustration name={art} fallback={fallback} />
       </span>
       <span className="flex flex-1 flex-col gap-3 p-5 lg:gap-4 lg:p-7">
-        <span className="flex flex-wrap items-center gap-2">
+        <span id={`${id}-title`} className="flex flex-wrap items-center gap-2">
           <span className="text-[20px] font-semibold leading-tight tracking-[-0.01em] lg:text-[24px]">{title}</span>
           {tag}
         </span>
-        <span className="text-[14.5px] leading-relaxed text-muted-foreground lg:text-[16px]">{text}</span>
+        <span id={`${id}-text`} className="text-[14.5px] leading-relaxed text-muted-foreground lg:text-[16px]">{text}</span>
         <ul className="flex flex-col gap-1.5 text-[13.5px] lg:text-[14.5px]">
           {points.map((p, i) => (
             <li key={i} className="flex gap-2">
@@ -35,17 +38,20 @@ function Way({ art, fallback, title, tag, text, points, cta, primary, onPick }: 
             </li>
           ))}
         </ul>
-        <span
+        <button
+          type="button"
+          onClick={onPick}
+          aria-describedby={`${id}-title ${id}-text`}
           className={cn(
-            "mt-auto inline-flex h-11 items-center justify-center gap-2 self-start rounded-[12px] px-5 text-[14.5px] font-semibold transition-colors",
+            "mt-auto inline-flex h-11 items-center justify-center gap-2 self-start rounded-[12px] px-5 text-[14.5px] font-semibold outline-none transition-colors after:absolute after:inset-0 after:rounded-[22px]",
             primary ? "bg-brand-600 text-white group-hover:bg-brand-700" : "bg-card text-foreground ring-1 ring-border group-hover:bg-brand-50 group-hover:ring-brand-300",
           )}
         >
           {cta}
           <ArrowRight aria-hidden className="size-4 transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none" />
-        </span>
+        </button>
       </span>
-    </button>
+    </div>
   )
 }
 
