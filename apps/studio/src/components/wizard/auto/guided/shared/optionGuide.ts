@@ -1,0 +1,206 @@
+import type { MessageDescriptor } from "@lingui/core"
+import { msg } from "@lingui/core/macro"
+
+/**
+ * The long explanation of one option, for the options dialog: the signs that it fits the book,
+ * when another option fits better (and which), books it suits, and (for a page layout) what it
+ * costs to make. Every option the user can pick on a Check screen has one.
+ */
+export type OptionGuide = {
+  fits: MessageDescriptor[]
+  /** When another option fits better: the sign, and the option to look at instead. */
+  better: { when: MessageDescriptor; go: string }[]
+  examples: MessageDescriptor
+  /** How the book is made with it (page layouts only). */
+  making?: { ai: boolean; says: MessageDescriptor }
+}
+
+const AI_MAKING = { ai: true, says: msg`The AI builds every page, so setting up takes longer and uses the AI service set up in Settings, which may charge for it.` }
+const TEMPLATE_MAKING = { ai: false, says: msg`The pages go into a ready-made layout without the AI, so it is quick and costs nothing extra.` }
+
+/** Per fact (genre, exercises, composition, diagrams), per answer. */
+export const FACT_GUIDE: Record<string, Record<string, OptionGuide>> = {
+  genre: {
+    story: {
+      fits: [msg`Characters or events go from a beginning to an end.`, msg`Most pages are part of one tale, even with a few colouring pages.`, msg`The pictures carry much of the meaning.`],
+      better: [
+        { when: msg`The pages are lessons with exercises.`, go: "textbook" },
+        { when: msg`People open it to look things up, like a guide or a report.`, go: "reference" },
+      ],
+      examples: msg`Picture books, folk tales, early readers, novels.`,
+    },
+    textbook: {
+      fits: [msg`Chapters or units teach a subject.`, msg`The learner is given questions, exercises or activities.`, msg`Headings like Lesson, Unit or Activity.`],
+      better: [
+        { when: msg`The only tasks are colouring or drawing inside a story.`, go: "story" },
+        { when: msg`There are no tasks, only information.`, go: "reference" },
+      ],
+      examples: msg`School textbooks, workbooks, lesson booklets, activity books.`,
+    },
+    reference: {
+      fits: [msg`People look things up more than they read it from start to end.`, msg`Facts, instructions or findings under headings.`, msg`No exercises for the reader.`],
+      better: [
+        { when: msg`It tells a tale.`, go: "story" },
+        { when: msg`It sets tasks for a learner.`, go: "textbook" },
+      ],
+      examples: msg`Reports, manuals, guides, articles, leaflets.`,
+    },
+  },
+  exercises: {
+    none: {
+      fits: [msg`The reader only reads.`, msg`The only activities are colouring or drawing.`, msg`Questions are asked in the text, but there is no place on the page to answer them.`],
+      better: [{ when: msg`Some pages have blanks, lines or boxes to write in.`, go: "some" }],
+      examples: msg`Story books, reports, most guides.`,
+    },
+    some: {
+      fits: [msg`A few pages have questions, blanks, matching or tick boxes.`, msg`Most pages are for reading.`],
+      better: [
+        { when: msg`Almost every page has a task.`, go: "many" },
+        { when: msg`The tasks are only colouring or drawing.`, go: "none" },
+      ],
+      examples: msg`A story with a quiz at the end, a guide with a short check.`,
+    },
+    many: {
+      fits: [msg`Most pages ask the reader to write, match, circle or tick.`, msg`There are lines or boxes to write answers in.`],
+      better: [{ when: msg`Only a few pages have tasks.`, go: "some" }],
+      examples: msg`Workbooks, exercise books, practice sheets.`,
+    },
+  },
+  composition: {
+    "text-in-art": {
+      fits: [msg`The words are printed on top of the picture.`, msg`They sit on a calm part of it: the sky, the sea or a coloured band.`, msg`Taking the words out would leave a gap in the picture.`],
+      better: [
+        { when: msg`The words have their own white area.`, go: "text-beside-art" },
+        { when: msg`The pages are mostly text.`, go: "text-mostly" },
+      ],
+      examples: msg`Picture books for young children, comic-like pages.`,
+    },
+    "text-beside-art": {
+      fits: [msg`The words sit above, below or next to the picture.`, msg`A page of text faces a page of picture.`, msg`The picture is whole without the words.`],
+      better: [
+        { when: msg`The words are printed on top of the picture.`, go: "text-in-art" },
+        { when: msg`Pictures are few or small.`, go: "text-mostly" },
+      ],
+      examples: msg`Illustrated story books, early readers.`,
+    },
+    "text-mostly": {
+      fits: [msg`Most of each page is text.`, msg`Pictures are few, small or only decoration.`],
+      better: [
+        { when: msg`Big pictures on most pages, with words on them.`, go: "text-in-art" },
+        { when: msg`Big pictures on most pages, with words next to them.`, go: "text-beside-art" },
+      ],
+      examples: msg`Novels, chapter books, reports, guides.`,
+    },
+  },
+  diagrams: {
+    none: {
+      fits: [msg`Only illustrations or photos.`, msg`A caption under a photo doesn't count.`],
+      better: [{ when: msg`There are maps, charts or drawings with labels.`, go: "some" }],
+      examples: msg`Story books, most novels.`,
+    },
+    some: {
+      fits: [msg`A few maps, charts, diagrams or labelled drawings.`, msg`Labels point at parts of a picture.`],
+      better: [
+        { when: msg`They are on many pages.`, go: "many" },
+        { when: msg`The pictures have no labels, only captions.`, go: "none" },
+      ],
+      examples: msg`A guide with a map, a report with a few charts.`,
+    },
+    many: {
+      fits: [msg`Maps, charts or labelled drawings on many pages.`, msg`Understanding the book depends on them.`],
+      better: [{ when: msg`Only a handful of pages have them.`, go: "some" }],
+      examples: msg`Science and geography books, atlases, manuals.`,
+    },
+  },
+}
+
+/** Per page layout (render strategy). */
+export const LAYOUT_GUIDE: Record<string, OptionGuide> = {
+  llm: {
+    fits: [msg`Most of each page is text, or pages mix headings, text, pictures and exercises.`, msg`Readers use phones as well as computers.`, msg`Reading well on any screen matters more than the printed look.`],
+    better: [{ when: msg`The page must look exactly as printed.`, go: "fixed_layout" }],
+    examples: msg`Chapter books and novels, school books, workbooks, guides.`,
+    making: AI_MAKING,
+  },
+  "llm-overlay": {
+    fits: [msg`The words sit on the pictures, and you can't select or copy the words in your PDF (it is a scan).`, msg`You want the printed look, with words that work like normal text.`],
+    better: [{ when: msg`You can select and copy the words in your PDF.`, go: "fixed_layout" }],
+    examples: msg`Scanned picture books.`,
+    making: AI_MAKING,
+  },
+  single_column: {
+    fits: [msg`It is mostly text, like an article or a report.`, msg`Long reading on small screens.`],
+    better: [{ when: msg`Big pictures carry the meaning.`, go: "two_column_story" }],
+    examples: msg`Reports, articles, novels, guides.`,
+    making: TEMPLATE_MAKING,
+  },
+  two_column_story: {
+    fits: [msg`Each page has a picture and some words next to it.`, msg`The picture and its words belong together.`],
+    better: [{ when: msg`The words are printed on the picture.`, go: "fixed_layout" }],
+    examples: msg`Illustrated story books, early readers.`,
+    making: TEMPLATE_MAKING,
+  },
+  fixed_layout: {
+    fits: [msg`The words are part of the picture.`, msg`The design of the printed page matters.`],
+    better: [{ when: msg`Readers will mostly use phones, where a whole page gets small.`, go: "llm" }],
+    examples: msg`Picture books, posters, designed pages.`,
+    making: { ai: false, says: msg`Each page is kept as it is printed, without the AI, so it is quick and costs nothing extra.` },
+  },
+}
+
+/**
+ * The page layouts at a glance, on the Look screen: one line on what you get (the card), the books
+ * it suits, and what happens on a phone.
+ */
+export const LAYOUT_AT_A_GLANCE: Record<string, { line: MessageDescriptor; best: MessageDescriptor; phone: MessageDescriptor; /** Its downside, said plainly. */ watch: MessageDescriptor }> = {
+  fixed_layout: {
+    line: msg`Your page, exactly as printed.`,
+    best: msg`Picture books where the words are part of the art.`,
+    phone: msg`The whole page shrinks to fit, so small text gets small.`,
+    watch: msg`Readers can't make the text bigger or let it flow to fit the screen, so small print stays hard to read.`,
+  },
+  two_column_story: {
+    line: msg`The picture on one side, its words on the other.`,
+    best: msg`Picture books with the words beside the art.`,
+    phone: msg`The words move under the picture.`,
+    watch: msg`Words drawn inside the picture stay part of the picture.`,
+  },
+  single_column: {
+    line: msg`One clean column of text, pictures in between.`,
+    best: msg`Articles, reports, guides and novels.`,
+    phone: msg`Reads like a web page; the text stays a comfortable size.`,
+    watch: msg`The printed design isn't kept: text and pictures are laid out again in one column.`,
+  },
+  llm: {
+    line: msg`The AI rebuilds each page to fit the screen.`,
+    best: msg`Books that are mostly words, and school books with many parts.`,
+    phone: msg`Everything rearranges into one easy column.`,
+    watch: msg`It takes longer, the AI service may charge for it, and the pages won't look like the printed book.`,
+  },
+  "llm-overlay": {
+    line: msg`The printed page stays, and the AI types its words again on top.`,
+    best: msg`Scanned picture books: PDFs where you can't select or copy the words.`,
+    phone: msg`The whole page shrinks to fit, like the printed page.`,
+    watch: msg`The AI retypes the words, so check them for mistakes. It's slower, and on a phone the page still shrinks.`,
+  },
+}
+
+/** Facing pages (Page Grouping): one PDF page per screen, or two facing pages joined. */
+export const GROUPING_GUIDE: Record<string, OptionGuide> = {
+  single: {
+    fits: [msg`Each page has its own picture, or only words.`, msg`Pictures stop at the edge of the page, before the fold.`],
+    better: [{ when: msg`A picture carries on over the fold onto the facing page.`, go: "spread" }],
+    examples: msg`School books, novels, guides, and picture books with one picture per page.`,
+  },
+  spread: {
+    fits: [msg`Pictures run across both facing pages, over the fold.`, msg`Each opening is made as one: a page of words faces a page of picture.`],
+    better: [{ when: msg`Most pages stand on their own, each with its own picture.`, go: "single" }],
+    examples: msg`Picture books with double-page pictures, comics, atlases.`,
+  },
+}
+
+/** What each way does to the book, said in full for the explanation dialog. */
+export const GROUPING_MORE: Record<string, MessageDescriptor> = {
+  single: msg`Every page of the PDF becomes its own screen. A picture drawn across two facing pages is cut in two, half on each screen.`,
+  spread: msg`Each pair of facing pages becomes one wide screen, the way the book lies open, so a picture drawn across both pages stays whole. Pages that don't belong together are joined too.`,
+}

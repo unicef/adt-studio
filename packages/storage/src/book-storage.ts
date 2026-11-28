@@ -6,7 +6,7 @@ import path from "node:path"
 import type sqlite from "node-sqlite3-wasm"
 import type { ExtractedPage, ExtractedImage } from "@adt/pdf"
 import type { LlmLogEntry } from "@adt/llm"
-import { TranslatedImageAsset, imageFileExtension, parseBookLabel, CATALOG_OUTPUT_NODES, STAGE_OUTPUT_NODES, PIPELINE } from "@adt/types"
+import { TranslatedImageAsset, imageFileExtension, parseBookLabel, CATALOG_OUTPUT_NODES, ELEMENT_AUDIO_NODE, STAGE_OUTPUT_NODES, PIPELINE } from "@adt/types"
 import type { Storage, PageData, ImageData, NodeDataRow, CroppedImageInput, SegmentedImageInput, SignLanguageVideoData, TranslatedImageInput } from "./storage.js"
 import { assertRecoveryCopyReady, openBookDb } from "./db.js"
 import { readCurrentNodeRow } from "./node-current.js"
@@ -14,6 +14,7 @@ import { historyBookId, insertNodeVersion, checkpointBeforeRetirement, readIdent
 import { parseHistoricalPayload } from "./history-integrity.js"
 import { assertHistoryEvidence } from "./history-schema.js"
 import { invalidateSectioningLifecycle } from "./sectioning-transition.js"
+import { setupNoteImageHashes } from "./setup-notes.js"
 
 const storageDirectories = new WeakMap<Storage, string>()
 
@@ -97,12 +98,19 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     clearExtractedData(): void {
       transaction(() => checkpointBeforeRetirement(db))
       clearImageFiles(paths.imagesDir)
-      clearImageFiles(paths.debugImagesDir)
+      // The assistant's page images stay with its LLM log rows, which Extract keeps too.
+      const setupImages = setupNoteImageHashes(db)
+      clearImageFiles(paths.debugImagesDir, (file) => setupImages.has(path.basename(file, ".png")))
       clearExtractedRows(db)
     },
 
     clearNodesByType(nodes: string[], itemId?: string): void {
       if (nodes.length === 0) return
+      // Authored content has no catalog home: never clear it through any list,
+      // including a named list assembled elsewhere (SPEC-0014, ADR-028).
+      if (nodes.includes(ELEMENT_AUDIO_NODE)) {
+        throw new Error(`${ELEMENT_AUDIO_NODE} is authored content and cannot be cleared`)
+      }
       if (STAGE_OUTPUT_NODES.sectioning.some((node) => nodes.includes(node))) {
         invalidateSectioningLifecycle(paths.bookDir, PIPELINE.find((stage) => stage.name === "sectioning")!.steps.map((step) => step.name))
       }
@@ -676,9 +684,10 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
   return storage
 }
 
-function clearImageFiles(imagesDir: string): void {
+function clearImageFiles(imagesDir: string, keep?: (file: string) => boolean): void {
   const imageFiles = fs.readdirSync(imagesDir)
   for (const file of imageFiles) {
+    if (keep?.(file)) continue
     fs.rmSync(path.join(imagesDir, file), {
       recursive: true,
       force: true,

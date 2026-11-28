@@ -7,7 +7,7 @@ import type { PackagingWarning } from "@adt/types"
 import { createBookStorage, withBookWriter, recoverSectioningTransition, resolveBookPaths, isBookWriterArtifact } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import { readRetainedPackageOwnership } from "./retained-package-reader.js"
-import { publishedAdtDirectory, requiredPartRange, resolveReadingOrder, assertDerivedPackageFilesAvailable, SectioningSafetyError, assertPackageFilesAvailable, packageFilesAvailable, packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook, PACKAGE_OWNERS_FILE } from "@adt/pipeline"
+import { publishedAdtDirectory, requiredPartRange, resolveReadingOrder, assertDerivedPackageFilesAvailable, SectioningSafetyError, assertPackageFilesAvailable, packageFilesAvailable, packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook, PACKAGE_OWNERS_FILE, readerSettingsFromConfig } from "@adt/pipeline"
 import { createZipStream, type ZipStreamOptions } from "./zip-util.js"
 import { readPartInfo } from "./book-service.js"
 import { ensureProjectIdentity } from "./project-identity.js"
@@ -159,22 +159,7 @@ async function prepareAdmittedExport(
       ? normalizedRequested.filter((lang) => outputLanguages.includes(lang))
       : outputLanguages
 
-    const yamlDefaultSettings = config.default_settings
-      ? {
-          ...(config.default_settings.dock_layout
-            ? { dockLayout: config.default_settings.dock_layout }
-            : {}),
-          ...(config.default_settings.theme !== undefined
-            ? { theme: config.default_settings.theme }
-            : {}),
-          ...(config.default_settings.icon_size !== undefined
-            ? { iconSize: config.default_settings.icon_size }
-            : {}),
-          ...(config.default_settings.reduce_motion !== undefined
-            ? { reduceMotion: config.default_settings.reduce_motion }
-            : {}),
-        }
-      : undefined
+    const yamlDefaultSettings = readerSettingsFromConfig(config).defaultSettings
 
     // Preview-captured values (from request body) override YAML per top-level
     // key. dockLayout merges one level deep — fields the override didn't touch

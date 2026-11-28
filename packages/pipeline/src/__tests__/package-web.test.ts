@@ -2008,6 +2008,162 @@ describe("packageAdtWeb", () => {
     expect(timecodes).toEqual({})
   })
 
+  it("keeps legacy _audio timecodes and withholds authored ones through packageAdtWeb", async () => {
+    const bookDir = path.join(tmpDir, "timecode-book")
+    const webAssetsDir = path.join(tmpDir, "timecode-assets-web")
+    const audioDir = path.join(bookDir, "audio", "en")
+    fs.mkdirSync(bookDir, { recursive: true })
+    fs.mkdirSync(audioDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+    fs.writeFileSync(path.join(audioDir, "pg001_im001_audio.mp3"), "authored")
+    fs.writeFileSync(path.join(audioDir, "pg003_im007_audio.mp3"), "legacy")
+
+    const ready = (id: string, text: string) => ({
+      id,
+      displayText: text,
+      speechText: text,
+      changed: false,
+      transformations: [],
+      status: "ready",
+      generation: {
+        mode: "unchanged",
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        enabledTransformations: [],
+        sourceTextHash: "source",
+        contextHash: "context",
+      },
+    })
+
+    const storage = createMockStorage(
+      [
+        { pageId: "pg001", pageNumber: 1, text: "Page one" },
+        { pageId: "pg003", pageNumber: 3, text: "Page three" },
+      ],
+      {
+        "web-rendering": {
+          pg001: {
+            sections: [{
+              sectionIndex: 0,
+              sectionType: "content",
+              reasoning: "ok",
+              html: '<img data-id="pg001_im001" alt="Mago" />',
+            }],
+          },
+          pg003: {
+            sections: [{
+              sectionIndex: 0,
+              sectionType: "content",
+              reasoning: "ok",
+              html: '<p data-id="pg003_im007_audio">Legacy caption</p>',
+            }],
+          },
+        },
+        "page-sectioning": {
+          pg001: {
+            reasoning: "ok",
+            sections: [{
+              sectionId: "pg001_sec001",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: false,
+            }],
+          },
+          pg003: {
+            reasoning: "ok",
+            sections: [{
+              sectionId: "pg003_sec001",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 3,
+              isPruned: false,
+            }],
+          },
+        },
+        "element-audio": {
+          pg001: {
+            entries: [{ nodeId: "pg001_im001", text: "Mago" }],
+            generatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        },
+        "core-tts-catalog": {
+          en: {
+            language: "en",
+            generatedAt: "2026-01-01T00:00:00.000Z",
+            entries: [
+              ready("pg001_im001_audio", "Mago"),
+              ready("pg003_im007_audio", "Legacy caption"),
+            ],
+          },
+        },
+        tts: {
+          en: {
+            entries: [
+              {
+                textId: "pg001_im001_audio",
+                language: "en",
+                fileName: "pg001_im001_audio.mp3",
+                voice: "alloy",
+                model: "gpt-4o-mini-tts",
+                cached: false,
+              },
+              {
+                textId: "pg003_im007_audio",
+                language: "en",
+                fileName: "pg003_im007_audio.mp3",
+                voice: "alloy",
+                model: "gpt-4o-mini-tts",
+                cached: false,
+              },
+            ],
+            generatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        },
+        "tts-timestamps": {
+          en: {
+            entries: {
+              pg001_im001_audio: {
+                textId: "pg001_im001_audio",
+                language: "en",
+                duration: 0.5,
+                words: [{ word: "Mago", start: 0, end: 0.5 }],
+              },
+              pg003_im007_audio: {
+                textId: "pg003_im007_audio",
+                language: "en",
+                duration: 0.5,
+                words: [{ word: "Legacy", start: 0, end: 0.5 }],
+              },
+            },
+            generatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        },
+      },
+    )
+
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+      speechConfig: { word_highlighting: true },
+    })
+
+    const timecodes = JSON.parse(
+      fs.readFileSync(
+        path.join(bookDir, "adt", "content", "i18n", "en", "timecode", "timecode_output.json"),
+        "utf-8",
+      ),
+    ) as Record<string, unknown>
+    expect(Object.keys(timecodes)).toEqual(["pg003_im007_audio"])
+  })
+
   it("sets activities true in config.json when a section has an activity type", async () => {
     const bookDir = path.join(tmpDir, "book")
     const webAssetsDir = path.join(tmpDir, "assets-web")

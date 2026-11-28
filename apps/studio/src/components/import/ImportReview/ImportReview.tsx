@@ -75,7 +75,7 @@ export function ImportReview({
 
   let columns
   if (model.mode === "repair" && adt?.agentGuide && model.status) {
-    columns = <RepairView preview={adt} status={model.status} issueGroups={model.issueGroups} />
+    columns = <RepairView preview={adt} status={model.status} activityNotice={model.activityNotice} issueGroups={model.issueGroups} />
   } else {
     const attention = model.mode === "activity" || model.mode === "blocked"
     columns = (

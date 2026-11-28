@@ -1082,6 +1082,21 @@ and retains full validation on book access and guarded Preview/export routes.
 Recovered copies retain project/history identity as continuations; project ZIPs
 retain audit and quarantined lock evidence, including recorded host/PID fields.
 
+The November 23 Extract re-run amendment (#1214, proposed in #1215) adds one
+deletion exception to entity versioning. Retry and Replace of an extraction
+delete Extract's own nodes, their history and Extract's image files, and that
+history cannot be restored. It applies only to an Extract-only book: one that
+holds no Sectioning or later output, current or historical, no downstream attempt
+record, media, part ledger or imported source. The request must name the
+extraction and carry a content token, so an edit or upload made after the
+confirmation was shown refuses it. Studio confirms Replace with a dialog that
+names what is discarded and that it cannot be restored. A part keeps the
+pipeline identity its coordinator merges against, or Retry is refused before
+anything is discarded. The alternative before the amendment, a new book from the
+same PDF, kept none of that history either. Resume deletes nothing. Every book
+with downstream work keeps the refusal above; re-extraction under downstream
+work remains with SPEC-0010.
+
 ### Alternatives Considered
 
 | Approach | Why not |

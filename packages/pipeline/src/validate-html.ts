@@ -1,3 +1,4 @@
+import { serializeHtml } from "./html-serialize.js"
 import { parseDocument, DomUtils } from "htmlparser2"
 import { normalizeSectionSemantics } from "./html-semantics.js"
 import { validateActivityStructure } from "./validate-activity-structure.js"
@@ -284,7 +285,7 @@ export function validateSectionHtml(
   return {
     valid: errors.length === 0,
     errors,
-    sectionHtml: DomUtils.getOuterHTML(outputNode),
+    sectionHtml: serializeHtml(outputNode),
   }
 }
 

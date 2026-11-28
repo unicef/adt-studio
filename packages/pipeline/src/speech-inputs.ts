@@ -5,6 +5,7 @@ import path from "node:path"
 import type { Storage } from "@adt/storage"
 import type { AppConfig } from "@adt/types"
 import { getBaseLanguage, normalizeLocale } from "./language-context.js"
+import { collectElementAudioTextIds } from "./element-audio-ids.js"
 import { inputSignature } from "./output-freshness.js"
 import {
   buildCoreTtsPreparationConfig, buildCoreTtsSourceContext, getCoreTtsCatalog,
@@ -25,6 +26,7 @@ export function reconcileSpeechInputs(options: {
   persist?: boolean
 }) {
   const { storage } = options
+  const authoredElementAudioIds = collectElementAudioTextIds(storage)
   const sourceLanguage = normalizeLocale(options.sourceLanguage)
   const sourceEntries = buildOutputSources(storage, options.config).entries
   const config = { ...buildCoreTtsPreparationConfig(options.config), promptSignature: options.promptSignature }
@@ -36,6 +38,7 @@ export function reconcileSpeechInputs(options: {
   const sourceCatalog = resolveCoreTtsSpeechCatalog({
     entries: sourceEntries, language: sourceLanguage, config,
     profile: resolveCoreTtsProfile(sourceLanguage, options.profiles), previous: retainedCoreTts(storage, sourceLanguage, sourceEntries.map((entry) => entry.id)),
+    authoredElementAudioIds,
   })
   const sourceContext = buildCoreTtsSourceContext(sourceEntries, sourceCatalog)
   return options.languages.map((requested) => {
@@ -43,7 +46,7 @@ export function reconcileSpeechInputs(options: {
     const display = getBaseLanguage(language) === getBaseLanguage(sourceLanguage) ? sourceEntries : translatedDisplayEntries(storage, language, sourceEntries)
     const previous = retainedCoreTts(storage, language, display.map((entry) => entry.id))
     const resolved = language === sourceLanguage ? sourceCatalog : resolveCoreTtsSpeechCatalog({
-      entries: display, language, config, profile: resolveCoreTtsProfile(language, options.profiles), previous, sourceContext,
+      entries: display, language, config, profile: resolveCoreTtsProfile(language, options.profiles), previous, sourceContext, authoredElementAudioIds,
     })
     if (options.persist !== false && inputSignature(getCoreTtsCatalog(storage, language)?.entries) !== inputSignature(resolved.entries)) {
       storage.putNodeData("core-tts-catalog", language, resolved)

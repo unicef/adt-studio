@@ -25,10 +25,12 @@ const GUIDE_APPENDIX = "\n\n<current_adt_agent_guide>"
 export function RepairView({
   preview,
   status,
+  activityNotice,
   issueGroups,
 }: {
   preview: AdtBundleImportPreview
   status: Status
+  activityNotice: Status | null
   issueGroups: IssueGroup[]
 }) {
   const { t } = useLingui()
@@ -60,6 +62,7 @@ export function RepairView({
             </p>
           ) : null}
         </StatusRow>
+        {activityNotice ? <StatusRow status={activityNotice} /> : null}
         <Panel title={<Trans>To fix</Trans>} className="flex-1">
           <IssueGroupList groups={issueGroups} />
         </Panel>

@@ -71,6 +71,9 @@ export interface ReadAdtBundle {
   pages: Array<{ section_id: string; href: string; page_number?: number }>
   pageHtml: Record<string, string>
   runtimeFeatures: Record<string, boolean>
+  /** assets/config.json as exported, for the values only the seed needs, such
+   * as the reader's default and locked settings (#1198). */
+  runtimeConfig: Record<string, unknown> | null
   /** Declared presentation of the exported publication. `fixedLayout` books
    * render from a positioned `#content` box rather than reflowable sections, so
    * the importer has to project them through the fixed-layout path. */
@@ -83,6 +86,9 @@ export interface ReadAdtBundle {
     agentsMd: string | null
     claudeMd: string | null
   }
+  /** assets/fonts.css. Exports made before custom fonts kept the book font
+   * there instead of in the pages (#1158). */
+  fontsCss: string | null
   /** Canonical raster assets included only for the pre-import visual review. */
   previewImages?: Record<string, { bytes: Uint8Array; mimeType: string }>
 }
@@ -91,6 +97,7 @@ const MANIFEST_PATH = /^(?:[^/]+\/)?manifest\.json$/
 const TOC_PATH = /^(?:[^/]+\/)?content\/toc\.json$/
 const I18N_PATH = /^(?:[^/]+\/)?content\/i18n\/[^/]+\/(?:glossary|texts)\.json$/
 const PAGE_HTML_PATH = /^(?:[^/]+\/)?[^/]+\.html$/
+const FONTS_CSS_PATH = /^(?:[^/]+\/)?assets\/fonts\.css$/
 const RUNTIME_CONFIG_PATH = /^(?:[^/]+\/)?assets\/config\.json$/
 const PAGES_PATH = /^(?:[^/]+\/)?content\/pages\.json$/
 const COVER_PATH = /^(?:[^/]+\/)?cover\.(?:png|jpe?g|webp)$/i
@@ -155,6 +162,7 @@ function selectedLimit(name: string, includePreviewImages: boolean): number | nu
   if (RUNTIME_CONFIG_PATH.test(name) || PAGES_PATH.test(name)) return ADT_BUNDLE_READER_LIMITS.jsonBytes
   if (COVER_PATH.test(name)) return 10 * 1024 * 1024
   if (AGENT_GUIDE_PATH.test(name)) return 512 * 1024
+  if (FONTS_CSS_PATH.test(name)) return 512 * 1024
   if (PAGE_HTML_PATH.test(name)) return ADT_BUNDLE_READER_LIMITS.htmlBytes
   return null
 }
@@ -326,6 +334,12 @@ function extractSelected(
         }
         const limit = selectedLimit(info.name, includePreviewImages)
         if (limit === null) return false
+        // fonts.css only hints at the book font (#1158). Some older exports
+        // embedded the fonts there as base64 (about 6.6 MB): skip it rather
+        // than fail the import, and the font stays automatic.
+        if (FONTS_CSS_PATH.test(info.name) && !(Number.isSafeInteger(info.originalSize) && info.originalSize >= 0 && info.originalSize <= limit)) {
+          return false
+        }
         if (!Number.isSafeInteger(info.originalSize) || info.originalSize < 0 || info.originalSize > limit) {
           throw new AdtBundleReadError(`ADT bundle file exceeds its size limit: ${info.name}`)
         }
@@ -497,6 +511,7 @@ export function readAdtBundle(
     pages,
     pageHtml,
     runtimeFeatures: runtimeConfig?.features ?? {},
+    runtimeConfig,
     presentation: { fixedLayout: runtimeConfig?.fixedLayout === true },
     toc,
     glossaries,
@@ -510,6 +525,9 @@ export function readAdtBundle(
       agentsMd: readAgentGuide("agents.md"),
       claudeMd: readAgentGuide("claude.md"),
     },
+    fontsCss: files[`${root}assets/fonts.css`]
+      ? decodeUtf8(`${root}assets/fonts.css`, files[`${root}assets/fonts.css`])
+      : null,
     ...(options.includePreviewImages ? { previewImages } : {}),
   }
 }

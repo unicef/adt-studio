@@ -379,6 +379,10 @@ export const AdtBundleImportPreview = z.object({
   translationLanguageCount: z.number(),
   contentChanged: z.boolean(),
   exportComparisonStatus: z.enum(["unchanged", "changed", "unavailable"]),
+  /** The font the imported reflowable book will use: the one the export
+   * declared (`detected`), or the default when it declared none. Absent for a
+   * fixed-layout book, whose fonts are set per element. */
+  bookFont: z.object({ family: z.string(), detected: z.boolean() }).optional(),
   activityReview: AdtImportedActivityReview,
   compatibility: AdtImportCompatibility,
   /** Per-feature outcome of this import, keyed by pipeline stage slug. Features

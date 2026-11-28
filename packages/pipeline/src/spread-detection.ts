@@ -28,6 +28,12 @@ export interface SpreadEdgeSample {
   /** Length of the page's extracted text. Text-heavy pages aren't spread art —
    *  two facing text pages share a baseline grid and would otherwise correlate. */
   textLength: number
+  /** Characters of text that reach the page's left / right edge, where the edge
+   *  strip is sampled. When both facing edges report it, only text at the seam
+   *  rules a pair out: a caption or a paragraph inside the margins can't shape
+   *  the strip, and picture books often carry text on every spread. */
+  textNearLeftEdge?: number
+  textNearRightEdge?: number
 }
 
 export interface SpreadSuggestion {
@@ -121,7 +127,8 @@ export function detectSpreads(
     const left = byNumber.get(lead)
     const right = byNumber.get(lead + 1)
     if (!left || !right) continue
-    if (left.textLength > o.maxTextLength || right.textLength > o.maxTextLength) continue
+    const atSeam = left.textNearRightEdge !== undefined && right.textNearLeftEdge !== undefined
+    if (atSeam ? left.textNearRightEdge! > 0 || right.textNearLeftEdge! > 0 : left.textLength > o.maxTextLength || right.textLength > o.maxTextLength) continue
 
     const a = left.rightEdge
     const b = right.leftEdge

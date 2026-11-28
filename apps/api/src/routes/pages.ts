@@ -68,8 +68,10 @@ import {
   collectSpentSectionIds,
   collectSpentContentIds,
   sourceTextIds,
+  sourceContentIds,
   findIntroducedBlankContentId,
   findIntroducedDerivedIdCollision,
+  findIntroducedImageAudioCollision,
   retireSectionIds,
   SectionIdExhaustedError,
 } from "@adt/pipeline"
@@ -665,7 +667,7 @@ function saveStoryboardNode(
   node: "page-sectioning" | "web-rendering",
   itemId: string,
   data: unknown,
-  { renderingInSync = false, renderingChanged = false, movedIds }: { renderingInSync?: boolean; renderingChanged?: boolean; movedIds?: ReadonlySet<string> } = {}
+  { renderingInSync = false, renderingChanged = false, movedIds, movedContentIds }: { renderingInSync?: boolean; renderingChanged?: boolean; movedIds?: ReadonlySet<string>; movedContentIds?: ReadonlySet<string> } = {}
 ): number {
   if (node === "page-sectioning") assertNoActivePipelineRun(storage)
   return storage.transaction(() => {
@@ -675,6 +677,13 @@ function saveStoryboardNode(
       storage.getLatestNodeData("page-sectioning", itemId)?.data,
       storage.getLatestNodeData("web-rendering", itemId)?.data,
     ])
+    const localContentIds = sourceContentIds([
+      storage.getLatestNodeData("page-sectioning", itemId)?.data,
+      storage.getLatestNodeData("web-rendering", itemId)?.data,
+    ])
+    // Extracted images are pre-existing even before a section references them:
+    // a legacy id ending `_audio` must not be rejected as newly introduced.
+    const extractedImageIds = storage.getPageImages(itemId).map((image) => image.imageId)
     const parsed = node === "web-rendering" ? WebRenderingOutput.safeParse(data) : null
     const priorSectioning = node === "page-sectioning" ? PageSectioningOutput.safeParse(storage.getLatestNodeData(node, itemId)?.data) : null
     const saved = parsed?.success ? {
@@ -700,10 +709,13 @@ function saveStoryboardNode(
       if (before.success) retireSectionIds(storage, before.data.sections.filter((section) => !active.has(section.sectionId)).map((section) => section.sectionId))
     }
     const proposedIds = sourceTextIds(saved)
+    const proposedContentIds = sourceContentIds(saved)
     const blankId = findIntroducedBlankContentId(proposedIds, [...localIds, ...(movedIds ?? [])])
     if (blankId !== undefined) throw new HTTPException(409, { message: "New content requires a nonblank data ID. Use distinct unused IDs." })
     const derivedCollision = findIntroducedDerivedIdCollision(proposedIds, [...localIds, ...(movedIds ?? [])])
     if (derivedCollision) throw new HTTPException(409, { message: `New content conflicts with derived data ID: ${derivedCollision}. Use distinct unused IDs.` })
+    const imageAudioCollision = findIntroducedImageAudioCollision(proposedContentIds, [...localContentIds, ...extractedImageIds, ...(movedContentIds ?? [])])
+    if (imageAudioCollision) throw new HTTPException(409, { message: `New content conflicts with the reserved element-audio ID: ${imageAudioCollision}. Use distinct unused IDs.` })
     const introducedIds = [...proposedIds].filter(id => !localIds.has(id) && !movedIds?.has(id))
     // Cosmetic and same-ID edits need no book-history scan. Read reservations
     // before writing, and only when this save actually introduces identities.
@@ -2189,6 +2201,10 @@ export function createPageRoutes(
             credentials,
           })
 
+          if (result.status === "unsupported") {
+            return { ...result, sectionIndex: idx }
+          }
+
           // Save the edited HTML as a new rendering version
           const storage = createBookStorage(safeLabel, booksDir)
           try {
@@ -2209,12 +2225,11 @@ export function createPageRoutes(
               const renderingChanged = inputSignature(snapshot.rendering.sections.map(({ html, activityAnswers }) => ({ html, activityAnswers }))) !== inputSignature(updated.sections.map(({ html, activityAnswers }) => ({ html, activityAnswers })))
               if (sectioning) saveStoryboardNode(storage, "page-sectioning", pageId, sectioning.data, { renderingInSync: true, renderingChanged })
               saveStoryboardNode(storage, "web-rendering", pageId, updated)
-              return result
+              return { ...result, sectionIndex: idx }
             })
           } finally {
             storage.close()
           }
-
         },
         { pageId, url: `/books/${safeLabel}/storyboard/${pageId}` }
       )
@@ -2270,6 +2285,7 @@ export function createPageRoutes(
           instruction: string
           attempts: Array<{ reasoning: string; timestamp: string; cached: boolean }>
           verify?: { applied: boolean; reason: string }
+          unsupported?: { reason: string }
         }
         const turns = new Map<string, Turn>()
 
@@ -2282,7 +2298,8 @@ export function createPageRoutes(
           }
           if (!data.correlationId) continue
 
-          const assistantText = data.messages
+          const assistantText = [...data.messages]
+            .reverse()
             .find((m) => m.role === "assistant")
             ?.content.find((p) => p.type === "text")?.text
           if (!assistantText) continue
@@ -2319,6 +2336,9 @@ export function createPageRoutes(
               timestamp: row.timestamp,
               cached: Boolean(data.cacheHit),
             })
+            if (parsed.feasible === false) {
+              turn.unsupported = { reason: String(parsed.unsupported_reason ?? "") }
+            }
           } else if (data.promptName === "html_edit_verify") {
             const turn = turns.get(data.correlationId)
             if (turn) {
@@ -2950,7 +2970,7 @@ export function createPageRoutes(
           "page-sectioning",
           targetPageId,
           { ...tgtSectioning, sections: newTgtSections },
-          { movedIds: sourceTextIds(movedSection) }
+          { movedIds: sourceTextIds(movedSection), movedContentIds: sourceContentIds(movedSection) }
         )
 
         // Clear rendering for both pages (merged content invalidates existing renders)

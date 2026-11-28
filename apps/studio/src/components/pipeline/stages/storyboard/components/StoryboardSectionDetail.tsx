@@ -110,6 +110,8 @@ import { AddImageDialog } from "./AddImageDialog"
 import { ReplaceFromBookDialog } from "./ReplaceFromBookDialog"
 import { SegmentPreviewDialog, type SegmentRegion } from "./SegmentPreviewDialog"
 import { AiEditHistoryDrawer } from "./AiEditHistoryDrawer"
+import { AiEditNotice } from "./AiEditNotice"
+import { useAiEditOutcomes } from "./use-ai-edit-outcomes"
 import { LayoutMirrorDialog } from "./LayoutMirrorDialog"
 import { GenerateActivityDialog } from "./GenerateActivityDialog"
 import { Input } from "@/components/ui/input"
@@ -770,6 +772,18 @@ export function StoryboardSectionDetail({
   const [showAiHistory, setShowAiHistory] = useState(false)
   const [layoutMirrorOpen, setLayoutMirrorOpen] = useState(false)
   const [generateActivityOpen, setGenerateActivityOpen] = useState(false)
+  const {
+    notice: aiEditNotice,
+    dismissNotice: dismissAiEditNotice,
+    trackSubmission: trackAiEditSubmission,
+    reportResult: reportAiEditResult,
+  } = useAiEditOutcomes({
+    tasks: bookTasks,
+    pageId,
+    sectionIndex,
+    onFailed: setAiError,
+    setInstruction: setAiInstruction,
+  })
 
   // Derive AI editing state from active tasks
   const aiEditing = useMemo(
@@ -2351,9 +2365,11 @@ export function StoryboardSectionDetail({
     if (restoringRef.current) return
     if (!aiInstruction.trim() || !hasStructuredTextProvider || hasActiveTask || storyboardRunning || savingRef.current || !draftIsSaved()) return
     setAiError(null)
+    dismissAiEditNotice()
 
     const currentHtml = getRenderedSectionByIndex(page.rendering, sectionIndex)?.html
     const instruction = aiInstruction.trim()
+    const target = { pageId, sectionIndex, instruction }
     setAiInstruction("")
 
     api.aiEditSection(
@@ -2365,7 +2381,13 @@ export function StoryboardSectionDetail({
       currentHtml,
       sectioningBaseVersion.current ?? page.versions.sectioning ?? 0,
       renderingBaseVersion.current ?? page.versions.rendering ?? 0,
-    ).catch((err) => {
+    ).then((response) => {
+      if (response.status === "submitted") {
+        trackAiEditSubmission(response.taskId, target)
+      } else {
+        reportAiEditResult(response, target)
+      }
+    }).catch((err) => {
       if (latestDraftRef.current.scope !== draftScope) return
       setAiInstruction(value => value || instruction)
       setAiError(err instanceof Error ? err.message : t`AI edit failed`)
@@ -2870,6 +2892,10 @@ export function StoryboardSectionDetail({
         <div className="px-4 py-1.5 border-b shrink-0 text-xs bg-muted/30">
           <p className="text-[10px] text-destructive">{aiError}</p>
         </div>
+      )}
+
+      {aiEditNotice && (
+        <AiEditNotice notice={aiEditNotice} onDismiss={dismissAiEditNotice} />
       )}
 
       {/* Agent completion banner */}

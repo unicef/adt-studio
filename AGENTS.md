@@ -14,7 +14,7 @@ ADT Studio is a desktop-first application for automated book production — extr
 ## 6 Core Principles (Non-Negotiable)
 
 1. **Book-Level Storage** — All book data lives in one directory (zippable, shareable). Never store book data elsewhere.
-2. **Entity-Level Versioning** — NEVER overwrite entities. Always create new versions. Users must be able to roll back. The sole physical-recovery exception is SPEC-0003's explicitly confirmed, verified exact-byte restoration of a damaged historical tuple: uninterrupted tuple evidence, a transaction-scoped permit and an immutable damage audit are required; a selected repaired row also receives a new selected version. This does not authorize arbitrary historical editing or regeneration in place.
+2. **Entity-Level Versioning** — NEVER overwrite entities. Always create new versions. Users must be able to roll back. The sole physical-recovery exception is SPEC-0003's explicitly confirmed, verified exact-byte restoration of a damaged historical tuple: uninterrupted tuple evidence, a transaction-scoped permit and an immutable damage audit are required; a selected repaired row also receives a new selected version. This does not authorize arbitrary historical editing or regeneration in place. SPEC-0003's Extract re-run amendment adds one deletion exception: a confirmed, content-bound Retry or Replace on an Extract-only book (no Sectioning or later output, current or historical) deletes Extract's own node history, which cannot be restored; nothing another stage owns is ever deleted this way.
 3. **LLM-Level Caching** — Cache at the LLM call level. Hash ordered inputs for cache keys. Reruns are fast if params unchanged.
 4. **Maximum Transparency** — All LLM calls, prompts, and responses must be user-inspectable. No black boxes.
 5. **Minimize Dependencies** — Avoid new deps. Flat files > database when sufficient. In-memory queues > external services.
@@ -123,6 +123,7 @@ docker run -p 8080:80 -v ./books:/app/books adt-studio
 | `PORT` | `3001` | Internal only — nginx proxies to this |
 | `ADT_SCREENSHOT_CONCURRENCY` | `min(8, max(2, cores - 1))` | Max simultaneous screenshot captures per API process (see [docs/ARCHITECTURE.md#screenshot-capture](docs/ARCHITECTURE.md#screenshot-capture)) |
 | `ADT_SCREENSHOT_DEBUG` | unset | Set to any value to log per-capture queue wait, capture duration, and semaphore occupancy |
+| `ADT_SETUP_RECOMMENDER_MODEL` | unset (the config's `default_model`, else the built-in default) | Model for Add Book's auto mode (`POST /api/setup-recommendation`, issue #333). Its AI answers are cached in `<BOOKS_DIR>/.cache/setup-recommender`, shared by every PDF; entries older than 30 days are removed |
 
 **`TEMPLATES_DIR` trap:** The Dockerfile and `docker-compose.yml` set `TEMPLATES_DIR=/app/templates` but the application **never reads this env var**. Templates dir is always derived from `path.join(path.dirname(PROMPTS_DIR), "templates")`. To use a custom templates directory, mount it as a sibling of `prompts/` — i.e. override `PROMPTS_DIR` and keep `templates/` next to it.
 

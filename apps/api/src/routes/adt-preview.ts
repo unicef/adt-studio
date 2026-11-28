@@ -1,6 +1,6 @@
 import { catalogOutputs } from "../services/catalog-output-service.js"
 import { bookStateKey } from "../services/book-state-memo.js"
-import { partScopedPages, requiredPartRange, buildTextCatalogSnapshot, reconcileSpeechInputs, loadCoreTtsProfiles, scopeLegacyActivityIds, activeEasyRead, buildEasyReadSourceBlocks } from "@adt/pipeline"
+import { partScopedPages, requiredPartRange, buildTextCatalogSnapshot, reconcileSpeechInputs, loadCoreTtsProfiles, scopeLegacyActivityIds, activeEasyRead, buildEasyReadSourceBlocks, collectElementAudioTextIds } from "@adt/pipeline"
 import fs from "node:fs"
 import path from "node:path"
 import { createHash } from "node:crypto"
@@ -10,6 +10,9 @@ import { HTTPException } from "hono/http-exception"
 import {
   isHeadingRole,
   isTtsExcluded,
+  EMPTY_AUTHORED_ELEMENT_AUDIO_IDS,
+  isAuthoredElementAudioId,
+  type AuthoredElementAudioIds,
   parseBookLabel,
   parseAnySectionId,
   resolveEntryVoiceSlot,
@@ -74,6 +77,7 @@ import {
   getCoreTtsCatalog,
   getReadyCoreTtsEntries,
   resolveNarratorLabel,
+  readerSettingsFromConfig,
 } from "@adt/pipeline"
 import { getImportedAdtPresentationAssets } from "../services/adt-import/presentation.js"
 
@@ -300,6 +304,7 @@ function buildRuntimeTimecodeMap(
   speechConfig?: SpeechConfig,
   readySpeechIds?: ReadonlySet<string>,
   voiceSlot: "primary" | "secondary" = "primary",
+  elementAudioTextIds: AuthoredElementAudioIds = EMPTY_AUTHORED_ELEMENT_AUDIO_IDS,
 ): Record<string, {
   timecodes: [null, {
     word_timestamps: Array<{ text: string; start: number; end: number }>
@@ -314,9 +319,10 @@ function buildRuntimeTimecodeMap(
   for (const entry of Object.values(timestamps?.entries ?? {})) {
     if (resolveEntryVoiceSlot(entry) !== voiceSlot) continue
     const textId = entry.textId
+    if (isAuthoredElementAudioId(textId, elementAudioTextIds)) continue
     if (entry.words.length === 0) continue
     if (readySpeechIds && !readySpeechIds.has(textId)) continue
-    if (isTtsExcluded(textId, speechConfig)) continue
+    if (isTtsExcluded(textId, speechConfig, elementAudioTextIds)) continue
     map[textId] = {
       timecodes: [
         null,
@@ -613,7 +619,12 @@ export function createAdtPreviewRoutes(
     })
     setNoStoreHeaders(c)
     c.header("Content-Type", "application/json")
-    return c.body(JSON.stringify(previewConfig))
+    // Start the preview from the book's reader defaults: it reports its
+    // settings back to Studio, and the export lets those override the book's
+    // own (#1198). Locks stay out, so every setting can still be changed here;
+    // the export writes them.
+    const { defaultSettings } = readerSettingsFromConfig(bookConfig)
+    return c.body(JSON.stringify({ ...previewConfig, ...(defaultSettings ? { defaultSettings } : {}) }))
   })
 
   // Custom styles from an imported ADT are loaded into the Storyboard iframe
@@ -912,6 +923,7 @@ export function createAdtPreviewRoutes(
     const lang = safePreviewLanguage(c.req.param("lang"))
     const audioMap = withStorage(c.req.param("label"), (storage, safeLabel) => {
       const speechConfig = loadBookConfig(safeLabel, booksDir, configPath).speech
+      const authoredElementAudioIds = collectElementAudioTextIds(storage)
       const legacyLang = lang.replace("-", "_")
       const ttsRow =
         storage.getLatestNodeData("tts", lang) ??
@@ -922,7 +934,7 @@ export function createAdtPreviewRoutes(
       if (ttsData?.entries) {
         for (const entry of ttsData.entries) {
           if (!readySpeechIds.has(entry.textId)) continue
-          if (isTtsExcluded(entry.textId, speechConfig)) continue
+          if (isTtsExcluded(entry.textId, speechConfig, authoredElementAudioIds)) continue
           if (resolveEntryVoiceSlot(entry) !== "primary") continue
           map[entry.textId] = entry.fileName
         }
@@ -942,6 +954,7 @@ export function createAdtPreviewRoutes(
         booksDir,
         configPath,
       ).speech
+      const authoredElementAudioIds = collectElementAudioTextIds(storage)
       const legacyLang = lang.replace("-", "_")
       const ttsData = (
         storage.getLatestNodeData("tts", lang) ??
@@ -958,7 +971,7 @@ export function createAdtPreviewRoutes(
       const bySlot: Record<VoiceSlot, SpeechFileEntry[]> = { primary: [], secondary: [] }
       for (const entry of ttsData?.entries ?? []) {
         const slot = resolveEntryVoiceSlot(entry)
-        if (!readySpeechIds[slot].has(entry.textId) || isTtsExcluded(entry.textId, speechConfig)) continue
+        if (!readySpeechIds[slot].has(entry.textId) || isTtsExcluded(entry.textId, speechConfig, authoredElementAudioIds)) continue
         voices[slot].audios[entry.textId] = entry.fileName
         bySlot[slot].push(entry)
       }
@@ -983,10 +996,13 @@ export function createAdtPreviewRoutes(
     const timecodes = bookConfig.speech?.word_highlighting === true
       ? withStorage(c.req.param("label"), (storage) => {
           const readySpeechIds = includedSpeechIds(storage, safeLabel, lang, "primary", "timestamps")
+          const authoredElementAudioIds = collectElementAudioTextIds(storage)
           return buildRuntimeTimecodeMap(
             getWordTimestamps(storage, lang),
             bookConfig.speech,
             readySpeechIds,
+            "primary",
+            authoredElementAudioIds,
           )
         })
       : {}
@@ -1001,12 +1017,13 @@ export function createAdtPreviewRoutes(
     const bookConfig = loadBookConfig(safeLabel, booksDir, configPath)
     const timecodes = withStorage(c.req.param("label"), (storage) => {
       const timestamps = getWordTimestamps(storage, lang)
+      const authoredElementAudioIds = collectElementAudioTextIds(storage)
       return {
         primary: bookConfig.speech?.word_highlighting === true
-          ? buildRuntimeTimecodeMap(timestamps, bookConfig.speech, includedSpeechIds(storage, safeLabel, lang, "primary", "timestamps"), "primary")
+          ? buildRuntimeTimecodeMap(timestamps, bookConfig.speech, includedSpeechIds(storage, safeLabel, lang, "primary", "timestamps"), "primary", authoredElementAudioIds)
           : {},
         secondary: bookConfig.speech?.word_highlighting === true
-          ? buildRuntimeTimecodeMap(timestamps, bookConfig.speech, includedSpeechIds(storage, safeLabel, lang, "secondary", "timestamps"), "secondary")
+          ? buildRuntimeTimecodeMap(timestamps, bookConfig.speech, includedSpeechIds(storage, safeLabel, lang, "secondary", "timestamps"), "secondary", authoredElementAudioIds)
           : {},
       }
     })

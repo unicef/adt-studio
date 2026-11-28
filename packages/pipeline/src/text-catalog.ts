@@ -1,5 +1,4 @@
 import { partScopedPages, requiredPartRange } from "./sectioning-window.js"
-import { resolveQuizOptionId } from "@adt/types"
 import { extractImageIds } from "./image-captioning.js"
 import { parseDocument, DomUtils } from "htmlparser2"
 import type {
@@ -13,12 +12,16 @@ import type {
   PageSectioningOutput as PageSectioningOutputType,
 } from "@adt/types"
 import {
+  ELEMENT_AUDIO_NODE,
   WebRenderingOutput as WebRenderingOutputSchema,
   answerTextId,
+  elementAudioTextId,
   resolveQuizId,
+  resolveQuizOptionId,
   withResolvedQuizIds,
 } from "@adt/types"
 import type { Storage, PageData } from "@adt/storage"
+import { authoredElementAudioEntries } from "./element-audio-ids.js"
 import { getGlossaryItemTextId } from "./glossary.js"
 import { withLegacyRenderingOwnership, getRenderSectioning, renderedSectionId, resolveRenderedSection } from "./render-sectioning.js"
 import { pad3, textContentExcludingScripts } from "./html-text.js"
@@ -341,13 +344,22 @@ export function findIntroducedCatalogConflict(
   return after?.find(conflict => !before?.some(previous => previous.id === conflict.id && conflict.texts.every(text => previous.texts.includes(text))))
 }
 
-/** Synchronous snapshot for atomic authored-save/catalog reconciliation. */
-export function buildTextCatalogSnapshot(storage: Storage, pages: PageData[]): TextCatalogOutput {
-  const partPageIds = storage.bookDir && requiredPartRange(storage.bookDir) ? new Set(partScopedPages(storage).map(page => page.pageId)) : undefined
-  if (partPageIds) pages = pages.filter(page => partPageIds.has(page.pageId))
-  const entries: TextCatalogEntry[] = []
+interface ElementAudioLocation {
+  pageId: string
+  sectionId: string
+}
 
-  // Page text + image captions
+/**
+ * The current page/section of every rendered, unpruned element in the book.
+ * `element-audio` is stored under the page it was authored on, but images can
+ * move between pages (`pages.ts` move-section). The derived catalog follows
+ * the element's current location, not the artifact's page key.
+ */
+function buildElementLocationIndex(
+  storage: Storage,
+  pages: PageData[],
+): Map<string, ElementAudioLocation> {
+  const index = new Map<string, ElementAudioLocation>()
   for (const page of pages) {
     const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
     if (!renderingRow) continue
@@ -355,19 +367,115 @@ export function buildTextCatalogSnapshot(storage: Storage, pages: PageData[]): T
     const parsed = WebRenderingOutputSchema.safeParse(renderingRow.data)
     if (!parsed.success) continue
 
+    const rendering = withLegacyRenderingOwnership(storage, page.pageId, parsed.data)
+    const sectioning = getRenderSectioning(storage, page.pageId)
+    for (const renderedSection of rendering.sections) {
+      const section = resolveRenderedSection(renderedSection, sectioning?.sections ?? [], rendering.sections)
+      if (!section || section.isPruned) continue
+      const sectionId = renderedSectionId(renderedSection)
+      if (!sectionId) continue
+      const doc = parseDocument(renderedSection.html)
+      const elements = DomUtils.findAll(
+        (el) => el.type === "tag" && el.attribs?.["data-id"] !== undefined,
+        doc.children,
+      )
+      for (const element of elements) {
+        const dataId = (element as unknown as { attribs: Record<string, string> }).attribs["data-id"]
+        // First page wins for a duplicate data-id (legacy/import); the rule is
+        // deterministic instead of depending on page iteration order.
+        if (dataId && !index.has(dataId)) index.set(dataId, { pageId: page.pageId, sectionId })
+      }
+    }
+  }
+  return index
+}
+
+interface ElementAudioCatalogEntry {
+  pageId: string
+  entry: TextCatalogEntry
+}
+
+/**
+ * Authored per-element scripts (SPEC-0014). Each non-empty entry becomes a
+ * synthetic catalog entry `${nodeId}_audio`. The artifact is the source of
+ * truth, so the entry is re-emitted on every catalog rebuild. Only elements
+ * rendered in an unpruned section are emitted: the artifact text is kept, but
+ * the derived catalog does not pay for audio for absent elements. A duplicate
+ * nodeId keeps the first entry, so one bad write cannot hide the whole page.
+ */
+function loadElementAudioEntries(
+  storage: Storage,
+  pageId: string,
+  locations: Map<string, ElementAudioLocation>,
+): ElementAudioCatalogEntry[] {
+  const row = storage.getLatestNodeData(ELEMENT_AUDIO_NODE, pageId)
+  if (!row) return []
+
+  const entries: ElementAudioCatalogEntry[] = []
+  for (const authored of authoredElementAudioEntries(row.data)) {
+    const location = locations.get(authored.nodeId)
+    if (!location) continue
+    entries.push({
+      pageId: location.pageId,
+      entry: {
+        id: elementAudioTextId(authored.nodeId),
+        text: authored.text,
+        locations: [{ pageId: location.pageId, sectionId: location.sectionId, role: "element-audio" }],
+      },
+    })
+  }
+  return entries
+}
+
+/** Synchronous snapshot for atomic authored-save/catalog reconciliation. */
+export function buildTextCatalogSnapshot(storage: Storage, pages: PageData[]): TextCatalogOutput {
+  const partPageIds = storage.bookDir && requiredPartRange(storage.bookDir) ? new Set(partScopedPages(storage).map(page => page.pageId)) : undefined
+  if (partPageIds) pages = pages.filter(page => partPageIds.has(page.pageId))
+  const entries: TextCatalogEntry[] = []
+  const hasElementAudio = (storage.getNodeItemIds?.(ELEMENT_AUDIO_NODE)?.length ?? 0) > 0
+  const locations = hasElementAudio
+    ? buildElementLocationIndex(storage, pages)
+    : new Map<string, ElementAudioLocation>()
+  const elementAudioByPage = new Map<string, TextCatalogEntry[]>()
+  if (hasElementAudio) {
+    for (const page of pages) {
+      for (const { pageId, entry } of loadElementAudioEntries(storage, page.pageId, locations)) {
+        const list = elementAudioByPage.get(pageId) ?? []
+        list.push(entry)
+        elementAudioByPage.set(pageId, list)
+      }
+    }
+  }
+
+  // Page text + image captions
+  for (const page of pages) {
+    const elementAudio = elementAudioByPage.get(page.pageId) ?? []
+    const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
+    if (!renderingRow) {
+      entries.push(...elementAudio)
+      continue
+    }
+
+    const parsed = WebRenderingOutputSchema.safeParse(renderingRow.data)
+    if (!parsed.success) {
+      entries.push(...elementAudio)
+      continue
+    }
+
     // Determine which sections are pruned. Use the render-sectioning resolver
     // so fixed-layout books read the positioned tree whose ids/section count
     // match the rendered HTML (1 section/page), not the semantic tree.
     const sectioning = getRenderSectioning(storage, page.pageId)
 
-    const captionMap = loadCaptionMap(storage, page.pageId, extractImageIds(parsed.data.sections.map((section) => section.html)))
+    const rendering = withLegacyRenderingOwnership(storage, page.pageId, parsed.data)
+    const captionMap = loadCaptionMap(storage, page.pageId, extractImageIds(rendering.sections.map((section) => section.html)))
     entries.push(...extractPageEntries(
       page.pageId,
-      withLegacyRenderingOwnership(storage, page.pageId, parsed.data),
+      rendering,
       captionMap,
       sectioning
     ))
-
+    entries.push(...elementAudio)
   }
 
   // Glossary

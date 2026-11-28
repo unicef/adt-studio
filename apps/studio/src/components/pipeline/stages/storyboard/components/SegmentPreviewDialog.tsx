@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react"
-import { Loader2 } from "lucide-react"
+import { Loader2, Plus, Trash2 } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { NO_DRAG_REGION } from "@/constants"
 import { usePlatform } from "@/hooks/use-platform"
@@ -24,6 +24,37 @@ interface SegmentPreviewDialogProps {
 }
 
 const EDGE_SIZE = 8
+
+/**
+ * Box for a region the user adds by hand: a third of the image, centred, and
+ * stepped down-right past any box already starting there so repeated adds
+ * don't hide under one another. A step that would leave the image wraps round
+ * to the opposite edge, so the cascade carries on instead of piling up there.
+ */
+export function newRegionBox(
+  regions: SegmentRegion[],
+  imageWidth: number,
+  imageHeight: number,
+): Omit<SegmentRegion, "label"> {
+  const width = Math.min(imageWidth, Math.max(10, Math.round(imageWidth / 3)))
+  const height = Math.min(imageHeight, Math.max(10, Math.round(imageHeight / 3)))
+  const step = Math.max(1, Math.round(Math.min(imageWidth, imageHeight) / 20))
+  const maxLeft = imageWidth - width
+  const maxTop = imageHeight - height
+  let left = Math.round(maxLeft / 2)
+  let top = Math.round(maxTop / 2)
+  // Trying one more spot than there are boxes finds any spot of the cascade
+  // that is still free. The cascade comes back round to its start after a
+  // number of spots that depends on the image size (13 on a 233×233 image, 54
+  // on 1024×768, thousands on most). Once boxes start at all of them, a new
+  // box lands on an earlier one.
+  for (let i = 0; i < regions.length; i++) {
+    if (!regions.some((r) => r.cropLeft === left && r.cropTop === top)) break
+    left = (left + step) % (maxLeft + 1)
+    top = (top + step) % (maxTop + 1)
+  }
+  return { cropLeft: left, cropTop: top, cropRight: left + width, cropBottom: top + height }
+}
 
 type DragMode =
   | { type: "move"; startX: number; startY: number; origRegion: SegmentRegion }
@@ -197,6 +228,35 @@ export function SegmentPreviewDialog({
     }
   }, [scale, imageWidth, imageHeight])
 
+  // Add a box for something the model missed, selected so it can be dragged
+  // straight into place.
+  const handleAddRegion = () => {
+    const labels = new Set(regions.map((r) => r.label))
+    let n = regions.length + 1
+    while (labels.has(t`Region ${n}`)) n++
+    const next = [...regions, { label: t`Region ${n}`, ...newRegionBox(regions, imageWidth, imageHeight) }]
+    setRegions(next)
+    setSelectedIdx(next.length - 1)
+  }
+
+  const handleRemoveRegion = useCallback(() => {
+    if (selectedIdx == null || dragRef.current) return
+    setRegions((prev) => prev.filter((_, i) => i !== selectedIdx))
+    setSelectedIdx(null)
+  }, [selectedIdx])
+
+  // Delete/Backspace removes the selected box, as in other box editors.
+  useEffect(() => {
+    if (selectedIdx == null || applying) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Delete" && e.key !== "Backspace") return
+      e.preventDefault()
+      handleRemoveRegion()
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [selectedIdx, applying, handleRemoveRegion])
+
   const handleApply = async () => {
     setApplying(true)
     try {
@@ -219,10 +279,29 @@ export function SegmentPreviewDialog({
           {showMacOSSpacer && <MacOSTrafficLightSpacer />}
           <Trans>Segment Preview</Trans>
           <span className="ml-2 text-xs text-muted-foreground">
-            {t`${regionCount} {regionCount, plural, one {region} other {regions}} detected`}
+            {t`${regionCount} {regionCount, plural, one {region} other {regions}}`}
           </span>
         </h2>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleAddRegion}
+            disabled={applying}
+            className="flex items-center gap-1 text-xs font-medium rounded px-3 py-1.5 bg-muted hover:bg-accent transition-colors cursor-pointer disabled:opacity-50"
+          >
+            <Plus className="h-3 w-3" />
+            <Trans>Add region</Trans>
+          </button>
+          <button
+            type="button"
+            onClick={handleRemoveRegion}
+            disabled={applying || selectedIdx == null}
+            className="flex items-center gap-1 text-xs font-medium rounded px-3 py-1.5 bg-muted hover:bg-accent transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-default"
+          >
+            <Trash2 className="h-3 w-3" />
+            <Trans>Remove region</Trans>
+          </button>
+          <div className="w-px h-5 bg-border mx-1" />
           <button
             type="button"
             onClick={onClose}
@@ -263,7 +342,18 @@ export function SegmentPreviewDialog({
               return (
                 <div
                   key={idx}
-                  className="absolute"
+                  // A toggle button, so the keyboard can select a box too:
+                  // Tab reaches it, Enter or Space selects it (or lets go).
+                  role="button"
+                  tabIndex={0}
+                  aria-label={region.label}
+                  aria-pressed={isSelected}
+                  className="absolute focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter" && e.key !== " ") return
+                    e.preventDefault()
+                    setSelectedIdx(isSelected ? null : idx)
+                  }}
                   style={{
                     left: d.left,
                     top: d.top,
