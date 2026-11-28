@@ -14,6 +14,4 @@ Style: Soft 3D flat illustration, the same style as the reference. Palette: bran
 - `wizard-reading.png`: The character looking down attentively, reading: a soft blue scanning light passes over its own pages; wand lowered; focused small smile.
 - `wizard-thinking.png`: The character thinking: one arm touching its chin, eyes looking up to the side, a small question-mark-shaped wisp of sparkle (no text) above.
 - `wizard-celebrate.png`: The character celebrating: both arms up, wand waving a burst of yellow stars and confetti, very happy face.
-- `step-read-wizard.png`: The character reading a plain open document lying beside it (grey text lines and one small picture, no icons, no logos, no red badge): a soft blue scanning light from its wand sweeps over the pages.
 - `step-check-wizard.png`: The character next to a short checklist card with three rows: two rows ticked with blue checkmarks, the character pointing its wand at the third row.
-- `step-create-wizard.png`: The character next to a tablet and a phone showing a finished colourful digital book (a picture of a house and tree, text lines, a round listen button), sparkles from its wand landing on the screens.
