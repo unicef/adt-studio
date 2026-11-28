@@ -72,7 +72,7 @@ export function OptionsHelp({ open, onOpenChange, rec, options, page, chosen, gu
               onClick={() => setAt(i)}
               className={cn(
                 "group relative flex min-w-[112px] flex-1 basis-0 flex-col items-center gap-1.5 rounded-t-[12px] px-2 pb-3 pt-1.5 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500",
-                i === at ? "text-brand-700 dark:text-brand-300" : "text-muted-foreground hover:bg-black/[0.03] hover:text-foreground dark:hover:bg-white/[0.04]",
+                i === at ? "text-brand-700" : "text-muted-foreground hover:bg-black/[0.03] hover:text-foreground dark:hover:bg-white/[0.04]",
               )}
             >
               <span aria-hidden className={cn("grid h-[60px] w-[96px] place-items-center overflow-hidden rounded-[8px] transition-opacity", i === at ? "opacity-100" : "opacity-70 group-hover:opacity-100")}>
@@ -98,13 +98,13 @@ export function OptionsHelp({ open, onOpenChange, rec, options, page, chosen, gu
 
         <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border px-6 py-3">
           <div className="flex items-center gap-1">
-            <button type="button" onClick={() => go(-1)} className="inline-grid size-10 place-items-center rounded-full border border-border text-brand-700 hover:border-brand-300 hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-brand-500/10">
+            <button type="button" onClick={() => go(-1)} className="inline-grid size-10 place-items-center rounded-full border border-border text-brand-700 hover:border-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10">
               <ArrowLeft className="size-4" />
               <span className="sr-only">
                 <Trans>Previous option</Trans>
               </span>
             </button>
-            <button type="button" onClick={() => go(1)} className="inline-grid size-10 place-items-center rounded-full border border-border text-brand-700 hover:border-brand-300 hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-brand-500/10">
+            <button type="button" onClick={() => go(1)} className="inline-grid size-10 place-items-center rounded-full border border-border text-brand-700 hover:border-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10">
               <ArrowRight className="size-4" />
               <span className="sr-only">
                 <Trans>Next option</Trans>
@@ -117,7 +117,7 @@ export function OptionsHelp({ open, onOpenChange, rec, options, page, chosen, gu
             </span>
           </div>
           {picked ? (
-            <span className="inline-flex min-h-11 items-center gap-1.5 px-2 text-[14px] font-medium text-brand-700 dark:text-brand-300">
+            <span className="inline-flex min-h-11 items-center gap-1.5 px-2 text-[14px] font-medium text-brand-700">
               <Check className="size-4 stroke-[3]" />
               <Trans>This is your pick</Trans>
             </span>
@@ -230,7 +230,7 @@ function CardBody({ o, options, rec, page, file, show }: BodyProps) {
                       <span className="text-muted-foreground">
                         <Said m={b.when} />
                       </span>{" "}
-                      <button type="button" onClick={() => show(b.go)} className="font-medium text-brand-700 underline decoration-brand-300 underline-offset-4 hover:decoration-brand-500 dark:text-brand-300 dark:decoration-brand-500/50">
+                      <button type="button" onClick={() => show(b.go)} className="font-medium text-brand-700 underline decoration-brand-300 underline-offset-4 hover:decoration-brand-500 dark:decoration-brand-500/50">
                         {options.find((x) => x.value === b.go)!.label}
                       </button>
                     </span>

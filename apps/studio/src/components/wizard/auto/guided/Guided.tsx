@@ -173,7 +173,8 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
   let panel: ReactNode = null
   let bars: ReactNode = null
   if (shown === "upload") {
-    const shownTour = flow.file ? null : tour
+    // The tour is about the empty page; with a PDF that can't be used, the page is back to that.
+    const shownTour = flow.file && !flow.error ? null : tour
     says = <UploadSays flow={flow} rejected={!!rejectedAt && !validFile} />
     swap = `upload-${rejectedAt}-${flow.error ?? ""}-${validFile}-${!!flow.file}-${shownTour === null}`
     panel = <UploadPanel flow={flow} rejected={!!rejectedAt && !validFile} onContinue={view === "upload" && validFile ? () => morph(() => setView(null)) : null} tour={shownTour} onTour={setTour} onTourDone={() => morph(endTour)} onTourAgain={() => setTour(0)} />

@@ -18,8 +18,13 @@ export function Cover({ flow, size = "sm" }: { flow: UploadFlow; size?: "sm" | "
 export function PdfMeta({ flow }: { flow: UploadFlow }) {
   return (
     <>
-      {flow.pageCount > 0 && <Plural value={flow.pageCount} one="# page" other="# pages" />}
-      {flow.file && <> · {formatBytes(flow.file.size)}</>}
+      {flow.pageCount > 0 && (
+        <>
+          <Plural value={flow.pageCount} one="# page" other="# pages" />
+          {flow.file && " · "}
+        </>
+      )}
+      {flow.file && formatBytes(flow.file.size)}
     </>
   )
 }

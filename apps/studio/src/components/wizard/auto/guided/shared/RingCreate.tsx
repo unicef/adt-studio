@@ -15,7 +15,8 @@ const C = 2 * Math.PI * R
  * starting on the first pages towards 92%, and done is 100%.
  */
 function useProgress(status: CreateRun["status"]) {
-  const [p, setP] = useState(0.04)
+  // Already done when it appears (no saving seen here): full at once, never an empty ring saying "Done".
+  const [p, setP] = useState(status === "done" ? 1 : 0.04)
   const since = useRef(performance.now())
   useEffect(() => {
     since.current = performance.now()

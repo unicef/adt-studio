@@ -46,7 +46,7 @@ export function LanguageHelp({ open, onOpenChange, found }: { open: boolean; onO
 function Part({ icon, title, children }: { icon: ReactNode; title: ReactNode; children: ReactNode }) {
   return (
     <section className="flex gap-3">
-      <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300">{icon}</span>
+      <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-600">{icon}</span>
       <div className="min-w-0">
         <h3 className="font-semibold">{title}</h3>
         <p className="mt-0.5 text-muted-foreground">{children}</p>

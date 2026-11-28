@@ -109,12 +109,12 @@ function LookCard({ rec, option, page, narrow, compact = false, chosen, first, o
       </span>
       <span className={cn("flex min-w-0 flex-col", row ? "py-1 pr-1" : "px-1.5 pb-1 pt-2.5")}>
         {option.guess && row && (
-          <span className="mb-1 w-fit whitespace-nowrap rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
+          <span className="mb-1 w-fit whitespace-nowrap rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-700">
             <Trans>My guess</Trans>
           </span>
         )}
         <span className={cn("font-medium leading-tight", compact ? "text-[14.5px]" : "text-[15px] lg:text-[17px]")}>{option.label}</span>
-        {option.line && <span className={cn("mt-0.5 leading-snug text-muted-foreground", compact ? "line-clamp-2 text-[12.5px]" : "text-[13px] lg:text-[14.5px]")}>{option.line}</span>}
+        {option.line && <span className={cn("mt-0.5 leading-snug text-muted-foreground", compact ? "line-clamp-3 text-[12.5px]" : "text-[13px] lg:text-[14.5px]")}>{option.line}</span>}
         {option.tag && !compact && <span className="mt-2">{option.tag}</span>}
       </span>
     </button>

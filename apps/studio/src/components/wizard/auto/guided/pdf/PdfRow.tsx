@@ -50,12 +50,15 @@ export function PdfRow({ flow, locked }: { flow: UploadFlow; locked: boolean }) 
                 <PdfMeta flow={flow} />
               </p>
             </div>
-            <button type="button" onClick={() => setPagesOpen(true)} className={BUTTON}>
-              <LayoutGrid className={cn(ICON, "group-hover/btn:scale-110")} />
-              <span className="max-sm:sr-only">
-                <Trans>See pages</Trans>
-              </span>
-            </button>
+            {/* A PDF that can't be read has no pages to see. */}
+            {!flow.error && (
+              <button type="button" onClick={() => setPagesOpen(true)} className={BUTTON}>
+                <LayoutGrid className={cn(ICON, "group-hover/btn:scale-110")} />
+                <span className="max-sm:sr-only">
+                  <Trans>See pages</Trans>
+                </span>
+              </button>
+            )}
             <button type="button" onClick={flow.openPicker} disabled={locked} title={locked ? t`The book is being set up, so its PDF can't change now.` : undefined} className={BUTTON}>
               <FileUp className={cn(ICON, "group-hover/btn:-translate-y-0.5")} />
               <span className="max-sm:sr-only">
@@ -65,7 +68,7 @@ export function PdfRow({ flow, locked }: { flow: UploadFlow; locked: boolean }) 
           </>
         )}
       </div>
-      {file && <PdfPages file={file} title={flow.title} pageCount={flow.pageCount} open={pagesOpen} onClose={() => setPagesOpen(false)} onChange={() => { setPagesOpen(false); flow.openPicker() }} locked={locked} />}
+      {file && !flow.error && <PdfPages file={file} title={flow.title} pageCount={flow.pageCount} open={pagesOpen} onClose={() => setPagesOpen(false)} onChange={() => { setPagesOpen(false); flow.openPicker() }} locked={locked} />}
     </Reveal>
   )
 }

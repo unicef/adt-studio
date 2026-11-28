@@ -261,7 +261,7 @@ export function UploadPanel({ flow, rejected, onContinue, tour, onTour, onTourDo
       <div ref={drop} className="rounded-[22px]">
         <DropZone flow={flow} rejected={rejected} />
       </div>
-      {tour === null && !flow.file && (
+      {tour === null && (!flow.file || !!flow.error) && (
         <div className="flex justify-center">
           <button type="button" onClick={onTourAgain} className="lc-link inline-flex min-h-10 items-center gap-1.5 px-3 text-[13.5px] font-medium">
             <PlayCircle className="size-4" />
