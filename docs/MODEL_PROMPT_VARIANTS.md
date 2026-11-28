@@ -134,6 +134,8 @@ them, with their `reasoning_effort`, when the config is loaded (`loadConfig`,
 Anthropic, Google, Ollama, custom or CLI login can then run every stage without
 an OpenAI key. A task set to any other model, an OpenAI one included, keeps it:
 that is the user's choice, and a missing key is still reported before the run.
+The shipped web-rendering fallback (`render_strategies.llm.config.fallback`) is
+dropped the same way, so a failed render never switches to a model with no key.
 Settings > Models shows the resolved models and notes the rule when the default
 is not an OpenAI model.
 

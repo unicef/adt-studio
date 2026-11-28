@@ -45,4 +45,26 @@ describe("Shipped Luna/Sol task pins under another provider's default (#964 revi
     // The input is not mutated.
     expect(base.page_sectioning?.model).toBe("openai:gpt-6.1-sol")
   })
+
+  it("drops a shipped render fallback under another provider's default, and keeps any other", () => {
+    const withFallback = (model: string) =>
+      ({
+        ...base,
+        render_strategies: {
+          llm: {
+            render_type: "llm",
+            config: { prompt: "web_generation_html", max_retries: 5, fallback: { model, reasoning_effort: "medium", after_attempts: 2 } },
+          },
+        },
+      }) as unknown as AppConfig
+    const shipped = withFallback("openai:gpt-6.1-sol")
+    expect(withApplicableTaskModels({ ...shipped, default_model: "openai:gpt-6-luna" }).render_strategies?.llm.config?.fallback)
+      .toEqual({ model: "openai:gpt-6.1-sol", reasoning_effort: "medium", after_attempts: 2 })
+    expect(withApplicableTaskModels({ ...shipped, default_model: "anthropic:claude-sonnet-4-5" }).render_strategies?.llm.config)
+      .toEqual({ prompt: "web_generation_html", max_retries: 5 })
+    // A fallback the user chose keeps applying, as any other non-shipped pin does.
+    const chosen = withFallback("anthropic:claude-opus-4")
+    expect(withApplicableTaskModels({ ...chosen, default_model: "google:gemini-3-pro" }).render_strategies?.llm.config?.fallback?.model)
+      .toBe("anthropic:claude-opus-4")
+  })
 })

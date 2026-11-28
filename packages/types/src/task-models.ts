@@ -171,6 +171,24 @@ function withoutModel<T extends ModelBlock>(block: T): T {
   return rest as T
 }
 
+type RenderStrategy = NonNullable<AppConfig["render_strategies"]>[string]
+
+/**
+ * A render strategy without the model pin and the fallback model that don't
+ * apply under `defaultModel`. The shipped fallback is a pin like any other: a
+ * user with no OpenAI key must not have a failed render switch to OpenAI.
+ */
+function withApplicableStrategyModels(strategy: RenderStrategy, defaultModel: string): RenderStrategy {
+  const config = strategy.config
+  if (!config) return strategy
+  const { fallback, ...rest } = config
+  const dropModel = !taskModelApplies(config.model, defaultModel)
+  const dropFallback = fallback !== undefined && !taskModelApplies(fallback.model, defaultModel)
+  if (!dropModel && !dropFallback) return strategy
+  const base = dropModel ? withoutModel(rest) : rest
+  return { ...strategy, config: fallback && !dropFallback ? { ...base, fallback } : base }
+}
+
 /**
  * `config` without the task pins that don't apply under its default LLM (see
  * `taskModelApplies`). A dropped pin takes its `reasoning_effort` with it,
@@ -190,9 +208,7 @@ export function withApplicableTaskModels(config: AppConfig): AppConfig {
   if (config.render_strategies) {
     next.render_strategies = Object.fromEntries(Object.entries(config.render_strategies).map(([name, strategy]) => [
       name,
-      strategy.config && !taskModelApplies(strategy.config.model, defaultModel)
-        ? { ...strategy, config: withoutModel(strategy.config) }
-        : strategy,
+      withApplicableStrategyModels(strategy, defaultModel),
     ]))
   }
   return next as AppConfig
