@@ -1,4 +1,4 @@
-import { useLayoutEffect, useState, type RefObject } from "react"
+import { useLayoutEffect, useState } from "react"
 import { motionOff } from "./motion"
 
 /** How long the assistant talks when it says something new. */
@@ -9,7 +9,7 @@ const TALK_MS = 900
  * talks for a moment (`talking`), so it feels alive without making anyone wait for the text.
  * Still with reduced motion.
  */
-export function useTalk(_ref: RefObject<HTMLElement | null>, key: string): boolean {
+export function useTalk(key: string): boolean {
   const [talking, setTalking] = useState(false)
   useLayoutEffect(() => {
     if (motionOff()) return

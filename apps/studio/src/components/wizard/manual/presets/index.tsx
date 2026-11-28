@@ -10,7 +10,7 @@ import { PresetGrid } from "./PresetGrid"
 // eslint-disable-next-line lingui/no-unlocalized-strings -- Preset reset warning text
 const STEP1_FIELDS = new Set(["label", "file", "startPage", "endPage", "selectedPreset"])
 
-export function applyPreset(form: ReturnType<typeof useWizardForm>, id: PresetId) {
+function applyPreset(form: ReturnType<typeof useWizardForm>, id: PresetId) {
   const preset = PRESETS.find((p) => p.id === id)
 
   for (const [key, value] of Object.entries(defaultWizardValues)) {
@@ -25,10 +25,9 @@ export function applyPreset(form: ReturnType<typeof useWizardForm>, id: PresetId
   }
 }
 
-export function Step0Preset({ onBack }: { onBack?: () => void } = {}) {
+export function Step0Preset({ onBack }: { onBack: () => void }) {
   const {
     setCurrentStep,
-    setPhase,
     stepDirection,
     committedStep0Preset,
     setCommittedStep0Preset,
@@ -108,7 +107,7 @@ export function Step0Preset({ onBack }: { onBack?: () => void } = {}) {
       <div className="flex items-center gap-3">
         <Button
           variant="secondary"
-          onClick={onBack ?? (() => setPhase("upload"))}
+          onClick={onBack}
           className="h-9 px-3 py-2 bg-muted text-foreground hover:bg-muted border-0"
         >
           <ArrowLeft className="h-4 w-4 mr-1.5" />

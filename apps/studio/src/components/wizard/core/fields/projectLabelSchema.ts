@@ -3,6 +3,9 @@ import { msg } from "@lingui/core/macro"
 import { z } from "zod"
 import type { WizardFormValues } from "../wizardForm"
 
+/** The id of the book name's input (the wizard's Project Name, the guided flow's Book name), to focus it. */
+export const PROJECT_NAME_INPUT_ID = "wizard-project-name"
+
 const REQUIRED_MSG = msg`Required`
 const LABEL_FORMAT_MSG = msg`Only letters, numbers, dots, dashes, underscores. Must start with a letter or number.`
 const LABEL_DUPLICATE_MSG = msg`A book with this name already exists.`

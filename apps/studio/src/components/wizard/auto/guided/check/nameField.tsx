@@ -1,7 +1,7 @@
 import { useStore } from "@tanstack/react-form"
 import { Trans } from "@lingui/react/macro"
 import { ProjectNameField } from "@/components/wizard/core/fields/ProjectNameField"
-import { createProjectLabelSchema } from "@/components/wizard/core/fields/projectLabelSchema"
+import { createProjectLabelSchema, PROJECT_NAME_INPUT_ID } from "@/components/wizard/core/fields/projectLabelSchema"
 import { useWizardForm } from "@/components/wizard/core/wizardForm"
 import { useBooks } from "@/hooks/use-books"
 
@@ -25,6 +25,6 @@ export function useCreate(onCreate: () => void) {
   const ok = createProjectLabelSchema(books?.map((b: { label: string }) => b.label) ?? []).safeParse(label).success
   return () => {
     if (ok) onCreate()
-    else document.getElementById("wizard-project-name")?.focus()
+    else document.getElementById(PROJECT_NAME_INPUT_ID)?.focus()
   }
 }

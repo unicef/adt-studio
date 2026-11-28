@@ -103,7 +103,7 @@ else {
 }
 
 function mount() {
-    createRoot(document.getElementById("root")!).render(
+  createRoot(document.getElementById("root")!).render(
     <StrictMode>
       <I18nProvider i18n={i18n}>
         <QueryClientProvider client={queryClient}>

@@ -17,8 +17,7 @@ export type EngineRun =
  * screen or `file = null` aborts the run in flight, so a late answer never lands on the wrong book.
  * Failures come sorted (auth / quota / offline / unknown) for `SetupError`.
  */
-/** `settle` runs the state change when the answer (or a failure) comes in: the flow passes its morph there. */
-export function useEngineRun(file: File | null | undefined, attempt = 0, settle: (update: () => void) => void = (u) => u()): EngineRun {
+export function useEngineRun(file: File | null | undefined, attempt = 0): EngineRun {
   const engine = useEngineClient()
   const [run, setRun] = useState<EngineRun>({ status: "idle", slow: false })
   useEffect(() => {
@@ -30,8 +29,8 @@ export function useEngineRun(file: File | null | undefined, attempt = 0, settle:
     setRun({ status: "running", slow: false, startedAt: performance.now() })
     const slow = window.setTimeout(() => setRun((r) => (r.status === "running" ? { ...r, slow: true } : r)), ENGINE_SLOW_AFTER_MS)
     engine.recommend(file, controller.signal).then(
-      (rec) => !controller.signal.aborted && settle(() => setRun({ status: "done", rec, slow: false })),
-      (error: unknown) => !controller.signal.aborted && settle(() => setRun({ status: "failed", failure: classifySetupError(error), slow: false })),
+      (rec) => !controller.signal.aborted && setRun({ status: "done", rec, slow: false }),
+      (error: unknown) => !controller.signal.aborted && setRun({ status: "failed", failure: classifySetupError(error), slow: false }),
     )
     return () => {
       controller.abort()

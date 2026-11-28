@@ -2,7 +2,7 @@ import type { MessageDescriptor } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
 import type { ComponentType } from "react"
 import type { WizardFormValues } from "../core/wizardForm"
-import { isStep1BasicInfoValid } from "../core/fields/projectLabelSchema"
+import { isStep1BasicInfoValid, PROJECT_NAME_INPUT_ID } from "../core/fields/projectLabelSchema"
 import { Step1 } from "./basic-info"
 import { Step2 } from "./layout"
 import { Step3 } from "./processing"
@@ -32,7 +32,7 @@ export const STEPS: StepDef[] = [
     isValid: (v, ctx) => ctx?.existingBookLabels !== undefined && isStep1BasicInfoValid(v, ctx.existingBookLabels),
     scrollToFirstInvalid: (v, ctx) => {
       if (!v.file) return "wizard-pdf-upload"
-      if (!isStep1BasicInfoValid(v, ctx?.existingBookLabels ?? [])) return "wizard-project-name"
+      if (!isStep1BasicInfoValid(v, ctx?.existingBookLabels ?? [])) return PROJECT_NAME_INPUT_ID
       return null
     },
     hint: (v, ctx) => {

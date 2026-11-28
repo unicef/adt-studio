@@ -3,13 +3,14 @@ import { useState } from "react"
 import { Sparkles } from "lucide-react"
 import "./flow.css"
 
+/** The book is laid out this many times bigger and scaled back down in 3D (flow.css), so the tilted cover stays sharp. */
+const RASTER = 2
+
 /**
  * The cover as a standing hardback: front face, darkened back board and a page block. Purely visual:
  * the depth follows the book's drawn size, never the PDF. Landscape covers stand at a shallower
  * angle, as on the publish access page. Settles on mount and turns toward the reader on hover.
  */
-const RASTER = 2
-
 export function Book3D({ src, alt = "", height = 270, maxWidth = 280, settle, className }: { src?: string; alt?: string; height?: number; maxWidth?: number; settle?: boolean; className?: string }) {
   const [ratio, setRatio] = useState<number | null>(null)
   const r = ratio ?? 0.72

@@ -75,9 +75,8 @@ export function TourCoach({ stops, at, onNext, onBack, onDone }: { stops: CoachS
   const stop = stops[at]!
   const last = at === stops.length - 1
   const box = useRef<HTMLDivElement>(null)
-  const words = useRef<HTMLDivElement>(null)
   const speech = useRef<HTMLDivElement>(null)
-  const talking = useTalk(words, `tour-${at}`)
+  const talking = useTalk(`tour-${at}`)
   const [pos, setPos] = useState<Layout | null>(null)
   // It glides between stops, but appears in place the first time (no slide in from a corner).
   const [placed, setPlaced] = useState(false)
@@ -185,7 +184,7 @@ export function TourCoach({ stops, at, onNext, onBack, onDone }: { stops: CoachS
         </span>
         <div key={at} ref={speech} className={cn("gd-speech relative rounded-[22px] bg-[var(--lc-bubble)] px-5 py-4 text-[15.5px] leading-[1.5] lg:text-[16.5px]", big && "text-center")} data-side={side} style={{ width: big ? `min(${BUBBLE + 80}px, calc(100vw - ${EDGE * 2}px))` : BUBBLE }}>
           <span aria-hidden className="gd-speech-tail" />
-          <div ref={words}>
+          <div>
             <p>{stop.says}</p>
             <div className={cn("mt-3.5 flex flex-wrap items-center gap-2", big && "justify-center")}>
               <Chip primary onClick={advance} icon={last ? undefined : <ArrowRight className="size-4" />} className="h-10 flex-row-reverse px-4 text-[14px]">

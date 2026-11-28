@@ -5,6 +5,7 @@ import { Trans } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { PROJECT_NAME_INPUT_ID } from "./projectLabelSchema"
 
 function firstFieldErrorMessage(errors: readonly unknown[]): string {
   if (errors.length === 0) return ""
@@ -38,7 +39,7 @@ export function ProjectNameField({
   onEnter,
 }: ProjectNameFieldProps) {
   const { i18n } = useLingui()
-  const inputId = "wizard-project-name"
+  const inputId = PROJECT_NAME_INPUT_ID
   const hintId = useId()
   const errorId = useId()
   const hasError = errors.length > 0

@@ -2,23 +2,6 @@ import type { ReactNode } from "react"
 import { ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-/** Entrance used by every screen's blocks (stagger with `animationDelay`). */
-export const ENTER = "animate-[am-fade-up_0.5s_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none"
-/** A content swap (preview / panel re-render). */
-export const SWAP = "animate-[am-screen-in_0.32s_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none"
-/** A chat bubble or chip popping in. */
-export const POP = "animate-[am-pop_0.35s_cubic-bezier(0.34,1.56,0.64,1)_both] motion-reduce:animate-none"
-
-/** The faint dot grid behind every screen; `children` adds extra backdrop layers (e.g. a glow). */
-export function DotGrid({ children }: { children?: ReactNode }) {
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(var(--brand-200)_1px,transparent_1px)] [background-size:24px_24px] opacity-60 [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_70%)]" />
-      {children}
-    </div>
-  )
-}
-
 /** The one filled action on a screen. Arrow by default; pass `icon` to lead with another one. `pulse` rings once when it becomes ready. */
 export function PrimaryButton({ onClick, children, disabled, pulse, icon, className }: { onClick: () => void; children: ReactNode; disabled?: boolean; pulse?: boolean; icon?: ReactNode; className?: string }) {
   return (

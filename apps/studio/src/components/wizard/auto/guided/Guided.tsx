@@ -11,7 +11,7 @@ import { useWizardForm } from "../../core/wizardForm"
 import { useUploadFlow } from "../../start/upload/useUploadFlow"
 import "../../core/flow.css"
 import { FinishContext } from "./shared/finish"
-import { NAME_INPUT } from "./shared/Create"
+import { PROJECT_NAME_INPUT_ID } from "../../core/fields/projectLabelSchema"
 import { EngineError } from "./shared/EngineError"
 import { ReadingCard, ReadingMessage } from "./shared/Reading"
 import { useAnswers } from "./shared/useAnswers"
@@ -162,7 +162,7 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
       setView("check")
       check.go("name")
     })
-    const input = document.getElementById(NAME_INPUT) as HTMLInputElement | null
+    const input = document.getElementById(PROJECT_NAME_INPUT_ID) as HTMLInputElement | null
     input?.focus()
     input?.select()
   }

@@ -196,7 +196,7 @@ function PreviewContainer({
   )
 }
 
-export function BookCreationWizard({ onBackFromPresets }: { onBackFromPresets?: () => void } = {}) {
+export function BookCreationWizard({ onBackFromPresets }: { onBackFromPresets: () => void }) {
   const { t, i18n } = useLingui()
   const { currentStep, setCurrentStep, stepDirection, previewFocus } = useWizard()
   const form = useWizardForm()
@@ -277,18 +277,18 @@ export function BookCreationWizard({ onBackFromPresets }: { onBackFromPresets?: 
     creatingRef.current = true
     setSubmitError(null)
     setIsCreating(true)
-    // Read the form at call time: auto mode fills it just before calling.
-    const values = form.state.values
+    // Read the form at call time, not from the last render.
+    const submitted = form.state.values
     try {
-      const book = await createBook(values)
-      if (willExtract(values)) {
+      const book = await createBook(submitted)
+      if (willExtract(submitted)) {
         try {
           await startExtract(book.label)
         } catch (pipelineError) {
           console.error("[wizard] extract kickoff failed:", pipelineError)
         }
       }
-      openBook(book.label, values)
+      openBook(book.label, submitted)
     } catch (error) {
       creatingRef.current = false
       setIsCreating(false)
@@ -382,7 +382,7 @@ export function BookCreationWizard({ onBackFromPresets }: { onBackFromPresets?: 
             isCreating={isCreating}
             onBack={handleBack}
             onNext={handleNext}
-            onCreate={() => handleCreate()}
+            onCreate={handleCreate}
             accent={accent}
             hint={hint}
             onScrollToInvalid={handleScrollToInvalid}

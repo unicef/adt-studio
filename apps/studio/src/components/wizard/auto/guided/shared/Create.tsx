@@ -4,8 +4,6 @@ import { ErrorDetails } from "../../errors/ErrorState"
 import { Chip } from "./bubbles"
 import type { CreateRun } from "./useCreateRun"
 
-export const NAME_INPUT = "wizard-project-name"
-
 /** The filled button: flat (no glow), in the app's brand blue. */
 export const LC_PRIMARY = "rounded-[12px] shadow-none hover:shadow-none"
 

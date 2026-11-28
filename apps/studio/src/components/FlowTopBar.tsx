@@ -52,32 +52,31 @@ export function FlowTopBar({ title, onBack, actions, contentWidth }: FlowTopBarP
 
       {/* With a column width, the padding matches a page column's 16px side margin on small windows. */}
       <div className={cn("mx-auto flex min-w-0 flex-1 items-center gap-2", contentWidth && "px-2")} style={contentWidth ? { maxWidth: contentWidth + 16 } : undefined}>
-      <div className="flex min-w-0 items-center gap-2" style={NO_DRAG_REGION}>
-        <button
-          type="button"
-          onClick={goHome}
-          title={t`Back to library`}
-          aria-label={t`Back to library`}
-          className="group -ml-0.5 flex items-center rounded-lg py-1 pl-1.5 pr-2 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50"
-        >
-          <ArrowLeft className="-ml-4 size-3.5 shrink-0 text-muted-foreground opacity-0 transition-all duration-200 ease-out group-hover:ml-0 group-hover:mr-1 group-hover:opacity-100" />
-          <img
-            src={logoSrc}
-            alt=""
-            className="size-6 shrink-0 rounded-[7px] shadow-[0_1px_5px_rgba(43,127,255,0.4)]"
-          />
-        </button>
+        <div className="flex min-w-0 items-center gap-2" style={NO_DRAG_REGION}>
+          <button
+            type="button"
+            onClick={goHome}
+            title={t`Back to library`}
+            aria-label={t`Back to library`}
+            className="group -ml-0.5 flex items-center rounded-lg py-1 pl-1.5 pr-2 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50"
+          >
+            <ArrowLeft className="-ml-4 size-3.5 shrink-0 text-muted-foreground opacity-0 transition-all duration-200 ease-out group-hover:ml-0 group-hover:mr-1 group-hover:opacity-100" />
+            <img
+              src={logoSrc}
+              alt=""
+              className="size-6 shrink-0 rounded-[7px] shadow-[0_1px_5px_rgba(43,127,255,0.4)]"
+            />
+          </button>
 
-        {title != null && (
-          <span className="truncate text-[13.5px] font-semibold">{title}</span>
-        )}
-      </div>
+          {title != null && (
+            <span className="truncate text-[13.5px] font-semibold">{title}</span>
+          )}
+        </div>
 
-
-      <div className="ml-auto flex items-center gap-1.5" style={NO_DRAG_REGION}>
-        {actions}
-        <LocaleSwitcher variant="standalone" />
-      </div>
+        <div className="ml-auto flex items-center gap-1.5" style={NO_DRAG_REGION}>
+          {actions}
+          <LocaleSwitcher variant="standalone" />
+        </div>
       </div>
 
       {showNonMacControls && <TitleBarControls className="self-stretch" />}
