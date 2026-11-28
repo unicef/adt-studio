@@ -10,7 +10,7 @@ import { bookLanguage } from "../screens"
 import { LanguageBook } from "../../shared/art/LanguageBook"
 import { PICTURE, SurePick } from "../SurePick"
 import { LanguageHelp } from "./LanguageHelp"
-import { useExplain } from "../../shared/explain"
+import { useExplain } from "../../shared/ExplainProvider"
 import { morph, swapName } from "../../shared/motion"
 import { endonym, LanguageChoice, region } from "./LanguageChoice"
 

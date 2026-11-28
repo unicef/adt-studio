@@ -10,6 +10,7 @@ import { useAssistantName } from "./shared/Assistant"
 import { useWizardForm } from "../../core/wizardForm"
 import { useUploadFlow } from "../../start/upload/useUploadFlow"
 import "../../core/flow.css"
+import { ExplainProvider } from "./shared/ExplainProvider"
 import { FinishContext } from "./shared/finish"
 import { PROJECT_NAME_INPUT_ID } from "../../core/fields/projectLabelSchema"
 import { EngineError } from "./shared/EngineError"
@@ -210,58 +211,60 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
   useSqueeze(scroller, page, scale)
   return (
     <FinishContext.Provider value={{ onOpen: create.open }}>
-      <div className="lc-root gd-root relative flex h-full min-h-0 flex-1 flex-col overflow-clip" data-tone={tone}>
-        {/* Its own view-transition layer with no animation (guided.css): step morphs never move or fade the bar. */}
-        {/* Above the page (z-40), so the dock can open over it. */}
-        <div className="relative z-40 shrink-0" style={{ viewTransitionName: "gd-topbar" }}>
-          <FlowTopBar
-            title={
-              <span className="inline-flex items-center gap-2">
-                {t`Add Book`}
-                <BetaTag />
-              </span>
-            }
-            onBack={() => leave.confirm("leave", () => navigate({ to: "/" }))}
-            contentWidth={columnPx * scale}
-          />
-        </div>
-        <FileDropOverlay overlay={flow.overlay} dropLabel={<Trans>Drop PDF here</Trans>} errorLabel={<Trans>Only PDF files are supported</Trans>} accent="blue" />
-        <input ref={flow.inputRef} type="file" accept="application/pdf" className="hidden" onChange={flow.onInputChange} />
+      <ExplainProvider>
+        <div className="lc-root gd-root relative flex h-full min-h-0 flex-1 flex-col overflow-clip" data-tone={tone}>
+          {/* Its own view-transition layer with no animation (guided.css): step morphs never move or fade the bar. */}
+          {/* Above the page (z-40), so the dock can open over it. */}
+          <div className="relative z-40 shrink-0" style={{ viewTransitionName: "gd-topbar" }}>
+            <FlowTopBar
+              title={
+                <span className="inline-flex items-center gap-2">
+                  {t`Add Book`}
+                  <BetaTag />
+                </span>
+              }
+              onBack={() => leave.confirm("leave", () => navigate({ to: "/" }))}
+              contentWidth={columnPx * scale}
+            />
+          </div>
+          <FileDropOverlay overlay={flow.overlay} dropLabel={<Trans>Drop PDF here</Trans>} errorLabel={<Trans>Only PDF files are supported</Trans>} accent="blue" />
+          <input ref={flow.inputRef} type="file" accept="application/pdf" className="hidden" onChange={flow.onInputChange} />
 
-        <div ref={scroller} className="relative flex-1 overflow-y-auto overflow-x-hidden">
-          {/* One column per step, and the stepper takes the same width, so its ends line up with the
-              bubble and the content. On big windows the whole page scales up (zoom) instead of
-              floating small in the middle; on short ones the spacing tightens. */}
-          <div ref={page} className="mx-auto flex w-full flex-col px-4 pb-6 pt-6 sm:px-6 sm:pt-8 [@media(max-height:800px)]:pt-4" style={{ zoom: scale, "--gd-vh": `${vh}px` } as CSSProperties}>
-            <div className={cn("gd-col mx-auto w-full", column)}>
-              <PdfRow flow={flow} locked={creating} />
-              <Stepper
-                at={at}
-                shown={shown}
-                failed={!!failure && at === "reading"}
-                locked={create.locked}
-                complete={lastRun?.status === "done"}
-                onGo={(s) => morph(() => setView(s === at ? null : s))}
-                checkBars={bars}
-              />
-            </div>
-            <div className={cn("gd-col mx-auto mt-7 w-full lg:mt-9 [@media(max-height:800px)]:mt-3", column)}>
-              <div className="min-w-0">
-                <Bubble swap={swap} busy={busy} away={shown === "upload" && !flow.file && tour !== null}>
-                  {says}
-                </Bubble>
-                <Morph swap={`${shown}-${!!panel}`} name="gd-panel" className="-mx-2 mt-4 [@media(max-height:800px)]:mt-3" inner="px-2 pb-3 pt-1">
-                  {panel}
-                </Morph>
+          <div ref={scroller} className="relative flex-1 overflow-y-auto overflow-x-hidden">
+            {/* One column per step, and the stepper takes the same width, so its ends line up with the
+                bubble and the content. On big windows the whole page scales up (zoom) instead of
+                floating small in the middle; on short ones the spacing tightens. */}
+            <div ref={page} className="mx-auto flex w-full flex-col px-4 pb-6 pt-6 sm:px-6 sm:pt-8 [@media(max-height:800px)]:pt-4" style={{ zoom: scale, "--gd-vh": `${vh}px` } as CSSProperties}>
+              <div className={cn("gd-col mx-auto w-full", column)}>
+                <PdfRow flow={flow} locked={creating} />
+                <Stepper
+                  at={at}
+                  shown={shown}
+                  failed={!!failure && at === "reading"}
+                  locked={create.locked}
+                  complete={lastRun?.status === "done"}
+                  onGo={(s) => morph(() => setView(s === at ? null : s))}
+                  checkBars={bars}
+                />
+              </div>
+              <div className={cn("gd-col mx-auto mt-7 w-full lg:mt-9 [@media(max-height:800px)]:mt-3", column)}>
+                <div className="min-w-0">
+                  <Bubble swap={swap} busy={busy} away={shown === "upload" && !flow.file && tour !== null}>
+                    {says}
+                  </Bubble>
+                  <Morph swap={`${shown}-${!!panel}`} name="gd-panel" className="-mx-2 mt-4 [@media(max-height:800px)]:mt-3" inner="px-2 pb-3 pt-1">
+                    {panel}
+                  </Morph>
+                </div>
               </div>
             </div>
           </div>
+          {leave.dialog}
+          <span role="status" className="sr-only">
+            {busy && shown === "reading" ? <Trans>The {assistant} is reading your book…</Trans> : null}
+          </span>
         </div>
-        {leave.dialog}
-        <span role="status" className="sr-only">
-          {busy && shown === "reading" ? <Trans>The {assistant} is reading your book…</Trans> : null}
-        </span>
-      </div>
+      </ExplainProvider>
     </FinishContext.Provider>
   )
 }

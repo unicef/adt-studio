@@ -1,7 +1,7 @@
 import { useStore } from "@tanstack/react-form"
 import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import { CircleHelp } from "lucide-react"
-import { askExplain, useExplainable } from "../shared/explain"
+import { useExplainable } from "../shared/ExplainProvider"
 import { useLanguageName } from "../shared/languageName"
 import type { SetupRecommendation } from "@adt/types"
 import { RULE_WHY, SETTING_VALUE } from "../../engine/words"
@@ -31,12 +31,13 @@ export function CheckSays(props: Props) {
 
 /** The assistant offers to explain what's on screen (the options, or how languages work): a line and a button. */
 function ExplainOffer() {
-  const what = useExplainable()
-  if (!what) return null
+  const explain = useExplainable()
+  if (!explain) return null
+  const { what } = explain
   return (
     <p className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2 text-muted-foreground">
       <span>{what === "languages" ? <Trans>Not sure what this changes?</Trans> : <Trans>Not sure which one fits your book?</Trans>}</span>
-      <Chip onClick={askExplain} icon={<CircleHelp className="size-4" />} className="h-9 px-3.5 text-[13.5px]">
+      <Chip onClick={explain.open} icon={<CircleHelp className="size-4" />} className="h-9 px-3.5 text-[13.5px]">
         {what === "languages" ? <Trans>How languages work</Trans> : <Trans>Explain the options</Trans>}
       </Chip>
     </p>
