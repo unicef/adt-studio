@@ -600,3 +600,244 @@ describe("initializeQuizActivity — embedded activity_multiple_choice", () => {
     expect(store.get(submitStateAtom)).toBe("next")
   })
 })
+
+// #1052: one exposed radio per option, one named radiogroup per question.
+describe("initializeQuizActivity — radio semantics", () => {
+  beforeEach(() => {
+    store.set(pagesAtom, [
+      { section_id: "qz001", href: "qz001.html" },
+      { section_id: "pg002_sec001", href: "pg002_sec001.html" },
+    ])
+    store.set(currentSectionIdAtom, "qz001")
+  })
+
+  // Mirrors renderQuizHtml: a focusable label wrapping a native radio.
+  function setupExportedQuiz(): void {
+    document.body.innerHTML = `
+      <section id="simple-main" data-section-type="activity_quiz" data-section-id="qz001"
+               data-correct-answers='{"qz001_o0":true,"qz001_o1":false}'>
+        <header><p id="qz001-question-label" data-id="qz001_que">Which one?</p></header>
+        <div role="group" aria-labelledby="qz001-question-label">
+          <label class="activity-option" data-activity-item="qz001_o0" tabindex="0">
+            <input type="radio" name="qz001" value="qz001_o0" data-activity-item="qz001_o0"
+                   class="sr-only" aria-labelledby="qz001_o0-option-label" />
+            <span id="qz001_o0-option-label" class="option-text" data-id="qz001_o0">First</span>
+            <div class="feedback-container hidden" aria-live="polite"><span class="feedback-text"></span></div>
+          </label>
+          <label class="activity-option" data-activity-item="qz001_o1" tabindex="0">
+            <input type="radio" name="qz001" value="qz001_o1" data-activity-item="qz001_o1"
+                   class="sr-only" aria-labelledby="qz001_o1-option-label" />
+            <span id="qz001_o1-option-label" class="option-text" data-id="qz001_o1">Second</span>
+            <div class="feedback-container hidden" aria-live="polite"><span class="feedback-text"></span></div>
+          </label>
+        </div>
+      </section>
+    `
+  }
+
+  it("exposes the option label as the only radio and hides the native one inside it", () => {
+    setupExportedQuiz()
+    cleanup = initializeQuizActivity()
+
+    const options = Array.from(
+      document.querySelectorAll<HTMLElement>(".activity-option"),
+    )
+    expect(options).toHaveLength(2)
+    for (const option of options) {
+      expect(option.getAttribute("role")).toBe("radio")
+      expect(option.tabIndex).toBe(0)
+      expect(option.getAttribute("aria-checked")).toBe("false")
+
+      const radio = option.querySelector<HTMLInputElement>("input[type='radio']")!
+      expect(radio.getAttribute("aria-hidden")).toBe("true")
+      expect(radio.hasAttribute("inert")).toBe(true)
+      expect(radio.tabIndex).toBe(-1)
+    }
+    // Nothing outside the options claims to be a radio.
+    expect(document.querySelectorAll("[role='radio']")).toHaveLength(2)
+  })
+
+  it("keeps the native radio's identity and classes", () => {
+    setupExportedQuiz()
+    cleanup = initializeQuizActivity()
+
+    const radio = document.querySelector<HTMLInputElement>("input[value='qz001_o1']")!
+    expect(radio.name).toBe("qz001")
+    expect(radio.getAttribute("data-activity-item")).toBe("qz001_o1")
+    expect(radio.className).toBe("sr-only")
+    expect(radio.closest(".activity-option")!.className).toBe("activity-option")
+  })
+
+  it("keeps aria-checked and the native radio in step with the selection", () => {
+    setupExportedQuiz()
+    cleanup = initializeQuizActivity()
+
+    const [first, second] = Array.from(
+      document.querySelectorAll<HTMLElement>(".activity-option"),
+    )
+    second.click()
+    expect(second.getAttribute("aria-checked")).toBe("true")
+    expect(first.getAttribute("aria-checked")).toBe("false")
+    expect(second.querySelector<HTMLInputElement>("input")!.checked).toBe(true)
+
+    first.click()
+    expect(first.getAttribute("aria-checked")).toBe("true")
+    expect(second.getAttribute("aria-checked")).toBe("false")
+    expect(first.querySelector<HTMLInputElement>("input")!.checked).toBe(true)
+    expect(second.querySelector<HTMLInputElement>("input")!.checked).toBe(false)
+  })
+
+  it("selects with Enter or Space on the focused option and announces the verdict", () => {
+    setupExportedQuiz()
+    cleanup = initializeQuizActivity()
+
+    const [first, second] = Array.from(
+      document.querySelectorAll<HTMLElement>(".activity-option"),
+    )
+    second.focus()
+    second.dispatchEvent(
+      new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }),
+    )
+    expect(second.getAttribute("aria-checked")).toBe("true")
+    expect(second.getAttribute("aria-invalid")).toBe("true")
+    const wrong = second.querySelector<HTMLElement>(".feedback-container")!
+    expect(wrong.classList.contains("hidden")).toBe(false)
+    expect(wrong.getAttribute("role")).toBe("alert")
+
+    first.focus()
+    first.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }),
+    )
+    expect(first.getAttribute("aria-checked")).toBe("true")
+    expect(first.getAttribute("aria-invalid")).toBe("false")
+    expect(
+      first.querySelector<HTMLElement>(".feedback-container")!.getAttribute("role"),
+    ).toBe("status")
+    expect(document.activeElement).toBe(first)
+  })
+
+  it("leaves the arrow keys to the reader's page turn while an option is focused", () => {
+    setupExportedQuiz()
+    cleanup = initializeQuizActivity()
+
+    const option = document.querySelector<HTMLElement>(".activity-option")!
+    option.focus()
+    for (const key of ["ArrowLeft", "ArrowRight"]) {
+      const arrow = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true })
+      option.dispatchEvent(arrow)
+      expect(arrow.defaultPrevented).toBe(false)
+    }
+    expect(option.getAttribute("aria-checked")).toBe("false")
+  })
+
+  it("turns the quiz's own question group into the radiogroup and leaves the section alone", () => {
+    setupExportedQuiz()
+    cleanup = initializeQuizActivity()
+
+    const section = document.querySelector<HTMLElement>("section")!
+    expect(section.hasAttribute("role")).toBe(false)
+    expect(section.hasAttribute("aria-label")).toBe(false)
+
+    const radiogroups = document.querySelectorAll<HTMLElement>("[role='radiogroup']")
+    expect(radiogroups).toHaveLength(1)
+    expect(radiogroups[0].getAttribute("aria-labelledby")).toBe("qz001-question-label")
+    expect(radiogroups[0].querySelectorAll("[role='radio']")).toHaveLength(2)
+  })
+
+  it("gives each question on a page its own radiogroup named by its question", () => {
+    document.body.innerHTML = `
+      <section data-section-type="activity_multiple_choice" data-section-id="pg002_sec020" role="article">
+        <div role="group">
+          <p data-id="text-q1">Question 1.</p>
+          <label class="activity-option">
+            <input type="radio" name="question-group-1" value="item-1" data-activity-item="item-1" class="sr-only" />
+            <span data-id="text-1">Q1A</span>
+          </label>
+          <label class="activity-option">
+            <input type="radio" name="question-group-1" value="item-2" data-activity-item="item-2" class="sr-only" />
+            <span data-id="text-2">Q1B</span>
+          </label>
+        </div>
+        <div role="group">
+          <p data-id="text-q2">Question 2.</p>
+          <label class="activity-option">
+            <input type="radio" name="question-group-2" value="item-3" data-activity-item="item-3" class="sr-only" />
+            <span data-id="text-3">Q2A</span>
+          </label>
+          <label class="activity-option">
+            <input type="radio" name="question-group-2" value="item-4" data-activity-item="item-4" class="sr-only" />
+            <span data-id="text-4">Q2B</span>
+          </label>
+        </div>
+      </section>
+    `
+    window.correctAnswers = { "item-1": true, "item-4": true }
+    cleanup = initializeQuizActivity()
+
+    const section = document.querySelector<HTMLElement>("section")!
+    expect(section.getAttribute("role")).toBe("article")
+
+    const radiogroups = Array.from(
+      document.querySelectorAll<HTMLElement>("[role='radiogroup']"),
+    )
+    expect(radiogroups).toHaveLength(2)
+    const names = radiogroups.map(
+      (g) => document.getElementById(g.getAttribute("aria-labelledby")!)?.textContent,
+    )
+    expect(names).toEqual(["Question 1.", "Question 2."])
+    for (const g of radiogroups) {
+      expect(g.querySelectorAll("[role='radio']")).toHaveLength(2)
+    }
+  })
+
+  it("keeps a name the page already gave the group", () => {
+    document.body.innerHTML = `
+      <section data-section-type="activity_multiple_choice" data-section-id="pg006_sec001">
+        <div role="group" aria-label="Question group 1">
+          <p data-id="text-q">Pick one.</p>
+          <div class="grid">
+            <label class="activity-option">
+              <input type="radio" name="question-group-1" value="item-1" data-activity-item="item-1" class="sr-only" />
+              <img data-id="img-1" src="images/a.png" alt="A" />
+            </label>
+            <label class="activity-option">
+              <input type="radio" name="question-group-1" value="item-2" data-activity-item="item-2" class="sr-only" />
+              <img data-id="img-2" src="images/b.png" alt="B" />
+            </label>
+          </div>
+        </div>
+      </section>
+    `
+    window.correctAnswers = { "item-2": true }
+    cleanup = initializeQuizActivity()
+
+    const radiogroups = document.querySelectorAll<HTMLElement>("[role='radiogroup']")
+    expect(radiogroups).toHaveLength(1)
+    expect(radiogroups[0].getAttribute("aria-label")).toBe("Question group 1")
+    expect(radiogroups[0].hasAttribute("aria-labelledby")).toBe(false)
+    expect(document.querySelectorAll("[role='group']")).toHaveLength(0)
+  })
+
+  it("falls back to a generic name when a group has no question text", () => {
+    document.body.innerHTML = `
+      <section data-section-type="activity_multiple_choice" data-section-id="pg007_sec001">
+        <div class="grid">
+          <label class="activity-option">
+            <input type="radio" name="question-group-1" value="item-1" data-activity-item="item-1" class="sr-only" />
+            <img data-id="img-1" src="images/a.png" alt="A" />
+          </label>
+          <label class="activity-option">
+            <input type="radio" name="question-group-1" value="item-2" data-activity-item="item-2" class="sr-only" />
+            <img data-id="img-2" src="images/b.png" alt="B" />
+          </label>
+        </div>
+      </section>
+    `
+    window.correctAnswers = { "item-2": true }
+    cleanup = initializeQuizActivity()
+
+    const radiogroup = document.querySelector<HTMLElement>("[role='radiogroup']")!
+    expect(radiogroup.classList.contains("grid")).toBe(true)
+    expect(radiogroup.getAttribute("aria-label")).toBe("Answer options")
+  })
+})
