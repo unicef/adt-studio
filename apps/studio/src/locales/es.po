@@ -1083,6 +1083,9 @@ msgstr "Algunas páginas tienen preguntas, espacios para completar, cosas para u
 msgid "A few quick choices, one at a time: the kind of book, its language, how the pages look, which pages to convert."
 msgstr "Unas pocas decisiones rápidas, una a la vez: el tipo de libro, su idioma, cómo se ven las páginas y qué páginas convertir."
 
+msgid "A few seconds of reading, then one choice at a time"
+msgstr "Unos segundos de lectura y luego una decisión a la vez"
+
 msgid "A few seconds. I look at some pages to understand what kind of book it is. Nothing is converted yet."
 msgstr "Unos segundos. Miro algunas páginas para entender qué tipo de libro es. Todavía no se convierte nada."
 
@@ -2077,9 +2080,6 @@ msgstr "Otro idioma traduce el libro a ese idioma."
 msgid "Another language…"
 msgstr "Otro idioma…"
 
-#~ msgid "Another option fits better when"
-#~ msgstr "Otra opción encaja mejor si"
-
 msgid "Another program on this computer is already signing in to Cloudflare. Close it and try again."
 msgstr "Otro programa en este ordenador ya está iniciando sesión en Cloudflare. Ciérralo e inténtalo de nuevo."
 
@@ -2652,9 +2652,6 @@ msgstr "Carpeta de libros"
 
 msgid "Books like this"
 msgstr "Libros como este"
-
-#~ msgid "Books like this:"
-#~ msgstr "Libros como estos:"
 
 msgid "Books that are mostly words, and school books with many parts."
 msgstr "Libros que son casi todo texto y libros escolares con muchas partes."
@@ -4760,6 +4757,9 @@ msgstr "Los efectos están reducidos en todo Studio."
 msgid "Effort"
 msgstr "Esfuerzo"
 
+msgid "Either way you choose the PDF next, and nothing is converted until you set the book up."
+msgstr "En ambos casos eliges el PDF a continuación, y no se convierte nada hasta que configures el libro."
+
 msgid "Element style editor"
 msgstr "Editor de estilo de elemento"
 
@@ -4969,11 +4969,17 @@ msgstr "Cada página, leída en voz alta."
 msgid "Every section has a video"
 msgstr "Cada sección tiene un video"
 
+msgid "Every setting in view"
+msgstr "Todos los ajustes a la vista"
+
 msgid "Every shared version keeps its files"
 msgstr "Cada versión compartida conserva sus archivos"
 
 msgid "Every Storyboard section has a sign-language video assigned. You can switch to Covered or All to review or replace them."
 msgstr "Cada sección del Storyboard tiene un video de lenguaje de señas asignado. Puedes cambiar a Cubierto o Todo para revisarlos o reemplazarlos."
+
+msgid "Every suggestion says why, and you can change it"
+msgstr "Cada sugerencia explica por qué, y puedes cambiarla"
 
 msgid "Every text task falls back to this model unless it overrides it."
 msgstr "Cada tarea de texto recurre a este modelo a menos que lo anule."
@@ -6062,6 +6068,9 @@ msgstr "¿Qué tan cerca debe coincidir la revisión visual con la página origi
 
 msgid "How closely to match the original voice recording. Lower it if you hear audio artifacts."
 msgstr "Cuánto se debe parecer a la grabación de voz original. Redúcelo si oyes artefactos de audio."
+
+msgid "How do you want to set up this book?"
+msgstr "¿Cómo quieres configurar este libro?"
 
 msgid "How each page is split"
 msgstr "Cómo se divide cada página"
@@ -9574,6 +9583,9 @@ msgstr "Elige una familia para adjuntar al libro. Se descarga al ejecutar la ext
 msgid "Pick a page to see its sections."
 msgstr "Elige una página para ver sus secciones."
 
+msgid "Pick a preset and choose every setting yourself, in the classic wizard."
+msgstr "Elige un preajuste y cada ajuste tú mismo, en el asistente clásico."
+
 msgid "Pick a provider to connect — or skip and add one later."
 msgstr "Elige un proveedor para conectar — o sáltalo y añade uno más tarde."
 
@@ -9591,9 +9603,6 @@ msgstr "Elegir del libro"
 
 msgid "Pick from Book"
 msgstr "Elegir del libro"
-
-#~ msgid "Pick it when"
-#~ msgstr "Elígela si"
 
 msgid "Pick one layout approach."
 msgstr "Elige un enfoque de diseño."
@@ -10155,9 +10164,6 @@ msgstr "Cita"
 
 msgid "Radius"
 msgstr "Radio"
-
-msgid "Rather choose every setting yourself?"
-msgstr "¿Prefieres elegir cada ajuste tú mismo?"
 
 msgid "Re-enable type"
 msgstr "Reactivar tipo"
@@ -11744,9 +11750,6 @@ msgstr "Establecer las fuentes de todo el libro"
 msgid "Set it up myself"
 msgstr "Configurarlo yo mismo"
 
-msgid "Set it up step by step"
-msgstr "Configurarlo paso a paso"
-
 msgid "Set manually"
 msgstr "Definida manualmente"
 
@@ -12456,6 +12459,9 @@ msgstr "Iniciar validación del revisor"
 msgid "Start typing to see words from the book…"
 msgstr "Empieza a escribir para ver palabras del libro…"
 
+msgid "Start with the assistant"
+msgstr "Empezar con el asistente"
+
 msgid "Starting from a PDF?"
 msgstr "¿Empiezas desde un PDF?"
 
@@ -12493,6 +12499,9 @@ msgstr "Paso {step} de {0}"
 
 msgid "Step {stepNumber} of {stepCount}"
 msgstr "Paso {stepNumber} de {stepCount}"
+
+msgid "Step by step"
+msgstr "Paso a paso"
 
 msgid "Step failed"
 msgstr "Error en el paso"
@@ -12983,6 +12992,12 @@ msgstr "El archivo contiene una carpeta o un archivo fuera de la estructura ADT 
 msgid "The archive must contain a project database and its PDF. Re-export it from ADT Studio."
 msgstr "El archivo debe contener una base de datos de proyecto y su PDF. Vuelve a exportarlo desde ADT Studio."
 
+msgid "The assistant is new. It can get a suggestion wrong, so look over each one before you set the book up."
+msgstr "El asistente es nuevo. Puede equivocarse en alguna sugerencia, así que revisa cada una antes de configurar el libro."
+
+msgid "The assistant reads your PDF and suggests every setting. You check them in a few quick screens."
+msgstr "El asistente lee tu PDF y sugiere cada ajuste. Tú los revisas en unas pocas pantallas rápidas."
+
 msgid "The back cover of the book."
 msgstr "La contraportada del libro."
 
@@ -13449,6 +13464,9 @@ msgstr "El TOC lista las secciones escritas colocadas por el Storyboard. Termina
 
 msgid "The Water Cycle"
 msgstr "El Ciclo del Agua"
+
+msgid "The way books were set up before"
+msgstr "Como se configuraban los libros hasta ahora"
 
 msgid "The weather was very bad."
 msgstr "El tiempo estaba muy malo."
@@ -15077,6 +15095,9 @@ msgstr "Ventanas"
 
 msgid "With a code"
 msgstr "Con un código"
+
+msgid "With the assistant"
+msgstr "Con el asistente"
 
 msgid "With those settings. That's when the conversion starts, and you follow and review it in the editor."
 msgstr "Con esa configuración. Ahí empieza la conversión, y tú la sigues y la revisas en el editor."

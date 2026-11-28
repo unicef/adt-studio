@@ -1085,6 +1085,9 @@ msgstr "Disa faqe kanë pyetje, vende bosh, lidhje ose kuti për të shënuar."
 msgid "A few quick choices, one at a time: the kind of book, its language, how the pages look, which pages to convert."
 msgstr "Disa zgjedhje të shpejta, një nga një: lloji i librit, gjuha e tij, si duken faqet, cilat faqe të konvertohen."
 
+msgid "A few seconds of reading, then one choice at a time"
+msgstr "Disa sekonda lexim, pastaj një zgjedhje në një kohë"
+
 msgid "A few seconds. I look at some pages to understand what kind of book it is. Nothing is converted yet."
 msgstr "Disa sekonda. Shikoj disa faqe për të kuptuar çfarë lloj libri është. Ende nuk konvertohet asgjë."
 
@@ -2079,9 +2082,6 @@ msgstr "Një gjuhë tjetër e përkthen librin në të."
 msgid "Another language…"
 msgstr "Një gjuhë tjetër…"
 
-#~ msgid "Another option fits better when"
-#~ msgstr "Një opsion tjetër përshtatet më mirë kur"
-
 msgid "Another program on this computer is already signing in to Cloudflare. Close it and try again."
 msgstr "Një program tjetër në këtë kompjuter është tashmë duke u kyçur në Cloudflare. Mbylle atë dhe provo përsëri."
 
@@ -2654,9 +2654,6 @@ msgstr "Dosja e librave"
 
 msgid "Books like this"
 msgstr "Libra si ky"
-
-#~ msgid "Books like this:"
-#~ msgstr "Libra si ky:"
 
 msgid "Books that are mostly words, and school books with many parts."
 msgstr "Libra që janë kryesisht tekst dhe libra shkollorë me shumë pjesë."
@@ -4762,6 +4759,9 @@ msgstr "Efektet janë të reduktuara kudo në Studio."
 msgid "Effort"
 msgstr "Përpjekje"
 
+msgid "Either way you choose the PDF next, and nothing is converted until you set the book up."
+msgstr "Në të dyja rastet zgjidhni PDF-në më pas, dhe asgjë nuk konvertohet derisa ta konfiguroni librin."
+
 msgid "Element style editor"
 msgstr "Redaktues i stilit të elementit"
 
@@ -4971,11 +4971,17 @@ msgstr "Çdo faqe, e lexuar me zë."
 msgid "Every section has a video"
 msgstr "Çdo seksion ka një video"
 
+msgid "Every setting in view"
+msgstr "Të gjitha cilësimet para jush"
+
 msgid "Every shared version keeps its files"
 msgstr "Çdo version i ndarë i ruan skedarët e vet"
 
 msgid "Every Storyboard section has a sign-language video assigned. You can switch to Covered or All to review or replace them."
 msgstr "Çdo seksion i Storyboard-it ka një video të gjuhës së shenjave të caktuar. Mund të kaloni te Të mbuluara ose Të gjitha për t'i rishikuar ose zëvendësuar."
+
+msgid "Every suggestion says why, and you can change it"
+msgstr "Çdo sugjerim tregon pse, dhe ju mund ta ndryshoni"
 
 msgid "Every text task falls back to this model unless it overrides it."
 msgstr "Çdo detyrë teksti kthehet në këtë model përveç nëse e tejkalon atë."
@@ -6064,6 +6070,9 @@ msgstr "Sa ngushtë duhet të përputhet rishikimi vizual me faqen origjinale? R
 
 msgid "How closely to match the original voice recording. Lower it if you hear audio artifacts."
 msgstr "Sa afër duhet të jetë me regjistrimin origjinal të zërit. Ulni vlerën nëse dëgjoni defekte audio."
+
+msgid "How do you want to set up this book?"
+msgstr "Si dëshironi ta konfiguroni këtë libër?"
 
 msgid "How each page is split"
 msgstr "Si ndahet çdo faqe"
@@ -9576,6 +9585,9 @@ msgstr "Zgjidhni një familje për ta bashkëngjitur në libër. Ajo shkarkohet 
 msgid "Pick a page to see its sections."
 msgstr "Zgjidhni një faqe për të parë seksionet e saj."
 
+msgid "Pick a preset and choose every setting yourself, in the classic wizard."
+msgstr "Zgjidhni një paracaktim dhe çdo cilësim vetë, në magjistarin klasik."
+
 msgid "Pick a provider to connect — or skip and add one later."
 msgstr "Zgjidhni një ofrues për ta lidhur — ose kaloni dhe shtoni një më vonë."
 
@@ -9593,9 +9605,6 @@ msgstr "Zgjidhni nga libri"
 
 msgid "Pick from Book"
 msgstr "Zgjidhni nga Libri"
-
-#~ msgid "Pick it when"
-#~ msgstr "Zgjidheni kur"
 
 msgid "Pick one layout approach."
 msgstr "Zgjidhni një qasje paraqitjeje."
@@ -10157,9 +10166,6 @@ msgstr "Citat"
 
 msgid "Radius"
 msgstr "Rrezja"
-
-msgid "Rather choose every setting yourself?"
-msgstr "Preferoni ta zgjidhni vetë çdo cilësim?"
 
 msgid "Re-enable type"
 msgstr "Ri-aktivizo tipin"
@@ -11746,9 +11752,6 @@ msgstr "Vendos fontet për të gjithë librin"
 msgid "Set it up myself"
 msgstr "Do ta konfiguroj vetë"
 
-msgid "Set it up step by step"
-msgstr "Konfigurojeni hap pas hapi"
-
 msgid "Set manually"
 msgstr "Caktuar manualisht"
 
@@ -12458,6 +12461,9 @@ msgstr "Fillo validimin e rishikuesit"
 msgid "Start typing to see words from the book…"
 msgstr "Fillo të shkruash për të parë fjalë nga libri…"
 
+msgid "Start with the assistant"
+msgstr "Filloni me asistentin"
+
 msgid "Starting from a PDF?"
 msgstr "Po filloni nga një PDF?"
 
@@ -12495,6 +12501,9 @@ msgstr "Hapi {step} nga {0}"
 
 msgid "Step {stepNumber} of {stepCount}"
 msgstr "Hapi {stepNumber} nga {stepCount}"
+
+msgid "Step by step"
+msgstr "Hap pas hapi"
 
 msgid "Step failed"
 msgstr "Hapi dështoi"
@@ -12985,6 +12994,12 @@ msgstr "Arkivi përmban një dosje ose skedar jashtë strukturës standarde ADT.
 msgid "The archive must contain a project database and its PDF. Re-export it from ADT Studio."
 msgstr "Arkivi duhet të përmbajë një bazë të dhënash projekti dhe PDF-në e tij. Eksportojeni përsëri nga ADT Studio."
 
+msgid "The assistant is new. It can get a suggestion wrong, so look over each one before you set the book up."
+msgstr "Asistenti është i ri. Mund të gabojë në ndonjë sugjerim, ndaj kontrolloni secilin para se ta konfiguroni librin."
+
+msgid "The assistant reads your PDF and suggests every setting. You check them in a few quick screens."
+msgstr "Asistenti lexon PDF-në tuaj dhe sugjeron çdo cilësim. Ju i kontrolloni në disa ekrane të shpejta."
+
 msgid "The back cover of the book."
 msgstr "Kapaku i pasëm i librit."
 
@@ -13451,6 +13466,9 @@ msgstr "TOC liston seksionet e shtypura të vendosura nga Storyboard. Përfundo 
 
 msgid "The Water Cycle"
 msgstr "Cikli i Ujit"
+
+msgid "The way books were set up before"
+msgstr "Siç konfiguroheshin librat më parë"
 
 msgid "The weather was very bad."
 msgstr "Moti ishte shumë i keq."
@@ -15079,6 +15097,9 @@ msgstr "Dritaret"
 
 msgid "With a code"
 msgstr "Me një kod"
+
+msgid "With the assistant"
+msgstr "Me asistentin"
 
 msgid "With those settings. That's when the conversion starts, and you follow and review it in the editor."
 msgstr "Me ato cilësime. Atëherë nis konvertimi, të cilin e ndiqni dhe e rishikoni në redaktor."

@@ -1,35 +1,62 @@
 import { useState } from "react"
 import { useWizard } from "@/components/wizard/core/WizardProvider"
 import { BookCreationWizard } from "@/components/wizard/manual/BookCreationWizard"
+import { ModeChoice } from "@/components/wizard/start/ModeChoice"
 import { cn } from "@/lib/utils"
 import { Guided } from "./Guided"
 import "./shared/look.css"
 
+type Mode = "choose" | "auto" | "manual"
+
 /**
- * Guided, the Add Book auto mode design: a four-step stepper with one assistant bubble per step. It
- * is built from Check's screens in `check/`, the parts in `shared/` and the look in `shared/look.css`.
- * "Set it up myself" opens the step-by-step wizard with the PDF (and the setup so far) kept; its back button returns here.
+ * Add Book: first the choice between the assistant (Guided, in Beta) and the step-by-step wizard.
+ * Guided is the four-step flow with one assistant bubble per step, built from Check's screens in
+ * `check/`, the parts in `shared/` and the look in `shared/look.css`. Its "Set it up myself" opens
+ * the wizard with the PDF (and the setup so far) kept, and the wizard's back returns to Guided; a
+ * wizard opened from the choice starts at its presets, and its back returns to the choice.
  */
 export function GuidedFlow() {
   const { setPhase, setCurrentStep } = useWizard()
-  const [manual, setManual] = useState(false)
+  const [mode, setMode] = useState<Mode>("choose")
+  // Guided stays mounted (hidden) under a wizard opened from it, so coming back keeps its state.
+  const [guided, setGuided] = useState(false)
+  const [manualFrom, setManualFrom] = useState<"choose" | "auto">("choose")
+
+  if (mode === "choose")
+    return (
+      <ModeChoice
+        onAuto={() => {
+          setGuided(true)
+          setMode("auto")
+        }}
+        onManual={() => {
+          setPhase("upload")
+          setCurrentStep(0)
+          setManualFrom("choose")
+          setMode("manual")
+        }}
+      />
+    )
   return (
     <>
-        <div className={cn("flex h-full min-h-0 flex-1 flex-col", manual && "hidden")}>
+      {guided && (
+        <div className={cn("flex h-full min-h-0 flex-1 flex-col", mode !== "auto" && "hidden")}>
           <Guided
-            active={!manual}
+            active={mode === "auto"}
             onManual={() => {
               setPhase("wizard")
               setCurrentStep(0)
-              setManual(true)
+              setManualFrom("auto")
+              setMode("manual")
             }}
           />
         </div>
-      {manual && (
+      )}
+      {mode === "manual" && (
         <BookCreationWizard
           onBackFromPresets={() => {
             setPhase("upload")
-            setManual(false)
+            setMode(manualFrom)
           }}
         />
       )}

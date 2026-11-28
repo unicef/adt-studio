@@ -29,6 +29,7 @@ import { Morph } from "./Morph"
 import { FlowTopBar } from "@/components/FlowTopBar"
 import { useNavigate } from "@tanstack/react-router"
 import { useLeaveGuard } from "./shared/LeaveGuard"
+import { BetaTag } from "../../start/ModeChoice"
 import { PdfRow } from "./pdf/PdfRow"
 import { Stepper } from "./Stepper"
 import { STEPS, type StepId } from "./steps"
@@ -182,7 +183,7 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
     const shownTour = flow.file ? null : tour
     says = <UploadSays flow={flow} rejected={!!rejectedAt && !validFile} />
     swap = `upload-${rejectedAt}-${flow.error ?? ""}-${validFile}-${!!flow.file}-${shownTour === null}`
-    panel = <UploadPanel flow={flow} rejected={!!rejectedAt && !validFile} onContinue={view === "upload" && validFile ? () => morph(() => setView(null)) : null} tour={shownTour} onTour={setTour} onTourDone={() => morph(endTour)} onTourAgain={() => setTour(0)} onManual={manual} />
+    panel = <UploadPanel flow={flow} rejected={!!rejectedAt && !validFile} onContinue={view === "upload" && validFile ? () => morph(() => setView(null)) : null} tour={shownTour} onTour={setTour} onTourDone={() => morph(endTour)} onTourAgain={() => setTour(0)} />
   } else if (shown === "reading") {
     if (failure) {
       swap = `failed-${attempt}`
@@ -224,7 +225,12 @@ export function Guided({ onManual, active = true }: { onManual: () => void; acti
         {/* Above the page (z-40), so the dock can open over it. */}
         <div className="relative z-40 shrink-0" style={{ viewTransitionName: "gd-topbar" }}>
           <FlowTopBar
-            title={t`Add Book`}
+            title={
+              <span className="inline-flex items-center gap-2">
+                {t`Add Book`}
+                <BetaTag />
+              </span>
+            }
             onBack={() => leave.confirm("leave", () => navigate({ to: "/" }))}
             contentWidth={columnPx * scale}
           />
