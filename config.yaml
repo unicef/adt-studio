@@ -3,9 +3,9 @@
 # override this one. This can also be changed in Studio under Settings > Models.
 default_model: "openai:gpt-6-luna"
 
-# Visual review, activity rendering and book outline run on GPT-6.1 Sol; every
-# other text task uses default_model unless it sets its own model
-# (Settings > Models).
+# Visual review, activity rendering, book outline and page sectioning run on
+# GPT-6.1 Sol; every other text task uses default_model unless it sets its own
+# model (Settings > Models).
 visual_review:
   model: "openai:gpt-6.1-sol"
   reasoning_effort: "medium"
@@ -202,9 +202,29 @@ section_types:
 metadata:
   prompt: metadata_extraction
 
+# Sol reads non-Latin and scanned pages far more accurately than Luna (Urdu:
+# 3-5 misread words in 9 pages vs 28-34) and keeps more tables as tables;
+# section and activity types were equally accurate (blind tests on #964).
 page_sectioning:
   prompt: page_sectioning
+  model: "openai:gpt-6.1-sol"
+  reasoning_effort: "medium"
   max_refinements: 0
+
+# These tasks follow page_sectioning's model when they set none. Pin them to
+# Luna so moving sectioning to Sol changes only sectioning. Easy Read and
+# speech preparation follow translation.
+translation:
+  model: "openai:gpt-6-luna"
+
+image_captioning:
+  model: "openai:gpt-6-luna"
+
+glossary:
+  model: "openai:gpt-6-luna"
+
+toc_generation:
+  model: "openai:gpt-6-luna"
 
 image_meaningfulness:
   prompt: image_meaningfulness
@@ -379,6 +399,7 @@ section_render_strategies:
   activity_open_ended_answer: activity_open_ended_answer
 
 quiz_generation:
+  model: "openai:gpt-6-luna"
   # Style quizzes to match the book (typography + colors derived from the book).
   match_book_style: true
   quiz_section_types:

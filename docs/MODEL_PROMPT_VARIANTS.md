@@ -99,9 +99,23 @@ The distributed execution default is `openai:gpt-6-luna`. The shipped
 `config.yaml` pins `openai:gpt-6.1-sol` for visual review (`visual_review.model`)
 and for every activity render strategy (`render_strategies.activity_*.config.model`),
 and `openai:gpt-6.1-sol` at `medium` effort for book outline (`book_outline.model`,
-`book_outline.reasoning_effort`); agents keep the provider's agent default, `gpt-6.1-sol`. Each of these is a
+`book_outline.reasoning_effort`) and page sectioning (`page_sectioning.model`,
+`page_sectioning.reasoning_effort`); agents keep the provider's agent default, `gpt-6.1-sol`. Each of these is a
 task-model override shown in Settings > Models. Base prompt provenance remains `openai:gpt-5.4`;
 selecting GPT-5.4 still resolves the legacy base prompts.
+
+Page sectioning moved to Sol after blind tests on the #964 test books. Section
+and activity types were equally accurate on Luna and Sol (92% of sections on 78
+activity-book pages, against 82% for GPT-5.4), but Sol read non-Latin and
+scanned pages far more accurately (an Urdu book with no text layer: 3–5 misread
+words in 9 pages, against 28–34 for Luna and 40–67 for GPT-5.4) and kept more
+tables as tables (15 of 16, against 12 of 16). Sol has no sectioning variant, so
+it resolves the base `page_sectioning` prompt.
+
+Translation, quiz generation, image captioning, glossary and TOC generation
+inherit `page_sectioning.model` when they set none (Easy Read and speech
+preparation inherit through translation). The shipped config pins them to
+`openai:gpt-6-luna`, so moving sectioning to Sol changes no other task.
 
 Web pages (`render_strategies.llm`) render on the default model, Luna, with
 `openai:gpt-6.1-sol` at `medium` as `config.fallback`: after two failed Luna
@@ -206,8 +220,9 @@ reasoning effort. At Luna's default `medium`, 55–71% of the output of those
 tasks was reasoning, the cropping step took three times as long as on GPT-5.4,
 and three calls ran out of their 4,096 output tokens.
 
-`page_sectioning` keeps the base wording and adds targeted fixes for the
-validation failures Luna produced on the base prompt (about 10% of pages on a
+`page_sectioning` (used when a book or Settings > Models selects Luna for
+sectioning; the shipped default is Sol) keeps the base wording and adds targeted
+fixes for the validation failures Luna produced on the base prompt (about 10% of pages on a
 102-page workbook, against about 3% for GPT-5.4):
 
 - It separates the ROLE TYPES and SECTION TYPES vocabularies. Luna wrote the

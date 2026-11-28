@@ -85,7 +85,7 @@ describe("setYamlPathValue", () => {
     const shipped = fs.readFileSync(path.resolve(__dirname, "../../../../config.yaml"), "utf-8")
     const paths = [
       ["metadata", "model"],
-      ["page_sectioning", "model"],
+      ["image_meaningfulness", "model"],
       ["styleguide_generation", "model"],
       ["render_strategies", "llm-overlay", "config", "model"],
       ["render_strategies", "llm", "config", "model"],
@@ -95,5 +95,9 @@ describe("setYamlPathValue", () => {
       const added = setYamlPathValue(shipped, target, "openai:gpt-5.4")
       expect(setYamlPathValue(added, target, null)).toBe(shipped)
     }
+    // A path the shipped file already sets round-trips through a replacement.
+    const replaced = setYamlPathValue(shipped, ["page_sectioning", "model"], "openai:gpt-5.4")
+    expect(replaced).not.toBe(shipped)
+    expect(setYamlPathValue(replaced, ["page_sectioning", "model"], "openai:gpt-6.1-sol")).toBe(shipped)
   })
 })

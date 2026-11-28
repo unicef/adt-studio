@@ -92,6 +92,16 @@ describe("task model display matches the pipeline runtime", () => {
     }
   })
 
+  it("ships page sectioning on GPT-6.1 Sol and keeps the tasks that inherit it on Luna", () => {
+    const tasks = listTaskModels(shipped)
+    const model = (id: string) => displayedModel(tasks, tasks.find((task) => task.id === id)!, shipped.default_model!)
+    expect(model("page_sectioning")).toBe("openai:gpt-6.1-sol")
+    expect(shipped.page_sectioning?.reasoning_effort).toBe("medium")
+    for (const id of ["translation", "quiz_generation", "image_captioning", "glossary", "toc_generation", "easy_read", "core_tts"]) {
+      expect({ id, model: model(id) }).toEqual({ id, model: "openai:gpt-6-luna" })
+    }
+  })
+
   it("ships book outline on GPT-6.1 Sol at medium effort", () => {
     const tasks = listTaskModels(shipped)
     const outline = tasks.find((task) => task.id === "book_outline")!
