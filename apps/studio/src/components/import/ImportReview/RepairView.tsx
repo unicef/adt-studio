@@ -4,6 +4,7 @@ import { BookOpen } from "lucide-react"
 import type { AdtBundleImportPreview } from "@/api/client"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { repairRequestFileName } from "@/components/import/ImportProject/repair-prompt"
 import { RepairGuide } from "./RepairGuide"
 import { RepairRequest } from "./RepairRequest"
 import { IssueGroupList, Panel, StatusRow } from "./ReviewParts"
@@ -24,11 +25,14 @@ const GUIDE_APPENDIX = "\n\n<current_adt_agent_guide>"
  */
 export function RepairView({
   preview,
+  archiveName,
   status,
   activityNotice,
   issueGroups,
 }: {
   preview: AdtBundleImportPreview
+  /** The ZIP's file name, which the downloaded request is named after. */
+  archiveName: string
   status: Status
   activityNotice: Status | null
   issueGroups: IssueGroup[]
@@ -73,20 +77,17 @@ export function RepairView({
             inert={guideOpen}
             text={shown.text}
             copyValue={request}
+            fileName={repairRequestFileName(archiveName)}
             className="flex-1"
-            actions={(
-              <>
-                <Button type="button" variant="outline" size="sm" onClick={openGuide} className="h-9 text-sm">
-                  <BookOpen className="size-3.5" />
-                  <Trans>AI repair guide</Trans>
-                </Button>
-                {shown.withGuide ? (
-                  <span className="ml-auto text-xs text-muted-foreground">
-                    <Trans>The copy also includes the current guide, because this archive’s guide is missing or outdated.</Trans>
-                  </span>
-                ) : null}
-              </>
+            headerAction={(
+              <Button type="button" variant="outline" size="sm" onClick={openGuide} className="h-8 text-sm">
+                <BookOpen className="size-3.5" />
+                <Trans>AI repair guide</Trans>
+              </Button>
             )}
+            note={shown.withGuide
+              ? <Trans>The copy and the download also include the current guide, because this archive’s guide is missing or outdated.</Trans>
+              : undefined}
           />
         </Panel>
         {guideMounted ? (

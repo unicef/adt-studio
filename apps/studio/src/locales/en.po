@@ -3512,6 +3512,9 @@ msgstr "Copy failed"
 msgid "Copy full guide"
 msgstr "Copy full guide"
 
+msgid "Copy line"
+msgstr "Copy line"
+
 msgid "Copy link"
 msgstr "Copy link"
 
@@ -4245,6 +4248,12 @@ msgstr "Download a lightweight part (the full PDF plus a page range and a finger
 
 msgid "Download part"
 msgstr "Download part"
+
+msgid "Download repair request"
+msgstr "Download repair request"
+
+msgid "Download status"
+msgstr "Download status"
 
 msgid "Download update"
 msgstr "Download update"
@@ -8163,6 +8172,9 @@ msgstr "Now click the end page."
 msgid "now correct"
 msgstr "now correct"
 
+msgid "Now give your assistant this line instead of the whole request:"
+msgstr "Now give your assistant this line instead of the whole request:"
+
 #. placeholder {0}: publication.current_version
 #. placeholder {1}: publication.version_count
 msgid "Now serving version {0} of {1}"
@@ -10661,6 +10673,9 @@ msgstr "Save the new type, then choose Regenerate to update the activity."
 msgid "Save your work first if you want to keep these changes."
 msgstr "Save your work first if you want to keep these changes."
 
+msgid "Saved {saved}"
+msgstr "Saved {saved}"
+
 msgid "Saved book history is unreadable. Existing content has been retained. Verified history recovery is required before generating new content."
 msgstr "Saved book history is unreadable. Existing content has been retained. Verified history recovery is required before generating new content."
 
@@ -10687,6 +10702,9 @@ msgstr "Saved sections changed. Your unsaved editor is retained against its orig
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Saved. Re-package Preview to apply."
+
+msgid "Saves the full request as {fileName}. Use it when the request is too long to paste into your AI assistant."
+msgstr "Saves the full request as {fileName}. Use it when the request is too long to paste into your AI assistant."
 
 msgid "Saving..."
 msgstr "Saving..."
@@ -12390,8 +12408,11 @@ msgstr "The community of living organisms in a place and the way they interact w
 msgid "The connection to Cloudflare dropped or timed out. Check your internet, then try again — anything already set up is kept."
 msgstr "The connection to Cloudflare dropped or timed out. Check your internet, then try again — anything already set up is kept."
 
-msgid "The copy also includes the current guide, because this archive’s guide is missing or outdated."
-msgstr "The copy also includes the current guide, because this archive’s guide is missing or outdated."
+#~ msgid "The copy also includes the current guide, because this archive’s guide is missing or outdated."
+#~ msgstr "The copy also includes the current guide, because this archive’s guide is missing or outdated."
+
+msgid "The copy and the download also include the current guide, because this archive’s guide is missing or outdated."
+msgstr "The copy and the download also include the current guide, because this archive’s guide is missing or outdated."
 
 msgid "The copy could not be validated. The original book is unchanged. Check that other apps have closed it and that there is enough disk space, then retry."
 msgstr "The copy could not be validated. The original book is unchanged. Check that other apps have closed it and that there is enough disk space, then retry."
@@ -13286,6 +13307,9 @@ msgstr "Tokens Out"
 
 msgid "Too large"
 msgstr "Too large"
+
+#~ msgid "Too long to paste? Download it, then give your assistant this line:"
+#~ msgstr "Too long to paste? Download it, then give your assistant this line:"
 
 msgid "Too small"
 msgstr "Too small"

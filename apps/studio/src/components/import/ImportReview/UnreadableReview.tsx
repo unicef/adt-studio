@@ -1,7 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro"
 import { TriangleAlert } from "lucide-react"
 import type { AdtImportUnreadableDetails } from "@/api/client"
-import { buildUnreadableRepairPrompt } from "../ImportProject/repair-prompt"
+import { buildUnreadableRepairPrompt, repairRequestFileName } from "../ImportProject/repair-prompt"
 import { HeroBand } from "./HeroBand"
 import { RepairRequest } from "./RepairRequest"
 import { IssueList, Panel, StatusRow } from "./ReviewParts"
@@ -96,7 +96,7 @@ export function UnreadableReview({
           ) : null}
         </Panel>
         <Panel>
-          <RepairRequest text={buildUnreadableRepairPrompt(file.name, rawError)} className="flex-1" />
+          <RepairRequest text={buildUnreadableRepairPrompt(file.name, rawError)} fileName={repairRequestFileName(file.name)} className="flex-1" />
         </Panel>
       </div>
     </div>

@@ -3514,6 +3514,9 @@ msgstr "Kopjimi dështoi"
 msgid "Copy full guide"
 msgstr "Kopjoni udhëzuesin e plotë"
 
+msgid "Copy line"
+msgstr "Kopjo rreshtin"
+
 msgid "Copy link"
 msgstr "Kopjo lidhjen"
 
@@ -4247,6 +4250,12 @@ msgstr "Shkarko një pjesë të lehtë (PDF-ja e plotë plus një interval faqes
 
 msgid "Download part"
 msgstr "Shkarko pjesën"
+
+msgid "Download repair request"
+msgstr "Shkarko kërkesën për riparim"
+
+msgid "Download status"
+msgstr "Gjendja e shkarkimit"
 
 msgid "Download update"
 msgstr "Shkarko përditësimin"
@@ -8165,6 +8174,9 @@ msgstr "Tani klikoni faqen e fundit."
 msgid "now correct"
 msgstr "tani e saktë"
 
+msgid "Now give your assistant this line instead of the whole request:"
+msgstr "Tani jepini asistentit tuaj këtë rresht në vend të gjithë kërkesës:"
+
 #. placeholder {0}: publication.current_version
 #. placeholder {1}: publication.version_count
 msgid "Now serving version {0} of {1}"
@@ -10663,6 +10675,9 @@ msgstr "Ruani llojin e ri, pastaj zgjidhni Rigenero për të përditësuar aktiv
 msgid "Save your work first if you want to keep these changes."
 msgstr "Ruaje punën tënde më parë nëse dëshiron t'i mbash këto ndryshime."
 
+msgid "Saved {saved}"
+msgstr "U ruajt: {saved}"
+
 msgid "Saved book history is unreadable. Existing content has been retained. Verified history recovery is required before generating new content."
 msgstr "Historiku i ruajtur i librit është i palexueshëm. Përmbajtja ekzistuese është ruajtur. Historiku duhet të rikuperohet nga të dhëna të verifikuara para se të gjenerohet përmbajtje e re."
 
@@ -10689,6 +10704,9 @@ msgstr "Seksionet e ruajtura kanë ndryshuar. Redaktori me ndryshimet tuaja të 
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "U ruajt. Ri-pako Parapamjen për ta aplikuar."
+
+msgid "Saves the full request as {fileName}. Use it when the request is too long to paste into your AI assistant."
+msgstr "Ruan të gjithë kërkesën si {fileName}. Përdoreni kur kërkesa është shumë e gjatë për ta ngjitur te asistenti juaj i AI-së."
 
 msgid "Saving..."
 msgstr "Duke ruajtur..."
@@ -12392,8 +12410,11 @@ msgstr "Bashkësia e organizmave të gjallë në një vend dhe mënyra si ndërv
 msgid "The connection to Cloudflare dropped or timed out. Check your internet, then try again — anything already set up is kept."
 msgstr "Lidhja me Cloudflare u ndërpre ose zgjati shumë. Kontrolloni internetin, pastaj provoni përsëri — çdo gjë e konfiguruar ruhet."
 
-msgid "The copy also includes the current guide, because this archive’s guide is missing or outdated."
-msgstr "Kopja përfshin edhe udhëzuesin aktual, sepse udhëzuesi i këtij arkivi mungon ose është i vjetëruar."
+#~ msgid "The copy also includes the current guide, because this archive’s guide is missing or outdated."
+#~ msgstr "Kopja përfshin edhe udhëzuesin aktual, sepse udhëzuesi i këtij arkivi mungon ose është i vjetëruar."
+
+msgid "The copy and the download also include the current guide, because this archive’s guide is missing or outdated."
+msgstr "Kopja dhe shkarkimi përfshijnë edhe udhëzuesin aktual, sepse udhëzuesi i këtij arkivi mungon ose është i vjetëruar."
 
 msgid "The copy could not be validated. The original book is unchanged. Check that other apps have closed it and that there is enough disk space, then retry."
 msgstr "Kopja nuk mund të verifikohej. Libri origjinal është i pandryshuar. Kontrolloni që aplikacionet e tjera ta kenë mbyllur dhe që të ketë hapësirë të mjaftueshme në disk, pastaj provoni përsëri."
@@ -13288,6 +13309,9 @@ msgstr "Tokenë Dalës"
 
 msgid "Too large"
 msgstr "Shumë i madh"
+
+#~ msgid "Too long to paste? Download it, then give your assistant this line:"
+#~ msgstr "Shumë e gjatë për ta ngjitur? Shkarkojeni, pastaj jepini asistentit tuaj këtë rresht:"
 
 msgid "Too small"
 msgstr "Shumë i vogël"
