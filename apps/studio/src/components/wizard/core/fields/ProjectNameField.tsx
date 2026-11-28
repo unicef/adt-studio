@@ -22,6 +22,10 @@ export interface ProjectNameFieldProps {
   errors: readonly unknown[]
   /** Replaces the default hint under the field (the guided flow words it for a first-time user). */
   hint?: ReactNode
+  /** Replaces the "Project Name" label (the guided flow calls it the book's name). */
+  label?: ReactNode
+  /** Enter in the field (the guided flow sets the book up). */
+  onEnter?: () => void
 }
 
 export function ProjectNameField({
@@ -30,6 +34,8 @@ export function ProjectNameField({
   onBlur,
   errors,
   hint,
+  label,
+  onEnter,
 }: ProjectNameFieldProps) {
   const { i18n } = useLingui()
   const inputId = "wizard-project-name"
@@ -44,13 +50,18 @@ export function ProjectNameField({
         htmlFor={inputId}
         className="cursor-pointer text-sm font-medium text-foreground"
       >
-        <Trans>Project Name</Trans> <span className="text-destructive">*</span>
+        {label ?? <Trans>Project Name</Trans>} <span className="text-destructive">*</span>
       </Label>
       <Input
         id={inputId}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onBlur={onBlur}
+        onKeyDown={(e) => {
+          if (e.key !== "Enter" || !onEnter || e.nativeEvent.isComposing) return
+          e.preventDefault()
+          onEnter()
+        }}
         placeholder={i18n._(t`my-book-slug`)}
         className={hasError ? "border-destructive" : ""}
         aria-invalid={hasError}

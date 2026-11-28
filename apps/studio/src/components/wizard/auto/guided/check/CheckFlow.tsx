@@ -126,7 +126,7 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, a
   else if (at === "spreads") body = <SpreadsScreen rec={rec} chat={chat} file={file} />
   else if (at === "pages") body = <PagesScreen pageCount={pageCount} />
   else if (at === "activities") body = <ActivitiesScreen rec={rec} chat={chat} file={file} />
-  else body = <NameScreen rec={rec} facts={facts} screens={screens} values={values} settings={derived.effective} pageCount={pageCount} onEdit={(s) => check.go(s, true)} />
+  else body = <NameScreen rec={rec} facts={facts} screens={screens} values={values} settings={derived.effective} pageCount={pageCount} onEdit={(s) => check.go(s, true)} onCreate={() => press.current()} />
 
   return (
     <section ref={section} aria-labelledby={HEADING} inert={locked} className="flex flex-col">
@@ -139,7 +139,7 @@ export function CheckFlow({ rec, chat, check, values, file, pageCount, locked, a
       </div>
       {/* The bar stays at the bottom of the window, so the button never moves; the space above keeps it off the content. */}
       <div aria-hidden style={{ height: barH }} />
-      <div ref={bar} className="gd-bar fixed inset-x-0 bottom-0 z-20 border-t border-border bg-[var(--lc-bg)]/95 backdrop-blur-sm">
+      <div ref={bar} className="gd-bar fixed inset-x-0 bottom-0 z-20 border-t border-border bg-[var(--lc-bg)]">
         <div className="mx-auto flex w-full max-w-[760px] flex-wrap items-center justify-between gap-x-6 lg:max-w-[880px] gap-y-3 px-4 py-4 sm:px-6">
           {/* Where you are: this screen, the steps of Check as segments, and the count. */}
           <div className="flex min-w-0 flex-col gap-1.5">

@@ -5,14 +5,14 @@ import { createProjectLabelSchema } from "@/components/wizard/core/fields/projec
 import { useWizardForm } from "@/components/wizard/core/wizardForm"
 import { useBooks } from "@/hooks/use-books"
 
-/** The real wizard's Project Name field, with the same validation (unique, slug-safe). */
-export function NameField() {
+/** The real wizard's Project Name field, with the same validation (unique, slug-safe), as the book's name. Enter sets the book up. */
+export function NameField({ onEnter }: { onEnter?: () => void }) {
   const form = useWizardForm()
   const { data: books } = useBooks()
   const existing = books?.map((b: { label: string }) => b.label) ?? []
   return (
     <form.Field name="label" validators={{ onChange: createProjectLabelSchema(existing) }}>
-      {(field) => <ProjectNameField value={field.state.value} onChange={field.handleChange} onBlur={field.handleBlur} errors={field.state.meta.errors} hint={<Trans>The name of this book in your library. Use letters, numbers and dashes, with no spaces.</Trans>} />}
+      {(field) => <ProjectNameField value={field.state.value} onChange={field.handleChange} onBlur={field.handleBlur} errors={field.state.meta.errors} label={<Trans>Book name</Trans>} onEnter={onEnter} hint={<Trans>The name of this book in your library. Use letters, numbers, dots, dashes and underscores, with no spaces.</Trans>} />}
     </form.Field>
   )
 }

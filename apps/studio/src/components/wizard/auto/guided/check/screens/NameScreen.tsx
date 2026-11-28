@@ -14,7 +14,7 @@ import { useSummaryDetails } from "./summaryDetails"
  * screens the choices sit in two columns, so the screen still fits the window. Create and "Set it
  * up myself" are the screen's buttons.
  */
-export function NameScreen({ rec, facts, screens, values, settings, pageCount, onEdit }: { rec: SetupRecommendation; facts: SetupBookFactId[]; screens: ScreenId[]; values: Record<ScreenId, string>; settings: SetupDecided; pageCount: number; onEdit: (screen: ScreenId) => void }) {
+export function NameScreen({ rec, facts, screens, values, settings, pageCount, onEdit, onCreate }: { rec: SetupRecommendation; facts: SetupBookFactId[]; screens: ScreenId[]; values: Record<ScreenId, string>; settings: SetupDecided; pageCount: number; onEdit: (screen: ScreenId) => void; /** Enter in the name: the screen's Set up book. */ onCreate: () => void }) {
   const { i18n, t } = useLingui()
   const details = useSummaryDetails(rec, settings, facts, pageCount)
   const shown = screens.filter((s) => s !== "name")
@@ -44,7 +44,7 @@ export function NameScreen({ rec, facts, screens, values, settings, pageCount, o
         })}
       </ul>
       <div className="lc-surface p-4 sm:px-5 [@media(max-height:800px)]:py-3">
-        <NameField />
+        <NameField onEnter={onCreate} />
       </div>
     </div>
   )
