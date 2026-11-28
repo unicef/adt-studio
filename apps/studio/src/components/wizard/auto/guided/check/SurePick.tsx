@@ -28,6 +28,12 @@ export function fitWidth(box: { w: number; h: number }): number {
   return Math.max(80, Math.min(box.w - 28, ((box.h - 28) * SCREEN.desktop.w) / SCREEN.desktop.h))
 }
 
+/** The nearest ancestor that scrolls. */
+function scrollerOf(el: HTMLElement | null): HTMLElement | null {
+  for (let p = el?.parentElement; p; p = p.parentElement) if (p.scrollHeight > p.clientHeight && /auto|scroll/.test(getComputedStyle(p).overflowY)) return p
+  return null
+}
+
 /** "I'm sure" on the engine's own pick, "Your pick" once the user changed it. */
 export function PickBadge({ changed }: { changed: boolean }) {
   return (
@@ -50,8 +56,22 @@ export function SurePick({ picture, pictureKey, label, title, hint, result, afte
   // Once open, the options may spill out (a language list drops below its field); while they
   // grow or shrink they're clipped.
   const [settled, setSettled] = useState(false)
+  // Closing: the options are still shrinking, so the page keeps its pictures as they are (the
+  // fit-to-window squeeze waits, see Guided) and scrolls back up with them.
+  const [closing, setClosing] = useState(false)
+  const was = useRef(open)
   useEffect(() => {
-    if (!open) return setSettled(false)
+    const closed = was.current && !open
+    was.current = open
+    if (!open) {
+      setSettled(false)
+      if (!closed) return
+      setClosing(true)
+      scrollerOf(more.current)?.scrollTo({ top: 0, behavior: "smooth" })
+      const id = window.setTimeout(() => setClosing(false), 380)
+      return () => window.clearTimeout(id)
+    }
+    setClosing(false)
     const id = window.setTimeout(() => {
       setSettled(true)
       more.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })
@@ -59,7 +79,7 @@ export function SurePick({ picture, pictureKey, label, title, hint, result, afte
     return () => window.clearTimeout(id)
   }, [open])
   return (
-    <div data-pick data-open={open || undefined} className="flex scroll-mt-24 flex-col gap-5">
+    <div data-pick data-open={open || closing || undefined} className="flex scroll-mt-24 flex-col gap-5">
       {/* On a wide window the picture stands beside the words, so the step fits without scrolling. */}
       <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:gap-8">
         {picture && (
@@ -96,7 +116,7 @@ export function SurePick({ picture, pictureKey, label, title, hint, result, afte
         </div>
       )}
       {/* The options grow in (height and fade), and shrink away when hidden; nothing else on the page moves. */}
-      <div className={cn("gd-expand grid", open ? "grid-rows-[1fr] opacity-100" : "-mt-5 grid-rows-[0fr] opacity-0")} inert={!open}>
+      <div data-state={open ? "open" : "closed"} className={cn("gd-expand grid", open ? "grid-rows-[1fr] opacity-100" : "-mt-5 grid-rows-[0fr] opacity-0")} inert={!open}>
         <div className={cn("min-h-0", settled ? "overflow-visible" : "overflow-hidden")}>
           <div ref={more} className="scroll-mb-[150px] px-1 pb-2 pt-1">
             {children}

@@ -333,9 +333,13 @@ function useSqueeze(scroller: RefObject<HTMLElement | null>, page: RefObject<HTM
     let timer = 0
     const onResize = () => {
       window.clearTimeout(timer)
-      if (el.querySelector("[data-pick][data-open]")) return
-      if (sc.scrollHeight - sc.clientHeight > 1) fit()
+      // Options open or still closing: wait, then fit once they've settled (if they've closed by then).
+      if (el.querySelector("[data-pick][data-open]")) timer = window.setTimeout(settle, 420)
+      else if (sc.scrollHeight - sc.clientHeight > 1) fit()
       else timer = window.setTimeout(fit, 160)
+    }
+    const settle = () => {
+      if (!el.querySelector("[data-pick][data-open]")) fit()
     }
     fit()
     const ro = new ResizeObserver(onResize)
