@@ -196,7 +196,12 @@ export function LookChoices({ rec, options, page, chosen, guessing, onPick, file
   return (
     <div className="flex flex-col gap-2 pt-1">
       <div ref={ref} role="group" aria-labelledby={labelId} className="grid gap-3" style={{ gridTemplateColumns: narrow ? "minmax(0, 1fr)" : `repeat(${cols}, minmax(0, 1fr))` }}>
-        {box.w > 0 && shown.map((o, i) => <LookCard key={o.value} rec={rec} option={o} page={page} narrow={narrow} compact={!!compact} chosen={chosen === o.value} first={i === 0} onPick={(card) => morph(() => onPick(o.value, card))} vtName={`opt-${labelId}-${o.value}`} file={file} />)}
+        {box.w > 0 && shown.map((o, i) => <LookCard key={o.value} rec={rec} option={o} page={page} narrow={narrow} compact={!!compact} chosen={chosen === o.value} first={i === 0} onPick={(card) => {
+              // The card picked from under a pick leaves the list for the pick above: unnamed, it
+              // fades with the page instead of flying over the bottom bar beside the new title.
+              if (compact === "others") card.setAttribute("data-vt-off", "")
+              morph(() => onPick(o.value, card))
+            }} vtName={`opt-${labelId}-${o.value}`} file={file} />)}
       </div>
       {explains && <OptionsHelp open={help} onOpenChange={setHelp} rec={rec} options={options} page={page} chosen={chosen} guessing={guessing} file={file} onPick={(v) => { setHelp(false); onPick(v, null) }} />}
     </div>

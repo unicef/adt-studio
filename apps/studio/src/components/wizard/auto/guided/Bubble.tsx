@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils"
 import { Assistant, useAssistantName } from "./shared/Assistant"
 import { useTalk } from "./shared/useTalk"
 import { Morph } from "./Morph"
+import { useSwapName } from "./shared/motion"
 
 /**
  * The assistant's one bubble, in a fixed place under the stepper. Its words are replaced as the
@@ -14,6 +15,7 @@ export function Bubble({ swap, busy, away, children }: { swap: string; busy?: bo
   const words = useRef<HTMLDivElement>(null)
   const talking = useTalk(words, swap)
   const name = useAssistantName()
+  const said = useSwapName<HTMLDivElement>("gd-said")
   return (
     <div className={cn("flex items-start gap-3 transition-opacity duration-300", away && "invisible opacity-0")} aria-hidden={away || undefined}>
       <span className="lc-avatar mt-0.5 flex" style={away ? undefined : { viewTransitionName: "gd-orb" }}>
@@ -24,8 +26,8 @@ export function Bubble({ swap, busy, away, children }: { swap: string; busy?: bo
           {name}:
         </span>
         <Morph swap={swap} name="gd-bubble" className="gd-bubble lc-bubble rounded-tl-[8px]" inner="px-5 py-4 text-[15.5px] leading-[1.55] lg:px-6 lg:py-5 lg:text-[17px]">
-          <div ref={words}>
-            {children}
+          <div ref={said}>
+            <div ref={words}>{children}</div>
           </div>
         </Morph>
       </div>

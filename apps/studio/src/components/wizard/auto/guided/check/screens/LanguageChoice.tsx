@@ -6,6 +6,7 @@ import { getBaseLanguage, getCountriesForLanguage, SUPPORTED_LANGUAGES } from "@
 import { cn } from "@/lib/utils"
 import { languageName, regionName } from "../../shared/languageName"
 import { useReturnFocus } from "../../shared/useReturnFocus"
+import { useSwapName } from "../../shared/motion"
 import { inItself, ownName } from "../../shared/art/LanguageBook"
 
 export const region = (code: string | null) => (code && code.includes("-") ? code.split("-")[1]!.toLowerCase() : null)
@@ -58,6 +59,9 @@ function onRadioKeys(e: KeyboardEvent<HTMLElement>) {
   next.click()
 }
 
+/** How long the dialog takes to close (ui/dialog's duration-200), plus a frame. */
+const DIALOG_CLOSE_MS = 220
+
 const ROW = "flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left text-[14px] transition-colors hover:bg-brand-50 focus-visible:bg-brand-50 focus-visible:outline-none"
 
 /**
@@ -77,9 +81,11 @@ function LanguagePanel({ start, current, found, foundNote, onPick, onDone }: { s
   }, [step])
   const q = query.trim().toLocaleLowerCase(i18n.locale)
   const nameOf = (code: string) => languageName(code, i18n.locale, true)
+  // The dialog closes first, and the pick lands once it has gone, so the change morphs on the
+  // page alone (a snapshot taken with the dialog fading out doubled the words and showed its ×).
   const pick = (code: string) => {
-    onPick(code)
     onDone()
+    window.setTimeout(() => onPick(code), DIALOG_CLOSE_MS)
   }
 
   if (step === "language") {
@@ -149,7 +155,7 @@ function LanguagePanel({ start, current, found, foundNote, onPick, onDone }: { s
           <Trans>{nameOf(lang)}: which variety?</Trans>
         </DialogTitle>
         <DialogDescription className="text-[13.5px] text-muted-foreground">
-          <Trans>Sets the spelling and the voices. The book isn&apos;t translated.</Trans>
+          {found && getBaseLanguage(found) !== lang ? <Trans>Sets the spelling and the voices.</Trans> : <Trans>Sets the spelling and the voices. The book isn&apos;t translated.</Trans>}
         </DialogDescription>
       </div>
       {varieties.length > 8 && <SearchBox ref={search} value={query} onChange={setQuery} placeholder={t`Search for a country`} />}
@@ -203,6 +209,8 @@ export function LanguageChoice({ code, found, source, onPick }: { code: string |
   const { i18n } = useLingui()
   const [panel, setPanel] = useState<"language" | "variety" | null>(null)
   const returnFocus = useReturnFocus(panel !== null)
+  // Another language brings other varieties: the old row lifts away and the new one rises in.
+  const chips = useSwapName<HTMLDivElement>("gd-varieties")
   const foundNote = source === "ai" ? <Trans>from the pages</Trans> : <Trans>from the PDF</Trans>
   const base = code ? getBaseLanguage(code) : null
   const varieties = base ? getCountriesForLanguage(base).suggested : []
@@ -227,7 +235,7 @@ export function LanguageChoice({ code, found, source, onPick }: { code: string |
                 {translates ? <Trans>Sets the spelling and the voices.</Trans> : <Trans>Sets the spelling and the voices. The book isn&apos;t translated.</Trans>}
               </p>
             </div>
-            <div role="radiogroup" aria-labelledby="gd-variety" onKeyDown={onRadioKeys} className="flex flex-wrap items-center gap-1.5">
+            <div ref={chips} role="radiogroup" aria-labelledby="gd-variety" onKeyDown={onRadioKeys} className="flex flex-wrap items-center gap-1.5">
               {!fromBook && <VarietyChip label={<Trans>Not sure</Trans>} on={!now} onPick={() => onPick(base)} />}
               {shown.map((c, i) => (
                 <VarietyChip key={c} label={regionName(c, i18n.locale)} on={c === now} tabbable={c === now || (!now && !!fromBook && i === 0)} note={c === fromBook ? foundNote : undefined} onPick={() => pickVariety(c)} />

@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react"
 import { flushSync } from "react-dom"
 import { prefersReducedMotion } from "@/lib/utils"
 
@@ -18,9 +19,16 @@ export function motionOff(): boolean {
 
 type ViewTransitionDoc = Document & { startViewTransition: (update: () => void) => { finished: Promise<void> } }
 
-/** Runs `update` as a morph: the old and new states are snapshotted around it and animated between. */
+/** A Radix dialog is open or still closing: a snapshot of the page would carry it (half faded, its × over the page). */
+// eslint-disable-next-line lingui/no-unlocalized-strings -- a CSS selector
+const DIALOG = "[role=dialog][data-state], [role=alertdialog][data-state]"
+
+/**
+ * Runs `update` as a morph: the old and new states are snapshotted around it and animated between.
+ * While a dialog is on screen the change just happens (close the dialog first, then morph).
+ */
 export function morph(update: () => void): void {
-  if (!hasViewTransitions || motionOff()) return update()
+  if (!hasViewTransitions || motionOff() || document.querySelector(DIALOG)) return update()
   ;(document as ViewTransitionDoc).startViewTransition(() => flushSync(update))
 }
 
@@ -33,4 +41,21 @@ export function swapName(prefix: string, text: string): string {
   let h = 5381
   for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0
   return `${prefix}-${(h >>> 0).toString(36)}`
+}
+
+/**
+ * A ref for a block of words that changes in place (the bubble's sentence, a row of chips): its
+ * view-transition name follows its text (swapName), so in a morph words that stay just move, and
+ * new words rise in while the old ones lift away (.gd-swap), instead of the two crossfading on top
+ * of each other. Set after every render, so the snapshot taken before a morph has the old text's name.
+ */
+export function useSwapName<T extends HTMLElement>(prefix: string) {
+  const ref = useRef<T>(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.setProperty("view-transition-name", swapName(prefix, el.textContent ?? ""))
+    el.style.setProperty("view-transition-class", "gd-swap")
+  })
+  return ref
 }
