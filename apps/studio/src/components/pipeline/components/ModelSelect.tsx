@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react"
+import { createPortal } from "react-dom"
 import { Check, ChevronDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useLingui } from "@lingui/react/macro"
@@ -44,7 +45,43 @@ export function ModelSelect({
   const [search, setSearch] = useState("")
   const [isSearching, setIsSearching] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({})
+
+  const updatePosition = useCallback(() => {
+    const el = containerRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const spaceBelow = window.innerHeight - rect.bottom
+    const openUpward = spaceBelow < 248 && rect.top > spaceBelow
+    setDropdownStyle(
+      openUpward
+        ? {
+            position: "fixed",
+            left: rect.left,
+            bottom: window.innerHeight - rect.top + 4,
+            width: rect.width,
+          }
+        : {
+            position: "fixed",
+            left: rect.left,
+            top: rect.bottom + 4,
+            width: rect.width,
+          },
+    )
+  }, [])
+
+  useLayoutEffect(() => {
+    if (!open) return
+    updatePosition()
+    window.addEventListener("resize", updatePosition)
+    window.addEventListener("scroll", updatePosition, true)
+    return () => {
+      window.removeEventListener("resize", updatePosition)
+      window.removeEventListener("scroll", updatePosition, true)
+    }
+  }, [open, updatePosition])
 
   const closeDropdown = () => {
     setOpen(false)
@@ -56,7 +93,12 @@ export function ModelSelect({
   useEffect(() => {
     if (!open) return
     const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(target) &&
+        !dropdownRef.current?.contains(target)
+      ) {
         closeDropdown()
       }
     }
@@ -125,7 +167,8 @@ export function ModelSelect({
   const handleBlur = () => {
     // Delay to allow click events on dropdown items to fire first
     setTimeout(() => {
-      if (containerRef.current?.contains(document.activeElement)) return
+      const active = document.activeElement
+      if (containerRef.current?.contains(active) || dropdownRef.current?.contains(active)) return
       closeDropdown()
     }, 150)
   }
@@ -192,8 +235,12 @@ export function ModelSelect({
         </div>
       </div>
 
-      {open && filtered.length > 0 && (
-        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-md border bg-popover text-popover-foreground">
+      {open && filtered.length > 0 && createPortal(
+        <div
+          ref={dropdownRef}
+          style={dropdownStyle}
+          className="pointer-events-auto z-50 max-h-60 overflow-y-auto rounded-md border bg-popover text-popover-foreground shadow-md"
+        >
           {filtered.map((group) => (
             <div key={group.provider}>
               <div className="sticky top-0 z-10 border-b bg-popover px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -222,7 +269,8 @@ export function ModelSelect({
               })}
             </div>
           ))}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   )
